@@ -65,10 +65,10 @@ void CPenBeamEditView::OnDraw(CDC* pDC)
 		return;
 
 	CVolume<short>& density = pPlan->GetSeries()->volume;
-	CVolume<double>& totalDose = pPlan->dose;
+	CVolume<double>& totalDose = *pPlan->GetDoseMatrix();
 
-	int nDrawSize = min(rect.Width() / 2, rect.Height());
-	int nRowSize = density.width.Get();
+	int nDrawSize = __min(rect.Width() / 2, rect.Height());
+	int nRowSize = density.GetWidth();
 	int nPixelSize = nDrawSize / nRowSize;
 	if (nPixelSize % 2 == 1)
 		nPixelSize++;
@@ -81,7 +81,7 @@ void CPenBeamEditView::OnDraw(CDC* pDC)
 #ifdef SHOW_DOSE
 			double dose = totalDose.GetVoxels()[0][nAtY][nAtX];
 			int colorIndex = (int)(dose * (double) (m_arrColormap.GetSize()-1));
-			colorIndex = min(colorIndex, m_arrColormap.GetSize()-1);
+			colorIndex = __min(colorIndex, m_arrColormap.GetSize()-1);
 			COLORREF color = m_arrColormap[colorIndex];
 
 			double intensity = density.GetVoxels()[0][nAtY][nAtX];
@@ -195,11 +195,12 @@ void CPenBeamEditView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 
 	// set the histogram's volume
-	m_histogram.volume.Set(&pPlan->dose);
+	m_histogram.SetVolume(pPlan->GetDoseMatrix());
 
 	// set the histogram's region
-	CVolume<int> *pRegion = pPlan->GetSeries()->structures.Get(0)->region.Get();
-	m_histogram.region.Set(pRegion);
+	CVolume<int> *pRegion = 
+		((CSurface *) pPlan->GetSeries()->m_arrStructures.GetAt(0))->m_pRegion;
+	m_histogram.SetRegion(pRegion);
 
 	// now draw the histogram
 	CArray<double, double>& arrBins = m_histogram.GetCumBins();
@@ -208,6 +209,6 @@ void CPenBeamEditView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	m_graph.m_arrDataSeries.Add(pSeries);
 	for (int nAt = 0; nAt < 256; nAt++)
 	{
-		pSeries->m_arrData.Add(CVector<2>(1000 * nAt / 256, arrBins[nAt] * 100.0));
+		pSeries->m_arrData.push_back(CVector<2>(1000 * nAt / 256, arrBins[nAt] * 100.0));
 	}	
 }

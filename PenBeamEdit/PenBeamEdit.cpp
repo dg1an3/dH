@@ -42,14 +42,16 @@ BOOL ReadAsciiImage(LPCTSTR lpszPathName, CVolume<VOXEL_TYPE> *pImage, double we
 		}
 	}
 
-	pImage->width.Set(nSize);
-	pImage->height.Set(nSize);
-	pImage->depth.Set(1);
+	pImage->SetDimensions(nSize, nSize, 1);
 
 	int nAtVoxel = 0;
 	for (int nAtY = 0; nAtY < nSize; nAtY++)
+	{
 		for (int nAtX = 0; nAtX < nSize; nAtX++)
+		{
 			pImage->GetVoxels()[0][nAtY][nAtX] = arrIntensity[nAtVoxel++];
+		}
+	}
 
 	return TRUE;
 }
@@ -248,18 +250,24 @@ void CPenBeamEditApp::OnFileImport()
 	// initialize the structure
 	CSurface *pStructure = new CSurface();
 	CVolume<int> *pRegion = new CVolume<int>;
-	pStructure->region.Set(pRegion);
-	pSeries->structures.Add(pStructure);
+	pStructure->m_pRegion = pRegion;
+	pSeries->m_arrStructures.Add(pStructure);
 
-	pRegion->width.Set(pSeries->volume.width.Get());
-	pRegion->height.Set(pSeries->volume.height.Get());
-	pRegion->depth.Set(pSeries->volume.depth.Get());
+	pRegion->SetDimensions(pSeries->volume.GetWidth(),
+		pSeries->volume.GetHeight(),
+		pSeries->volume.GetDepth());
 
 	// initialize the region to all ones
-	for (int nAtY = 0; nAtY < pRegion->height.Get(); nAtY++)
-		for (int nAtX = 0; nAtX < pRegion->width.Get(); nAtX++)
+	for (int nAtY = 0; nAtY < pRegion->GetHeight(); nAtY++)
+	{
+		for (int nAtX = 0; nAtX < pRegion->GetWidth(); nAtX++)
+		{
 			if (nAtX > 45 && nAtX < 55)
+			{
 				pRegion->GetVoxels()[0][nAtY][nAtX] = 1;
+			}
+		}
+	}
 
 	// set the series for the plan
 	pPlan->SetSeries(pSeries);
@@ -268,10 +276,10 @@ void CPenBeamEditApp::OnFileImport()
 #define SIGMA 7.0
 
 	// and form the total dose
-	pPlan->dose.width.Set(pSeries->volume.width.Get());
-	pPlan->dose.height.Set(pSeries->volume.height.Get());
-	pPlan->dose.depth.Set(pSeries->volume.depth.Get());
-	pPlan->isDoseValid.Set(TRUE);
+	pPlan->GetDoseMatrix()->SetDimensions(pSeries->volume.GetWidth(),
+		pSeries->volume.GetHeight(),
+		pSeries->volume.GetDepth());
+	pPlan->SetDoseValid(TRUE);
 
 	// read the pencil beams, forming the summed dose
 	double maxDose = 0.0;
@@ -281,30 +289,35 @@ void CPenBeamEditApp::OnFileImport()
 		strPencilBeamFilename.Format("\\dose%i.dat", nAt);
 
 		CBeam *pPencilBeam = new CBeam();
-		pPencilBeam->isDoseValid.Set(TRUE);
 		bResult = bResult && ReadAsciiImage(strPath + strPencilBeamFilename, 
-			&pPencilBeam->dose);
-		pPlan->beams.Add(pPencilBeam);
-		pPencilBeam->isDoseValid.Set(TRUE);
+			pPencilBeam->GetDoseMatrix());
+		pPencilBeam->SetDoseValid(TRUE);
+		pPlan->AddBeam(pPencilBeam);
 
 		// set the weights to a gaussian distribution
 		double weight = 1.0 / sqrt(2 * PI * SIGMA) 
 			* exp(- (double)((50 - nAt) * (50 - nAt)) / (SIGMA * SIGMA));
-		pPencilBeam->weight.Set(weight);
+		pPencilBeam->SetWeight(weight);
 
-		for (int nAtY = 0; nAtY < pPlan->dose.height.Get(); nAtY++)
-			for (int nAtX = 0; nAtX < pPlan->dose.width.Get(); nAtX++)
+		for (int nAtY = 0; nAtY < pPlan->GetDoseMatrix()->GetHeight(); nAtY++)
+		{
+			for (int nAtX = 0; nAtX < pPlan->GetDoseMatrix()->GetWidth(); nAtX++)
 			{
-				pPlan->dose.GetVoxels()[0][nAtY][nAtX] += 
-					weight * pPencilBeam->dose.GetVoxels()[0][nAtY][nAtX];
-				maxDose = max(maxDose, pPlan->dose.GetVoxels()[0][nAtY][nAtX]);
+				pPlan->GetDoseMatrix()->GetVoxels()[0][nAtY][nAtX] += 
+					weight * pPencilBeam->GetDoseMatrix()->GetVoxels()[0][nAtY][nAtX];
+				maxDose = __max(maxDose, pPlan->GetDoseMatrix()->GetVoxels()[0][nAtY][nAtX]);
 			}
+		}
 	}
 
 	// normalize the total dose
-	for (nAtY = 0; nAtY < pPlan->dose.height.Get(); nAtY++)
-		for (int nAtX = 0; nAtX < pPlan->dose.width.Get(); nAtX++)
-			pPlan->dose.GetVoxels()[0][nAtY][nAtX] /= maxDose;
+	for (nAtY = 0; nAtY < pPlan->GetDoseMatrix()->GetHeight(); nAtY++)
+	{
+		for (int nAtX = 0; nAtX < pPlan->GetDoseMatrix()->GetWidth(); nAtX++)
+		{
+			pPlan->GetDoseMatrix()->GetVoxels()[0][nAtY][nAtX] /= maxDose;
+		}
+	}
 
 	// update the views
 	pPlan->UpdateAllViews(NULL);
