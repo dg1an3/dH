@@ -19,6 +19,9 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 
+#define CHECK_CONSERVATION_LAW
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // nint
@@ -50,7 +53,8 @@ CBeamDoseCalc::CBeamDoseCalc(CBeam *pBeam, CEnergyDepKernel *pKernel) // , REAL 
 //		m_pDensity(NULL),
 //		m_pFluence(NULL),
 //		m_pEnergy(NULL),
-		m_pMassDensityPyr(NULL)
+		m_pMassDensityPyr(NULL),
+		m_pTerma(new CVolume<REAL>())
 {
 
 	m_kernel.SetDimensions(9, 9, 1);
@@ -112,6 +116,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 	::Convolve(pOrigDensity, &m_kernel, &m_densityFilt);
 
 	// TODO: do we need to filter?
+	// TODO: check this
 	::Resample(&m_densityFilt, &m_densityRep, TRUE); 
 
 	// TODO: now, replicate slices
@@ -169,7 +174,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 	int nBeamletCount = 15; // 40;
 
 	// initialize fluence (reused for all pencil beams
-	CVolume<REAL> *pFluence = new CVolume<REAL>();
+	CVolume<REAL> *pFluence = m_pTerma; // new CVolume<REAL>();
 
 	REAL rays_per_voxel = 6;
 	REAL thickness = vTop.GetLength() // fabs(vTop[0])
@@ -180,15 +185,17 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 		TRACE("\tGenerating Beamlet %i\n", nAt);
 
 		// set beamlet size
-		CVectorD<2> vMin(((REAL) nAt - 0.5) * beamletSpacing / 1000.0 * m_ssd, -5.0);
-		CVectorD<2> vMax(((REAL) nAt + 0.5) * beamletSpacing / 1000.0 * m_ssd,  5.0);
+		CVectorD<2> vMin(((REAL) nAt - 0.5) * beamletSpacing /* 1000.0 * m_ssd */, -5.0);
+		CVectorD<2> vMax(((REAL) nAt + 0.5) * beamletSpacing /* 1000.0 * m_ssd */,  5.0);
 //		xmin = ((REAL) nBeamletCount - 0.5) * beamletSpacing / 100.0 * m_ssd;
 //		xmax = ((REAL) nBeamletCount + 0.5) * beamletSpacing / 100.0 * m_ssd;
 //		ymin = -5.0;
 //		ymax = 5.0;
 
 		// calculate fluence for pencil beam
-		DivFluenceCalc(vMin, vMax, rays_per_voxel, thickness, pFluence);
+		m_raysPerVoxel = rays_per_voxel;
+		CalcTerma(vMin, vMax);
+		// DivFluenceCalc(vMin, vMax, rays_per_voxel, thickness, pFluence);
 		LOG_OBJECT((*pFluence));
 
 /*		CXMLElement *pElem = CXMLLogFile::GetLogFile()->NewElement("lo", "BeamDoseCalc");
@@ -268,6 +275,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 
 			// convolve with gaussian
 			CVolume<REAL> *pBeamletConv = new CVolume<REAL>;
+			pBeamletConv->ConformTo(pBeamlet);
 			Convolve(pBeamlet, &kernel, pBeamletConv);
 			delete pBeamlet;
 
@@ -275,7 +283,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 			Decimate(pBeamletConv, pBeamletConvDec);
 			delete pBeamletConv;
 
-			CMatrixD<2> mRot 
+/*			CMatrixD<2> mRot 
 				= ::CreateRotate(m_pBeam->GetGantryAngle()); // * PI / 180.0); // + PI / 2);
 
 			CMatrixD<4> mBasisRot;
@@ -287,7 +295,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 			CMatrixD<4> mBasis;
 			mBasis[3][0] = -(pBeamletConvDec->GetWidth() - 1) / 2;
 			mBasis[3][1] = -(pBeamletConvDec->GetHeight() - 1) / 2;
-			pBeamletConvDec->SetBasis(mBasisRot * mBasis);
+			pBeamletConvDec->SetBasis(mBasisRot * mBasis); */
 
 			m_pBeam->m_arrBeamlets[nAtScale].Add(pBeamletConvDec);
 
@@ -319,6 +327,202 @@ CVolume<REAL> *CBeamDoseCalc::GetFluence()
 
 }	// CBeamDoseCalc::GetFluence
 */
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// DistToIntersectPlane
+// 
+// Helper function to compute distance of a vector component to interset the
+//	next plane at a 0.5-boundary
+///////////////////////////////////////////////////////////////////////////////
+inline REAL DistToIntersectPlane(REAL pos, REAL dir, int& nCurrIndex)
+{
+	const REAL EPS = (REAL) 1e-6;
+	
+	if (dir > 0)
+	{
+		nCurrIndex = floor(pos + 0.5 + EPS);
+		return (((REAL) nCurrIndex + 0.5) - pos) / dir;
+	}
+	else
+	{
+		nCurrIndex = ceil(pos - 0.5 - EPS);
+		return (((REAL) nCurrIndex - 0.5) - pos) / dir;
+	}
+
+}	// DistToIntersectPlane
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeamDoseCalc::CalcTerma
+// 
+// Calculates TERMA for the given source geometry, and mass density field
+// vMin, vMax in physical coords at isocentric plane
+///////////////////////////////////////////////////////////////////////////////
+void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
+							  const CVectorD<2>& vMax_in)
+{
+	// consts for index positions
+	const X = 1;
+	const Y = 2;
+	const Z = 0;
+
+	// vPixSpacing is spacing factor for three coordinates
+	//		= conversion from voxel to physical coordinates
+	const CVectorD<3> vPixSpacing = m_densityRep.GetPixelSpacing();
+
+	// calculate conversion from isocenter to top boundary
+	const REAL convIso2Top = 
+		(-0.5 - m_vSource_vxl[Z])		// z-distance from upper boundary to source
+			/ (m_vIsocenter_vxl[Z] - m_vSource_vxl[Z]);
+
+	// set up starting min vector position in voxel coords
+	CVectorD<3> vMin = m_vIsocenter_vxl;
+	vMin[X] += convIso2Top * vMin_in[0] / vPixSpacing[X];
+	vMin[Y] += convIso2Top * vMin_in[1] / vPixSpacing[Y];
+
+	// set up max vector position in voxel coords
+	CVectorD<3> vMax = m_vIsocenter_vxl;
+	vMax[X] += convIso2Top * vMax_in[0] / vPixSpacing[X];
+	vMax[Y] += convIso2Top * vMax_in[1] / vPixSpacing[Y];
+
+	// now set starting z-coord (at upper boundary of voxels)
+	vMin[Z] = vMax[Z] = -0.5;
+
+	// based on rays per voxel -- in voxel coordinates
+	const REAL deltaRay = 1.0 / m_raysPerVoxel;
+
+	// initial fluence per ray -- set so incident fluence is constant
+	const REAL fluence0 = vPixSpacing[X] * vPixSpacing[Y] * deltaRay * deltaRay;
+
+	// stores mu
+	const REAL mu = m_pKernel->m_mu;
+
+	// set up density voxel accessor
+	REAL ***pppDensity = m_densityRep.GetVoxels();
+
+	// set up terma and voxel accessor
+	m_pTerma->ConformTo(&m_densityRep);
+	m_pTerma->ClearVoxels();
+	REAL ***pppTerma = m_pTerma->GetVoxels();
+
+#ifdef CHECK_CONSERVATION_LAW
+
+	// initialize surface integral of fluence 
+	REAL fluenceSurfIntegral = 0.0;
+
+#endif
+
+	// iterate over X & Y voxel positions
+	for (CVectorD<3> vX = vMin; vX[X] < vMax[X]; vX[X] += deltaRay)
+	{
+		for (CVectorD<3> vY = vX; vY[Y] < vMax[Y]; vY[Y] += deltaRay)
+		{
+			// initial ray position (voxel coordinates)
+			CVectorD<3> vRay = vY;
+
+			// unit ray direction vector (voxel coordinates)
+			CVectorD<3> vDir = vRay - m_vSource_vxl;
+			vDir.Normalize();
+
+			// calc physical length of vDir, in cm!!! (not mm)
+			CVectorD<3> vDirPhysical = vDir;
+			vDirPhysical[X] *= vPixSpacing[X];
+			vDirPhysical[Y] *= vPixSpacing[Y];
+			vDirPhysical[Z] *= vPixSpacing[Z];
+			const REAL dirLength = 0.1 * vDirPhysical.GetLength();
+
+			// initialize radiological path length for raytrace
+			REAL path = 0.0;
+
+#ifdef CHECK_CONSERVATION_LAW
+
+			// increment by incident fluence
+			fluenceSurfIntegral += fluence0;
+#endif
+			// stores current voxel indices
+			int nNdx[3];
+
+			// stores distances for each dimension
+			REAL dist[3];
+
+			// find next intersections
+			for (int nDim = 0; nDim <= 2; nDim++)
+			{
+				dist[nDim] = DistToIntersectPlane(vRay[nDim], vDir[nDim], nNdx[nDim]);
+			}
+
+			// iterate ray trace until volume boundary is reached 
+			while (nNdx[X] >= 0 && nNdx[X] < m_pTerma->GetHeight()
+				&& nNdx[Y] >= 0 && nNdx[Y] < m_pTerma->GetDepth()
+				&& nNdx[Z] < m_pTerma->GetWidth())
+			{
+				// delta path
+				//		initial radiological path (based on mass density) through voxel
+				REAL deltaPath = pppDensity[nNdx[Y]][nNdx[X]][nNdx[Z]];
+
+				// find closest intersections
+				for (int nDim = 0; nDim <= 2; nDim++)
+				{
+					// is this plane intersection closest?
+					if (dist[nDim] <= dist[(nDim + 1) % 3] 
+						&& dist[nDim] <= dist[(nDim + 2) % 3])
+					{
+						// update current ray position to move to the given plane intersection
+						vRay += dist[nDim] * vDir;
+
+						// update radiological path for length of partial volume traversal
+						deltaPath *= dist[nDim] * dirLength;
+
+						// done, since we found the minimum
+						break;
+					}
+				}
+
+				// update cumulative path
+				path += deltaPath;
+
+				// add to terma = -(derivative of fluence along ray)
+				pppTerma[nNdx[Y]][nNdx[X]][nNdx[Z]] += 
+					fluence0 * exp(-mu * path) * mu * deltaPath;
+
+				// find next intersections
+				for (nDim = 0; nDim <= 2; nDim++)
+				{
+					dist[nDim] = DistToIntersectPlane(vRay[nDim], vDir[nDim], nNdx[nDim]);
+				}
+
+			}	// while
+
+
+#ifdef CHECK_CONSERVATION_LAW
+
+			// reduce by amount of remaining (un-attenuated) fluence exiting volume
+			fluenceSurfIntegral -= fluence0 * exp(-mu * path) ;
+#endif
+		}	// for vY
+
+	}	// for vX
+
+	// flag change to terma voxels
+	m_pTerma->VoxelsChanged();
+
+#ifdef CHECK_CONSERVATION_LAW
+
+	TRACE("Fluence Surface Integral = %lf\n", fluenceSurfIntegral);
+	TRACE("TERMA Integral = %lf\n", m_pTerma->GetSum());
+
+	// fluence surface integral should be equal to integral of TERMA
+	ASSERT(IsApproxEqual(fluenceSurfIntegral, m_pTerma->GetSum(), 
+		fluenceSurfIntegral * (REAL) 1e-2));
+
+#endif
+
+}	// CBeamDoseCalc::CalcTerma
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // CBeamDoseCalc::DivFluenceCalc
@@ -508,7 +712,7 @@ void CBeamDoseCalc::DivFluenceCalc(
 				if (pppDensity[nNearJ-nOY][nNearI-nOX][nK-1] != 0.0)
 				{
 					// nmu = -alog(f_factor(nint(path)))/path
-					atten *= exp(-mu * delta_path);
+					atten *= exp(-mu * 0.1 * delta_path);
 					
 					// fluence increment    
 					fluinc = incfluence * atten * mu
@@ -657,6 +861,13 @@ void CBeamDoseCalc::SphereConvolve(CVolume<REAL> *pFluence_in,
 	// CVectorD<3> vIndexMin = FromHG<3, REAL>(mBasisInv * ToHG(m_vDoseCalcRegionMin));
 	// CVectorD<3> vIndexMax = FromHG<3, REAL>(mBasisInv * ToHG(m_vDoseCalcRegionMax));
 
+	// set up
+	CVectorD<3> &vPixSpacing = m_densityRep.GetPixelSpacing();
+
+	// leave as mm (because radial energy lookup in mm)
+	vPixSpacing *= 0.1;
+	m_pKernel->SetBasis(vPixSpacing);
+
 	// Do the convolution.
 	
 	// do for region of interest in z-dir
@@ -692,7 +903,8 @@ void CBeamDoseCalc::SphereConvolve(CVolume<REAL> *pFluence_in,
 			{				
 				// The divergence correction is done also here (instead in div_fluence_calc)
 				// Added by Nikos
-				
+
+#ifdef CORRECT_DIVERGENCE
 				REAL new_distance = sqrt(
 					(m_ssd + float(nK) * 4.0 /* mBasis[0][0] */ - 0.5) 
 						* (m_ssd + float(nK) * 4.0 /* mBasis[0][0] */ - 0.5)
@@ -700,6 +912,7 @@ void CBeamDoseCalc::SphereConvolve(CVolume<REAL> *pFluence_in,
 						* (float(nJ) * 4.0 /* mBasis[2][2] */)
 					+ (float(nI) * 4.0 /* mBasis[1][1] */) 
 						* (float(nI) * 4.0 /* mBasis[1][1] */));
+#endif
 
 #ifdef CORRECT_DEPTH_DISTANCE
 				// depth_distance added for the CF kernel depth hardening effect
@@ -721,7 +934,10 @@ void CBeamDoseCalc::SphereConvolve(CVolume<REAL> *pFluence_in,
 				// convert to Gy cm**2 and take into account the
 				// azimuthal sum
 				pppEnergy[nJ-nOY][nI-nOX][nK-1] *= 1.602e-10 / (REAL) NUM_THETA;
+
+#ifdef CORRECT_DIVERGENCE
 				pppEnergy[nJ-nOY][nI-nOX][nK-1] *= (m_ssd / new_distance) * (m_ssd / new_distance);
+#endif
 
 #ifdef CORRECT_DEPTH_DISTANCE
 				pppEnergy[nJ-nOY][nI-nOX][nK-1] *= c_factor;
@@ -774,7 +990,8 @@ void CBeamDoseCalc::SphereTrace(CVolume<REAL> *pFluence_in,
 	int nOX = -m_densityRep.GetHeight() / 2; // nint(mBasis[3][1] / mBasis[1][1]); 
 	int nOY = -m_densityRep.GetDepth() / 2; // nint(mBasis[3][2] / mBasis[2][2]); 
 
-	m_pKernel->SetBasis(mBasis);
+	// set up (moved to higher level)
+	// m_pKernel->SetBasis(mBasis);
 
 	// do for all azimuthal angles
 	for (int thet = 1; thet <= NUM_THETA; thet++)            

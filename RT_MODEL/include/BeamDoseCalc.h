@@ -55,6 +55,21 @@ public:
 		CVolume<REAL> *pFluence_out
 		);
 
+	// vSource -- source position, in voxel coordinates
+	CVectorD<3> m_vSource_vxl;
+	CVectorD<3> m_vIsocenter_vxl;
+
+
+	// returns computed terma
+	CVolume<REAL> *m_pTerma;
+
+	// minimum number of rays to use per voxel (on top boundary)
+	REAL m_raysPerVoxel;
+
+	// vMin, vMax in physical coords at isocentric plane
+	void CalcTerma(const CVectorD<2>& vMin_in,
+					const CVectorD<2>& vMax_in);
+
 	// aceessor for energy
 	// CVolume<REAL> *GetEnergy();
 
