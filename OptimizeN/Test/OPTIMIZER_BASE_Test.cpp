@@ -53,7 +53,102 @@ private:
 	CVectorN<> m_vOffset;
 };
 
-int main(int argc, char* argv[])
+class CRosenbrock : public CObjectiveFunction
+{
+public:
+	CRosenbrock()
+		: CObjectiveFunction(TRUE)
+	{
+	}
+
+	virtual REAL operator()(const CVectorN<>& vInput, CVectorN<> *pGrad = NULL)
+	{
+		ASSERT(vInput.GetDim() == 2);
+
+		REAL term1 = vInput[1] - vInput[0] * vInput[0];
+		REAL dterm1_d0 = 2.0 * vInput[0];
+		const REAL dterm1_d1 = 1.0;
+
+		REAL term2 = 1.0 - vInput[0];
+		const REAL dterm2_d0 = -1.0;
+		const REAL dterm2_d1 = 0.0;
+
+		if (NULL != pGrad)
+		{
+			ASSERT(pGrad->GetDim() == 2);
+			(*pGrad)[0] = 200.0 * term1 * dterm1_d0 + 2.0 * term2 * dterm2_d0;
+			(*pGrad)[1] = 200.0 * term1 * dterm1_d1 + 2.0 * term2 * dterm2_d1;
+		}
+
+		return 100.0 * term1 * term1 + term2 * term2;
+	}
+};
+
+
+class CCubic : public CObjectiveFunction
+{
+public:
+	CCubic(REAL a, REAL b, REAL c, REAL d)
+		: CObjectiveFunction(TRUE),
+			m_a(a),
+			m_b(b),
+			m_c(c),
+			m_d(d)
+	{
+	}
+
+	virtual REAL operator()(const CVectorN<>& v, CVectorN<> *pGrad = NULL)
+	{
+		ASSERT(v.GetDim() == 1);
+
+		if (NULL != pGrad)
+		{
+			pGrad->SetDim(1);
+
+			(*pGrad)[0] = 3.0 * m_a * v[0] * v[0]
+				+ 2.0 * m_b * v[0]
+				+ m_c;
+		}
+
+		return m_a * v[0] * v[0] * v[0] 
+			+ m_b * v[0] * v[0]
+			+ m_c * v[0]
+			+ m_d;
+	}
+
+	REAL m_a;
+	REAL m_b;
+	REAL m_c;
+	REAL m_d;
+};
+
+
+void TestCubicInterp()
+{
+	CCubic cub(1.0, -2.0, 1.0, 0.0);
+
+	CCubicInterpOptimizer cubOpt(&cub);
+
+	CVectorN<> opt = cubOpt.Optimize(CVector<1>(1.9));
+}
+
+void TestRosenbrock()
+{
+	CRosenbrock rosen;
+	CVectorN<> vInit = CVector<2>(-1.9, 2.0);
+
+	TRACE1("Rosenbrock at <-1.9, 2.0> = %lf\n", rosen(CVector<2>(-1.9, 2.0)));
+	TRACE1("Rosenbrock at <-1.9, 2.0> = %lf\n", rosen(CVector<2>(-0.5, 0.5)));
+	TRACE1("Rosenbrock at <1.0, 1.0> = %lf\n", rosen(CVector<2>(1.0, 1.0)));
+
+	CPowellOptimizer pow(&rosen);
+	pow.SetTolerance(0.1);
+
+	CVectorN<> vFinal = pow.Optimize(vInit);
+	TraceVector(vFinal);
+}
+
+void TestParabola()
 {
 	CVectorN<> vInitN;
 	vInitN.SetDim(21);
@@ -63,7 +158,6 @@ int main(int argc, char* argv[])
 
 	CVectorN<REAL> vFinalN;
 	vFinalN.SetDim(21);
-
 
 	CVectorN<> vCenter(4);
 	vCenter[0] = 11.0;
@@ -81,6 +175,15 @@ int main(int argc, char* argv[])
 
 	TraceVector(vFinal);
 	// cgo1d.SetUseGradientInfo(TRUE);
+}
+
+int main(int argc, char* argv[])
+{
+	TestCubicInterp();
+
+	TestParabola();
+
+	TestRosenbrock();
 /*
 	CVectorN<> vInit1d(1);
 	vInit1d[0] = -11.0;
