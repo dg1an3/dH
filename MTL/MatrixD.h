@@ -37,7 +37,8 @@ public:
 
 	// IsApproxEqual -- tests for approximate equality using the EPS
 	//		defined at the top of this file
-	BOOL IsApproxEqual(const CMatrixD& m, TYPE epsilon = EPS) const;
+	BOOL IsApproxEqual(const CMatrixD& m, 
+		TYPE epsilon = DEFAULT_EPSILON) const;
 
 	// in-place operators
 	CMatrixD& operator+=(const CMatrixD& mRight);
