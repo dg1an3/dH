@@ -16,6 +16,12 @@ using namespace std;
 // math utilities
 #include "MathUtil.h"
 
+// forward-define CMatrixBase as a friend class
+template<class TYPE>
+class CMatrixBase;
+
+template<int DIM, class TYPE>
+class CMatrixD;
 
 //////////////////////////////////////////////////////////////////////
 // class CVectorBase<TYPE>
@@ -25,224 +31,56 @@ using namespace std;
 template<class TYPE = double>
 class CVectorBase
 {
+protected:
+	// constructors 
+	CVectorBase();
+	CVectorBase(const CVectorBase& vFrom);
+
+	// CMatrixBase can construct CVectorBases
+	friend CMatrixBase<TYPE>;
+
+	// CMatrixD can construct CVectorBases
+	friend CMatrixD<1, TYPE>;
+	friend CMatrixD<2, TYPE>;
+	friend CMatrixD<3, TYPE>;
+	friend CMatrixD<4, TYPE>;
+
 public:
-	//////////////////////////////////////////////////////////////////
-	// default constructor -- public can not construct a CVectorBase
-	//////////////////////////////////////////////////////////////////
-	CVectorBase()
-		: m_nDim(0),
-			m_pElements(NULL),
-			m_bFreeElements(TRUE)
-	{
-	}
+	// destructor
+	~CVectorBase();
 
-	//////////////////////////////////////////////////////////////////
-	// copy constructor
-	//////////////////////////////////////////////////////////////////
-	CVectorBase(const CVectorBase& vFrom)
-		: m_nDim(0),
-			m_pElements(NULL),
-			m_bFreeElements(TRUE)
-	{
-		// set up the elements
-		m_nDim = vFrom.GetDim();
-		m_pElements = new TYPE[m_nDim];
+	// assignment
+	CVectorBase& operator=(const CVectorBase& vFrom);
 
-		// and copy them
-		(*this) = vFrom;
-	}
+	// initializes all elements to zero
+	void SetZero();
 
-	//////////////////////////////////////////////////////////////////
-	// destructor 
-	//////////////////////////////////////////////////////////////////
-	~CVectorBase()
-	{
-		if (m_bFreeElements && NULL != m_pElements)
-		{
-			// free elements
-			delete [] m_pElements;
-		}
-	}
+	// element accessors
+	int GetDim() const;
+	TYPE& operator[](int nAtRow);
+	const TYPE& operator[](int nAtRow) const;
 
-	//////////////////////////////////////////////////////////////////
-	// copy constructor -- copies arbitrary dimensioned vector to
-	//		this, zero-filling or truncating the elements
-	//////////////////////////////////////////////////////////////////
-	CVectorBase& operator=(const CVectorBase& vFrom)
-	{
-		for (int nAt = 0; nAt < GetDim(); nAt++)
-		{
-			(*this)[nAt] = 
-				(nAt < vFrom.GetDim()) ? vFrom[nAt] : (TYPE) 0.0;
-		}
-
-		return (*this);
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// SetZero -- sets all elements to zero
-	//////////////////////////////////////////////////////////////////
-	void SetZero() 
-	{
-		// zero all elements
-		for (int nAt = 0; nAt < GetDim(); nAt++)
-		{
-			(*this)[nAt] = (TYPE) 0.0;
-		}
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// GetDim -- returns the dimensionality of the vector
-	//////////////////////////////////////////////////////////////////
-	int GetDim() const
-	{
-		return m_nDim;
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// bracket operator -- returns a reference to the specified 
-	//		element.
-	//////////////////////////////////////////////////////////////////
-	TYPE& operator[](int nAtRow)
-	{
-		// check dimensions
-		ASSERT(nAtRow >= 0 && nAtRow < GetDim());
-
-		return m_pElements[nAtRow];
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// const bracket operator -- returns a const reference to the 
-	//		specified element.
-	//////////////////////////////////////////////////////////////////
-	const TYPE& operator[](int nAtRow) const
-	{
-		// check dimensions
-		ASSERT(nAtRow >= 0 && nAtRow < GetDim());
-
-		return m_pElements[nAtRow];
-	}
-
-	//////////////////////////////////////////////////////////////////
 	// TYPE * conversion -- returns a pointer to the first element
 	//		WARNING: this allows for no-bounds-checking access
-	//////////////////////////////////////////////////////////////////
-	operator TYPE *()
-	{
-		return &m_pElements[0];
-	}
+	operator TYPE *();
+	operator const TYPE *() const;
 
-	//////////////////////////////////////////////////////////////////
-	// const TYPE * conversion -- returns a pointer to the first 
-	//		element.
-	//		WARNING: this allows for no-bounds-checking access
-	//////////////////////////////////////////////////////////////////
-	operator const TYPE *() const
-	{
-		return &m_pElements[0];
-	}
+	// vector length and normalization
+	TYPE GetLength() const;
+	void Normalize();
 
-	//////////////////////////////////////////////////////////////////
-	// GetLength -- returns the euclidean length of the vector
-	//////////////////////////////////////////////////////////////////
-	TYPE GetLength() const
-	{
-		// form the sum of the square of each element
-		TYPE len = 0.0;
-		for (int nAt = 0; nAt < GetDim(); nAt++)
-		{
-			len += (*this)[nAt] * (*this)[nAt];
-		}
-		
-		// return the square root of this
-		return static_cast<TYPE>(sqrt(len));
-	}
+	// approximate equality using the epsilon
+	BOOL IsApproxEqual(const CVectorBase& v, TYPE epsilon = EPS) const;
 
-	//////////////////////////////////////////////////////////////////
-	// Normalize -- scales the vector so its length is 1.0
-	//////////////////////////////////////////////////////////////////
-	void Normalize()
-	{
-		// store the computed lendth
-		TYPE len = GetLength();
-
-		// don't normalize zero vectors
-		if (len > 0.0)
-		{
-			// normalize each element by length
-			for (int nAt = 0; nAt < GetDim(); nAt++)
-			{
-				(*this)[nAt] /= len;
-			}
-		}
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// IsApproxEqual -- tests for approximate equality using the EPS
-	//		defined at the top of this file
-	//////////////////////////////////////////////////////////////////
-	BOOL IsApproxEqual(const CVectorBase& v, TYPE epsilon = EPS) const
-	{
-		// form the difference vector
-		CVectorBase vDiff(*this);
-		vDiff -= v;
-
-		return (vDiff.GetLength() < epsilon);
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// operator+= -- in-place vector addition; returns a reference to 
-	//		this
-	//////////////////////////////////////////////////////////////////
-	CVectorBase& operator+=(const CVectorBase& vRight)
-	{
-		for (int nAt = 0; nAt < GetDim(); nAt++)
-		{
-			(*this)[nAt] += vRight[nAt];
-		}
-
-		return (*this);
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// operator-= -- in-place vector subtraction; returns a reference 
-	//		to this
-	//////////////////////////////////////////////////////////////////
-	CVectorBase& operator-=(const CVectorBase& vRight)
-	{
-		for (int nAt = 0; nAt < GetDim(); nAt++)
-		{
-			(*this)[nAt] -= vRight[nAt];
-		}
-
-		return (*this);
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// operator*= -- in-place scalar multiplication; returns a 
-	//		reference to this
-	//////////////////////////////////////////////////////////////////
-	CVectorBase& operator*=(TYPE scalar)
-	{
-		for (int nAt = 0; nAt < GetDim(); nAt++)
-		{
-			(*this)[nAt] *= scalar;
-		}
-
-		return (*this);
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// from a TYPE pointer
-	//////////////////////////////////////////////////////////////////
-	void SetElements(int nDim, TYPE *pElements)
-	{
-		m_nDim = nDim;
-		m_pElements = pElements;
-		m_bFreeElements = FALSE;
-	}
+	// in-place vector arithmetic
+	CVectorBase& operator+=(const CVectorBase& vRight);
+	CVectorBase& operator-=(const CVectorBase& vRight);
+	CVectorBase& operator*=(const TYPE& scalar);
 
 protected:
+	// external element management
+	void SetElements(int nDim, TYPE *pElements, BOOL bFreeElements = FALSE);
+
 	// dimension of vector
 	int m_nDim;
 
@@ -251,11 +89,309 @@ protected:
 
 	// flag to indicate whether the elements should be freed
 	BOOL m_bFreeElements;
-};
+
+};	// class CVectorBase<TYPE>
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::CVectorBase<TYPE>
+//
+// default constructor -- public can not construct a CVectorBase
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>::CVectorBase<TYPE>()
+	: m_nDim(0),
+		m_pElements(NULL),
+		m_bFreeElements(FALSE)
+{
+}	// CVectorBase<TYPE>::CVectorBase<TYPE>
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>&)
+//									 
+// copy constructor
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>& vFrom)
+	: m_nDim(0),
+		m_pElements(NULL),
+		m_bFreeElements(FALSE)
+{
+	// set up the elements
+	m_nDim = vFrom.GetDim();
+	m_pElements = new TYPE[m_nDim];
+
+	// and copy them
+	(*this) = vFrom;
+
+}	// CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>&)
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::~CVectorBase<TYPE>
+//
+// destructor 
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>::~CVectorBase<TYPE>()
+{
+	if (m_bFreeElements && NULL != m_pElements)
+	{
+		// free elements
+		delete [] m_pElements;
+	}
+
+}	// CVectorBase<TYPE>::~CVectorBase<TYPE>
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator=
+//
+// assignment operator -- copies arbitrary dimensioned vector to
+//		this, zero-filling or truncating the elements
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>& CVectorBase<TYPE>::operator=(const CVectorBase<TYPE>& vFrom)
+{
+	for (int nAt = 0; nAt < GetDim(); nAt++)
+	{
+		(*this)[nAt] = 
+			(nAt < vFrom.GetDim()) ? vFrom[nAt] : (TYPE) 0.0;
+	}
+
+	return (*this);
+
+}	// CVectorBase<TYPE>::operator=
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::SetZero
+//
+// initializes all elements to zero
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+void CVectorBase<TYPE>::SetZero() 
+{
+	// zero all elements
+	for (int nAt = 0; nAt < GetDim(); nAt++)
+	{
+		(*this)[nAt] = (TYPE) 0.0;
+	}
+
+}	// CVectorBase<TYPE>::SetZero
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::GetDim
+//
+// returns the dimensionality of the vector
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+int CVectorBase<TYPE>::GetDim() const
+{
+	return m_nDim;
+
+}	// CVectorBase<TYPE>::GetDim
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator[]
+//
+// returns a reference to the specified element.
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+TYPE& CVectorBase<TYPE>::operator[](int nAtRow)
+{
+	// check dimensions
+	ASSERT(nAtRow >= 0 && nAtRow < GetDim());
+
+	return m_pElements[nAtRow];
+
+}	// CVectorBase<TYPE>::operator[]
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator[] const
+//
+// returns a const reference to the specified element.
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+const TYPE& CVectorBase<TYPE>::operator[](int nAtRow) const
+{
+	// check dimensions
+	ASSERT(nAtRow >= 0 && nAtRow < GetDim());
+
+	return m_pElements[nAtRow];
+
+}	// CVectorBase<TYPE>::operator[] const
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator TYPE *
+//
+// TYPE * conversion -- returns a pointer to the first element
+//		WARNING: this allows for no-bounds-checking access
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>::operator TYPE *()
+{
+	return &m_pElements[0];
+
+}	// CVectorBase<TYPE>::operator TYPE *
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator const TYPE *
+//
+// const TYPE * conversion -- returns a pointer to the first 
+//		element.
+//		WARNING: this allows for no-bounds-checking access
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>::operator const TYPE *() const
+{
+	return &m_pElements[0];
+
+}	// CVectorBase<TYPE>::operator const TYPE *
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::SetElements
+//
+// management for external elements
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+void CVectorBase<TYPE>::SetElements(int nDim, TYPE *pElements,
+									BOOL bFreeElements)
+{
+	m_nDim = nDim;
+	m_pElements = pElements;
+	m_bFreeElements = bFreeElements;
+
+}	// CVectorBase<TYPE>::SetElements
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::GetLength
+//
+// returns the euclidean length of the vector
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+TYPE CVectorBase<TYPE>::GetLength() const
+{
+	// form the sum of the square of each element
+	TYPE len = 0.0;
+	for (int nAt = 0; nAt < GetDim(); nAt++)
+	{
+		len += (*this)[nAt] * (*this)[nAt];
+	}
+	
+	// return the square root of this
+	return static_cast<TYPE>(sqrt(len));
+
+}	// CVectorBase<TYPE>::GetLength
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::Normalize
+//
+// scales the vector so its length is 1.0
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+void CVectorBase<TYPE>::Normalize()
+{
+	// store the computed lendth
+	TYPE len = GetLength();
+
+	// don't normalize zero vectors
+	if (len > 0.0)
+	{
+		// normalize each element by length
+		for (int nAt = 0; nAt < GetDim(); nAt++)
+		{
+			(*this)[nAt] /= len;
+		}
+	}
+
+}	// CVectorBase<TYPE>::Normalize
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::IsApproxEqual
+//	
+// tests for approximate equality using the EPS defined at 
+//		the top of this file
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+BOOL CVectorBase<TYPE>::IsApproxEqual(const CVectorBase<TYPE>& v, 
+									  TYPE epsilon) const
+{
+	// form the difference vector
+	CVectorBase<TYPE> vDiff(*this);
+	vDiff -= v;
+
+	return (vDiff.GetLength() < epsilon);
+
+}	// CVectorBase<TYPE>::IsApproxEqual
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator+=
+//
+// in-place vector addition; returns a reference to this
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>& CVectorBase<TYPE>::operator+=(const CVectorBase<TYPE>& vRight)
+{
+	for (int nAt = 0; nAt < GetDim(); nAt++)
+	{
+		(*this)[nAt] += vRight[nAt];
+	}
+
+	return (*this);
+
+}	// CVectorBase<TYPE>::operator+=
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator-=
+//
+// in-place vector subtraction; returns a reference to this
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>& CVectorBase<TYPE>::operator-=(const CVectorBase<TYPE>& vRight)
+{
+	for (int nAt = 0; nAt < GetDim(); nAt++)
+	{
+		(*this)[nAt] -= vRight[nAt];
+	}
+
+	return (*this);
+
+}	// CVectorBase<TYPE>::operator-=
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::operator*=
+//
+// in-place scalar multiplication; returns a reference to this
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+CVectorBase<TYPE>& CVectorBase<TYPE>::operator*=(const TYPE& scalar)
+{
+	for (int nAt = 0; nAt < GetDim(); nAt++)
+	{
+		(*this)[nAt] *= scalar;
+	}
+
+	return (*this);
+
+}	// CVectorBase<TYPE>::operator*=
 
 
 //////////////////////////////////////////////////////////////////////
-// function operator==(const CVectorBase, const CVectorBase)
+// operator==(const CVectorBase, const CVectorBase)
 //
 // friend function to provide exact equality comparison for vectors.
 // use IsApproxEqual for approximate equality.
@@ -274,11 +410,12 @@ inline bool operator==(const CVectorBase<TYPE>& vLeft,
 	}
 
 	return true;
-}
+
+}	// operator==(const CVectorBase, const CVectorBase)
 
 
 //////////////////////////////////////////////////////////////////////
-// function operator!=(const CVectorBase, const CVectorBase)
+// operator!=(const CVectorBase, const CVectorBase)
 //
 // friend function to provide exact inequality comparison for vectors.
 // use !IsApproxEqual for approximate inequality.
@@ -288,53 +425,12 @@ inline bool operator!=(const CVectorBase<TYPE>& vLeft,
 					   const CVectorBase<TYPE>& vRight)
 {
 	return !(vLeft == vRight);
-}
+
+}	// operator!=(const CVectorBase, const CVectorBase)
 
 
 //////////////////////////////////////////////////////////////////////
-// function operator+(const CVectorBase, const CVectorBase)
-//
-// friend function to add two vectors, returning the sum as a new 
-//		vector
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-inline CVectorBase<TYPE> operator+(const CVectorBase<TYPE>& vLeft, 
-							  const CVectorBase<TYPE>& vRight)
-{
-	// copy left vector to intermediate sum value
-	CVectorBase<TYPE> vSum(vLeft);
-
-	// add the right vector
-	vSum += vRight;
-
-	// return formed sum value
-	return vSum;
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// function operator-(const CVectorBase, const CVectorBase)
-//
-// friend function to subtract one vector from another, returning 
-//		the difference as a new vector
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-inline CVectorBase<TYPE> operator-(const CVectorBase<TYPE>& vLeft, 
-							  const CVectorBase<TYPE>& vRight)
-{
-	// copy left vector to intermediate difference value
-	CVectorBase<TYPE> vDiff(vLeft);
-
-	// subtract the right vector
-	vDiff -= vRight;
-
-	// return formed difference value
-	return vDiff;
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// function operator*(const CVectorBase, const CVectorBase)
+// operator*(const CVectorBase, const CVectorBase)
 //
 // friend function for vector inner product
 //////////////////////////////////////////////////////////////////////
@@ -353,51 +449,12 @@ inline TYPE operator*(const CVectorBase<TYPE>& vLeft,
 
 	// return the product
 	return prod;
-}
+
+}	// operator*(const CVectorBase, const CVectorBase)
 
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(TYPE scalar, const CVectorBase)
-//
-// friend function for scalar multiplication of a vector
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-inline CVectorBase<TYPE> operator*(TYPE scalar, 
-							  const CVectorBase<TYPE>& vRight)
-{
-	// copy vector to intermediate product value
-	CVectorBase<TYPE> vProd(vRight);
-
-	// in-place scalar multiplication
-	vProd *= scalar;
-
-	// return the result
-	return vProd;
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// function operator*(const CVectorBase, TYPE scalar)
-//
-// friend function for scalar multiplication of a vector
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-inline CVectorBase<TYPE> operator*(const CVectorBase<TYPE>& vLeft, 
-							  TYPE scalar)
-{
-	// copy vector to intermediate product value
-	CVectorBase<TYPE> vProd(vLeft);
-
-	// in-place scalar multiplication
-	vProd *= scalar;
-
-	// return the result
-	return vProd;
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// function operator<<(ostream& ar, CVectorBase)
+// operator<<(ostream& ar, CVectorBase)
 //
 // stream output of a vector
 //////////////////////////////////////////////////////////////////////
@@ -412,11 +469,12 @@ ostream& operator<<(ostream& os, CVectorBase<TYPE> v)
 	os << ">\n";
 
 	return os;
-}
+
+}	// operator<<(ostream& ar, CVectorBase)
 
 
 //////////////////////////////////////////////////////////////////////
-// function TraceVector
+// TraceVector
 //
 // helper function to output a vector for debugging
 //////////////////////////////////////////////////////////////////////
@@ -431,10 +489,12 @@ void TraceVector(const CVectorBase<TYPE>& vTrace)
 	}
 	TRACE(">\n");
 #endif
-}
+
+}	// TraceVector
+
 
 //////////////////////////////////////////////////////////////////////
-// macro TRACE_VECTOR
+// TRACE_VECTOR
 //
 // macro to trace matrix -- only compiles in debug version
 //////////////////////////////////////////////////////////////////////
@@ -450,7 +510,7 @@ void TraceVector(const CVectorBase<TYPE>& vTrace)
 
 #ifdef _DEBUG
 //////////////////////////////////////////////////////////////////////
-// function VectorValid
+// VectorValid
 //
 // asserts that the vector has valid values
 //////////////////////////////////////////////////////////////////////
@@ -461,7 +521,8 @@ void VectorValid(const CVectorBase<TYPE>& v)
 	{
 		ASSERT(_finite(v[nAt]) && !_isnan(v[nAt]));
 	}
-}
+
+}	// VectorValid
 #endif
 
 
