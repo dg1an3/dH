@@ -82,6 +82,13 @@ void CBeam::Serialize(CArchive &ar)
 	couchAngle.Serialize(ar);
 	tableOffset.Serialize(ar);
 
+	if (ar.IsLoading())
+	{
+		collimAngle.Set(0);
+		gantryAngle.Set(0);
+		couchAngle.Set(0);
+	}
+
 	// serialize the collimator jaw settings
 	collimMin.Serialize(ar);
 	collimMax.Serialize(ar);
