@@ -11,7 +11,7 @@
 #define OBJECTIVEFUNCTION_H
 
 // objective functions are vector-domained functions
-#include "VectorN.h"
+#include <VectorN.h>
 
 //////////////////////////////////////////////////////////////////////
 // class CObjectiveFunction
