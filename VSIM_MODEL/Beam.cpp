@@ -8,11 +8,9 @@
 
 #include "math.h"
 
-#include "Function.h"
-
-#include "ScalarFunction.h"
-#include "VectorFunction.h"
-#include "MatrixFunction.h"
+#include <Function.h>
+#include <Vector.h>
+#include <Matrix.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE

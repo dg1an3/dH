@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 
-#include <MatrixFunction.h>
+#include <Matrix.h>
 
 #include "TreatmentMachine.h"
 

@@ -5,11 +5,12 @@
 #include "stdafx.h"
 #include "BeamRenderer.h"
 
-#include "gl/gl.h"
+#include <gl/gl.h>
 
-#include "glMatrixVector.h"
+#include <Matrix.h>
 
-#include "MatrixFunction.h"
+#include <glMatrixVector.h>
+
 
 #ifdef _DEBUG
 #undef THIS_FILE
