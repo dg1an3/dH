@@ -39,9 +39,19 @@ public:
 	int m_nResDiv;
 
 public:
+	// flag to indicate the DRR needs to be recomputed
+	BOOL m_bRecomputeDRR;
+
+	// image size
+	int m_nImageWidth;
+	int m_nImageHeight;
+	int m_viewport[4];
+
+	// pixels for the DRR
 	CArray<int, int> m_arrPixels;
 
-	BOOL m_bRecomputeDRR;
+	// background for hi-res DRR
+	CWinThread *m_pThread;
 };
 
 #endif // !defined(AFX_DRRRENDERER_H__88FB0320_0C35_11D5_9E4E_00B0D0609AB0__INCLUDED_)

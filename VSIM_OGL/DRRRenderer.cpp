@@ -20,6 +20,23 @@
 #define COMPUTE_MINMAX
 // #define USE_TANDEM_RAYS
 
+
+
+UINT BackgroundComputeDRR( LPVOID pParam )
+{
+	CDRRRenderer *pRenderer = (CDRRRenderer *)pParam;
+
+	pRenderer->m_bRecomputeDRR = TRUE;
+	pRenderer->ComputeDRR();
+
+	::InvalidateRect(pRenderer->m_pView->m_hWnd, NULL, FALSE);
+	pRenderer->m_pThread = NULL;
+
+	::AfxEndThread(0, TRUE);
+
+	return 0;
+}
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -30,7 +47,8 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 	m_bRecomputeDRR(TRUE),
 	m_nSteps(RAY_TRACE_RESOLUTION),
 	m_nShift(RAY_TRACE_RES_LOG2),
-	m_nResDiv(4)
+	m_nResDiv(4),
+	m_pThread(NULL)
 {
 	m_pView->projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
@@ -205,13 +223,12 @@ void CDRRRenderer::ComputeDRR()
 	int nWidth = forVolume->width.Get();
 	int nHeight = forVolume->height.Get();
 	int nDepth = forVolume->depth.Get();
+	TRACE3("Volume dimensions = %i, %i, %i\n",
+		nWidth, nHeight, nDepth);
 
-	// get the view rectangle
-	CRect rect;
-	m_pView->GetClientRect(&rect);
-	int nImageWidth = rect.Width() / m_nResDiv;
-	int nImageHeight = rect.Height() / m_nResDiv;
-	m_arrPixels.SetSize(nImageWidth * nImageHeight);
+	// size the pixel array
+	TRACE2("Setting pixel size to %i, %i\n", m_nImageWidth, m_nImageHeight);
+	m_arrPixels.SetSize(m_nImageWidth * m_nImageHeight);
 
 	// retrieve the model and projection matrices
 	GLdouble modelMatrix[16];
@@ -220,39 +237,35 @@ void CDRRRenderer::ComputeDRR()
 	GLdouble projMatrix[16];
 	m_pView->projectionMatrix.Get().ToArray(projMatrix);
 
-	// retrieve the viewport
-	GLint viewport[4];
-	glGetIntegerv(GL_VIEWPORT, viewport);
-
 	// compute the near and far planes containing the volume
 	CVector<3> vPt;
 	double zMin = DBL_MAX, zMax = -DBL_MAX;
 
-	gluProject(0.0, 0.0, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(0.0, 0.0, 0.0, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
-	gluProject(nWidth, 0.0, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(nWidth, 0.0, 0.0, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
-	gluProject(0.0, nHeight, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(0.0, nHeight, 0.0, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
-	gluProject(0.0, 0.0, nDepth, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(0.0, 0.0, nDepth, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
-	gluProject(nWidth, nHeight, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(nWidth, nHeight, 0.0, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
-	gluProject(nWidth, 0.0, nDepth, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(nWidth, 0.0, nDepth, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
-	gluProject(nWidth, nHeight, nDepth, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	gluProject(nWidth, nHeight, nDepth, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
 	zMin = min(zMin, vPt[2]);
 	zMax = max(zMax, vPt[2]);
 
@@ -261,19 +274,19 @@ void CDRRRenderer::ComputeDRR()
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vStart;
 	gluUnProject((GLdouble)0, (GLdouble)0, zMin,
-		modelMatrix, projMatrix, viewport, 
+		modelMatrix, projMatrix, m_viewport, 
 		&vStart[0], &vStart[1], &vStart[2]);
 
 	CVector<3> vStartNextX;
 	gluUnProject((GLdouble)m_nResDiv, (GLdouble)0, zMin,
-		modelMatrix, projMatrix, viewport, 
+		modelMatrix, projMatrix, m_viewport, 
 		&vStartNextX[0], &vStartNextX[1], &vStartNextX[2]);
 	CVector<3> vStartStepX = vStartNextX - vStart;
 	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
 
 	CVector<3> vStartNextY;
 	gluUnProject((GLdouble)0, (GLdouble)m_nResDiv, zMin,
-		modelMatrix, projMatrix, viewport, 
+		modelMatrix, projMatrix, m_viewport, 
 		&vStartNextY[0], &vStartNextY[1], &vStartNextY[2]);
 	CVector<3> vStartStepY = vStartNextY - vStart;
 	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
@@ -283,36 +296,24 @@ void CDRRRenderer::ComputeDRR()
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vEnd;
 	gluUnProject((GLdouble)0, (GLdouble)0, zMax,
-		modelMatrix, projMatrix, viewport, 
+		modelMatrix, projMatrix, m_viewport, 
 		&vEnd[0], &vEnd[1], &vEnd[2]);
 
 	CVector<3> vEndNextX;
 	gluUnProject((GLdouble)m_nResDiv, (GLdouble)0, zMax,
-		modelMatrix, projMatrix, viewport, 
+		modelMatrix, projMatrix, m_viewport, 
 		&vEndNextX[0], &vEndNextX[1], &vEndNextX[2]);
 	CVector<3> vEndStepX = vEndNextX - vEnd;
 	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
 
 	CVector<3> vEndNextY;
 	gluUnProject((GLdouble)0, (GLdouble)m_nResDiv, zMax,
-		modelMatrix, projMatrix, viewport, 
+		modelMatrix, projMatrix, m_viewport, 
 		&vEndNextY[0], &vEndNextY[1], &vEndNextY[2]);
 	CVector<3> vEndStepY = vEndNextY - vEnd;
 	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
 
 	CREATE_INT_VECTOR(vEnd, viEnd);
-
-	__int64 mult_mask = nWidth << 1L;	// WATCH THIS: we need to shift by
-										//		the log2(nHeight) also
-	mult_mask <<= 32;
-	mult_mask |= (nWidth << 17L) | (1 << 1L);
-
-#ifdef USE_TANDEM_RAYS
-	__int64 mult_mask2 = nWidth << 1L;	// WATCH THIS: we need to shift by
-										//		the log2(nHeight) also
-	mult_mask2 <<= 48;
-	mult_mask2 |= (nWidth << 17L) | (1 << 1L);
-#endif
 
 #ifdef COMPUTE_MINMAX
 	int nMax = 0;
@@ -327,23 +328,15 @@ void CDRRRenderer::ComputeDRR()
 	int window_div = (nMax - nMin) / 256;
 #endif
 
-	for (int nY = 0; nY < nImageHeight; nY++)
+	for (int nY = 0; nY < m_nImageHeight; nY++)
 	{
 		CVector<3, int> viStartOld = viStart;
 		CVector<3, int> viEndOld = viEnd;
 
-		int nPixelAt = nY * nImageWidth;
+		int nPixelAt = nY * m_nImageWidth;
 
-#ifdef USE_TANDEM_RAYS
-		for (int nX = 0; nX < nImageWidth; nX += 2, nPixelAt += 2)
+		for (int nX = 0; nX < m_nImageWidth; nX++, nPixelAt++)
 		{
-#else
-		for (int nX = 0; nX < nImageWidth; nX++, nPixelAt++)
-		{
-#endif
-//			m_arrPixels[nPixelAt] = 0;
-//			m_arrPixels[nPixelAt+1] = 0;
-
 			CVector<3, int> viStartOldX = viStart;
 
 			CVector<3, int> viStep = viEnd - viStart;
@@ -351,218 +344,13 @@ void CDRRRenderer::ComputeDRR()
 			viStep[1] >>= m_nShift;
 			viStep[2] >>= m_nShift;
 
-#ifdef USE_TANDEM_RAYS
-			CVector<3, int> viStart2 = viStart + viStartStepX;
-			viEnd += viEndStepX;
-			CVector<3, int> viStep2 = viEnd - viStart2;
-			viStep2[0] >>= m_nShift;
-			viStep2[1] >>= m_nShift;
-			viStep2[2] >>= m_nShift;
-#endif
-
 			int nDestLength = m_nSteps;
-#ifdef USE_TANDEM_RAYS
-			int nDestLength2 = m_nSteps;
-#endif
+
 			if (ClipRaster(nDestLength, viStart, viStep, 0, 0, nWidth)
 				&& ClipRaster(nDestLength, viStart, viStep, 1, 0, nHeight)
-				&& ClipRaster(nDestLength, viStart, viStep, 2, 0, nDepth)
-#ifdef USE_TANDEM_RAYS
-				&& ClipRaster(nDestLength, viStart2, viStep2, 0, 0, nWidth)
-				&& ClipRaster(nDestLength, viStart2, viStep2, 1, 0, nHeight)
-				&& ClipRaster(nDestLength, viStart2, viStep2, 2, 0, nDepth)
-#endif
-				)
+				&& ClipRaster(nDestLength, viStart, viStep, 2, 0, nDepth))
 			{
 
-// #define USE_MMX
-#ifdef USE_MMX
-
-#ifdef USE_TANDEM_RAYS
-//				nDestLength = min(nDestLength, nDestLength2);
-#endif
-
-				static int viStepMMX[6];
-				viStepMMX[0] = viStep[0];
-				viStepMMX[1] = viStep[1];
-				viStepMMX[2] = viStep[2];
-#ifndef USE_TANDEM_RAYS
-				viStepMMX[3] = 0;
-#else
-				viStepMMX[3] = viStep2[2];
-				viStepMMX[4] = viStep2[0];
-				viStepMMX[5] = viStep2[1];
-#endif
-				static int viStartMMX[6];
-				viStartMMX[0] = viStart[0];
-				viStartMMX[1] = viStart[1];
-				viStartMMX[2] = viStart[2];
-#ifndef USE_TANDEM_RAYS
-				viStartMMX[3] = 0;
-#else
-				viStartMMX[3] = viStart2[2];
-				viStartMMX[4] = viStart2[0];
-				viStartMMX[5] = viStart2[1];
-#endif
-
-				char *pVoxels = (char *)&pppVoxels[0][0][0];
-				int *pCurrentPixel = (int *)&m_arrPixels[nPixelAt];
-
-				__asm
-				{
-					// set up the MMX registers
-
-					emms						// clear MMX state 
-
-					movq mm0, viStepMMX + 0		// set up the offset vector as MMX register 0 
-					movq mm1, viStartMMX + 0	// set up the position vector as MMX register 1 
-
-					movq mm2, viStepMMX[2 * 4]
-					movq mm3, viStartMMX[2 * 4]
-
-#ifdef USE_TANDEM_RAYS
-					movq mm4, viStepMMX[4 * 4]
-					movq mm5, viStartMMX[4 * 4]
-#endif
-					mov esi, pVoxels
-
-					mov ecx, nDestLength
-					mov eax, 0
-
-#ifdef USE_TANDEM_RAYS
-					mov edi, 0
-#endif
-
-LOOP1:
-
-					// compute the address of the current voxel
-					//
-
-					movq mm6, mm1			// move the first ray's x- and y- coordinates to 
-											//		work register mm6
-					movq mm7, mm3			// move the first ray's z- to work register mm7
-
-					psrad mm6, 16			// adjust for fixed-point
-					psrad mm7, 16			// adjust for fixed-point
-						
-					packssdw mm6, mm7		// pack the four 32-bit values into four 16-bit 
-											//		values
-
-					movq mm7, mult_mask		// set up the multiplication mask for the four 
-											//		values
-					pmaddwd mm6, mm7		// perform the packed add-and-multiply
-
-					movd edx, mm6			// now store the x- and y- offset
-
-					psrlq mm6, 32			// shift the z-offset down
-
-					movd ebx, mm6			// store the z-offset
-					shl ebx, 9				// multiply by nHeight
-					add edx, ebx			// and add the two offsets
-
-					mov ebx, 0				// set up ebx to convert voxel to 32-bit value
-					mov bx, [esi+edx]		// retrieve the voxel value
-
-					add eax, ebx			// add the voxel in ebx to the accumulated voxel
-											//		values in eax
-
-#ifdef USE_TANDEM_RAYS
-					xchg eax, edi			// swap the stored pixel value
-
-					// compute the address of the current voxel
-					//
-
-					movq mm6, mm5			// move the first ray's x- and y- coordinates to 
-											//		work register mm6
-					movq mm7, mm3			// move the first ray's z- to work register mm7
-
-					psrad mm6, 16			// adjust for fixed-point
-					psrad mm7, 16			// adjust for fixed-point
-						
-					packssdw mm6, mm7		// pack the four 32-bit values into four 16-bit 
-											//		values
-
-					movq mm7, mult_mask2	// set up the multiplication mask for the four 
-											//		values
-					pmaddwd mm6, mm7		// perform the packed add-and-multiply
-
-					movd edx, mm6			// now store the x- and y- offset
-
-					psrlq mm6, 32			// shift the z-offset down
-					movd ebx, mm6			// store the z-offset
-					shl ebx, 9				// multiply by nHeight
-					add edx, ebx			// and add the two offsets
-
-					mov ebx, 0				// set up ebx to convert voxel to 32-bit value
-					mov bx, [esi+edx]		// retrieve the voxel value
-
-					add eax, ebx			// add the voxel in ebx to the accumulated voxel
-											//		values in eax
-
-					xchg eax, edi
-#endif
-
-					paddd mm1, mm0			// increment the first ray's x- and y-
-					paddd mm3, mm2			// increment the first ray's z- and the
-											//		second ray's x-
-#ifdef USE_TANDEM_RAYS
-					paddd mm5, mm4			// increment the second ray's y- and z-
-#endif
-
-					loop LOOP1				// now loop, decrementing the ECX count
-
-#ifdef USE_TANDEM_RAYS
-					mov ecx, edi
-#endif
-
-#ifndef POST_PROCESS
-					add eax, level_offset
-					mov edx, 0
-					div window_div
-					and eax, 0x000000ff
-
-					mov edx, eax
-					shl edx, 8
-					or eax, edx
-					shl edx, 8
-					or eax, edx
-#endif
-
-					mov edi, pCurrentPixel
-					mov [edi], eax			// store the accumulated value
-
-#ifdef USE_TANDEM_RAYS
-
-					inc edi
-					inc edi
-					inc edi
-					inc edi
-
-#ifndef POST_PROCESS
-					mov eax, ecx
-
-					add eax, level_offset
-					mov edx, 0
-					div window_div
-					and eax, 0x000000ff
-
-					mov edx, eax
-					shl edx, 8
-					or eax, edx
-					shl edx, 8
-					or eax, edx
-
-					mov [edi], eax
-#else
-					mov [edi], ecx
-#endif
-
-#endif
-
-					emms					// clear MMX state 
-				}
-
-#else	// ifdef USE_MMX
 				int nPixelValue = 0;
 				for (int nAt = 0; nAt < nDestLength; nAt++)
 				{
@@ -585,8 +373,6 @@ LOOP1:
 				}
 				m_arrPixels[nPixelAt] = nPixelValue;
 
-#endif	// ifdef USE_MMX
-
 			}
 
 #ifdef COMPUTE_MINMAX
@@ -594,11 +380,7 @@ LOOP1:
 			nMin = min(m_arrPixels[nPixelAt], nMin);
 #endif
 
-#ifndef USE_TANDEM_RAYS
 			viStart = viStartOldX + viStartStepX;
-#else
-			viStart = viStartOldX + viStartStepX + viStartStepX;
-#endif
 			viEnd += viEndStepX;
 		}
 
@@ -610,7 +392,7 @@ LOOP1:
 	int nValue;
 	int nWindow = nMax - nMin;
 	unsigned char (*pRGBA)[4];
-	for (int nPixelAt = 0; nPixelAt < nImageWidth * nImageHeight; nPixelAt++)
+	for (int nPixelAt = 0; nPixelAt < m_nImageWidth * m_nImageHeight; nPixelAt++)
 	{
 		nValue = m_arrPixels[nPixelAt];
 		nValue -= nMin;
@@ -634,10 +416,30 @@ void CDRRRenderer::DrawScene()
 {
 	if (forVolume.Get() != NULL)
 	{
+		if (m_pThread != NULL)
+		{
+			m_pThread->SuspendThread();
+			delete m_pThread;
+			m_pThread = NULL;
+		}
+
 		CRect rect;
 		m_pView->GetClientRect(&rect);
-		int nImageWidth = rect.Width() / m_nResDiv;
-		int nImageHeight = rect.Height() / m_nResDiv;
+
+		if (m_bRecomputeDRR) // || m_arrPixels.GetSize() != rect.Height() * rect.Width())
+		{
+			m_nSteps = RAY_TRACE_RESOLUTION;
+			m_nShift = RAY_TRACE_RES_LOG2;
+			m_nResDiv = 4;
+
+			m_nImageWidth = rect.Width() / m_nResDiv;
+			m_nImageHeight = rect.Height() / m_nResDiv;
+
+			// retrieve the viewport
+			glGetIntegerv(GL_VIEWPORT, m_viewport);
+
+			ComputeDRR();
+		}
 
 		glMatrixMode(GL_PROJECTION);
 
@@ -651,14 +453,12 @@ void CDRRRenderer::DrawScene()
 
 		glRasterPos3f(0.0f, 0.0f, -0.99f);
 
-		if (m_bRecomputeDRR || m_arrPixels.GetSize() != rect.Height() * rect.Width())
-			ComputeDRR();
-
 		glDrawBuffer(GL_BACK);
 
 		glDisable(GL_DEPTH_TEST);
 		glPixelZoom((float) m_nResDiv, (float) m_nResDiv);
-		glDrawPixels(nImageWidth, nImageHeight, GL_RGBA, GL_UNSIGNED_BYTE, m_arrPixels.GetData());
+		ASSERT(m_arrPixels.GetSize() == m_nImageWidth * m_nImageHeight);
+		glDrawPixels(m_nImageWidth, m_nImageHeight, GL_RGBA, GL_UNSIGNED_BYTE, m_arrPixels.GetData());
 		ASSERT(glGetError() == GL_NO_ERROR);
 		glEnable(GL_DEPTH_TEST);
 
@@ -666,6 +466,21 @@ void CDRRRenderer::DrawScene()
 		glPopMatrix();
 
 		glMatrixMode(GL_MODELVIEW);
+
+		// now start the background thread
+		if (m_nResDiv > 1)
+		{
+			m_nSteps = RAY_TRACE_RESOLUTION * 2;
+			m_nShift = RAY_TRACE_RES_LOG2 + 1;
+			m_nResDiv = 1;
+			m_nImageWidth = rect.Width() / m_nResDiv;
+			m_nImageHeight = rect.Height() / m_nResDiv;
+
+			// retrieve the viewport
+			glGetIntegerv(GL_VIEWPORT, m_viewport);
+
+			m_pThread = ::AfxBeginThread(BackgroundComputeDRR, (void *)this);
+		}
 	}
 }
 
@@ -677,8 +492,13 @@ void CDRRRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
 {
 	if (pSource == &m_pView->projectionMatrix)
 	{
-		m_nSteps = RAY_TRACE_RESOLUTION;
-		m_nShift = RAY_TRACE_RES_LOG2;
+		if (m_pThread != NULL)
+		{
+			m_pThread->SuspendThread();
+			delete m_pThread;
+			m_pThread = NULL;
+		}
+
 		m_bRecomputeDRR = TRUE;
 	}
 	COpenGLRenderer::OnChange(pSource, pOldValue);
