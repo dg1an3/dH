@@ -21,6 +21,16 @@ inline void glVertex(const CVector<4, double>& v)
 	glVertex4dv(v);
 }
 
+inline void glNormal(const CVector<3, double>& v)
+{
+	glNormal3dv(v);
+}
+
+inline void glNormal(const CVector<4, double>& v)
+{
+	glNormal(FromHomogeneous<3, double>(v));
+}
+
 inline void glTranslate(const CVector<3, double>& v)
 {
 	glTranslated(v[0], v[1], v[2]);
