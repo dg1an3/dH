@@ -12,6 +12,8 @@
 // standard math library
 #include <math.h>
 
+#include <complex>
+using namespace std;
 
 //////////////////////////////////////////////////////////////////////
 // standard real representation
@@ -117,6 +119,29 @@ inline REAL AngleFromSinCos(REAL sin_angle, REAL cos_angle)
 #endif
 
 	return angle;
+}
+
+//////////////////////////////////////////////////////////////////////
+// functions for complex values
+//////////////////////////////////////////////////////////////////////
+inline REAL arg(const complex<REAL>& c)
+{
+	return atan2(c.real(), c.imag());
+}
+
+inline REAL abs(const complex<REAL>& c)
+{
+	return sqrt(c.real() * c.real() + c.imag() * c.imag());
+}
+
+inline complex<REAL> conjg(const complex<REAL>& c)
+{
+	return complex<REAL>(c.real(), -c.imag());
+}
+
+inline REAL conjg(const REAL& c)
+{
+	return c;
 }
 
 #endif // !defined(MATHUTIL_H)
