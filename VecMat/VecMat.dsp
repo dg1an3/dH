@@ -93,19 +93,15 @@ SOURCE=.\MathUtil.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Matrix.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\MatrixBase.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\MatrixN.h
+SOURCE=.\MatrixD.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Vector.h
+SOURCE=.\MatrixNxM.h
 # End Source File
 # Begin Source File
 
@@ -113,8 +109,16 @@ SOURCE=.\VectorBase.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\VectorD.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\VectorN.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\ReadMe.txt
+# End Source File
 # End Target
 # End Project
