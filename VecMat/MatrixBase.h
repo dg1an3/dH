@@ -568,7 +568,7 @@ inline CVectorBase<TYPE> operator*(const CMatrixBase<TYPE>& mat,
 	ASSERT(mat.GetRows() == v.GetDim());
 
 	// stored the product
-	CVectorBase<TYPE> vProduct(v.GetDim());
+	CVectorBase<TYPE> vProduct(v);
 
 	// step through the rows of the matrix
 	for (int nRow = 0; nRow < mat.GetRows(); nRow++)
