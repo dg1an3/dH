@@ -252,3 +252,23 @@ CDocument* CVSIM_OGLApp::OpenDocumentFile(LPCTSTR lpszFileName)
 ////////////////////////////////////////
 	return pPlan;
 }
+
+BOOL CVSIM_OGLApp::OnIdle(LONG lCount) 
+{
+	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
+	CSimView *pView = (CSimView *)pFrame->GetActiveView();
+
+	if (pView != NULL && pView->m_pDRRRenderer != NULL)
+	{
+		if (pView->m_pDRRRenderer->m_nSteps < 128)
+		{
+			pView->m_pDRRRenderer->m_nSteps = 128;
+			pView->m_pDRRRenderer->m_nShift = 7;
+			pView->m_pDRRRenderer->m_bRecomputeDRR = TRUE;
+			pView->m_pDRRRenderer->Invalidate();
+			pView->m_wndBEV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+		}
+	}
+	
+	return TRUE; // CWinApp::OnIdle(lCount);
+}

@@ -32,6 +32,7 @@ public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 	virtual CDocument* OpenDocumentFile(LPCTSTR lpszFileName);
+	virtual BOOL OnIdle(LONG lCount);
 	//}}AFX_VIRTUAL
 
 // Implementation

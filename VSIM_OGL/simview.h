@@ -14,6 +14,7 @@
 
 #include "BeamRenderer.h"	// Added by ClassView
 #include "SurfaceRenderer.h"	// Added by ClassView
+#include "DRRRenderer.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CSimView view
@@ -47,6 +48,7 @@ public:
 
 	CSurfaceRenderer *m_pSurfaceRenderer;
 	CBeamRenderer *m_pBeamRenderer;
+	CDRRRenderer *m_pDRRRenderer;
 
 // Overrides
 	// ClassWizard generated virtual function overrides

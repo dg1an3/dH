@@ -29,6 +29,7 @@ IMPLEMENT_DYNCREATE(CSimView, CView)
 CSimView::CSimView()
 	: m_pBeamRenderer(NULL),
 		m_pSurfaceRenderer(NULL),
+		m_pDRRRenderer(NULL),
 		patientEnabled(TRUE),
 		isWireFrame(FALSE)
 {
@@ -189,10 +190,10 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		currentBeam.Set(&beam);
 
-		CDRRRenderer *pDRRRenderer = new CDRRRenderer(&m_wndBEV);
-		pDRRRenderer->forVolume.Set(&GetDocument()->GetSeries()->volume);
-		pDRRRenderer->volumeTransform.Set(GetDocument()->GetSeries()->volumeTransform.Get());
-		m_wndBEV.AddRenderer(pDRRRenderer);
+		m_pDRRRenderer = new CDRRRenderer(&m_wndBEV);
+		m_pDRRRenderer->forVolume.Set(&GetDocument()->GetSeries()->volume);
+		m_pDRRRenderer->volumeTransform.Set(GetDocument()->GetSeries()->volumeTransform.Get());
+		m_wndBEV.AddRenderer(m_pDRRRenderer);
 
 		CBeamRenderer *pBEVBeamRenderer = new CBeamRenderer(&m_wndBEV);
 		pBEVBeamRenderer->SetBeam(&beam);
