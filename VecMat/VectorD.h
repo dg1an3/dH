@@ -47,7 +47,7 @@ public:
 
 	// tests for approximate equality using the EPS defined at the 
 	//		top of this file
-	BOOL IsApproxEqual(const CVectorD& v, TYPE epsilon = EPS) const;
+	BOOL IsApproxEqual(const CVectorD& v, TYPE epsilon = DEFAULT_EPSILON) const;
 
 	// assignment operators -- requires proper type for strict
 	//		compile-time check
@@ -66,8 +66,7 @@ private:
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>() 
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// initialize the elements to 0.0
 	for (int nAt = 0; nAt < DIM; nAt++)
@@ -82,8 +81,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>()
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = x;
@@ -101,8 +99,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x)
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = x;
@@ -121,8 +118,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y)
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z) 
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = x;
@@ -142,8 +138,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z)
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w) 
 { 
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = x;
@@ -164,8 +159,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w)
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom) 
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	(*this) = vFrom;
 }
@@ -176,8 +170,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom)
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom) 
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	for (int nAt = 0; nAt < GetDim(); nAt++)
@@ -194,8 +187,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom)
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
 {
-	m_nDim = DIM;
-	m_pElements = &m_arrElements[0];
+	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = pt.x;
@@ -231,6 +223,8 @@ CVectorD<DIM, TYPE>::operator CPoint() const
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator=(const CVectorD<DIM, TYPE>& vFrom)
 {
+	// NOTE: this ASSERT would work, were it not for the terrible down-cast
+	//		that occurs in CMatrixD::operator[]
 	// ASSERT(m_pElements == &m_arrElements[0]);
 
 	// set the given elements
