@@ -335,7 +335,7 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	glEnable(GL_COLOR_MATERIAL);
 
 	// Create a Directional Light Source
-	GLfloat position [] = { 1.0, 1.0, 1.0, 0.0 };
+	GLfloat position [] = { 1.0, 1.0, 100.0, 0.0 };
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
@@ -442,7 +442,20 @@ void COpenGLView::OnChange(CObservableObject *pSource, void *pOldValue)
 	if (pSource == &projectionMatrix)
 	{
 		MakeCurrentGLRC();
+
+		CVector<4> vLightPosition(0.0, 0.0, -500.0, 1.0);
+		CMatrix<4> mInvProj = Invert(projectionMatrix.Get());
+		vLightPosition = mInvProj * vLightPosition;
+
+		GLfloat position [] = { // 1.0, 1.0, 100.0, 0.0 };
+			(float) vLightPosition[0], 
+			(float) vLightPosition[1], 
+			(float) vLightPosition[2], 1.0 };
+
+		glLightfv(GL_LIGHT0, GL_POSITION, position);
+
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrix(projectionMatrix.Get());
+
 	}
 }
