@@ -8,11 +8,14 @@
 // pre-compiled headers
 #include "stdafx.h"
 
+#include <float.h>
+
 // utility macros
 #include <UtilMacros.h>
 
 // class declaration
 #include "Polygon.h"
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -119,7 +122,9 @@ int CPolygon::AddVertex(const CVectorD<2>& v)
 	int nIndex = m_mVertex.GetCols();
 
 	// reshape the matrix
-	m_mVertex.Reshape(m_mVertex.GetCols()+1, 2);
+	m_mVertex.Reshape(m_mVertex.GetCols()+1, 2, TRUE);
+	m_mVertex[nIndex][0] = v[0];
+	m_mVertex[nIndex][1] = v[1];
 
 	// fire a change
 	GetChangeEvent().Fire();
@@ -319,3 +324,15 @@ void CPolygon::Dump(CDumpContext& dc) const
 	DC_TAB(dc) << "Number of vertices = " << GetVertexCount() << "\n";
 }
 #endif //_DEBUG
+
+CVectorD<2> CPolygon::GetMax()
+{
+	CVectorD<2> vMax(-FLT_MAX, -FLT_MAX);
+	for (int nAt = 0; nAt < GetVertexCount(); nAt++)
+	{
+		vMax[0] = _cpp_max(vMax[0], GetVertexAt(nAt)[0]);
+		vMax[1] = _cpp_max(vMax[1], GetVertexAt(nAt)[1]);
+	}
+
+	return vMax;
+}

@@ -46,6 +46,9 @@ public:
 	int AddVertex(const CVectorD<2>& v);
 	void RemoveVertex(int nIndex);
 
+	CVectorD<2> GetMin();
+	CVectorD<2> GetMax();
+
 	// direct access to vertex array 
 	// WARNING: Lock calls must be matched by unlock calls
 	CMatrixNxM<>& LockVertexMatrix();
