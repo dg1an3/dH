@@ -39,6 +39,12 @@ COpenGLCamera::~COpenGLCamera()
 {
 }
 
+void COpenGLCamera::SetFieldOfView(double maxObjectSize)
+{
+	farPlane.Set(nearPlane.Get() + maxObjectSize * 2.5f);
+	distance.Set(nearPlane.Get() + maxObjectSize / 1.2f);
+}
+
 void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldValue)
 {
 	// form the rotation angles for the camera direction
@@ -61,7 +67,10 @@ void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldVa
 		CVector<3>(0.0, 0.0, -1.0));
 
 	// and set the total camera transformation to all three matrices
-	modelXform.Set(mTranslate); // * mRotateRoll * mRotateDir);
+	modelXform.Set(mTranslate * mRotateRoll * mRotateDir);
+
+	// set the total projection matrix
+	projectionMatrix.Set(projection.Get() * modelXform.Get());
 
 	// notify listeners that the camera has changed
 	FireChange();
@@ -91,6 +100,9 @@ void COpenGLCamera::OnComputeProjection(CObservableObject *pSource, void *pOldVa
 
 	// and set the projection
 	projection.Set(mPersp);
+
+	// set the total projection matrix
+	projectionMatrix.Set(projection.Get() * modelXform.Get());
 
 	// notify listeners that the camera has changed
 	FireChange();

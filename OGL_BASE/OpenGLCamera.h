@@ -50,8 +50,15 @@ public:
 	// the far clipping plane, distance from focal point
 	CValue< double > farPlane;
 
+	// sets the near plane, far plane, and viewing angle for a particular
+	//		maximum object size
+	void SetFieldOfView(double maxObjectSize);
+
 	// matrix representing the camera projection
 	CValue< CMatrix<4> > projection;
+
+	// the total matrix for the projection
+	CValue< CMatrix<4> > projectionMatrix;
 
 protected:
 	// call-back to compute the object-to-camera transform
