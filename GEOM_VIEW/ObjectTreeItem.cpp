@@ -37,6 +37,11 @@ CObjectTreeItem::CObjectTreeItem()
 
 CObjectTreeItem::~CObjectTreeItem()
 {
+	// delete children
+	for (int nAt = 0; nAt < m_arrChildren.GetSize(); nAt++)
+	{
+		delete m_arrChildren[nAt];
+	}
 }
 
 BOOL CObjectTreeItem::Create(CObjectExplorer *pExplorer)
