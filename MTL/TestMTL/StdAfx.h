@@ -22,6 +22,23 @@
 #include <assert.h>
 #define ASSERT(x) assert(x)
 
+#include <vector>
+
+#define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
+
+#undef BOOL
+#undef TRUE
+#undef FALSE
+#undef TRACE
+#undef ASSERT
+
+#include <afx.h>
+
+#undef __AFX_H__
+
+#include <XMLLogging.h>
+USES_FMT;
+
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
