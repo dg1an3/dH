@@ -43,13 +43,12 @@ static int nint(double val)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CBeam::CBeam(CSource *pSource, double ssd)
+CBeam::CBeam(CEnergyDepKernel *pSource, double ssd)
 :	m_pSource(pSource),
 		m_ssd(ssd),
 		m_pDensity(NULL),
 		m_pFluence(NULL),
-		m_pEnergy(NULL),
-		m_bSetupRaytrace(true)
+		m_pEnergy(NULL)
 {
 
 }	// CBeam::CBeam
@@ -76,8 +75,17 @@ void CBeam::SetDensity(CVolume<double> *pDensity, double mu)
 	m_pDensity = pDensity;
 	m_mu = mu;
 
+// 	m_pSource->SetBasis(pDensity->GetBasis());
+
 }	// CBeam::SetDensity
 
+
+
+void CBeam::SetDoseCalcRegion(const CVectorD<3> &vMin, const CVectorD<3> &vMax)
+{
+	m_vDoseCalcRegionMin = vMin;
+	m_vDoseCalcRegionMax = vMax;
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -401,18 +409,21 @@ void CBeam::SphereConvolve(const double thickness_in)
 
 	// parameters
 	const int mini_in = 
-		nint( // 8.0 * xmin 
-			-10.0 / mBasis[1][1]);
+		nint(m_vDoseCalcRegionMin[1] / mBasis[1][1]);
 	const int maxi_in =  
-		nint( // 8.0 * xmax 
-			10.0 / mBasis[1][1]);
-	const int minj_in = ymin / mBasis[2][2];
-	const int maxj_in = ymax / mBasis[2][2];
+		nint(m_vDoseCalcRegionMax[1] / mBasis[1][1]);
+	const int minj_in = 
+		nint(m_vDoseCalcRegionMin[2] / mBasis[2][2]);
+	const int maxj_in = 
+		nint(m_vDoseCalcRegionMax[2] / mBasis[2][2]);
 	const int mink_in = 1;
 	const int maxk_in = 100;
-						 
-	// Routine sets up the ray-trace calculation.	
-	m_pSource->EnergyLookup();
+
+	// CMatrixD<4> mBasisInv = mBasis;
+	// mBasisInv.Invert();
+
+	// CVectorD<3> vIndexMin = FromHG<3, REAL>(mBasisInv * ToHG(m_vDoseCalcRegionMin));
+	// CVectorD<3> vIndexMax = FromHG<3, REAL>(mBasisInv * ToHG(m_vDoseCalcRegionMax));
 
 	// Do the convolution.
 	
@@ -439,8 +450,7 @@ void CBeam::SphereConvolve(const double thickness_in)
 	
 	// Normalize the energy deposited to take into account the
 	// summation over the azimuthal angles. Convert the energy to  
-	// dose by dividing by mass and find the position of dmax
-	// and the dose at dmax.                              
+	// dose by dividing by mass                            
 	
 	for (nK = mink_in; nK <= maxk_in; nK++)
 	{
@@ -509,8 +519,6 @@ void CBeam::SphereConvolve(const double thickness_in)
 ///////////////////////////////////////////////////////////////////////////////
 void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 {
-	RayTraceSetup();
-
 	const int numstep_in = 64;
 	
 	bool b_ray_trace = true;
@@ -525,11 +533,13 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 	int nOX = nint(mBasis[3][1] / mBasis[1][1]); 
 	int nOY = nint(mBasis[3][2] / mBasis[2][2]); 
 
+	m_pSource->SetBasis(mBasis);
+
 	// do for all azimuthal angles
 	for (int thet = 1; thet <= NUM_THETA; thet++)            
 	{
 		// do for zenith angles 
-		for (int phi = 1; phi <= m_pSource->m_numphi; phi++)             
+		for (int phi = 1; phi <= m_pSource->GetNumPhi(); phi++)
 		{
 			double last_rad = 0.0;
 			double rad_dist = 0.0;
@@ -539,10 +549,13 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 			for (int rad_inc = 1; rad_inc <= numstep_in; rad_inc++)       
 			{
 				// integer distances between the interaction and the dose depostion voxels
-				int deli = m_delta_i[rad_inc-1][phi-1][thet-1];    
-				int delj = m_delta_j[rad_inc-1][phi-1][thet-1];    
-				int delk = m_delta_k[rad_inc-1][phi-1][thet-1];    
-				
+				int deli = m_pSource->m_delta_i[rad_inc-1][phi-1][thet-1];    
+				int delj = m_pSource->m_delta_j[rad_inc-1][phi-1][thet-1];    
+				int delk = m_pSource->m_delta_k[rad_inc-1][phi-1][thet-1];    
+
+				// CVectorD<3, int> vDelta;
+				// m_pSource->GetDelta(theta, phi, rad_inc, vDelta);
+
 				int nDepthNum = nint(thickness_in / mBasis[0][0]);
 				
 				// test to see if inside field and phantom
@@ -558,7 +571,8 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 				
 				// Increment rad_dist, the radiological path from the dose deposition site. 
 				
-				double pathinc = m_radius[rad_inc][phi-1][thet-1];	// (rad_inc,phi,thet);
+				double pathinc = m_pSource->GetRadius(thet, phi, rad_inc);
+
 				
 				const double avdens = 1.0; 
 				const double kerndens = 1.0;
@@ -584,7 +598,7 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 				// resolution of the array in the radial direction is every mm
 				// hence the multiply by 10.0 in the arguement.
 				
-				double tot_energy = m_pSource->m_cum_energy[phi-1][nint(rad_dist*10.0)];
+				double tot_energy = m_pSource->GetCumEnergy(phi, rad_dist);
 				
 				// Subtract the last cumulative energy from the new cumulative energy
 				// to get the amount of energy deposited in this interval and set the
@@ -605,218 +619,5 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 }
 
 
-
-//////////////////////////////////////////////////////////////////////////////
-// CBeam::MakeVector
-//
-// makes a vector from a set of directions
-//////////////////////////////////////////////////////////////////////////////
-void CBeam::MakeVector(
-				  const int numstep_in,         // number of voxels passed thru
-				  const double factor1_in,      // principle direction cosine
-				  const double factor2_in,      // secondary
-				  const double factor3_in,      //    direction cosines
-				  
-				  double (&r_out)[64],    // list of lengths thru a voxel
-				  int (&delta1_out)[64],  // location in principle direction
-				  int (&delta2_out)[64],  // locations in
-				  int (&delta3_out)[64]   //    secondary directions
-				  )
-{                 
-	// At each ray-trace step determine the radius and the voxel number 
-	// along each coordinate direction.                                 
-	
-	for (int nI = 1; nI <= numstep_in; nI++)
-	{
-        // distance to the end of a voxel
-		double d = double(nI) - 0.5;                 
-		
-		// want absolute distance
-		if (factor1_in < 0.0) 
-		{
-			d = -d;     
-		}
-		
-		if (fabs(factor1_in) >= 1e-04) 
-		{	
-			// radius to interection point
-			r_out[nI-1] = d / factor1_in;                
-		}      
-		else
-		{
-			// effectively infinity
-			r_out[nI-1] = 100000.0;                 
-		}
-		
-		// Calculate a distance along a coordinate direction and find the nearest
-		// integer to specify the voxel direction.
-        
-		delta1_out[nI-1] = nint(0.99 * r_out[nI-1] * factor1_in);  
-		// 0.99 prevents being exactly on the voxel boundary
-		delta2_out[nI-1] = nint(r_out[nI-1] * factor2_in);       
-		delta3_out[nI-1] = nint(r_out[nI-1] * factor3_in);       
-	}
-
-}	// CBeam::MakeVector
-
-
-
-//////////////////////////////////////////////////////////////////////////////
-// CBeam::RayTraceSetup
-//
-// sets up the ray trace for conv.
-//////////////////////////////////////////////////////////////////////////////
-void CBeam::RayTraceSetup()
-{
-	if (!m_bSetupRaytrace)
-	{
-		return;
-	}
-	
-	const int numstep_in = 64;
-
-	const CMatrixD<4> &mBasis = m_pDensity->GetBasis();
-
-	// the azimuthal angle increment is calculated
-	double ang_inc = 2.0 * PI 
-		/ double(NUM_THETA); 
-	
-	// loop thru all zenith angles
-	for (int nPhi = 1; nPhi <= m_pSource->m_numphi; nPhi++)              
-	{
-		// trig. for zenith angles
-		double sphi = sin(m_pSource->m_ang[nPhi]);
-		double cphi = cos(m_pSource->m_ang[nPhi]);
-		
-		// loop thru all azimuthal angles
-		for (int nTheta = 1; nTheta <= NUM_THETA; nTheta++)                  
-		{
-			// trig. for azimuthal angles
-			double sthet = sin(double(nTheta) * ang_inc);    
-			double cthet = cos(double(nTheta) * ang_inc);
-			
-			// MAKE_VECTOR is called for each direction. It returns the distance from
-			// the intersection of a plane defined by a coordinate value and the ray along
-			// each direction.                                
-			
-			// Call for the y-z plane crossing list. Plane defined by the x-coordinate.
-			
-			double rx[64];
-			int delta_i_x[64];	// (64)
-			int delta_j_x[64];	// (64)
-			int delta_k_x[64];	// (64)
-			
-			MakeVector(numstep_in,              
-				sphi*cthet / mBasis[1][1],   // x-dir direction cosine
-				sphi*sthet / mBasis[2][2],   // y-dir direction cosine 
-				cphi       / mBasis[0][0],   // z-dir direction cosine    
-				rx,                   // list of dist. to x-bound  
-				delta_i_x,            // x-dir voxel location      
-				delta_j_x,            // y-dir voxel location      
-				delta_k_x);           // z-dir voxel location      
-			
-			// Call for the x-z plane crossing list. Plane defined by the y-coordinate.
-			
-			double ry[64];
-			int delta_i_y[64];	// (64)
-			int delta_j_y[64];	// (64)
-			int delta_k_y[64];	// (64)
-			
-			MakeVector(numstep_in,              
-				sphi*sthet / mBasis[2][2],   // y-dir direction cosine    
-				sphi*cthet / mBasis[1][1],   // x-dir direction cosine    
-				cphi       / mBasis[0][0],   // z-dir direction cosine    
-				ry,                   // list of dist. to y-bound  
-				delta_j_y,            // y-dir voxel location      
-				delta_i_y,            // x-dir voxel location      
-				delta_k_y);           // z-dir voxel location      
-			
-			// Call for the x-y plane crossing list. Plane defined by the z-coordinate.
-			
-			double rz[64];
-			int delta_i_z[64];	// (64)      
-			int delta_j_z[64];	// (64)
-			int delta_k_z[64];	// (64)
-			MakeVector(numstep_in,              
-				cphi       / mBasis[0][0],   // z-dir direction cosine    
-				sphi*sthet / mBasis[2][2],   // y-dir direction cosine    
-				sphi*cthet / mBasis[1][1],   // x-dir direction cosine    
-				rz,                   // list of dist. to z-bound  
-				delta_k_z,            // z-dir voxel location      
-				delta_j_z,            // y-dir voxel location      
-				delta_i_z);           // x-dir voxel location      
-			
-			int nI = 1;
-			int nJ = 1;
-			int nK = 1;
-			
-			m_radius[0][nPhi-1][nTheta-1] = 0.0;             // radius at origin is 0
-			double last_radius = 0.0;
-			
-			// The following sorts through the distance vectors, rx,ry,rz
-			// to find the next smallest value. This will be the next plane crossed.
-			// A merged vector is created that lists the location of the voxel crossed
-			// and the length thru it in the order of crossings.
-			
-			for (int nN = 1; nN <= numstep_in; nN++)
-			{
-				// done if plane defined by the x-coord crossed
-				if (rx[nI-1] <= ry[nJ-1] && rx[nI-1] <= rz[nK-1])
-				{
-					// length thru voxel
-					m_radius[nN][nPhi-1][nTheta-1] = rx[nI-1] - last_radius;	
-
-					// location of voxel in x-dir / y-dir / z-dir
-					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_x[nI-1];	
-					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_x[nI-1];
-					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_x[nI-1];
-
-					// radius gone at this point
-					last_radius = rx[nI-1];	
-					
-					// decrement x-dir counter
-					nI = nI+1;											
-				}
-				// done if plane defined by the y-coord crossed
-				else if (ry[nJ-1] <= rx[nI-1] && ry[nJ-1] <= rz[nK-1])    
-				{
-					// length thru voxel
-					m_radius[nN][nPhi-1][nTheta-1] = ry[nJ-1]-last_radius;		
-
-					// location of voxel in x-dir / y-dir / z-dir
-					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_y[nJ-1];	
-					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_y[nJ-1];	
-					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_y[nJ-1];	
-
-					// radius gone at this point
-					last_radius = ry[nJ-1];								
-
-					// decrement y-dir counter					
-					nJ = nJ+1;											
-				}
-				// done if plane defined by the z-coord crossed
-				else if (rz[nK-1] <= rx[nI-1] && rz[nK-1] <= ry[nJ-1])     
-				{
-					// length thru voxel
-					m_radius[nN][nPhi-1][nTheta-1] = rz[nK-1]-last_radius;		
-
-					// location of voxel in x-dir / y-dir / z-dir
-					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_z[nK-1];	
-					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_z[nK-1];	
-					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_z[nK-1];	
-
-					// radius gone at this point
-					last_radius = rz[nK-1];								
-
-					// decrement z-dir counter
-					nK = nK+1;											
-				}
-			}
-		}
-	}
-
-	m_bSetupRaytrace = false;
-
-}	// CBeam::RayTraceSetup
 
 
