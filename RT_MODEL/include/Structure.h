@@ -15,11 +15,16 @@
 #include <Mesh.h>
 #include <Volumep.h>
 
+class CSeries;
+
 class CStructure : public CModelObject  
 {
 public:
 	CStructure(const CString& strName = "");
 	virtual ~CStructure();
+
+	DECLARE_SERIAL(CStructure);
+	virtual void Serialize(CArchive& ar);
 
 	// contour accessors
 	int GetContourCount() const;
@@ -31,6 +36,8 @@ public:
 	CVolume<REAL> * GetRegion(int nLevel = 0);
 
 	void SetRegionResolution(REAL pixelScale = 1.0);
+
+	CSeries *m_pSeries;
 
 protected:
 	static void InitFilter();

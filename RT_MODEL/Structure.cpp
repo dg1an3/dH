@@ -4,9 +4,17 @@
 
 #include "stdafx.h"
 #include "Structure.h"
+#include <Series.h>
 
 
 CVolume<REAL> CStructure::m_kernel;
+
+
+/////////////////////////////////////////////////////////////////////////////
+// CSeries
+
+IMPLEMENT_SERIAL(CStructure, CModelObject, 1)
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -19,6 +27,7 @@ CVolume<REAL> CStructure::m_kernel;
 ///////////////////////////////////////////////////////////////////////////////
 CStructure::CStructure(const CString& strName)
 	: CModelObject(strName),
+		m_pSeries(NULL),
 		m_pMesh(NULL)
 {
 	if (m_kernel.GetWidth() == 0)
@@ -71,7 +80,8 @@ CVolume<REAL> * CStructure::GetRegion(int nScale)
 		if (nScale == 0)
 		{
 			// set size of region
-			ContoursToRegion(pNewRegion);
+			pNewRegion->ConformTo(m_pSeries->m_pDens);
+			// ContoursToRegion(pNewRegion);
 		}
 		else
 		{
@@ -136,6 +146,29 @@ REAL CStructure::GetContourRefDist(int nIndex) const
 	return m_arrRefDist[nIndex];
 
 }	// CStructure::GetContourRefDist
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::Serialize
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::Serialize(CArchive& ar)
+{
+	CModelObject::Serialize(ar);
+
+	if (ar.IsLoading())
+	{
+		ar >> m_pSeries;	
+	}
+	else
+	{
+		ar << m_pSeries;
+	}
+
+	m_arrContours.Serialize(ar);
+	m_arrRefDist.Serialize(ar);
+
+}	// CStructure::Serialize
 
 
 ///////////////////////////////////////////////////////////////////////////////
