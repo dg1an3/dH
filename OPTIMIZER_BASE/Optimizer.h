@@ -1,10 +1,9 @@
-////////////////////////////////////
-// Copyright (C) 1996-2000 DG Lane
-// U.S. Patent Pending
-////////////////////////////////////
-
-// Optimizer.h: interface for the COptimizer class.
+//////////////////////////////////////////////////////////////////////
+// Optimizer.h: interface for the COptimizer template
 //
+// Copyright (C) 1996-2001
+// $Id$
+// U.S. Patent Pending
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(OPTIMIZER_H)
@@ -16,21 +15,46 @@
 
 #include <Vector.h>
 #include <Value.h>
+
+// include for the objective function
 #include "ObjectiveFunction.h"
 
+//////////////////////////////////////////////////////////////////////
+// template<class TYPE>
+// class COptimizer
+// 
+// base template class for all optimizers
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 class COptimizer
 {
 public:
+	// construct a new COptimizer object
 	COptimizer(CObjectiveFunction<DIM, TYPE> *pFunc)
-		: m_pFunc(pFunc),
-			tolerance((TYPE) 0.5),
-			iteration(0)
+		: tolerance((TYPE) 0.5),
+			iteration(0),
+			m_pFunc(pFunc),
+			m_bUseGradientInfo(FALSE)
 	{
 	}
 
+	// destroy the optimizer
 	virtual ~COptimizer()
 	{
+	}
+
+	// returns the flag to indicate that gradient information should
+	//		be used
+	BOOL UseGradientInfo()
+	{
+		return m_bUseGradientInfo;
+	}
+
+	// sets the flag to indicate that gradient information should
+	//		be used
+	void SetUseGradientInfo(BOOL bUseGradientInfo)
+	{
+		m_bUseGradientInfo = bUseGradientInfo;
 	}
 
 	// defines the tolerance for exit from optimization loop
@@ -49,7 +73,12 @@ public:
 	virtual CVector<DIM, TYPE> Optimize(const CVector<DIM, TYPE>& vInit) = 0;
 
 protected:
+	// the objective function over which optimization is to occur
 	CObjectiveFunction<DIM, TYPE> *m_pFunc;
+
+private:
+	// flag to indicate whether gradient information should be used
+	BOOL m_bUseGradientInfo;
 };
 
 #endif // !defined(OPTIMIZER_H)
