@@ -88,6 +88,20 @@ public:
 	}
 
 	//////////////////////////////////////////////////////////////////
+	// IsApproxEqual -- tests for approximate equality using the EPS
+	//		defined at the top of this file
+	//////////////////////////////////////////////////////////////////
+	BOOL IsApproxEqual(const CMatrix& m, TYPE epsilon = EPS) const
+	{
+		for (int nAtRow = 0; nAtRow < DIM; nAtRow++)
+			if (!(*this)[nAtRow].IsApproxEqual(m[nAtRow], epsilon))
+				return FALSE;
+
+		return TRUE;
+	}
+
+
+	//////////////////////////////////////////////////////////////////
 	// operator+= -- in-place matrix addition; returns a reference to 
 	//		this
 	//////////////////////////////////////////////////////////////////
@@ -547,5 +561,24 @@ FUNCTION_FACTORY1(CreateScale, CMatrix<4>)
 // declare function factories for matrix inversion
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY1(Invert, CMatrix<4>)
+
+//////////////////////////////////////////////////////////////////////
+// macro TRACE_MATRIX4
+//
+// helper macro to output a vector for debugging
+//////////////////////////////////////////////////////////////////////
+#define TRACE_MATRIX4(message, matrix) \
+	TRACE1("%s = \n", message); \
+	{ \
+		for (int nAtTRACE = 0; nAtTRACE < 4; nAtTRACE++) \
+		{ \
+			TRACE2("<%lf\t%lf\t", \
+				(matrix)[nAtTRACE][0], \
+				(matrix)[nAtTRACE][1] ); \
+			TRACE2("%lf\t%lf>\n", \
+				(matrix)[nAtTRACE][2], \
+				(matrix)[nAtTRACE][3]); \
+		} \
+	}			
 
 #endif
