@@ -108,6 +108,10 @@ SOURCE=.\DRRRenderer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\MachineRenderer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MainFrm.cpp
 # End Source File
 # Begin Source File
@@ -156,6 +160,10 @@ SOURCE=.\BeamRenderer.h
 # Begin Source File
 
 SOURCE=.\DRRRenderer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MachineRenderer.h
 # End Source File
 # Begin Source File
 
