@@ -185,6 +185,7 @@ CXMLLogFile::CXMLLogFile(const char *pszAppName)
 	SetFormat((double) 0,		" % lf ");
 	SetFormat((char *) 0,		" %s ");
 	SetFormat((const char *) 0, " %s ");
+	SetFormat((LONG) 0,			" % i ");
 
 	// open the file
 	m_fLogFile = fopen("LogFile.xml", "w+c");
