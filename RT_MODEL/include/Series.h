@@ -27,12 +27,11 @@ public:
 	virtual ~CSeries();
 
 	DECLARE_SERIAL(CSeries)
+	virtual void Serialize(CArchive& ar);
 
 	// Structures for the series
 	int GetStructureCount() const;
 	CStructure *GetStructureAt(int nAt);
-
-	virtual void Serialize(CArchive& ar);
 
 	// miscellaneous operations
 	CStructure * CreateSphereStructure(const CString& strName);
@@ -43,11 +42,11 @@ public:
 #endif
 
 public:
-	// Transform to position the volume in 3-space
-	CMatrixD<4> m_volumeTransform;
+	void AddStructure(CStructure *pStruct);
+	CStructure * GetStructureFromName(const CString& strName);
 
 	// Volume data for the series
-	CVolume< short > volume;
+	CVolume<REAL> *m_pDens;
 
 	CTypedPtrArray<CObArray, CStructure*> m_arrStructures;
 };

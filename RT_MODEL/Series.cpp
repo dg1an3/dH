@@ -26,6 +26,7 @@ IMPLEMENT_SERIAL(CSeries, CModelObject, 1)
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
 CSeries::CSeries()
+	: m_pDens(new CVolume<REAL>())
 {
 }	// CSeries::CSeries
 
@@ -104,17 +105,12 @@ void CSeries::Dump(CDumpContext& dc) const
 ///////////////////////////////////////////////////////////////////////////////
 void CSeries::Serialize(CArchive& ar)
 {
-	if (ar.IsLoading())
-	{
-		ar >> m_volumeTransform;
-	}
-	else
-	{
-		ar << m_volumeTransform;
-	}
-	volume.Serialize(ar);
+	CModelObject::Serialize(ar);
 
-	DWORD nStructureCount = GetStructureCount();
+	m_pDens->Serialize(ar);
+	m_arrStructures.Serialize(ar);
+
+	/* DWORD nStructureCount = GetStructureCount();
 	SERIALIZE_VALUE(ar, nStructureCount);
 
 	if (ar.IsLoading())
@@ -125,7 +121,7 @@ void CSeries::Serialize(CArchive& ar)
 		for (int nAt = 0; nAt < nStructureCount; nAt++)
 		{
 			CStructure *pStruct = new CStructure;
-			m_arrStructures.Add(pStruct);
+			AddStructure(pStruct);
 		}
 	}
 
@@ -133,7 +129,7 @@ void CSeries::Serialize(CArchive& ar)
 	{
 		GetStructureAt(nAt)->Serialize(ar);
 	}
-
+*/
 }	// CSeries::Serialize
 
 /////////////////////////////////////////////////////////////////////////////
@@ -157,3 +153,22 @@ CMesh *CSeries::CreateSphereStructure(const CString &strName)
 	return NULL;
 }
 */
+
+CStructure * CSeries::GetStructureFromName(const CString &strName)
+{
+	for (int nAt = 0; nAt < GetStructureCount(); nAt++)
+	{
+		if (GetStructureAt(nAt)->GetName() == strName)
+		{
+			return GetStructureAt(nAt);
+		}
+	}
+
+	return NULL;
+}
+
+void CSeries::AddStructure(CStructure *pStruct)
+{
+	pStruct->m_pSeries = this;
+	m_arrStructures.Add(pStruct);
+}
