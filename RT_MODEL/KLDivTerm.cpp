@@ -232,7 +232,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 	LOG_EXPR(targetSum);
 
 	// form the sum of the sq. difference for target - calc
-	const REAL EPS = (REAL) 1e-6;
+	const REAL EPS = (REAL) 1e-8;
 	for (nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
 	{
 		// normalize samples
@@ -284,6 +284,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 	}
 
 	sum /= (REAL) calcGPDF.GetDim();
+	ASSERT(_finite(sum));
 
 	LOG_EXPR(sum);
 	END_LOG_SECTION();	// CHistogramMatcher::Eval_RelativeEntropy
