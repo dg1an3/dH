@@ -10,6 +10,7 @@
 
 // OpenGL includes
 #include <gl/gl.h>
+#include "glMatrixVector.h"
 
 // the parent class
 #include "SceneView.h"
@@ -259,6 +260,26 @@ void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 }
 
 ///////////////////////////////////////////////////////////////////////
+// CRenderable::SetupRenderingContext
+// 
+// sets up the rendering context
+//////////////////////////////////////////////////////////////////////
+void CRenderable::SetupRenderingContext()
+{
+	// load the renderer's modelview matrix
+	glLoadMatrix(GetModelviewMatrix());
+
+	// Set the shading model
+	glShadeModel(GL_SMOOTH);
+
+	// enable lighting
+	glEnable(GL_LIGHTING);
+
+	// set the drawing color
+	glColor(GetColor(), GetAlpha());
+}
+
+///////////////////////////////////////////////////////////////////////
 // CRenderable::DescribeOpaque
 // 
 // call to describe the opaque part of the renderable
@@ -298,6 +319,9 @@ void CRenderable::DescribeOpaqueDrawList()
 		// create the list
 		glNewList(m_nDrawListOpaque, GL_COMPILE);
 
+		// set up the rendering context
+		SetupRenderingContext();
+
 		// now populate the draw list
 		DescribeOpaque();
 
@@ -308,11 +332,9 @@ void CRenderable::DescribeOpaqueDrawList()
 	// now actually render the scene
 	glCallList(m_nDrawListOpaque);
 
-#ifdef _DEBUG
 	// make sure nothing bad happened
 	GLenum glerror = glGetError();
 	ASSERT(glerror == GL_NO_ERROR);
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -337,6 +359,9 @@ void CRenderable::DescribeAlphaDrawList()
 		// create the list
 		glNewList(m_nDrawListAlpha, GL_COMPILE);
 
+		// set up the rendering context
+		SetupRenderingContext();
+
 		// now populate the draw list
 		DescribeAlpha();
 
@@ -347,9 +372,7 @@ void CRenderable::DescribeAlphaDrawList()
 	// now actually render the scene
 	glCallList(m_nDrawListAlpha);
 
-#ifdef _DEBUG
 	// make sure nothing bad happened
 	GLenum glerror = glGetError();
 	ASSERT(glerror == GL_NO_ERROR);
-#endif
 }

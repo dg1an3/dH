@@ -76,6 +76,9 @@ protected:
 	// the view for this class
 	CSceneView *m_pView;
 
+	// helper function to set up the rendering context
+	void SetupRenderingContext();
+
 	// describes the opaque part of the object
 	virtual void DescribeOpaque();
 

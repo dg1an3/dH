@@ -98,9 +98,6 @@ protected:
 	//		position
 	void SortRenderables();
 
-	// member function to set up the rendering context for the renderable
-	void SetupRenderable(CRenderable *pRenderable);
-
 	// friend classes can access the OpenGL rendering context
 	friend class CRenderable;
 	friend class CTexture;

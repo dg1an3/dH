@@ -651,8 +651,9 @@ void CSceneView::OnPaint()
 		// disable blending
 		glDisable(GL_BLEND);
 
-		// set up the rendering context
-		SetupRenderable(GetRenderableAt(nAt));
+		// save the current model matrix state
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
 
 		// draw its scene
 		GetRenderableAt(nAt)->DescribeOpaqueDrawList();
@@ -665,8 +666,9 @@ void CSceneView::OnPaint()
 		//		if alpha is greater than the max
 		if (GetRenderableAt(nAt)->GetAlpha() > MAX_ALPHA)
 		{
-			// set up the rendering context
-			SetupRenderable(GetRenderableAt(nAt));
+			// save the current model matrix state
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
 
 			// draw its scene
 			GetRenderableAt(nAt)->DescribeAlphaDrawList();
@@ -691,9 +693,6 @@ void CSceneView::OnPaint()
 		{
 			if (GetRenderableAt(nAt)->GetAlpha() <= MAX_ALPHA)
 			{
-				// set up the rendering context
-				SetupRenderable(GetRenderableAt(nAt));
-
 				// enable culling
 				glEnable(GL_CULL_FACE);
 
@@ -706,6 +705,10 @@ void CSceneView::OnPaint()
 				// enable blending
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				// save the current model matrix state
+				glMatrixMode(GL_MODELVIEW);
+				glPushMatrix();
 
 				// draw its scene
 				GetRenderableAt(nAt)->DescribeAlphaDrawList();
@@ -905,28 +908,4 @@ void CSceneView::OnMouseMove(UINT nFlags, CPoint point)
 			return;
 		}
 	}
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// CSceneView::SetupRenderable
-// 
-// sets up the rendering context for the renderable
-/////////////////////////////////////////////////////////////////////////////
-void CSceneView::SetupRenderable(CRenderable *pRenderable)
-{
-	// save the current model matrix state
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-
-	// load the renderer's modelview matrix
-	glLoadMatrix(pRenderable->GetModelviewMatrix());
-
-	// Set the shading model
-	glShadeModel(GL_SMOOTH);
-
-	// enable lighting
-	glEnable(GL_LIGHTING);
-
-	// set the drawing color
-	glColor(pRenderable->GetColor());
 }
