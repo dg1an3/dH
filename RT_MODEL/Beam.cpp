@@ -532,7 +532,7 @@ CVolume<REAL> *CBeam::GetDoseMatrix()
 		for (int nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
 		{
 			CVolume<REAL> *pBeamlet = m_arrBeamlets[0][nAt];
-			m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
+			// m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
 		}
 
 		m_bRecalcDose = FALSE;
