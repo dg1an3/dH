@@ -94,6 +94,10 @@ protected:
 	//		will affect its rendering state
 	void MakeCurrentGLRC();
 
+	// sorts the renderables from furthest to nearest, based on current camera
+	//		position
+	void SortRenderables();
+
 	// friend classes can access the OpenGL rendering context
 	friend class CRenderable;
 	friend class CTexture;

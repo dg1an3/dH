@@ -235,6 +235,9 @@ int CSceneView::AddMiddleTracker(CTracker *pRenderer)
 /////////////////////////////////////////////////////////////////////////////
 void CSceneView::OnCameraChanged(CObservableEvent *, void *)
 {
+	// re-sort the renderables
+	SortRenderables();
+
 	// invalidate the window to redraw
 	Invalidate();
 }
@@ -326,6 +329,64 @@ void CSceneView::MakeCurrentGLRC()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// CSceneView::SortRenderables
+// sorts the renderables from the furthest to the nearest based on the
+//		current camera position
+/////////////////////////////////////////////////////////////////////////////
+void CSceneView::SortRenderables()
+{
+	// current camera xform
+	const CMatrix<4>& mXform = GetCamera().GetXform();
+
+	// stores the distances for the renderable centroids
+	CArray<double, double> arrDistances;
+
+	// compute the distances
+	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
+	{
+		CRenderable *pRenderable = GetRenderableAt(nAt);
+
+		// position of renderable centroid in camera coordinates
+		CVector<3> vCentroid = CVector<3>(mXform 
+			* ToHomogeneous(pRenderable->GetCentroid()));
+
+		// add to the array
+		arrDistances.Add(vCentroid.GetLength());
+	}
+
+	// flag to indicate a rearrangement has occurred
+	BOOL bRearrange;
+	do 
+	{
+		// initially, no rearrangement has occurred
+		bRearrange = FALSE;
+
+		// for each link,
+		for (nAt = 0; nAt < GetRenderableCount()-1; nAt++)
+		{
+			// compare their weights
+			if (arrDistances[nAt] < arrDistances[nAt+1])
+			{
+				// if first is less than second, swap the pointers
+				CObject *pTemp = m_arrRenderables.GetAt(nAt);
+				m_arrRenderables.SetAt(nAt, m_arrRenderables.GetAt(nAt+1));
+				m_arrRenderables.SetAt(nAt+1, pTemp);
+
+				// and the distances
+				double tempDistance = arrDistances[nAt];
+				arrDistances[nAt] = arrDistances[nAt+1];
+				arrDistances[nAt+1] = tempDistance;
+
+				// a rearrangement has occurred
+				bRearrange = TRUE;
+			}
+		}
+
+	// continue as long as rearrangements occur
+	} while (bRearrange);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CSceneView::ModelPtFromWndPt
 // 
 // converts a point in viewport coordinates to a 3-d point using the
@@ -412,7 +473,9 @@ END_MESSAGE_MAP()
 int CSceneView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
+	{
 		return -1;
+	}
 	
 	// construct the Window's device context which the OpenGL rendering
 	//		context will use
@@ -421,7 +484,9 @@ int CSceneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// set up the OpenGL pixel format
 	if (!SetupPixelFormat())
+	{
 		return -1;
+	}
 
 	// create the OpenGL rendering context
 	m_hrc = wglCreateContext(m_pDC->GetSafeHdc());
@@ -536,8 +601,6 @@ void CSceneView::OnSize(UINT nType, int cx, int cy)
 	{
 		GetCamera().SetAspectRatio(1.0);
 	}
-
-	TRACE_MATRIX("CSceneView::OnSize Projection Matrix", GetCamera().GetProjection());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -557,8 +620,6 @@ void CSceneView::OnPaint()
 	// load the projection matrix
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrix(GetCamera().GetProjection());
-	TRACE_MATRIX("CSceneView::OnPaint Projection Matrix", 
-		GetCamera().GetProjection());
 
 	// set up the lights
 	for (int nAtLight = 0; nAtLight < GetLightCount(); nAtLight++)
@@ -566,13 +627,14 @@ void CSceneView::OnPaint()
 		GetLightAt(nAtLight)->TurnOn(nAtLight);
 	}
 
-	// set the matrix mode to modelview
-	glMatrixMode(GL_MODELVIEW);
+	// sort the renderables from furthest to nearest
+	SortRenderables();
 
 	// for each renderer, 
 	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
 	{
 		// save the current model matrix state
+		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
 
 		// load the renderer's modelview matrix
