@@ -228,9 +228,17 @@ void CPenBeamEditApp::OnFileImport()
 	CPlan *pPlan = 
 		(CPlan *)pTemplate->GetNextDoc(pos);
 
+	// set the plan path name
+	pPlan->SetPathName("IMPORT.PLN");
+	pPlan->SetModifiedFlag();
+
 	// create an empty series
 	CSeries *pSeries = 
 		(CSeries *)m_pSeriesDocTemplate->CreateNewDocument();
+
+	// set the series path name
+	pSeries->SetPathName("IMPORT.SER");
+	pSeries->SetModifiedFlag();
 
 	// now read the data
 	BOOL bResult = ReadAsciiImage(strPath + "\\density.dat", 
@@ -262,6 +270,7 @@ void CPenBeamEditApp::OnFileImport()
 	pPlan->dose.width.Set(pSeries->volume.width.Get());
 	pPlan->dose.height.Set(pSeries->volume.height.Get());
 	pPlan->dose.depth.Set(pSeries->volume.depth.Get());
+	pPlan->isDoseValid.Set(TRUE);
 
 	// read the pencil beams, forming the summed dose
 	double maxDose = 0.0;
@@ -271,17 +280,16 @@ void CPenBeamEditApp::OnFileImport()
 		strPencilBeamFilename.Format("\\dose%i.dat", nAt);
 
 		CBeam *pPencilBeam = new CBeam();
-		// CVolume<double> *pPencilBeam = new CVolume<double>();
+		pPencilBeam->isDoseValid.Set(TRUE);
 		bResult = bResult && ReadAsciiImage(strPath + strPencilBeamFilename, 
 			&pPencilBeam->dose);
 		pPlan->beams.Add(pPencilBeam);
-		// m_arrPencilBeams.Add(pPencilBeam);
+		pPencilBeam->isDoseValid.Set(TRUE);
 
 		// set the weights to a gaussian distribution
 		double weight = 1.0 / sqrt(2 * PI * SIGMA) 
 			* exp(- (double)((50 - nAt) * (50 - nAt)) / (SIGMA * SIGMA));
 		pPencilBeam->weight.Set(weight);
-		// m_arrWeights.Add(weight);
 
 		for (int nAtY = 0; nAtY < pPlan->dose.height.Get(); nAtY++)
 			for (int nAtX = 0; nAtX < pPlan->dose.width.Get(); nAtX++)
