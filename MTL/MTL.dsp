@@ -89,6 +89,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\ComVariantMatrix.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\MathUtil.h
 # End Source File
 # Begin Source File
