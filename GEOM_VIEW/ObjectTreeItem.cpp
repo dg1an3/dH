@@ -55,6 +55,25 @@ CObjectTreeItem *CObjectTreeItem::GetParent()
 	return m_pParent;
 }
 
+void CObjectTreeItem::SetImages(UINT nImageID, UINT nSelectedImageID)
+{
+	// resource identifiers for the icons to be used
+	m_nImageResourceID = nImageID;
+	m_nSelectedImageResourceID = nSelectedImageID;
+}
+
+
+BOOL CObjectTreeItem::IsChecked() const
+{
+	return m_bChecked;
+}
+
+// sets the check state for the item
+void CObjectTreeItem::SetChecked(BOOL bChecked)
+{
+	m_bChecked = bChecked;
+}
+
 
 BOOL CObjectTreeItem::Create(CObjectExplorer *pExplorer)
 {
