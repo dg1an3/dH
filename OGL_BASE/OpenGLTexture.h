@@ -23,7 +23,10 @@ public:
 	void DrawBorder(int nWidth = 1);
 	void ReleaseDC();
 
-	void Bind(COpenGLView *pView);
+	// loads the texture from a bitmap
+	BOOL LoadBitmap(UINT nResourceID);
+
+	void Bind(COpenGLView *pView, BOOL bWrap = FALSE);
 	void Unbind();
 
 private:
@@ -38,7 +41,7 @@ private:
 
 	CBitmap *m_pOldBitmap;
 
-	CArray<COLORREF, COLORREF&> m_arrPixels;
+	CArray<COLORREF, COLORREF> m_arrPixels;
 
 protected:
 	void ProcessTransparency();

@@ -9,6 +9,8 @@
 #include "gl/gl.h"
 #include "gl/glu.h"
 
+#include <Dib.h>
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -132,7 +134,34 @@ void COpenGLTexture::ProcessTransparency()
 	}
 }
 
-void COpenGLTexture::Bind(COpenGLView *pView)
+BOOL COpenGLTexture::LoadBitmap(UINT nResourceID)
+{
+	CDib dib;
+	BOOL bResult = dib.Load(GetModuleHandle(NULL), nResourceID);
+	if (bResult)
+	{
+		BITMAP bm;
+		dib.GetBitmap(&bm);
+		m_nHeight = bm.bmHeight;
+		m_nWidth = bm.bmWidth;
+
+		int nSize = m_nHeight * m_nWidth;
+
+		char *pPixels = new char[nSize * 3];
+		dib.GetBitmapBits(nSize * 3, pPixels);
+
+		// now load the pixels
+		m_arrPixels.RemoveAll();
+		for (int nAt = 0; nAt < nSize*3; nAt += 3)
+			m_arrPixels.Add(RGB(pPixels[nAt+2], pPixels[nAt+1], pPixels[nAt+0]));
+
+		ProcessTransparency();
+	}
+
+	return bResult;
+}
+
+void COpenGLTexture::Bind(COpenGLView *pView, BOOL bWrap)
 {
 	m_pView = pView;
 
@@ -144,8 +173,17 @@ void COpenGLTexture::Bind(COpenGLView *pView)
 
     glBindTexture (GL_TEXTURE_2D, m_nHandle);
     glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
-	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	if (bWrap)
+	{
+		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	}
+	else
+	{
+		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	}
+
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
