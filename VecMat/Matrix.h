@@ -138,7 +138,7 @@ public:
 		{
 			for (int nCol = 0; nCol < DIM; nCol++)
 			{
-				(*this)[nRow][nMid] += mRight[nMid][nCol];
+				(*this)[nRow][nCol] += mRight[nRow][nCol];
 			}
 		}
 
@@ -157,7 +157,7 @@ public:
 		{
 			for (int nCol = 0; nCol < DIM; nCol++)
 			{
-				(*this)[nRow][nMid] -= mRight[nMid][nCol];
+				(*this)[nRow][nCol] -= mRight[nRow][nCol];
 			}
 		}
 
@@ -215,8 +215,8 @@ inline bool operator==(const CMatrix<DIM, TYPE>& mLeft,
 					   const CMatrix<DIM, TYPE>& mRight)
 {
 	// call CMatrixBase version
-	return operator==((const CVectorBase<TYPE>&) mLeft,
-		(const CVectorBase<TYPE>&) mRight);
+	return operator==((const CMatrixBase<TYPE>&) mLeft,
+		(const CMatrixBase<TYPE>&) mRight);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -230,8 +230,8 @@ inline bool operator!=(const CMatrix<DIM, TYPE>& mLeft,
 					   const CMatrix<DIM, TYPE>& mRight)
 {
 	// call CMatrixBase version
-	return operator!=((const CVectorBase<TYPE>&) mLeft,
-		(const CVectorBase<TYPE>&) mRight);
+	return operator!=((const CMatrixBase<TYPE>&) mLeft,
+		(const CMatrixBase<TYPE>&) mRight);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -332,6 +332,8 @@ inline CMatrix<DIM, TYPE> operator*(TYPE scalar,
 	return mProduct;
 }
 
+#ifdef _WINDOWS
+
 //////////////////////////////////////////////////////////////////////
 // function operator<<
 //
@@ -367,6 +369,8 @@ CArchive& operator>>(CArchive &ar, CMatrix<DIM, TYPE>& m)
 	// return the archive object
 	return ar;
 }
+
+#endif 
 
 //////////////////////////////////////////////////////////////////////
 // function CreateTranslate
@@ -594,8 +598,8 @@ inline REAL Eigen(CMatrix<2> m, int nOrder = 1,
 
 #ifdef _DEBUG
 	// assert that our eigenvector is really an eigenvector
-	CVector<2> vLeft = m * vEigen;
-	CVector<2> vRight = r * vEigen;
+	CVector<2> vLeft = m * (*pVector);
+	CVector<2> vRight = r * (*pVector);
 
 	ASSERT(vLeft.IsApproxEqual(vRight));
 #endif

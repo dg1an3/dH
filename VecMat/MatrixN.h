@@ -73,7 +73,7 @@ public:
 		SetIdentity();
 
 		// copy the elements
-		int nDim = min(GetDim(), fromMatrix.GetDim());
+		int nDim = __min(GetDim(), fromMatrix.GetDim());
 		for (int nAt = 0; nAt < nDim; nAt++)
 		{
 			(*this)[nAt] = fromMatrix[nAt];
@@ -90,6 +90,8 @@ public:
 		CMatrixBase<TYPE>::SetDim(nDim);
 	}
 };
+
+#ifdef _WINDOWS
 
 //////////////////////////////////////////////////////////////////////
 // function operator<<
@@ -134,5 +136,7 @@ CArchive& operator>>(CArchive &ar, CMatrixN<TYPE>& m)
 	// return the archive object
 	return ar;
 }
+
+#endif
 
 #endif

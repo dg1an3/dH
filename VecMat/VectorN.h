@@ -135,6 +135,8 @@ public:
 	}
 };
 
+#ifdef _WINDOWS
+
 //////////////////////////////////////////////////////////////////////
 // function operator<<(CArchive &ar, CVector)
 //
@@ -176,5 +178,7 @@ CArchive& operator>>(CArchive &ar, CVectorN<TYPE>& v)
 
 	return ar;
 }
+
+#endif	// _WINDOWS
 
 #endif	// !defined(VECTOR_H)

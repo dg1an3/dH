@@ -409,6 +409,8 @@ inline CVector<DIM, TYPE> FromHomogeneous(const CVector<DIM + 1, TYPE>& vh)
 	return v;
 }
 
+#ifdef _WINDOWS
+
 //////////////////////////////////////////////////////////////////////
 // function operator<<(CArchive &ar, CVector)
 //
@@ -440,6 +442,8 @@ CArchive& operator>>(CArchive &ar, CVector<DIM, TYPE>& v)
 
 	return ar;
 }
+
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // class CPackedVector<DIM, TYPE>

@@ -124,7 +124,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	BOOL IsApproxEqual(const CMatrixBase& m, TYPE epsilon = EPS) const
 	{
-		ASSERT(GetDim() == fromMatrix.GetDim());
+		ASSERT(GetDim() == m.GetDim());
 
 		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
 		{
@@ -150,7 +150,7 @@ public:
 		{
 			for (int nCol = 0; nCol < GetDim(); nCol++)
 			{
-				(*this)[nRow][nMid] += mRight[nMid][nCol];
+				(*this)[nRow][nCol] += mRight[nRow][nCol];
 			}
 		}
 
@@ -171,7 +171,7 @@ public:
 		{
 			for (int nCol = 0; nCol < GetDim(); nCol++)
 			{
-				(*this)[nRow][nMid] -= mRight[nMid][nCol];
+				(*this)[nRow][nCol] -= mRight[nRow][nCol];
 			}
 		}
 
@@ -354,11 +354,11 @@ void CMatrixBase<TYPE>::Orthogonalize()
 	// Gramm-Schmidt orthogonalization
 
 	// begin by setting the first orthogonal row vector
-	CMatrixBase<TYPE> mOrtho;
+	CMatrixBase<TYPE> mOrtho(*this);
 	mOrtho[0] = (*this)[0];
 
 	// apply to each row vector after the zero-th
-	for (int nAtRow = 1; nAtRow < DIM; nAtRow++)
+	for (int nAtRow = 1; nAtRow < GetDim(); nAtRow++)
 	{
 		mOrtho[nAtRow] = (*this)[nAtRow];
 		for (int nAtOrthoRow = nAtRow-1; nAtOrthoRow >= 0; nAtOrthoRow--)
@@ -366,17 +366,19 @@ void CMatrixBase<TYPE>::Orthogonalize()
 			double scalar = ((*this)[nAtRow] * mOrtho[nAtOrthoRow])
 				/ (mOrtho[nAtOrthoRow] * mOrtho[nAtOrthoRow]);
 			mOrtho[nAtRow] -= scalar * mOrtho[nAtOrthoRow];
-			TRACE1("Dot product = %lf\n", (mOrtho[nAtRow] * mOrtho[nAtOrthoRow]));
+			TRACE("Dot product = %lf\n", (mOrtho[nAtRow] * mOrtho[nAtOrthoRow]));
 		}
 	}
 
 	// now normalize all rows
-	for (nAtRow = 0; nAtRow < DIM; nAtRow++)
+	for (nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+	{
 		mOrtho[nAtRow].Normalize();
+	}
 
 #ifdef _DEBUG
 	// test for orthogonality
-	for (nAtRow = 1; nAtRow < DIM; nAtRow++)
+	for (nAtRow = 1; nAtRow < GetDim(); nAtRow++)
 	{
 		for (int nAtOrthoRow = nAtRow-1; nAtOrthoRow >= 0; nAtOrthoRow--)
 		{
@@ -572,9 +574,9 @@ inline bool operator==(const CMatrixBase<TYPE>& mLeft,
 					   const CMatrixBase<TYPE>& mRight)
 {
 	// element-by-element comparison
-	for (int nRow = 0; nRow < GetDim(); nRow++)
+	for (int nRow = 0; nRow < mLeft.GetDim(); nRow++)
 	{
-		for (int nCol = 0; nCol < GetDim(); nCol++)
+		for (int nCol = 0; nCol < mLeft.GetDim(); nCol++)
 		{
 			if (mLeft[nRow][nCol] != mRight[nRow][nCol])
 			{
@@ -754,9 +756,9 @@ ostream& operator<<(ostream& os, CMatrixBase<TYPE> v)
 // outputs the matrix for tracing
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-void TraceMatrix(const CString& strMessage, const CMatrixBase<TYPE> m)
+void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m)
 {
-	TRACE("%s = \n", strMessage);
+	TRACE("%s = \n", pszMessage);
 
 	for (int nAtRow = 0; nAtRow < m.GetDim(); nAtRow++)
 	{

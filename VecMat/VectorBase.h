@@ -423,8 +423,9 @@ void TraceVector(const CVectorBase<TYPE>& vTrace)
 //////////////////////////////////////////////////////////////////////
 #ifdef _DEBUG
 #define TRACE_VECTOR(strMessage, v) \
-	TRACE(strMessage);		\
-	TraceVector(v);	
+	TRACE(strMessage);				\
+	TraceVector(v);					\
+	TRACE("\n");
 #else
 #define TRACE_VECTOR(strMessage, v)
 #endif
