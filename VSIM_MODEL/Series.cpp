@@ -80,17 +80,13 @@ void CSeries::Serialize(CArchive& ar)
 {
 	CDocument::Serialize(ar);
 
+	volume.Serialize(ar);
+
 	if (!ar.IsStoring())
 	{
 		// delete any existing structures
-//		for (int nAt = 0; nAt < m_arrStructures.GetSize(); nAt++)
-//			delete m_arrStructures[nAt];
-//
-//		m_arrStructures.RemoveAll();
 		structures.RemoveAll();
 	}
-
-//	m_arrStructures.Serialize(ar);
 	structures.Serialize(ar);
 }
 
@@ -103,10 +99,6 @@ BOOL CSeries::OnNewDocument()
 		return FALSE;
 
 	// delete any existing structures
-//	for (int nAt = 0; nAt < m_arrStructures.GetSize(); nAt++)
-//		delete m_arrStructures[nAt];
-//
-//	m_arrStructures.RemoveAll();
 	structures.RemoveAll();
 
 	return TRUE;

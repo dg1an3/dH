@@ -9,8 +9,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Surface.h"
+#include <Matrix.h>
+
 #include <Collection.h>
+#include <Volumep.h>
+
+#include "Surface.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CSeries document
@@ -23,11 +27,14 @@ protected:
 
 // Attributes
 public:
-	CCollection<CSurface> structures;
+	// Transform to position the volume in 3-space
+	CValue< CMatrix<4> > volumeTransform;
 
-//	int GetStructureCount() const;
-//	CSurface& GetStructure(int nIndex);
-//	int AddStructure(CSurface& newStructure);
+	// Volume data for the series
+	CVolume< int > volume;
+
+	// Structures for the series
+	CCollection< CSurface > structures;
 
 // Operations
 public:
@@ -58,13 +65,6 @@ protected:
 		// NOTE - the ClassWizard will add and remove member functions here.
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-private:
-	// Volume data for the series
-	// CVolume m_Volume;
-
-	// Array of structures for the series
-//	CObArray m_arrStructures;
 };
 
 //{{AFX_INSERT_LOCATION}}
