@@ -21,10 +21,10 @@ public:
 	virtual ~COpenGLRenderer();
 
 	// color for the renderer (use depends on objects being rendered)
-	CValue< COLORREF > myColor;		// TODO: change this name
+	CValue< COLORREF > color;	
 
 	// defines the modelview matrix for this renderer
-	CValue< CMatrix<4> > myModelviewMatrix;		// TODO: change this name
+	CValue< CMatrix<4> > modelviewMatrix;
 
 	// turns on/off the renderer;
 	CValue< BOOL > isEnabled;

@@ -22,11 +22,11 @@ static char THIS_FILE[]=__FILE__;
 COpenGLRenderer::COpenGLRenderer(COpenGLView *pView)
 	: m_pView(pView),
 		m_nDrawList(-1),
-		myColor(RGB(255, 255, 255)),
+		color(RGB(255, 255, 255)),
 		isEnabled(TRUE)
 {
-	myColor.AddObserver(this, (ChangeFunction) OnChange);
-	myModelviewMatrix.AddObserver(this, (ChangeFunction) OnChange);
+	color.AddObserver(this, (ChangeFunction) OnChange);
+	modelviewMatrix.AddObserver(this, (ChangeFunction) OnChange);
 	isEnabled.AddObserver(this, (ChangeFunction) OnChange);
 }
 

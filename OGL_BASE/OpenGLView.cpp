@@ -248,7 +248,7 @@ void COpenGLView::OnPaint()
 		glPushMatrix();
 
 		// load the renderer's modelview matrix
-		glLoadMatrix(m_arrRenderers[nAt]->myModelviewMatrix.Get());
+		glLoadMatrix(m_arrRenderers[nAt]->modelviewMatrix.Get());
 
 		// save the current rendering attributes
 		// glPushAttrib(GL_ALL_ATTRIB_BITS);
