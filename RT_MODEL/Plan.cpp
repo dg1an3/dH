@@ -113,7 +113,7 @@ void CPlan::Serialize(CArchive& ar)
 	if (ar.IsStoring())
 	{ 
 		// now save the associated series
-		GetSeries()->SaveModified();
+		GetSeries()->OnSaveDocument(GetSeries()->GetFileName());
 	}
 }
 
