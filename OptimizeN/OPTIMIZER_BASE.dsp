@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob2 /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob2 /I "include" /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -122,31 +122,31 @@ SOURCE=.\StdAfx.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=BrentOptimizer.h
+SOURCE=.\include\BrentOptimizer.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\ConjGradOptimizer.h
+SOURCE=.\include\ConjGradOptimizer.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\GradDescOptimizer.h
+SOURCE=.\include\GradDescOptimizer.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\LineFunction.h
+SOURCE=.\include\LineFunction.h
 # End Source File
 # Begin Source File
 
-SOURCE=ObjectiveFunction.h
+SOURCE=.\include\ObjectiveFunction.h
 # End Source File
 # Begin Source File
 
-SOURCE=Optimizer.h
+SOURCE=.\include\Optimizer.h
 # End Source File
 # Begin Source File
 
-SOURCE=PowellOptimizer.h
+SOURCE=.\include\PowellOptimizer.h
 # End Source File
 # Begin Source File
 
