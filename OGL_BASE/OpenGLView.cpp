@@ -118,7 +118,7 @@ CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 
 CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt)
 {
-	return ModelPtFromWndPt(wndPt, camera.projectionMatrix.Get());
+	return ModelPtFromWndPt(wndPt, camera.projection.Get());
 }
 
 
@@ -147,7 +147,7 @@ void COpenGLView::OnPaint()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrix(camera.projectionMatrix.Get());
+	glLoadMatrix(camera.projection.Get());
 
 	// set the matrix mode to modelview
 	glMatrixMode(GL_MODELVIEW);
