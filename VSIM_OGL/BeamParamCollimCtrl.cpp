@@ -30,6 +30,7 @@ CBeamParamCollimCtrl::CBeamParamCollimCtrl(CWnd* pParent /*=NULL*/)
 	//}}AFX_DATA_INIT
 }
 
+BOOL m_bUpdatingData = FALSE;
 
 void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 {
@@ -63,6 +64,7 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 
 	if (pDX->m_bSaveAndValidate && forBeam.Get() != NULL)
 	{
+		m_bUpdatingData = TRUE;
 //		forBeam->SetAngles(((double)m_nCollimAngle) * PI / 180.0,
 //			forBeam->myGantryAngle.Get(), forBeam->myCouchAngle.Get());
 
@@ -73,6 +75,8 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 
 		CVector<2> vMax(m_nJawX2, m_nJawY2);
 		forBeam->collimMax.Set(vMax);
+
+		m_bUpdatingData = FALSE;
 	}
 	
 }
@@ -84,7 +88,7 @@ void CBeamParamCollimCtrl::OnChange(CObservableObject *pFromObject, void *pOldVa
 		forBeam->collimAngle.AddObserver(this, (ChangeFunction) OnChange);
 	}
 
-	if (::IsWindow(m_hWnd))
+	if (::IsWindow(m_hWnd) && !m_bUpdatingData)
 		UpdateData(FALSE);
 }
 
