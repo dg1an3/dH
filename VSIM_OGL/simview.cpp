@@ -268,9 +268,11 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	if (GetDocument() == NULL)
 		return;
 
+	CBeam *pMainBeam = NULL;
 	if (GetDocument()->beams.GetSize() > 0)
 	{
 		CBeam& beam = *GetDocument()->beams.Get(0);
+		pMainBeam = &beam;
 
 		currentBeam.Set(&beam);
 
@@ -324,6 +326,8 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		pSurfaceRenderer->color.Set(arrColors[nAtSurf]);
 		pSurfaceRenderer->SetSurface(pSurface);
+		pSurfaceRenderer->tableOffset.SyncTo(&pMainBeam->tableOffset);
+		pSurfaceRenderer->couchAngle.SyncTo(&pMainBeam->couchAngle);
 		m_wndREV.AddRenderer(pSurfaceRenderer);
 
 		pSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
@@ -336,7 +340,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			// compute the center of the patient surface
 			CVector<3> vMin = pSurface->GetBoundsMin();
 			CVector<3> vMax = pSurface->GetBoundsMax();
-			CSurfaceRenderer::m_vXlate = (vMin + vMax) * -0.5; 
+			// CSurfaceRenderer::m_vXlate = (vMin + vMax) * -0.5; 
 
 			m_wndREV.SetMaxObjSize((float) (8.5 * pSurface->GetMaxSize())); 
 
@@ -387,6 +391,8 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		// create and add the beam renderer to the REV
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
 		m_pBeamRenderer->SetBeam(pBeam);
+		m_pBeamRenderer->SetREVBeam();
+
 		m_wndREV.AddRenderer(m_pBeamRenderer);
 		m_pBeamRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 	}

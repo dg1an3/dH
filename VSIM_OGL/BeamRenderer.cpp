@@ -42,6 +42,18 @@ CBeamRenderer::~CBeamRenderer()
 
 }
 
+void CBeamRenderer::SetREVBeam()
+{
+	modelviewMatrix.SyncTo(&(
+		  CreateRotate(PI - forBeam->gantryAngle,	CVector<3>(0.0, -1.0, 0.0))
+		* CreateRotate(forBeam->collimAngle,		CVector<3>(0.0, 0.0, -1.0))
+		* CreateTranslate(forBeam->SAD,				CVector<3>(0.0, 0.0, -1.0))	
+		* CreateScale(CVector<3>(1.0, 1.0, -1.0))
+		* Invert(privMachineProjection)
+	));
+}
+
+
 CBeam *CBeamRenderer::GetBeam()
 {
 	return forBeam.Get();

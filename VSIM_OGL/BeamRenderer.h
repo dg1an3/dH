@@ -27,6 +27,8 @@ public:
 	CBeam *GetBeam();
 	void SetBeam(CBeam *pBeam);
 
+	void SetREVBeam();
+
 	CValue< BOOL > isCentralAxisEnabled;
 	CValue< BOOL > isDivergenceSurfacesEnabled;
 	CValue< BOOL > isGraticuleEnabled;
