@@ -417,11 +417,6 @@ CVectorD<3> CSceneView::ModelPtFromWndPt(CPoint wndPt, const CMatrixD<4>& mProj)
 {
 	// retrieve the model and projection matrices
 	CMatrixD<4> mModel;
-	GLdouble modelMatrix[16];
-	mModel.ToArray(modelMatrix);
-
-	GLdouble projMatrix[16];
-	mProj.ToArray(projMatrix);
 
 	// retrieve the viewport
 	GLint viewport[4];
@@ -431,7 +426,8 @@ CVectorD<3> CSceneView::ModelPtFromWndPt(CPoint wndPt, const CMatrixD<4>& mProj)
 	CVectorD<3> vModelPt;
 	gluUnProject((GLdouble)viewport[2] - wndPt.x, (GLdouble)wndPt.y, 
 		GetCamera().GetNearPlane(),
-		modelMatrix, projMatrix, viewport, 
+		mModel, mProj,
+		viewport, 
 		&vModelPt[0], &vModelPt[1], &vModelPt[2]);
 
 	return vModelPt;

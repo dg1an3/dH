@@ -17,6 +17,9 @@
 // class interface
 #include "Camera.h"
 
+// include the Matrix inline routines
+#include <MatrixBase.inl>
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -231,8 +234,8 @@ void CCamera::SetXform(const CMatrixD<4>& m)
 	CMatrixD<3> mScale = mOrthoInv * CMatrixD<3>(m);
 
 	// ensure that there is no warp in the xform
-	ASSERT(IS_APPROX_EQUAL(mScale[0][0], mScale[1][1]));
-	ASSERT(IS_APPROX_EQUAL(mScale[0][0], mScale[2][2]));
+	ASSERT(IsApproxEqual(mScale[0][0], mScale[1][1]));
+	ASSERT(IsApproxEqual(mScale[0][0], mScale[2][2]));
 
 	// set the scale factor
 	m_zoom = mScale[0][0];
@@ -246,7 +249,7 @@ void CCamera::SetXform(const CMatrixD<4>& m)
 
 	// the sine of phi is used to compute the other angles
 	double sin_phi = sin(m_phi);
-	if (sin_phi > EPS)
+	if (sin_phi > DEFAULT_EPSILON)
 	{
 		// compute theta
 		if (mOrtho[0][2] != 0.0 && mOrtho[1][2] != 0.0)

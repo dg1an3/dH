@@ -257,16 +257,12 @@ void CRenderContext::Unbind()
 // helper functions for matrix manipulation
 void CRenderContext::LoadMatrix(const CMatrixD<4, double>& m)
 {
-	double mArray[16];
-	m.ToArray(mArray);
-	glLoadMatrixd(mArray);
+	glLoadMatrixd(m);
 }
 
 
 void CRenderContext::MultMatrix(const CMatrixD<4, double>& m)
 {
-	double mArray[16];
-	m.ToArray(mArray);
-	glMultMatrixd(mArray);
+	glMultMatrixd(m);
 }
 

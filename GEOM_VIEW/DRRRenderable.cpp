@@ -240,11 +240,15 @@ void CDRRRenderable::ComputeDRR()
 	m_arrPixels.SetSize(m_nImageWidth * m_nImageHeight);
 
 	// retrieve the model and projection matrices
-	GLdouble modelMatrix[16];
-	m_mVolumeTransform.ToArray(modelMatrix);
+	const CMatrixD<4>& modelMatrix = m_mVolumeTransform;
+	// GLdouble modelMatrix[16];
+	// memcpy(modelMatrix, &m_mVolumeTransform[0][0], sizeof(modelMatrix));
+	// m_mVolumeTransform.ToArray(modelMatrix);
 
-	GLdouble projMatrix[16];
-	m_pView->GetCamera().GetProjection().ToArray(projMatrix);
+	const CMatrixD<4>& projMatrix = m_pView->GetCamera().GetProjection();
+	// GLdouble projMatrix[16];
+	// memcpy(modelMatrix, &m_pView->GetCamera().GetProjection()[0][0], sizeof(modelMatrix));
+	// m_pView->GetCamera().GetProjection().ToArray(projMatrix);
 
 	// compute the near and far planes containing the volume
 	CVectorD<3> vPt;
