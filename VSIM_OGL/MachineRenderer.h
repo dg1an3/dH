@@ -26,6 +26,9 @@ public:
 	// association to the beam for treatment machine parameters
 	CAssociation< CBeam > forBeam;
 
+	// flag to indicate that the machine is to be rendered as a wireframe
+	CValue< BOOL > isWireFrame;
+
 	// rendering routine
 	virtual void OnRenderScene();
 
