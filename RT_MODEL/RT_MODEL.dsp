@@ -25,7 +25,7 @@ CFG=RT_MODEL - Win32 Debug
 # PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=xicl6.exe
+CPP=cl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "RT_MODEL - Win32 Release"
@@ -103,10 +103,6 @@ SOURCE=.\HistogramMatcher.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\InvFilterEM.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\Plan.cpp
 # End Source File
 # Begin Source File
@@ -157,10 +153,6 @@ SOURCE=.\include\Histogram.h
 # Begin Source File
 
 SOURCE=.\include\HistogramMatcher.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\InvFilterEM.h
 # End Source File
 # Begin Source File
 

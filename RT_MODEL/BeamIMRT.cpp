@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-// #include "TestHisto.h"
+
 #include <BeamIMRT.h>
 
 #ifdef _DEBUG
@@ -357,7 +357,30 @@ void CBeamIMRT::GenFilterMat()
 {
 	for (int nAtScale = 0; nAtScale < MAX_SCALES-1; nAtScale++)
 	{
-		// generate the filter matrix
+		// set up the filter matrix
+		// CMatrixNxM<> mFilter;
+		m_mFilter[nAtScale].Reshape(GetBeamletCount(nAtScale), 
+			GetBeamletCount(nAtScale));
+		ZeroMemory(m_mFilter[nAtScale], 
+			m_mFilter[nAtScale].GetRows() * m_mFilter[nAtScale].GetCols() * sizeof(REAL));
+
+		for (int nAt = 0; nAt < m_mFilter[nAtScale].GetRows(); nAt++)
+		{
+			if (nAt > 0)
+			{
+				m_mFilter[nAtScale][nAt - 1][nAt] = m_vWeightFilter[0];
+			}
+
+			m_mFilter[nAtScale][nAt][nAt] = m_vWeightFilter[1];
+
+			if (nAt < m_mFilter[nAtScale].GetRows()-1)
+			{
+				m_mFilter[nAtScale][nAt + 1][nAt] = m_vWeightFilter[2];
+			}
+		}
+		LOG_EXPR_EXT(m_mFilter[nAtScale]);
+
+/*		// generate the filter matrix
 		m_mFilter[nAtScale].Reshape(GetBeamletCount(nAtScale), GetBeamletCount(nAtScale+1));
 		ZeroMemory(m_mFilter[nAtScale], 
 			m_mFilter[nAtScale].GetRows() * m_mFilter[nAtScale].GetCols() * sizeof(REAL));
@@ -371,7 +394,7 @@ void CBeamIMRT::GenFilterMat()
 				m_mFilter[nAtScale][nColStart + nColOffset][nAtRow] = m_vWeightFilter[nColOffset];
 			}
 		}
-
+*/
 //		TRACE_MATRIX("m_mFilter", m_mFilter[nAtScale]);
 
 //		m_mFilter_pinv[nAtScale].Reshape(GetBeamletCount(nAtScale), GetBeamletCount(nAtScale+1));
@@ -382,3 +405,47 @@ void CBeamIMRT::GenFilterMat()
 }	// CBeamIMRT::GenFilterMat
 
 
+
+void CBeamIMRT::InvFiltIntensityMap(int nScale, const CVectorN<>& vWeights, CVectorBase<>& vFiltWeights)
+{
+	BEGIN_LOG_SECTION(CBeamIMRT::InvFiltIntensityMap);
+	LOG_EXPR(nScale);
+	LOG_EXPR_EXT(vWeights);
+
+	CVectorN<> vFilterOut;
+	vFilterOut.SetDim(vWeights.GetDim() * 2 + 1);
+	vFilterOut.SetZero();
+
+	for (int nAt = 0; nAt < vWeights.GetDim(); nAt++)
+	{
+		vFilterOut[nAt * 2 + 1] = vWeights[nAt];
+	}
+
+/*.	// set up the filter matrix
+	CMatrixNxM<> mFilter;
+	mFilter.Reshape(vFilterOut.GetDim(), vFilterOut.GetDim());
+	for (nAt = 0; nAt < mFilter.GetRows(); nAt++)
+	{
+		if (nAt > 0)
+		{
+			mFilter[nAt - 1][nAt] = m_vWeightFilter[0];
+		}
+
+		mFilter[nAt][nAt] = m_vWeightFilter[1];
+
+		if (nAt < mFilter.GetRows()-1)
+		{
+			mFilter[nAt + 1][nAt] = m_vWeightFilter[2];
+		}
+	}
+	LOG_EXPR_EXT(mFilter);
+	LOG_EXPR_EXT(m_mFilter[nScale-1]);
+	ASSERT(mFilter.GetRows() == m_mFilter[nScale-1].GetRows());
+	ASSERT(mFilter.GetCols() == m_mFilter[nScale-1].GetCols());
+	ASSERT(mFilter == m_mFilter[nScale-1]); */
+
+	vFiltWeights = m_mFilter[nScale-1] * vFilterOut;
+	vFiltWeights *= 2.0;
+
+	END_LOG_SECTION();
+}
