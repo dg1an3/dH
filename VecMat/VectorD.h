@@ -61,63 +61,82 @@ private:
 
 
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>() 
+//
 // default constructor
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>() 
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
-	// initialize the elements to 0.0
-	for (int nAt = 0; nAt < DIM; nAt++)
-	{
-		(*this)[nAt] = (TYPE) 0.0;
-	}
-}
+	// clear to all zeros
+	memset((*this), 0, DIM * sizeof(TYPE));
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>() 
+
 
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
+//
 // construct from one element
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = x;
 
-	// initialize the other elements to 0.0
-	for (int nAt = 1; nAt < DIM; nAt++)
+	// clear to all zeros
+	if (DIM > 1)
 	{
-		(*this)[nAt] = (TYPE) 0.0;
+		memset(&(*this)[1], 0, (DIM-1) * sizeof(TYPE));
 	}
-}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
+
 
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
+//
 // construct from two elements
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = x;
 	(*this)[1] = y;
 
-	// initialize the other elements to 0.0
-	for (int nAt = 2; nAt < DIM; nAt++)
+	// clear to all zeros
+	if (DIM > 2)
 	{
-		(*this)[nAt] = (TYPE) 0.0;
+		memset(&(*this)[2], 0, (DIM-2) * sizeof(TYPE));
 	}
-}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
+
 
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z) 
+//
 // construct from three elements
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z) 
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
@@ -125,19 +144,25 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z)
 	(*this)[1] = y;
 	(*this)[2] = z;
 
-	// initialize the other elements to 0.0
-	for (int nAt = 3; nAt < DIM; nAt++)
+	// clear to all zeros
+	if (DIM > 3)
 	{
-		(*this)[nAt] = (TYPE) 0.0;
+		memset(&(*this)[3], 0, (DIM-3) * sizeof(TYPE));
 	}
-}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z) 
+
 
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w) 
+//
 // construct from four elements
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w) 
 { 
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
@@ -146,79 +171,118 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w)
 	(*this)[2] = z;
 	(*this)[3] = w;
 
-	// initialize the other elements to 0.0
-	for (int nAt = 4; nAt < DIM; nAt++)
+	// clear to all zeros
+	if (DIM > 4)
 	{
-		(*this)[nAt] = (TYPE) 0.0;
+		memset(&(*this)[4], 0, (DIM-4) * sizeof(TYPE));
 	}
-}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w) 
+
 
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom) 
+//
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom) 
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
+	// assign to copy 
 	(*this) = vFrom;
-}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom) 
+
 
 //////////////////////////////////////////////////////////////////
-// copy constructor from base class
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom) 
+//
+// copy constructor from base class object
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom) 
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
-	// set the given elements
-	for (int nAt = 0; nAt < GetDim(); nAt++)
+	// copy the elements
+	memcpy((*this), vFrom, __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+
+	// set remainder of elements to 0
+	if (GetDim() > vFrom.GetDim())
 	{
-		(*this)[nAt] = 
-			(nAt < vFrom.GetDim()) ? vFrom[nAt] : (TYPE) 0.0;
+		memset(&(*this)[vFrom.GetDim()], 0, 
+			(GetDim() - vFrom.GetDim()) * sizeof(TYPE));
 	}
-}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom) 
+
 
 #ifdef __AFX_H__
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
+//
 // construct from a windows CPoint
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
 {
+	// set the elements pointer to the static array 
+	//		and initialize the dimension
 	SetElements(DIM, &m_arrElements[0], FALSE);
 
 	// set the given elements
 	(*this)[0] = pt.x;
 	(*this)[1] = pt.y;
 
-	// initialize the other elements to 0.0
-	for (int nAt = 2; nAt < DIM; nAt++)
-		(*this)[nAt] = (TYPE) 0.0;
-}
+	// clear to all zeros
+	if (DIM > 2)
+	{
+		memset(&(*this)[2], 0, (DIM-2) * sizeof(TYPE));
+	}
+
+}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
 #endif
 
+
+//////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
+//
+// destructor
+//////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 {
 	// ensure no monkey business has occurred
 	ASSERT(m_pElements == &m_arrElements[0]);
-}
+
+}	// CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
+
 
 #ifdef __AFX_H__
 //////////////////////////////////////////////////////////////////
+// CVectorD<DIM, TYPE>::operator CPoint() const
+//
 // Windows CPoint conversion 
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::operator CPoint() const
 {
 	return CPoint((int)(*this)[0], (int)(*this)[1]);
-}
+
+}	// CVectorD<DIM, TYPE>::operator CPoint() const
 #endif
 
+
 //////////////////////////////////////////////////////////////////
-// copy constructor
+// CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator=
+//
+// assignment operator
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator=(const CVectorD<DIM, TYPE>& vFrom)
@@ -227,19 +291,19 @@ CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator=(const CVectorD<DIM, TYPE>& v
 	//		that occurs in CMatrixD::operator[]
 	// ASSERT(m_pElements == &m_arrElements[0]);
 
-	// set the given elements
-	for (int nAt = 0; nAt < GetDim(); nAt++)
-	{
-		(*this)[nAt] = vFrom[nAt];
-	}
+	// copy the elements
+	memcpy((*this), vFrom, GetDim() * sizeof(TYPE));
 
 	// return a reference to this
 	return (*this);
-}
+
+}	// CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator=
+
 
 //////////////////////////////////////////////////////////////////
-// IsApproxEqual -- tests for approximate equality using the EPS
-//		defined at the top of this file
+// CVectorD<DIM, TYPE>::IsApproxEqual
+//
+// tests for approximate equality using the given epsilon
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 BOOL CVectorD<DIM, TYPE>::IsApproxEqual(const CVectorD<DIM, TYPE>& v, 
@@ -250,29 +314,41 @@ BOOL CVectorD<DIM, TYPE>::IsApproxEqual(const CVectorD<DIM, TYPE>& v,
 	vDiff -= v;
 
 	return (vDiff.GetLength() < epsilon);
-}
+
+}	// CVectorD<DIM, TYPE>::IsApproxEqual
+
 
 //////////////////////////////////////////////////////////////////
-// operator+= -- in-place vector addition; returns a reference to 
-//		this
+// CVectorD<DIM, TYPE>::operator+=
+//
+// in-place vector addition; returns a reference to this
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator+=(const CVectorD<DIM, TYPE>& vRight)
 {
+	// use the base-class operator+=
 	CVectorBase<TYPE>::operator+=((const CVectorBase<TYPE>&)vRight);
+
 	return (*this);
-}
+
+}	// CVectorD<DIM, TYPE>::operator+=
+
 
 //////////////////////////////////////////////////////////////////
-// operator-= -- in-place vector subtraction; returns a reference 
-//		to this
+// CVectorD<DIM, TYPE>::operator-=
+//
+// in-place vector subtraction; returns a reference to this
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator-=(const CVectorD<DIM, TYPE>& vRight)
 {
+	// use the base-class operator-=
 	CVectorBase<TYPE>::operator-=((const CVectorBase<TYPE>&)vRight);
+
 	return (*this);
-}
+
+}	// CVectorD<DIM, TYPE>::operator-=
+
 
 //////////////////////////////////////////////////////////////////////
 // operator==(const CVectorD, const CVectorD)
@@ -284,9 +360,12 @@ template<int DIM, class TYPE>
 inline bool operator==(const CVectorD<DIM, TYPE>& vLeft, 
 					   const CVectorD<DIM, TYPE>& vRight)
 {
+	// use the base-class operator==
 	return operator==((const CVectorBase<TYPE>&) vLeft,
 		(const CVectorBase<TYPE>&) vRight);
-}
+
+}	// operator==(const CVectorD, const CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator!=(const CVectorD, const CVectorD)
@@ -298,9 +377,12 @@ template<int DIM, class TYPE>
 inline bool operator!=(const CVectorD<DIM, TYPE>& vLeft, 
 					   const CVectorD<DIM, TYPE>& vRight)
 {
+	// use the base-class operator!=
 	return operator!=((const CVectorBase<TYPE>&) vLeft,
 		(const CVectorBase<TYPE>&) vRight);
-}
+
+}	// operator!=(const CVectorD, const CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator+(const CVectorD, const CVectorD)
@@ -316,7 +398,9 @@ inline CVectorD<DIM, TYPE> operator+(const CVectorD<DIM, TYPE>& vLeft,
 	vSum += vRight;
 
 	return vSum;
-}
+
+}	// operator+(const CVectorD, const CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator-(const CVectorD, const CVectorD)
@@ -332,7 +416,9 @@ inline CVectorD<DIM, TYPE> operator-(const CVectorD<DIM, TYPE>& vLeft,
 	vSum -= vRight;
 
 	return vSum;
-}
+
+}	// operator-(const CVectorD, const CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator*(const CVectorD, const CVectorD)
@@ -345,7 +431,9 @@ inline TYPE operator*(const CVectorD<DIM, TYPE>& vLeft,
 {
 	return operator*((const CVectorBase<TYPE>&) vLeft,
 		(const CVectorBase<TYPE>&) vRight);
-}
+
+}	// operator*(const CVectorD, const CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator*(TYPE scalar, const CVectorD)
@@ -360,7 +448,9 @@ inline CVectorD<DIM, TYPE> operator*(TYPE scalar,
 	vProd *= scalar;
 
 	return vProd;
-}
+
+}	// operator*(TYPE scalar, const CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator*(const CVectorD, TYPE scalar)
@@ -375,7 +465,9 @@ inline CVectorD<DIM, TYPE> operator*(const CVectorD<DIM, TYPE>& vLeft,
 	vProd *= scalar;
 
 	return vProd;
-}
+
+}	// operator*(const CVectorD, TYPE scalar)
+
 
 //////////////////////////////////////////////////////////////////////
 // Cross(const CVectorD<2>&, const CVectorD<2>&)
@@ -387,7 +479,9 @@ inline TYPE Cross(const CVectorD<2, TYPE>& vLeft,
 					const CVectorD<2, TYPE>& vRight)
 {
 	return vLeft[0] * vRight[1] - vLeft[1] * vRight[0];
-}
+
+}	// Cross(const CVectorD<2>&, const CVectorD<2>&)
+
 
 //////////////////////////////////////////////////////////////////////
 // Cross(const CVectorD<3>&, const CVectorD<3>&)
@@ -405,7 +499,9 @@ inline CVectorD<3, TYPE> Cross(const CVectorD<3, TYPE>& vLeft,
 	vProd[2] =   vLeft[0] * vRight[1] - vLeft[1] * vRight[0];
 
 	return vProd;
-}
+
+}	// Cross(const CVectorD<3>&, const CVectorD<3>&)
+
 
 //////////////////////////////////////////////////////////////////////
 // ToHomogeneous(const CVectorD&)
@@ -429,7 +525,9 @@ inline CVectorD<DIM + 1, TYPE> ToHomogeneous(const CVectorD<DIM, TYPE>& v)
 	vh[DIM] = (TYPE) 1.0;
 
 	return vh;
-}
+
+}	// ToHomogeneous(const CVectorD&)
+
 
 //////////////////////////////////////////////////////////////////////
 // FromHomogeneous(const CVectorD&)
@@ -450,10 +548,11 @@ inline CVectorD<DIM, TYPE> FromHomogeneous(const CVectorD<DIM + 1, TYPE>& vh)
 	}
 
 	return v;
-}
+
+}	// FromHomogeneous(const CVectorD&)
+
 
 #ifdef __AFX_H__
-
 //////////////////////////////////////////////////////////////////////
 // operator<<(CArchive &ar, CVectorD)
 //
@@ -468,7 +567,9 @@ CArchive& operator<<(CArchive &ar, CVectorD<DIM, TYPE> v)
 	}
 
 	return ar;
-}
+
+}	// operator<<(CArchive &ar, CVectorD)
+
 
 //////////////////////////////////////////////////////////////////////
 // operator>>(CArchive &ar, CVectorD)
@@ -484,9 +585,10 @@ CArchive& operator>>(CArchive &ar, CVectorD<DIM, TYPE>& v)
 	}
 
 	return ar;
-}
 
+}	// operator>>(CArchive &ar, CVectorD)
 #endif
+
 
 //////////////////////////////////////////////////////////////////////
 // class CPackedVector<DIM, TYPE>
