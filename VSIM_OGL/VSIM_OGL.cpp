@@ -232,3 +232,7 @@ BOOL CVSIM_OGLApp::OnIdle(LONG lCount)
 
 	return TRUE; // CWinApp::OnIdle(lCount);
 }
+
+void CVSIM_OGLApp::OnFileSave() 
+{
+}

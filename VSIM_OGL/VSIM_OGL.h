@@ -39,6 +39,7 @@ public:
 	//{{AFX_MSG(CVSIM_OGLApp)
 	afx_msg void OnAppAbout();
 	afx_msg void OnFileOpen();
+	afx_msg void OnFileSave();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 protected:
