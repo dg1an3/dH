@@ -11,9 +11,26 @@
 using namespace std;
 
 #include "VectorN.h"
-#include "Vector.h"
-#include "MatrixN.h"
-#include "Matrix.h"
+#include "VectorD.h"
+#include "MatrixNxM.h"
+#include "MatrixD.h"
+
+//////////////////////////////////////////////////////////////////////
+// template<class VECTOR_CLASS>
+// void InitVector(VECTOR_CLASS& m, int nDim)
+//
+// initializes the vector with the given dimension
+//////////////////////////////////////////////////////////////////////
+template<class VECTOR_CLASS>
+void InitVector(VECTOR_CLASS& m, int nDim)
+{
+}
+
+template<>
+void InitVector< CVectorN<> >(CVectorN<>& v, int nDim)
+{
+	v.SetDim(nDim);
+}
 
 //////////////////////////////////////////////////////////////////////
 // template<class VECTOR_CLASS, int DIM>
@@ -22,17 +39,12 @@ using namespace std;
 // tests the specified vector class, creating random vectors with
 //		elements scaled by scale
 //////////////////////////////////////////////////////////////////////
-template<class VECTOR_CLASS, int DIM>
-void TestVectorClass(REAL scale)
+template<class VECTOR_CLASS>
+void TestVectorClass(int nDim, REAL scale)
 {
 	// construction
 	VECTOR_CLASS v1;
-
-	// set the dimension if it is > -1
-	if (DIM > 0)
-	{
-		static_cast< CVectorN<> >(v1).SetDim(DIM);
-	}
+	InitVector<VECTOR_CLASS>(v1, nDim);
 
 	// element accessors
 	for (int nAt = 0; nAt < v1.GetDim(); nAt++)
@@ -95,6 +107,24 @@ void TestVectorClass(REAL scale)
 	TRACE("v1 * v3 = %lf\n", v1 * v3);
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// template<class MATRIX_CLASS>
+// InitMatrix(REAL scale)
+//
+// initializes the matrix with the given dimension
+//////////////////////////////////////////////////////////////////////
+template<class MATRIX_CLASS>
+void InitMatrix(MATRIX_CLASS& m, int nDim)
+{
+}
+
+template<>
+void InitMatrix< CMatrixNxM<> >(CMatrixNxM<>& m, int nDim)
+{
+	m.Reshape(nDim, nDim);
+}
+
 //////////////////////////////////////////////////////////////////////
 // template<class VECTOR_CLASS, int DIM>
 // TestMatrixClass(REAL scale)
@@ -102,40 +132,35 @@ void TestVectorClass(REAL scale)
 // tests the specified matrix class, creating random matrices with
 //		elements scaled by scale
 //////////////////////////////////////////////////////////////////////
-template<class MATRIX_CLASS, int DIM>
-void TestMatrixClass(REAL scale)
+template<class MATRIX_CLASS>
+void TestMatrixClass(int nDim, REAL scale)
 {
 	// construction
 	MATRIX_CLASS m1;
-
-	// set the dimension if it is > 0
-	if (DIM > 0)
-	{
-		static_cast< CMatrixN<> >(m1).SetDim(DIM);
-	}
+	InitMatrix<MATRIX_CLASS>(m1, nDim);
 
 	// element accessors
-	for (int nAtRow = 0; nAtRow < m1.GetDim(); nAtRow++)
+	for (int nAtCol = 0; nAtCol < m1.GetCols(); nAtCol++)
 	{
-		for (int nAtCol = 0; nAtCol < m1.GetDim(); nAtCol++)
+		for (int nAtRow = 0; nAtRow < m1.GetRows(); nAtRow++)
 		{
-			m1[nAtRow][nAtCol] = scale - 2.0 * scale * (REAL) rand() 
+			m1[nAtCol][nAtRow] = scale - 2.0 * scale * (REAL) rand() 
 				/ (REAL) RAND_MAX;
 		}
 	}
-	TRACE_MATRIX("m1 = ", m1);
+	TRACE_MATRIX("m1", m1);
 
 	// copy construction
 	//	-> ensure dimensions are replicated
 	MATRIX_CLASS m2(m1);
 	TRACE("MATRIX_CLASS m2(m1);\n");
-	TRACE_MATRIX("m2 = ", m2);
+	TRACE_MATRIX("m2", m2);
 
 	// assignment
 	//	-> ensure dimensions are replicated
 	MATRIX_CLASS m3 = m2;
 	TRACE("MATRIX_CLASS m3 = m2;\n");
-	TRACE_MATRIX("m3 = ", m3);
+	TRACE_MATRIX("m3", m3);
 
 	// determinant
 	// TRACE("m3 determinant = %lf\n", m3.GetDeterminant());
@@ -143,6 +168,7 @@ void TestMatrixClass(REAL scale)
 	// orthogonalization
 	m3.Orthogonalize();
 	TRACE_MATRIX("m3 Orthogonalize = ", m3);
+	ASSERT(m3.IsOrthogonal());
 
 	// comparison (== , !=, IsApproxEqual)
 	TRACE("ASSERT(m2 == m1);\n");
@@ -160,17 +186,20 @@ void TestMatrixClass(REAL scale)
 	// in-place arithmetic
 	m1 += m2;
 	TRACE("m1 += m2;\n");
-	TRACE_MATRIX("m1 = ", m1);
+	TRACE_MATRIX("m1", m1);
 
 	m1 -= m2;
 	TRACE("m1 -= m2;\n");
-	TRACE_MATRIX("m1 = ", m1);
+	TRACE_MATRIX("m1", m1);
 
 	m1 *= 2.0;
 	TRACE("m1 *= 2.0;\n");
-	TRACE_MATRIX("m1 = ", m1);
+	TRACE_MATRIX("m1", m1);
 
 	// dyadic arithmetic
+	TRACE_MATRIX("m1", m1);
+	TRACE_MATRIX("m2", m2);
+	TRACE_MATRIX("m3", m3);
 	TRACE_MATRIX("m1 + m2 = ", m1 + m2);
 	TRACE_MATRIX("m1 - m3 = ", m1 - m3);
 	TRACE_MATRIX("m1 * m3 = ", m1 * m3);
@@ -178,9 +207,11 @@ void TestMatrixClass(REAL scale)
 	// inverse
 	m2 = m1;
 	m1.Invert();
+	TRACE_MATRIX("m1.Invert()", m1);
 
 	// create an identity matrix for comparison
 	MATRIX_CLASS mI;
+	InitMatrix<MATRIX_CLASS>(mI, nDim);
 	mI.SetIdentity();
 
 	// assert approximate equality
@@ -191,121 +222,121 @@ void TestMatrixClass(REAL scale)
 // main
 //
 // runs tests on
-//		dynamic vectors of dimension 1..9, 
+//		static vectors of dimension 1..9, 
 //			with elements scaled to 0.01
-//		dynamic vectors of dimension 1..9, 
+//		static vectors of dimension 1..9, 
 //			with elements scaled to 100.0
-//		static vectors of dimension 1..9, 
+//		dynamic vectors of dimension 1..9, 
 //			with elements scaled to 0.01
-//		static vectors of dimension 1..9, 
+//		dynamic vectors of dimension 1..9, 
 //			with elements scaled to 100.0
 //
-//		dynamic matrices of dimension 1..9, 
+//		static matrices of dimension 1..9, 
 //			with elements scaled to 0.01
-//		dynamic matrices of dimension 1..9, 
+//		static matrices of dimension 1..9, 
 //			with elements scaled to 100.0
-//		static matrices of dimension 1..9, 
+//		dynamic matrices of dimension 1..9, 
 //			with elements scaled to 0.01
-//		static matrices of dimension 1..9, 
+//		dynamic matrices of dimension 1..9, 
 //			with elements scaled to 100.0
 //////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
 {
-	//	dynamic vectors of dimension 1..9, 
-	//		with elements scaled to 0.01
-	TestVectorClass<CVectorN<>, 1>(0.01);
-	TestVectorClass<CVectorN<>, 2>(0.01);
-	TestVectorClass<CVectorN<>, 3>(0.01);
-	TestVectorClass<CVectorN<>, 4>(0.01);
-	TestVectorClass<CVectorN<>, 5>(0.01);
-	TestVectorClass<CVectorN<>, 6>(0.01);
-	TestVectorClass<CVectorN<>, 7>(0.01);
-	TestVectorClass<CVectorN<>, 8>(0.01);
-	TestVectorClass<CVectorN<>, 9>(0.01);
-
-	//	dynamic vectors of dimension 1..9, 
-	//		with elements scaled to 100.0
-	TestVectorClass<CVectorN<>, 1>(100.0);
-	TestVectorClass<CVectorN<>, 2>(100.0);
-	TestVectorClass<CVectorN<>, 3>(100.0);
-	TestVectorClass<CVectorN<>, 4>(100.0);
-	TestVectorClass<CVectorN<>, 5>(100.0);
-	TestVectorClass<CVectorN<>, 6>(100.0);
-	TestVectorClass<CVectorN<>, 7>(100.0);
-	TestVectorClass<CVectorN<>, 8>(100.0);
-	TestVectorClass<CVectorN<>, 9>(100.0);
-
 	//	static vectors of dimension 1..9, 
 	//		with elements scaled to 0.01
-	TestVectorClass<CVector<1>, 0>(0.01);
-	TestVectorClass<CVector<2>, 0>(0.01);
-	TestVectorClass<CVector<3>, 0>(0.01);
-	TestVectorClass<CVector<4>, 0>(0.01);
-	TestVectorClass<CVector<5>, 0>(0.01);
-	TestVectorClass<CVector<6>, 0>(0.01);
-	TestVectorClass<CVector<7>, 0>(0.01);
-	TestVectorClass<CVector<8>, 0>(0.01);
-	TestVectorClass<CVector<9>, 0>(0.01);
+	TestVectorClass< CVectorD<1> >(1, 0.01);
+	TestVectorClass< CVectorD<2> >(2, 0.01);
+	TestVectorClass< CVectorD<3> >(3, 0.01);
+	TestVectorClass< CVectorD<4> >(4, 0.01);
+	TestVectorClass< CVectorD<5> >(5, 0.01);
+	TestVectorClass< CVectorD<6> >(6, 0.01);
+	TestVectorClass< CVectorD<7> >(7, 0.01);
+	TestVectorClass< CVectorD<8> >(8, 0.01);
+	TestVectorClass< CVectorD<9> >(9, 0.01);
 
 	//	static vectors of dimension 1..9, 
 	//		with elements scaled to 100.0
-	TestVectorClass<CVector<1>, 0>(100.0);
-	TestVectorClass<CVector<2>, 0>(100.0);
-	TestVectorClass<CVector<3>, 0>(100.0);
-	TestVectorClass<CVector<4>, 0>(100.0);
-	TestVectorClass<CVector<5>, 0>(100.0);
-	TestVectorClass<CVector<6>, 0>(100.0);
-	TestVectorClass<CVector<7>, 0>(100.0);
-	TestVectorClass<CVector<8>, 0>(100.0);
-	TestVectorClass<CVector<9>, 0>(100.0);
+	TestVectorClass< CVectorD<1> >(1, 100.0);
+	TestVectorClass< CVectorD<2> >(2, 100.0);
+	TestVectorClass< CVectorD<3> >(3, 100.0);
+	TestVectorClass< CVectorD<4> >(4, 100.0);
+	TestVectorClass< CVectorD<5> >(5, 100.0);
+	TestVectorClass< CVectorD<6> >(6, 100.0);
+	TestVectorClass< CVectorD<7> >(7, 100.0);
+	TestVectorClass< CVectorD<8> >(8, 100.0);
+	TestVectorClass< CVectorD<9> >(9, 100.0);
 
-	//	dynamic matrices of dimension 1..9, 
+	//	dynamic vectors of dimension 1..9, 
 	//		with elements scaled to 0.01
-	TestMatrixClass<CMatrixN<>, 1>(0.01);
-	TestMatrixClass<CMatrixN<>, 2>(0.01);
-	TestMatrixClass<CMatrixN<>, 3>(0.01);
-	TestMatrixClass<CMatrixN<>, 4>(0.01);
-	TestMatrixClass<CMatrixN<>, 5>(0.01);
-	TestMatrixClass<CMatrixN<>, 6>(0.01);
-	TestMatrixClass<CMatrixN<>, 7>(0.01);
-	TestMatrixClass<CMatrixN<>, 8>(0.01);
-	TestMatrixClass<CMatrixN<>, 9>(0.01);
+	TestVectorClass< CVectorN<> >(1, 0.01);
+	TestVectorClass< CVectorN<> >(2, 0.01);
+	TestVectorClass< CVectorN<> >(3, 0.01);
+	TestVectorClass< CVectorN<> >(4, 0.01);
+	TestVectorClass< CVectorN<> >(5, 0.01);
+	TestVectorClass< CVectorN<> >(6, 0.01);
+	TestVectorClass< CVectorN<> >(7, 0.01);
+	TestVectorClass< CVectorN<> >(8, 0.01);
+	TestVectorClass< CVectorN<> >(9, 0.01);
 
-	//	dynamic matrices of dimension 1..9, 
+	//	dynamic vectors of dimension 1..9, 
 	//		with elements scaled to 100.0
-	TestMatrixClass<CMatrixN<>, 1>(100.0);
-	TestMatrixClass<CMatrixN<>, 2>(100.0);
-	TestMatrixClass<CMatrixN<>, 3>(100.0);
-	TestMatrixClass<CMatrixN<>, 4>(100.0);
-	TestMatrixClass<CMatrixN<>, 5>(100.0);
-	TestMatrixClass<CMatrixN<>, 6>(100.0);
-	TestMatrixClass<CMatrixN<>, 7>(100.0);
-	TestMatrixClass<CMatrixN<>, 8>(100.0);
-	TestMatrixClass<CMatrixN<>, 9>(100.0);
+	TestVectorClass< CVectorN<> >(1, 100.0);
+	TestVectorClass< CVectorN<> >(2, 100.0);
+	TestVectorClass< CVectorN<> >(3, 100.0);
+	TestVectorClass< CVectorN<> >(4, 100.0);
+	TestVectorClass< CVectorN<> >(5, 100.0);
+	TestVectorClass< CVectorN<> >(6, 100.0);
+	TestVectorClass< CVectorN<> >(7, 100.0);
+	TestVectorClass< CVectorN<> >(8, 100.0);
+	TestVectorClass< CVectorN<> >(9, 100.0);
 
 	//	static matrices of dimension 1..9, 
 	//		with elements scaled to 0.01
-	TestMatrixClass<CMatrix<1>, 0>(0.01);
-	TestMatrixClass<CMatrix<2>, 0>(0.01);
-	TestMatrixClass<CMatrix<3>, 0>(0.01);
-	TestMatrixClass<CMatrix<4>, 0>(0.01);
-	TestMatrixClass<CMatrix<5>, 0>(0.01);
-	TestMatrixClass<CMatrix<6>, 0>(0.01);
-	TestMatrixClass<CMatrix<7>, 0>(0.01);
-	TestMatrixClass<CMatrix<8>, 0>(0.01);
-	TestMatrixClass<CMatrix<9>, 0>(0.01);
+	TestMatrixClass< CMatrixD<1> >(1, 0.01);
+	TestMatrixClass< CMatrixD<2> >(2, 0.01);
+	TestMatrixClass< CMatrixD<3> >(3, 0.01);
+	TestMatrixClass< CMatrixD<4> >(4, 0.01);
+	TestMatrixClass< CMatrixD<5> >(5, 0.01);
+	TestMatrixClass< CMatrixD<6> >(6, 0.01);
+	TestMatrixClass< CMatrixD<7> >(7, 0.01);
+	TestMatrixClass< CMatrixD<8> >(8, 0.01);
+	TestMatrixClass< CMatrixD<9> >(9, 0.01);
 
 	//	static matrices of dimension 1..9, 
+	//		with elements scaled to 0.01
+	TestMatrixClass< CMatrixD<1> >(1, 100.0);
+	TestMatrixClass< CMatrixD<2> >(2, 100.0);
+	TestMatrixClass< CMatrixD<3> >(3, 100.0);
+	TestMatrixClass< CMatrixD<4> >(4, 100.0);
+	TestMatrixClass< CMatrixD<5> >(5, 100.0);
+	TestMatrixClass< CMatrixD<6> >(6, 100.0);
+	TestMatrixClass< CMatrixD<7> >(7, 100.0);
+	TestMatrixClass< CMatrixD<8> >(8, 100.0);
+	TestMatrixClass< CMatrixD<9> >(9, 100.0);
+
+	//	dynamic matrices of dimension 1..9, 
+	//		with elements scaled to 0.01
+	TestMatrixClass< CMatrixNxM<> >(1, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(2, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(3, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(4, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(5, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(6, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(7, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(8, 0.01);
+	TestMatrixClass< CMatrixNxM<> >(9, 0.01);
+
+	//	dynamic matrices of dimension 1..9, 
 	//		with elements scaled to 100.0
-	TestMatrixClass<CMatrix<1>, 0>(100.0);
-	TestMatrixClass<CMatrix<2>, 0>(100.0);
-	TestMatrixClass<CMatrix<3>, 0>(100.0);
-	TestMatrixClass<CMatrix<4>, 0>(100.0);
-	TestMatrixClass<CMatrix<5>, 0>(100.0);
-	TestMatrixClass<CMatrix<6>, 0>(100.0);
-	TestMatrixClass<CMatrix<7>, 0>(100.0);
-	TestMatrixClass<CMatrix<8>, 0>(100.0);
-	TestMatrixClass<CMatrix<9>, 0>(100.0);
+	TestMatrixClass< CMatrixNxM<> >(1, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(2, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(3, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(4, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(5, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(6, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(7, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(8, 100.0);
+	TestMatrixClass< CMatrixNxM<> >(9, 100.0);
 
 	return 0;
 }
