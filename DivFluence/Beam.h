@@ -15,6 +15,8 @@
 
 class CSource;
 
+const int NUM_THETA = 8;
+
 class CBeam  
 {
 public:
@@ -40,17 +42,13 @@ public:
 
 	// convolve
 	void SphereConvolve(const double thickness_in);
+	void SphereTrace(const double thickness_in, int nI, int nJ, int nK);
 
 	// aceessor for energy
 	CVolume<double> *GetEnergy();
 
 protected:
-	void RayTraceSetup(
-		double (&r_out)[65][48][48],		// list of lengths thru voxels	// (0:64,48,48)
-		int (&delta_i_out)[64][48][48],	// list of voxel # in x-dir
-		int (&delta_j_out)[64][48][48],	// list of voxel # in y-dir		// (64,48,48)
-		int (&delta_k_out)[64][48][48]	// list of voxel # in z-dir		// (64,48,48)				  
-		);
+	void RayTraceSetup();
 
 	void MakeVector(
 		const int numstep_in,         // number of voxels passed thru
@@ -80,6 +78,14 @@ private:
 
 	// reference to energy matrix
 	CVolume<double> *m_pEnergy;
+
+	bool m_bSetupRaytrace;
+
+	double m_radius[65][48][NUM_THETA];	// (0:64,48,48); 
+	
+	int m_delta_i[64][48][NUM_THETA];	// (64,48,48);
+	int m_delta_j[64][48][NUM_THETA];	// (64,48,48);
+	int m_delta_k[64][48][NUM_THETA];	// (64,48,48);
 };
 
 #endif // !defined(AFX_BEAM_H__C6E4B021_B2A3_46C7_B9DE_32949313F009__INCLUDED_)

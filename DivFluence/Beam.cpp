@@ -9,10 +9,6 @@
 
 #include <MathUtil.h>
 
-#include <XMLLogging.h>
-USES_FMT;
-
-
 #include "Source.h"
 
 
@@ -52,7 +48,8 @@ CBeam::CBeam(CSource *pSource, double ssd)
 		m_ssd(ssd),
 		m_pDensity(NULL),
 		m_pFluence(NULL),
-		m_pEnergy(NULL)
+		m_pEnergy(NULL),
+		m_bSetupRaytrace(true)
 {
 
 }	// CBeam::CBeam
@@ -98,8 +95,9 @@ void CBeam::DivFluenceCalc(
 	if (!m_pFluence)
 	{
 		m_pFluence = new CVolume<double>();
-		m_pFluence->SetDimensions(101, 101, 101);
+		m_pFluence->ConformTo(m_pDensity);
 	}
+	m_pFluence->ClearVoxels();
 
 	double ***pppDensity = m_pDensity->GetVoxels();
 	double ***pppFluence = m_pFluence->GetVoxels();
@@ -113,9 +111,7 @@ void CBeam::DivFluenceCalc(
 	{
 		pNorm = new CVolume<double>();
 	}
-	pNorm->SetDimensions(m_pDensity->GetWidth(),
-		m_pDensity->GetHeight(),
-		m_pDensity->GetDepth());
+	pNorm->ConformTo(m_pDensity);
 	pNorm->ClearVoxels();
 	double ***pppNorm = pNorm->GetVoxels();
 
@@ -200,7 +196,7 @@ void CBeam::DivFluenceCalc(
 				//                  smaller steps and account better for inhomogeneities
 				
 				// radiological pathlength increment
-				double pathinc = 0.5 * leninc * pppDensity[nNearI+nOX][nNearJ+nOY][nK-1];
+				double pathinc = 0.5 * leninc * pppDensity[nNearJ+nOY][nNearI+nOX][nK-1];
 				double delta_path = pathinc + last_pathinc;   
 				path += delta_path;
 				last_pathinc = pathinc;
@@ -267,7 +263,7 @@ void CBeam::DivFluenceCalc(
 				// that determine the relative number of photons interacting near
 				// the boundary of the field.
 				
-				if (pppDensity[nNearI+nOX][nNearJ+nOY][nK-1] != 0.0)
+				if (pppDensity[nNearJ+nOY][nNearI+nOX][nK-1] != 0.0)
 				{
 					// nmu = -alog(f_factor(nint(path)))/path
 					atten *= exp(-m_mu * delta_path);
@@ -279,17 +275,17 @@ void CBeam::DivFluenceCalc(
 					//  the divergence correction above was removed from here to be put
 					//  in new_sphere_convolve
 					
-					pppFluence[nNearI+nOX][nNearJ+nOY][nK-1] += fluinc;  // fluence
+					pppFluence[nNearJ+nOY][nNearI+nOX][nK-1] += fluinc;  // fluence
 					
 					// normalization
-					pppNorm[nNearI+nOX][nNearJ+nOY][nK-1]++;    
+					pppNorm[nNearJ+nOY][nNearI+nOX][nK-1]++;    
 				}
 				else
 				{
-					pppFluence[nNearI+nOX][nNearJ+nOY][nK-1] = 0.0;
+					pppFluence[nNearJ+nOY][nNearI+nOX][nK-1] = 0.0;
 					
 					// avoid divide by zero
-					pppNorm[nNearI+nOX][nNearJ+nOY][nK-1] = 1;	
+					pppNorm[nNearJ+nOY][nNearI+nOX][nK-1] = 1;	
 				}
 				
 				// distance from the source
@@ -336,11 +332,11 @@ void CBeam::DivFluenceCalc(
 		{
 			for (int nK = 1; nK <= nDepthNum; nK++)
 			{
-				if (pppNorm[nI+nOX][nJ+nOY][nK-1] != 0)
+				if (pppNorm[nJ+nOY][nI+nOX][nK-1] != 0)
 				{
 					// do normalization
-					pppFluence[nI+nOX][nJ+nOY][nK-1] 
-						/= (double) pppNorm[nI+nOX][nJ+nOY][nK-1];
+					pppFluence[nJ+nOY][nI+nOX][nK-1] 
+						/= (double) pppNorm[nJ+nOY][nI+nOX][nK-1];
 				}				
 			}
 		}
@@ -361,6 +357,108 @@ CVolume<double> *CBeam::GetFluence()
 }	// CBeam::GetFluence
 
 
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::SphereTrace
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
+{
+	RayTraceSetup();
+
+	const int numstep_in = 64;
+	
+	bool b_ray_trace = true;
+	
+	// accessors for voxels
+	double ***pppDensity = m_pDensity->GetVoxels();
+	double ***pppFluence = m_pFluence->GetVoxels();
+	double ***pppEnergy = m_pEnergy->GetVoxels();
+
+	int nOX = m_pDensity->GetWidth() / 2;
+	int nOY = m_pDensity->GetHeight() / 2;
+
+	// do for all azimuthal angles
+	for (int thet = 1; thet <= NUM_THETA; thet++)            
+	{
+		// do for zenith angles 
+		for (int phi = 1; phi <= m_pSource->m_numphi; phi++)             
+		{
+			double last_rad = 0.0;
+			double rad_dist = 0.0;
+			double last_energy = 0.0;
+			
+			// loop over radial increments
+			for (int rad_inc = 1; rad_inc <= numstep_in; rad_inc++)       
+			{
+				// integer distances between the interaction and the dose depostion voxels
+				int deli = m_delta_i[rad_inc-1][phi-1][thet-1];    
+				int delj = m_delta_j[rad_inc-1][phi-1][thet-1];    
+				int delk = m_delta_k[rad_inc-1][phi-1][thet-1];    
+				
+				int nDepthNum = nint(thickness_in / m_vBasis[2]);
+				
+				// test to see if inside field and phantom
+				if (nK-delk < 1         
+					|| nK-delk > nDepthNum 
+					|| nI-deli > nOX 
+					|| nI-deli < -nOX 
+					|| nJ-delj > nOY 
+					|| nJ-delj < -nOY) 
+				{
+					break;	
+				}
+				
+				// Increment rad_dist, the radiological path from the dose deposition site. 
+				
+				double pathinc = m_radius[rad_inc][phi-1][thet-1];	// (rad_inc,phi,thet);
+				
+				const double avdens = 1.0; 
+				const double kerndens = 1.0;
+																		//	(phi,nint(rad_dist*10.0));
+
+				double delta_rad = b_ray_trace 
+					? pathinc * pppDensity[nJ-delj+nOY][nI-deli+nOX][nK-delk-1] 
+						/ kerndens
+					:pathinc * avdens 
+						/ kerndens;
+				
+				rad_dist = rad_dist+delta_rad;
+				
+				// the radiological path exceeds the kernel size 
+				//		which is 60cm by definition for high density medium
+				if (rad_dist >= 60) 
+				{
+					break;
+				}
+				
+				// Use lookup table to find the value of the cumulative energy
+				// deposited up to this radius. No interpolation is done. The
+				// resolution of the array in the radial direction is every mm
+				// hence the multiply by 10.0 in the arguement.
+				
+				double tot_energy = m_pSource->m_cum_energy[phi-1][nint(rad_dist*10.0)];
+				
+				// Subtract the last cumulative energy from the new cumulative energy
+				// to get the amount of energy deposited in this interval and set the
+				// last cumulative energy for the next time the lookup table is used.
+				
+				double energy = tot_energy - last_energy;
+				last_energy = tot_energy;             
+				
+				GetFluence()->GetVoxelAt(nK-delk-1, nJ-delj+nOY, nI-deli+nOX);
+
+				// The energy is accumulated - superposition
+				pppEnergy[nJ+nOY][nI+nOX][nK-1] +=  
+					energy * pppFluence[nJ-delj+nOY][nI-deli+nOX][nK-delk-1];
+				
+			}	// end of radial path loop                
+
+		}	// end end of zenith angle loop
+
+	}	// end of azimuth angle loop 
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // CBeam::SphereConvolve
@@ -373,8 +471,9 @@ void CBeam::SphereConvolve(const double thickness_in)
 	if (!m_pEnergy)
 	{
 		m_pEnergy = new CVolume<double>();
-		m_pEnergy->SetDimensions(101, 101, 101);
+		m_pEnergy->ConformTo(m_pDensity);
 	}
+	m_pEnergy->ClearVoxels();
 
 	// accessors for voxels
 	double ***pppDensity = m_pDensity->GetVoxels();
@@ -385,28 +484,18 @@ void CBeam::SphereConvolve(const double thickness_in)
 	int nOY = m_pDensity->GetHeight() / 2;
 
 	// parameters
-	const int nNumThet = 8;
-	const int numstep_in = 64;
-	
-	const int mini_in = xmin / m_vBasis[0];
-	const int maxi_in = xmax / m_vBasis[0];
+	const int mini_in = 
+		nint( // 8.0 * xmin 
+			-10.0 / m_vBasis[0]);
+	const int maxi_in =  
+		nint( // 8.0 * xmax 
+			10.0 / m_vBasis[0]);
 	const int minj_in = ymin / m_vBasis[1];
 	const int maxj_in = ymax / m_vBasis[1];
 	const int mink_in = 1;
 	const int maxk_in = 100;
 						 
-	// Routine sets up the ray-trace calculation.
-	
-	bool b_ray_trace = true;
-	
-	static double radius[65][48][48];	// (0:64,48,48); 
-	
-	static int delta_i[64][48][48];	// (64,48,48);
-	static int delta_j[64][48][48];	// (64,48,48);
-	static int delta_k[64][48][48];	// (64,48,48);
-	
-	RayTraceSetup(radius, delta_i, delta_j, delta_k);
-	
+	// Routine sets up the ray-trace calculation.	
 	m_pSource->EnergyLookup();
 
 	// Do the convolution.
@@ -421,87 +510,10 @@ void CBeam::SphereConvolve(const double thickness_in)
 			for (int nI = mini_in; nI <= maxi_in; nI++)        
 			{
 				// dose at zero density?
-				if (pppDensity[nI+nOX][nJ+nOY][nK-1] == 0.0) 
+				if (pppDensity[nJ+nOY][nI+nOX][nK-1] != 0.0) 
 				{
-					continue;
+					SphereTrace(thickness_in, nI, nJ, nK);
 				}
-				
-				// do for all azimuthal angles
-				for (int thet = 1; thet <= nNumThet; thet++)            
-				{
-					// do for zenith angles 
-					for (int phi = 1; phi <= m_pSource->m_numphi; phi++)             
-					{
-						double last_rad = 0.0;
-						double rad_dist = 0.0;
-						double last_energy = 0.0;
-						
-						// loop over radial increments
-						for (int rad_inc = 1; rad_inc <= numstep_in; rad_inc++)       
-						{
-							// integer distances between the interaction and the dose depostion voxels
-							int deli = delta_i[rad_inc-1][phi-1][thet-1];    
-							int delj = delta_j[rad_inc-1][phi-1][thet-1];    
-							int delk = delta_k[rad_inc-1][phi-1][thet-1];    
-							
-							int nDepthNum = nint(thickness_in / m_vBasis[2]);
-							
-							// test to see if inside field and phantom
-							if (nK-delk < 1         
-								|| nK-delk > nDepthNum 
-								|| nI-deli > nOX 
-								|| nI-deli < -nOX 
-								|| nJ-delj > nOY 
-								|| nJ-delj < -nOY) 
-							{
-								break;	
-							}
-							
-							// Increment rad_dist, the radiological path from the dose deposition site. 
-							
-							double pathinc = radius[rad_inc][phi-1][thet-1];	// (rad_inc,phi,thet);
-							
-							const double avdens = 1.0; 
-							const double kerndens = 1.0;
-																					//	(phi,nint(rad_dist*10.0));
-							double delta_rad = b_ray_trace 
-								? pathinc * pppDensity[nI-deli+nOX][nJ-delj+nOY][nK-delk-1] 
-									/ kerndens
-								:pathinc * avdens 
-									/ kerndens;
-							
-							rad_dist = rad_dist+delta_rad;
-							
-							// the radiological path exceeds the kernel size 
-							//		which is 60cm by definition for high density medium
-							if (rad_dist >= 60) 
-							{
-								break;
-							}
-							
-							// Use lookup table to find the value of the cumulative energy
-							// deposited up to this radius. No interpolation is done. The
-							// resolution of the array in the radial direction is every mm
-							// hence the multiply by 10.0 in the arguement.
-							
-							double tot_energy = m_pSource->m_cum_energy[phi-1][nint(rad_dist*10.0)];
-							
-							// Subtract the last cumulative energy from the new cumulative energy
-							// to get the amount of energy deposited in this interval and set the
-							// last cumulative energy for the next time the lookup table is used.
-							
-							double energy = tot_energy - last_energy;
-							last_energy = tot_energy;             
-							
-							// The energy is accumulated - superposition
-							pppEnergy[nI+nOX][nJ+nOY][nK-1] +=  
-								energy * pppFluence[nI-deli+nOX][nJ-delj+nOY][nK-delk-1];
-							
-						}	// end of radial path loop                
-
-					}	// end of azimuth angle loop 
-
-				}	// end end of zenith angle loop
 				
 			}	// end of z-direction loop  
 			
@@ -513,11 +525,6 @@ void CBeam::SphereConvolve(const double thickness_in)
 	// summation over the azimuthal angles. Convert the energy to  
 	// dose by dividing by mass and find the position of dmax
 	// and the dose at dmax.                              
-	
-	double max = 0.0;
-	int nDMaxI; 
-	int nDMaxJ; 
-	int nDMaxK;
 	
 	for (nK = mink_in; nK <= maxk_in; nK++)
 	{
@@ -553,21 +560,16 @@ void CBeam::SphereConvolve(const double thickness_in)
 				
 				// convert to Gy cm**2 and take into account the
 				// azimuthal sum
-				pppEnergy[nI+nOX][nJ+nOY][nK-1] *= 1.602e-10 / nNumThet
-						* (m_ssd / new_distance) * (m_ssd / new_distance) 
-							* c_factor;
-				
-				if (pppEnergy[nI+nOX][nJ+nOY][nK-1] > max)
-				{		
-					// store position and value of dmax
-					max = m_pEnergy->GetVoxels()[nI+nOX][nJ+nOY][nK-1];
-					nDMaxI = nI;                     
-					nDMaxJ = nJ;               
-					nDMaxK = nK;                                                             
-				}					
-			}
+				m_pEnergy->GetVoxelAt(nK-1, nJ+nOY, nI+nOX);
+				pppEnergy[nJ+nOY][nI+nOX][nK-1] *= 1.602e-10 / (double) NUM_THETA;
+				pppEnergy[nJ+nOY][nI+nOX][nK-1] *= (m_ssd / new_distance) * (m_ssd / new_distance);
+				pppEnergy[nJ+nOY][nI+nOX][nK-1] *= c_factor;
+			} 
 		}
 	}
+	m_pEnergy->VoxelsChanged();
+
+	double maxx = m_pEnergy->GetMax();
 
 	// now normalize to dmax
 	for (nK = mink_in; nK <= maxk_in; nK++)
@@ -576,14 +578,14 @@ void CBeam::SphereConvolve(const double thickness_in)
 		{
 			for (int nI = mini_in; nI <= maxi_in; nI++)
 			{								
-				// convert to Gy cm**2 and take into account the
-				// azimuthal sum
-				m_pEnergy->GetVoxels()[nI+nOX][nJ+nOY][nK-1] /= max;
+				ASSERT(pppEnergy[nJ+nOY][nI+nOX][nK-1] <= maxx);
+				pppEnergy[nJ+nOY][nI+nOX][nK-1] = pppEnergy[nJ+nOY][nI+nOX][nK-1] / maxx;
 			}
 		}
-	}
+	} 
 
 }	// CBeam::SphereConvolve
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -658,19 +660,18 @@ void CBeam::MakeVector(
 //
 // sets up the ray trace for conv.
 //////////////////////////////////////////////////////////////////////////////
-void CBeam::RayTraceSetup(
-						  double (&r_out)[65][48][48],		// list of lengths thru voxels	// (0:64,48,48)
-						  int (&delta_i_out)[64][48][48],	// list of voxel # in x-dir
-						  int (&delta_j_out)[64][48][48],	// list of voxel # in y-dir		// (64,48,48)
-						  int (&delta_k_out)[64][48][48]	// list of voxel # in z-dir		// (64,48,48)
-						  )
+void CBeam::RayTraceSetup()
 {
-	const int nNumThet = 8;
+	if (!m_bSetupRaytrace)
+	{
+		return;
+	}
+	
 	const int numstep_in = 64;
 
 	// the azimuthal angle increment is calculated
 	double ang_inc = 2.0 * PI 
-		/ double(nNumThet); 
+		/ double(NUM_THETA); 
 	
 	// loop thru all zenith angles
 	for (int nPhi = 1; nPhi <= m_pSource->m_numphi; nPhi++)              
@@ -680,7 +681,7 @@ void CBeam::RayTraceSetup(
 		double cphi = cos(m_pSource->m_ang[nPhi]);
 		
 		// loop thru all azimuthal angles
-		for (int nTheta = 1; nTheta <= nNumThet; nTheta++)                  
+		for (int nTheta = 1; nTheta <= NUM_THETA; nTheta++)                  
 		{
 			// trig. for azimuthal angles
 			double sthet = sin(double(nTheta) * ang_inc);    
@@ -741,7 +742,7 @@ void CBeam::RayTraceSetup(
 			int nJ = 1;
 			int nK = 1;
 			
-			r_out[0][nPhi-1][nTheta-1] = 0.0;             // radius at origin is 0
+			m_radius[0][nPhi-1][nTheta-1] = 0.0;             // radius at origin is 0
 			double last_radius = 0.0;
 			
 			// The following sorts through the distance vectors, rx,ry,rz
@@ -755,12 +756,12 @@ void CBeam::RayTraceSetup(
 				if (rx[nI-1] <= ry[nJ-1] && rx[nI-1] <= rz[nK-1])
 				{
 					// length thru voxel
-					r_out[nN][nPhi-1][nTheta-1] = rx[nI-1] - last_radius;	
+					m_radius[nN][nPhi-1][nTheta-1] = rx[nI-1] - last_radius;	
 
 					// location of voxel in x-dir / y-dir / z-dir
-					delta_i_out[nN-1][nPhi-1][nTheta-1] = delta_i_x[nI-1];	
-					delta_j_out[nN-1][nPhi-1][nTheta-1] = delta_j_x[nI-1];
-					delta_k_out[nN-1][nPhi-1][nTheta-1] = delta_k_x[nI-1];
+					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_x[nI-1];	
+					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_x[nI-1];
+					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_x[nI-1];
 
 					// radius gone at this point
 					last_radius = rx[nI-1];	
@@ -772,12 +773,12 @@ void CBeam::RayTraceSetup(
 				else if (ry[nJ-1] <= rx[nI-1] && ry[nJ-1] <= rz[nK-1])    
 				{
 					// length thru voxel
-					r_out[nN][nPhi-1][nTheta-1] = ry[nJ-1]-last_radius;		
+					m_radius[nN][nPhi-1][nTheta-1] = ry[nJ-1]-last_radius;		
 
 					// location of voxel in x-dir / y-dir / z-dir
-					delta_i_out[nN-1][nPhi-1][nTheta-1] = delta_i_y[nJ-1];	
-					delta_j_out[nN-1][nPhi-1][nTheta-1] = delta_j_y[nJ-1];	
-					delta_k_out[nN-1][nPhi-1][nTheta-1] = delta_k_y[nJ-1];	
+					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_y[nJ-1];	
+					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_y[nJ-1];	
+					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_y[nJ-1];	
 
 					// radius gone at this point
 					last_radius = ry[nJ-1];								
@@ -789,12 +790,12 @@ void CBeam::RayTraceSetup(
 				else if (rz[nK-1] <= rx[nI-1] && rz[nK-1] <= ry[nJ-1])     
 				{
 					// length thru voxel
-					r_out[nN][nPhi-1][nTheta-1] = rz[nK-1]-last_radius;		
+					m_radius[nN][nPhi-1][nTheta-1] = rz[nK-1]-last_radius;		
 
 					// location of voxel in x-dir / y-dir / z-dir
-					delta_i_out[nN-1][nPhi-1][nTheta-1] = delta_i_z[nK-1];	
-					delta_j_out[nN-1][nPhi-1][nTheta-1] = delta_j_z[nK-1];	
-					delta_k_out[nN-1][nPhi-1][nTheta-1] = delta_k_z[nK-1];	
+					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_z[nK-1];	
+					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_z[nK-1];	
+					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_z[nK-1];	
 
 					// radius gone at this point
 					last_radius = rz[nK-1];								
@@ -805,7 +806,9 @@ void CBeam::RayTraceSetup(
 			}
 		}
 	}
-	
+
+	m_bSetupRaytrace = false;
+
 }	// CBeam::RayTraceSetup
 
 
