@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "GEOM_BASE"="..\GEOM_BASE\GEOM_BASE.dsp" - Package Owner=<4>
+Project: "GEOM_MODEL"="..\GEOM_MODEL\GEOM_MODEL.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,19 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "GUI_BASE"="..\GUI_BASE\GUI_BASE.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "MODEL_BASE"="..\MODEL_BASE\MODEL_BASE.dsp" - Package Owner=<4>
+Project: "GEOM_VIEW"="..\GEOM_VIEW\GEOM_VIEW.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -58,6 +46,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name VSIM_MODEL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name GEOM_MODEL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name GEOM_VIEW
     End Project Dependency
 }}}
 
