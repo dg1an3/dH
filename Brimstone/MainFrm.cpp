@@ -125,9 +125,17 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 	if (pDoc)
 	{
 		CString strMessage;
-		strMessage.Format("Iter %i, %s", 
-			pDoc->m_pOptThread->nIteration,
-			pDoc->m_pOptThread->m_bDone ? "done" : "...");
+		if (pDoc->m_pOptThread->m_bDone)
+		{
+			strMessage = "Done.";
+		}
+		else
+		{
+			for (int nAt = 0; nAt < pDoc->m_pOptThread->nIteration; nAt++)
+			{
+				strMessage += "*";
+			}
+		}
 		m_wndStatusBar.SetPaneText(0, strMessage);
 	}
 	
