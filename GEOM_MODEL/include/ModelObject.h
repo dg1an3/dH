@@ -23,7 +23,8 @@
 //		3) possibly has children
 //		4) can be serialized
 //////////////////////////////////////////////////////////////////////
-class CModelObject : public CObject
+class CModelObject : public CObject,
+		public IUnknown
 {
 public:
 	// constructors/destructors
@@ -48,6 +49,14 @@ public:
 	// serialization
 	virtual void Serialize( CArchive& ar );
 
+// IUnknown interface methods
+	STDMETHOD(QueryInterface)(REFIID, void **);   
+	STDMETHOD_(ULONG, AddRef)();
+	STDMETHOD_(ULONG, Release)();
+
+	// static class function to dispose of objects
+	static void DisposeObjects();
+
 protected:
 	// the name of the object
 	CString m_strName;
@@ -57,6 +66,12 @@ protected:
 
 	// the change event for this object
 	CObservableEvent m_eventChange;
+
+	// reference count for the object
+	DWORD m_dwRefCount;
+
+	// static array of objects to be disposed of
+	static CObArray m_arrDispose;
 };
 
 //////////////////////////////////////////////////////////////////////

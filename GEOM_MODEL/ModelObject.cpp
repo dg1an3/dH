@@ -21,6 +21,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+CObArray CModelObject::m_arrDispose;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -35,7 +36,8 @@ CModelObject::CModelObject(const CString& strName)
 #pragma warning(disable: 4355)
 	: m_eventChange(this),
 #pragma warning(default: 4355)
-		m_strName(strName)
+		m_strName(strName),
+		m_dwRefCount(0)
 {
 }
 
@@ -130,4 +132,29 @@ void CModelObject::Serialize( CArchive& ar )
 
 	// serialize the children
 	m_arrChildren.Serialize(ar);
+}
+
+
+// IUnknown interface methods
+STDMETHODIMP CModelObject::QueryInterface(REFIID, void **)
+{
+	return E_NOTIMPL;
+}
+
+
+STDMETHODIMP_(ULONG) CModelObject::AddRef()
+{
+	return ++m_dwRefCount;
+}
+
+STDMETHODIMP_(ULONG) CModelObject::Release()
+{
+	m_dwRefCount--;
+
+	if (0 == m_dwRefCount)
+	{
+		m_arrDispose.Add(this);
+	}
+
+	return m_dwRefCount;
 }
