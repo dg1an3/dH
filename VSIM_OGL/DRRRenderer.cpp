@@ -13,8 +13,8 @@
 
 #include <OpenGLView.h>
 
-#define RAY_TRACE_RESOLUTION 8			
-#define RAY_TRACE_RES_LOG2   3
+#define RAY_TRACE_RESOLUTION 64			
+#define RAY_TRACE_RES_LOG2   6
 
 #define POST_PROCESS
 #define COMPUTE_MINMAX

@@ -197,6 +197,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		CBeamRenderer *pBEVBeamRenderer = new CBeamRenderer(&m_wndBEV);
 		pBEVBeamRenderer->SetBeam(&beam);
+		pBEVBeamRenderer->isGraticuleEnabled.Set(TRUE);
 		m_wndBEV.AddRenderer(pBEVBeamRenderer);
 
 		beam.AddObserver(this, (ChangeFunction) OnChange);

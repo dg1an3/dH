@@ -25,6 +25,7 @@ CBeamRenderer::CBeamRenderer(COpenGLView *pView)
 	: COpenGLRenderer(pView),
 		isCentralAxisEnabled(TRUE),
 		isDivergenceSurfacesEnabled(TRUE),
+		isGraticuleEnabled(FALSE),
 		privBeamToPatientXform(&forBeam, &CBeam::beamToPatientXform),
 		privMachineProjection(&forBeam, 
 			(CValue< CMatrix<4> > CBeam::*) &CBeam::projection)
@@ -117,6 +118,72 @@ void CBeamRenderer::OnRenderScene()
 			glVertex(vMaxXMinY);
 
 		glEnd();
+
+		if (isGraticuleEnabled.Get())
+		{
+			// now draw the graticule
+			CVector<2> vPos;
+
+			glBegin(GL_LINES);
+
+				vPos = CVector<2>(0.0, 0.0);			
+				glVertex(vPos);
+				while (vPos[0] > vMin[0])
+				{
+					vPos -= CVector<2>(1.0, 0.0);
+					glVertex(vPos);
+					glVertex(vPos + CVector<2>(0.0, 0.5));
+					glVertex(vPos - CVector<2>(0.0, 0.5));
+					glVertex(vPos);
+				}
+
+			glEnd();
+
+			glBegin(GL_LINES);
+
+				vPos = CVector<2>(0.0, 0.0);
+				glVertex(vPos);
+				while (vPos[0] < vMax[0])
+				{
+					vPos += CVector<2>(1.0, 0.0);
+					glVertex(vPos);
+					glVertex(vPos + CVector<2>(0.0, 0.5));
+					glVertex(vPos - CVector<2>(0.0, 0.5));
+					glVertex(vPos);
+				}
+
+			glEnd();
+
+			glBegin(GL_LINES);
+
+				vPos = CVector<2>(0.0, 0.0);
+				glVertex(vPos);
+				while (vPos[1] > vMin[1])
+				{
+					vPos -= CVector<2>(0.0, 1.0);
+					glVertex(vPos);
+					glVertex(vPos + CVector<2>(0.5, 0.0));
+					glVertex(vPos - CVector<2>(0.5, 0.0));
+					glVertex(vPos);
+				}
+
+			glEnd();
+
+			glBegin(GL_LINES);
+
+				vPos = CVector<2>(0.0, 0.0);
+				glVertex(vPos);
+				while (vPos[1] < vMax[1])
+				{
+					vPos += CVector<2>(0.0, 1.0);
+					glVertex(vPos);
+					glVertex(vPos + CVector<2>(0.5, 0.0));
+					glVertex(vPos - CVector<2>(0.5, 0.0));
+					glVertex(vPos);
+				}
+
+			glEnd();
+		}
 
 		for (int nAt = 0; nAt < forBeam->blocks.GetSize(); nAt++)
 		{

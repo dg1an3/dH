@@ -30,6 +30,7 @@ public:
 
 	CValue< BOOL > isCentralAxisEnabled;
 	CValue< BOOL > isDivergenceSurfacesEnabled;
+	CValue< BOOL > isGraticuleEnabled;
 
 	virtual void OnRenderScene();
 
