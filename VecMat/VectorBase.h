@@ -2,7 +2,7 @@
 // VectorBase.h: declaration and definition of the CVectorBase 
 //		template class.
 //
-// Copyright (C) 1999-2001
+// Copyright (C) 1999-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
@@ -109,7 +109,7 @@ template<class TYPE>
 CVectorBase<TYPE>::CVectorBase<TYPE>()
 	: m_nDim(0),
 		m_pElements(NULL),
-		m_bFreeElements(FALSE)
+		m_bFreeElements(TRUE)
 {
 }	// CVectorBase<TYPE>::CVectorBase<TYPE>
 
@@ -123,11 +123,10 @@ template<class TYPE>
 CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>& vFrom)
 	: m_nDim(0),
 		m_pElements(NULL),
-		m_bFreeElements(FALSE)
+		m_bFreeElements(TRUE)
 {
 	// set up the elements
-	m_nDim = vFrom.GetDim();
-	m_pElements = new TYPE[m_nDim];
+	SetElements(m_nDim, new TYPE[m_nDim], TRUE);
 
 	// and copy them
 	(*this) = vFrom;
@@ -143,7 +142,8 @@ CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>& vFrom)
 template<class TYPE>
 CVectorBase<TYPE>::~CVectorBase<TYPE>()
 {
-	if (m_bFreeElements && NULL != m_pElements)
+	if (m_bFreeElements 
+		&& m_pElements != NULL)
 	{
 		// free elements
 		delete [] m_pElements;
@@ -272,6 +272,13 @@ template<class TYPE>
 void CVectorBase<TYPE>::SetElements(int nDim, TYPE *pElements,
 									BOOL bFreeElements)
 {
+	if (m_bFreeElements 
+		&& m_pElements != NULL)
+	{
+		delete [] m_pElements;
+		m_pElements = NULL;
+	}
+
 	m_nDim = nDim;
 	m_pElements = pElements;
 	m_bFreeElements = bFreeElements;
