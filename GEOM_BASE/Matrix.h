@@ -1,56 +1,105 @@
+//////////////////////////////////////////////////////////////////////
+// Matrix.h: declaration and definition of the CMatrix template class.
+//
+// Copyright (C) 1999-2001
+// $Id$
+//////////////////////////////////////////////////////////////////////
+
 #if !defined(MATRIX_H)
 #define MATRIX_H
 
 #include <math.h>
+
+#include "ScalarFunction.h"
 #include "Vector.h"
 
+//////////////////////////////////////////////////////////////////////
+// constant for finding the pivot during a matrix inversion
+//////////////////////////////////////////////////////////////////////
+#define MAX_TO_PIVOT (1e-6)
+
+//////////////////////////////////////////////////////////////////////
+// class CMatrix<DIM, TYPE>
+//
+// represents a square matrix with dimension and type given.
+//////////////////////////////////////////////////////////////////////
 template<int DIM = 4, class TYPE = double>
 class CMatrix
 {
 public:
+	//////////////////////////////////////////////////////////////////
+	// default constructor -- initializes to an identity matrix
+	//////////////////////////////////////////////////////////////////
 	CMatrix()
 	{
 		SetIdentity();
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// operator[] -- retrieves a reference to a row vector
+	//////////////////////////////////////////////////////////////////
 	CVector<DIM, TYPE>& operator[](int nAtRow)
 	{
+		// bounds check on the index
 		ASSERT(nAtRow >= 0 && nAtRow < DIM);
+
+		// return a reference to the row vector
 		return m_arrRows[nAtRow];
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// operator[] const -- retrieves a const reference to a row 
+	//		vector
+	//////////////////////////////////////////////////////////////////
 	const CVector<DIM, TYPE>& operator[](int nAtRow) const
 	{
+		// bounds check on the index
 		ASSERT(nAtRow >= 0 && nAtRow < DIM);
+
+		// return a reference to the row vector
 		return m_arrRows[nAtRow];
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// operator+= -- in-place matrix addition; returns a reference to 
+	//		this
+	//////////////////////////////////////////////////////////////////
 	CMatrix& operator+=(const CMatrix& mRight)
 	{
+		// element-by-element sum of the matrix
 		for (int nRow = 0; nRow < DIM; nRow++)
 			for (int nCol = 0; nCol < DIM; nCol++)
 				(*this)[nRow][nMid] += mRight[nMid][nCol];
 
+		// return a reference to this
 		return (*this);
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// operator-= -- in-place matrix subtraction; returns a reference to 
+	//		this
+	//////////////////////////////////////////////////////////////////
 	CMatrix& operator-=(const CMatrix& mRight)
 	{
+		// element-by-element difference of the matrix
 		for (int nRow = 0; nRow < DIM; nRow++)
-		{
 			for (int nCol = 0; nCol < DIM; nCol++)
-			{
 				(*this)[nRow][nMid] -= mRight[nMid][nCol];
-			}
-		}
 
+		// return a reference to this
 		return (*this);
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// operator*= -- in-place matrix multiplication; returns a reference to 
+	//		this
+	//////////////////////////////////////////////////////////////////
 	CMatrix& operator*=(const CMatrix& mRight)
 	{
+		// holds the final product
 		CMatrix mProduct;
 
+		// compute the matrix product
 		for (int nRow = 0; nRow < DIM; nRow++)
 		{
 			for (int nCol = 0; nCol < DIM; nCol++)
@@ -64,11 +113,16 @@ public:
 			}
 		}
 
+		// assign final product to this
 		(*this) = mProduct;
 
+		// return a reference to this
 		return (*this);
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// SetIdentity -- sets the matrix to an identity matrix
+	//////////////////////////////////////////////////////////////////
 	void SetIdentity()
 	{
 		for (int nRow = 0; nRow < DIM; nRow++)
@@ -76,7 +130,11 @@ public:
 				(*this)[nRow][nCol] = (nRow == nCol) ? 1.0 : 0.0;
 	}
 
-	// fills an OpenGL-format double array from this matrix
+	//////////////////////////////////////////////////////////////////
+	// ToArray -- fills an OpenGL-format (column-major) double array 
+	//		from this matrix
+	//////////////////////////////////////////////////////////////////
+	// 
 	void ToArray(double *pArray) const
 	{
 		for (int nRow = 0; nRow < DIM; nRow++)
@@ -84,7 +142,10 @@ public:
 				pArray[nCol * DIM + nRow] = (*this)[nRow][nCol];
 	}
 
-	// fills this matrix from an OpenGL-format double array
+	//////////////////////////////////////////////////////////////////
+	// FromArray -- fills this matrix from an OpenGL-format 
+	//		(column-major) double array from this matrix
+	//////////////////////////////////////////////////////////////////
 	void FromArray(const double *pArray)
 	{
 		for (int nRow = 0; nRow < DIM; nRow++)
@@ -92,32 +153,51 @@ public:
 				(*this)[nRow][nCol] = pArray[nCol * DIM + nRow];
 	}
 
-	// matrix inversion -- defined below
+	// Invert -- inverts the matrix using the Gauss-Jordan 
+	//		elimination
 	void Invert();
 
 protected:
 
 	// helper functions for Invert -- defined below
+
+	// InterchangeRows -- swaps two rows of the matrix
 	void InterchangeRows(int nRow1, int nRow2);
+
+	// FindPivot -- determines the best other row to be exchanged
+	//		so that no zero elements occur on the diagonal
 	int FindPivot(int nDiag);
 
 private:
+	// the row vectors of the matrix
 	CVector<DIM> m_arrRows[DIM];
 };
 
+//////////////////////////////////////////////////////////////////////
+// function CMatrix<DIM, TYPE>::InterchangeRows
+//
+// swaps two rows of the matrix
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 void CMatrix<DIM, TYPE>::InterchangeRows(int nRow1, int nRow2) 
 {
+	// check that the rows are not the same
 	if (nRow1 != nRow2)
 	{
-		CVector<DIM, TYPE> vTemp = (*this)[nRow1];	// temporary vector storage
+		// temporary vector storage
+		CVector<DIM, TYPE> vTemp = (*this)[nRow1];	
+
+		// and swap the two rows
 		(*this)[nRow1] = (*this)[nRow2];
 		(*this)[nRow2] = vTemp;
 	}
 }
     
-#define MAX_TO_PIVOT (1e-6)
-
+//////////////////////////////////////////////////////////////////////
+// function CMatrix<DIM, TYPE>::FindPivot
+//
+// swaps two rows of the matrix
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 int CMatrix<DIM, TYPE>::FindPivot(int nDiag)
 {
@@ -138,6 +218,11 @@ int CMatrix<DIM, TYPE>::FindPivot(int nDiag)
 	return nBestRow;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function CMatrix<DIM, TYPE>::Invert
+//
+// swaps two rows of the matrix
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 void CMatrix<DIM, TYPE>::Invert()
 {
@@ -173,10 +258,17 @@ void CMatrix<DIM, TYPE>::Invert()
 	(*this) = inv; 
 }
 
+//////////////////////////////////////////////////////////////////////
+// function operator==(const CMatrix<DIM, TYPE>&, 
+//		const CMatrix<DIM, TYPE>&)
+//
+// exact matrix equality
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 inline bool operator==(const CMatrix<DIM, TYPE>& mLeft, 
 					   const CMatrix<DIM, TYPE>& mRight)
 {
+	// element-by-element comparison
 	for (int nRow = 0; nRow < DIM; nRow++)
 		for (int nCol = 0; nCol < DIM; nCol++)
 			if (mLeft[nRow][nCol] != mRight[nRow][nCol])
@@ -185,6 +277,12 @@ inline bool operator==(const CMatrix<DIM, TYPE>& mLeft,
 	return true;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function operator==(const CMatrix<DIM, TYPE>&, 
+//		const CMatrix<DIM, TYPE>&)
+//
+// exact matrix inequality
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 inline bool operator!=(const CMatrix<DIM, TYPE>& mLeft, 
 					   const CMatrix<DIM, TYPE>& mRight)
@@ -192,12 +290,20 @@ inline bool operator!=(const CMatrix<DIM, TYPE>& mLeft,
 	return !(mLeft == mRight);
 }
 
+//////////////////////////////////////////////////////////////////////
+// function operator*(const CMatrix<DIM, TYPE>&, 
+//		const CVector<DIM, TYPE>&)
+//
+// matrix-vector multiplication
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 inline CVector<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mat,
 									const CVector<DIM, TYPE>& v)
 {
+	// stored the product
 	CVector<DIM, TYPE> vProduct;
 
+	// step through the rows
 	for (int nRow = 0; nRow < DIM; nRow++)
 	{
 		vProduct[nRow] = 0.0;
@@ -208,38 +314,67 @@ inline CVector<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mat,
 		}
 	}
 
+	// return the product
 	return vProduct;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function operator*(const CMatrix<DIM, TYPE>&, 
+//		const CMatrix<DIM, TYPE>&)
+//
+// matrix multiplication
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 inline CMatrix<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mLeft, 
 									const CMatrix<DIM, TYPE>& mRight)
 {
+	// create the product
 	CMatrix<DIM, TYPE> mProduct = mLeft;
 
+	// use in-place multiplication
 	mProduct *= mRight;
 
+	// return the product
 	return mProduct;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function operator<<
+//
+// matrix serialization
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CArchive& operator<<(CArchive &ar, CMatrix<DIM, TYPE> m)
 {
+	// serialize the individual row vectors
 	for (int nAt = 0; nAt < DIM; nAt++)
 		ar << m[nAt];
+
+	// return the archive object
 	return ar;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function operator>>
+//
+// matrix serialization
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CArchive& operator>>(CArchive &ar, CMatrix<DIM, TYPE>& m)
 {
+	// serialize the individual row vectors
 	for (int nAt = 0; nAt < DIM; nAt++)
 		ar >> m[nAt];
+
+	// return the archive object
 	return ar;
 }
 
-#define PI (atan(1.0) * 4.0)
-
+//////////////////////////////////////////////////////////////////////
+// function CreateTranslate
+//
+// creates a translation matrix from a vector and a scalar
+//////////////////////////////////////////////////////////////////////
 inline CMatrix<4> CreateTranslate(const double& s, const CVector<3>& vAxis)
 {
 	// start with an identity matrix
@@ -252,19 +387,29 @@ inline CMatrix<4> CreateTranslate(const double& s, const CVector<3>& vAxis)
 	return mTranslate;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function CreateTranslate
+//
+// creates a translation matrix from an offset vector
+//////////////////////////////////////////////////////////////////////
 inline CMatrix<4> CreateTranslate(const CVector<3>& vAxis)
 {
 	return CreateTranslate(1.0, vAxis);
 }
 
-inline CMatrix<4> CreateRotate(const double& theta, const CVector<3>& vAxis)
+//////////////////////////////////////////////////////////////////////
+// function CreateRotate
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+inline CMatrix<4> CreateRotate(const double& theta, 
+							   const CVector<3>& vAxis)
 {
 	// start with an identity matrix
-	CMatrix<4> mRotate; // SetIdentity();
-
-	CVector<3> vNormAxis = vAxis; //(vAxis[0], vAxis[1], vAxis[2]);
+	CMatrix<4> mRotate;
 
 	// normalize the axis
+	CVector<3> vNormAxis = vAxis;
 	vNormAxis.Normalize();
 
 	// now compute the rotation matrix
@@ -289,6 +434,12 @@ inline CMatrix<4> CreateRotate(const double& theta, const CVector<3>& vAxis)
 	return mRotate;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function CreateScale
+//
+// creates a scaling matrix from a vector whose element's lengths 
+//		are scale factors
+//////////////////////////////////////////////////////////////////////
 inline CMatrix<4> CreateScale(const CVector<3>& vScale)
 {
 	// start with an identity matrix
@@ -301,6 +452,11 @@ inline CMatrix<4> CreateScale(const CVector<3>& vScale)
 	return mScale;
 }
 
+//////////////////////////////////////////////////////////////////////
+// function Invert
+//
+// stand-alone matrix inversion
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 inline CMatrix<DIM, TYPE> Invert(const CMatrix<DIM, TYPE>& m)
 {
@@ -309,5 +465,24 @@ inline CMatrix<DIM, TYPE> Invert(const CMatrix<DIM, TYPE>& m)
 	return inv;
 }
 
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix arithmetic
+//////////////////////////////////////////////////////////////////////
+FUNCTION_FACTORY2(operator+, CMatrix<4>)
+// FUNCTION_FACTORY2(operator-, CMatrix<4>)
+FUNCTION_FACTORY2(operator*, CMatrix<4>)
+
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix creation from parameters
+//////////////////////////////////////////////////////////////////////
+FUNCTION_FACTORY2(CreateRotate, CMatrix<4>)
+FUNCTION_FACTORY1(CreateTranslate, CMatrix<4>)
+FUNCTION_FACTORY2(CreateTranslate, CMatrix<4>)
+FUNCTION_FACTORY1(CreateScale, CMatrix<4>)
+
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix inversion
+//////////////////////////////////////////////////////////////////////
+FUNCTION_FACTORY1(Invert, CMatrix<4>)
 
 #endif
