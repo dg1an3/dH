@@ -1,13 +1,13 @@
 //////////////////////////////////////////////////////////////////////
-// OpenGLRenderer.h: declaration of the COpenGLRenderer class
+// OpenGLRenderable.h: declaration of the COpenGLRenderable class
 //
 // Copyright (C) 2000-2001
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
 
-#if !defined(AFX_OPENGLRENDERER_H__0E2B2434_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_)
-#define AFX_OPENGLRENDERER_H__0E2B2434_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_
+#if !defined(OPENGLRENDERABLE_H)
+#define OPENGLRENDERABLE_H
 
 #if _MSC_VER > 1000
 #pragma once
@@ -23,20 +23,24 @@
 class COpenGLView;
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLRenderer
+// class COpenGLRenderable
 //
 // represents a renderer that belongs to a COpenGLView window
 //////////////////////////////////////////////////////////////////////
-class COpenGLRenderer : public CObject
+class COpenGLRenderable : public CObject
 {
 public:
 	// constructor/destructor
-	COpenGLRenderer(COpenGLView *pView);
-	virtual ~COpenGLRenderer();
+	COpenGLRenderable(COpenGLView *pView);
+	virtual ~COpenGLRenderable();
 
 	// color for the renderer (use depends on objects being rendered)
 	COLORREF GetColor() const;
 	void SetColor(COLORREF);
+
+	// accessors for the renderable's centroid (used for sorting)
+	const CVector<3>& GetCentroid() const;
+	void SetCentroid(const CVector<3>& vCentroid);
 
 	// defines the modelview matrix for this renderer
 	const CMatrix<4>& GetModelviewMatrix() const;
@@ -46,20 +50,28 @@ public:
 	BOOL IsEnabled() const;
 	void SetEnabled(BOOL bEnabled = TRUE);
 
-	// Renders the scene -- called by DrawScene to create the drawlist
-	virtual void OnRenderScene();
-
-	// called to draw the scene -- don't over-ride this unless the
-	//		drawlist logic needs to be overridden
-	virtual void DrawScene();
+	// turns on/off the renderer;
+	BOOL IsHighlighted() const;
+	void SetHighlighted(BOOL bHighlighted = TRUE);
 
 	// invalidates the object -- is a CObservableEvent compatible
 	//		member function (ListenerFunction)
 	void Invalidate(CObservableEvent *pEvent = NULL, void *pValue = NULL);
 
 protected:
+	// view class is a friend
+	friend COpenGLView;
+
 	// the view for this class
 	COpenGLView * m_pView;
+
+	// Renders the scene -- called by DrawScene to create the drawlist
+	virtual void RenderOpaque();
+	virtual void RenderTransparent(double scale = 0.5);
+
+	// called to draw the scene -- don't over-ride this unless the
+	//		drawlist logic needs to be overridden
+	virtual void Render();
 
 private:
 	// the rendering color
@@ -75,4 +87,4 @@ private:
 	int m_nDrawList;
 };
 
-#endif // !defined(AFX_OPENGLRENDERER_H__0E2B2434_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_)
+#endif // !defined(OPENGLRENDERABLE_H)

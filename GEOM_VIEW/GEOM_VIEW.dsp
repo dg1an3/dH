@@ -89,6 +89,10 @@ SOURCE=.\DibView.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\DRRRenderable.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Graph.cpp
 # End Source File
 # Begin Source File
@@ -99,7 +103,7 @@ SOURCE=.\GUI_BASE.rc
 # End Source File
 # Begin Source File
 
-SOURCE=.\MPRRenderer.cpp
+SOURCE=.\MPRRenderable.cpp
 # End Source File
 # Begin Source File
 
@@ -107,7 +111,7 @@ SOURCE=.\ObjectExplorer.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\objectexplorercontrolbar.cpp
+SOURCE=.\ObjectExplorerControlBar.cpp
 # End Source File
 # Begin Source File
 
@@ -123,7 +127,7 @@ SOURCE=.\OpenGLLight.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\OpenGLRenderer.cpp
+SOURCE=.\OpenGLRenderable.cpp
 # End Source File
 # Begin Source File
 
@@ -164,6 +168,10 @@ SOURCE=.\include\DibView.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\include\DRRRenderable.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\glMatrixVector.h
 # End Source File
 # Begin Source File
@@ -176,15 +184,11 @@ SOURCE=.\include\GUI_BASE_resource.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\MPRRenderer.h
+SOURCE=.\include\MPRRenderable.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\include\ObjectExplorer.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\objectexplorercontrolbar.h
 # End Source File
 # Begin Source File
 
@@ -200,7 +204,7 @@ SOURCE=.\include\OpenGLLight.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\OpenGLRenderer.h
+SOURCE=.\include\OpenGLRenderable.h
 # End Source File
 # Begin Source File
 

@@ -1,21 +1,21 @@
-// MPRRenderer.cpp: implementation of the CMPRRenderer class.
+// MPRRenderable.cpp: implementation of the CMPRRenderable class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#include "MPRRenderer.h"
+#include "MPRRenderable.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CMPRRenderer::CMPRRenderer(COpenGLView *pView)
-: COpenGLRenderer(pView)
+CMPRRenderable::CMPRRenderable(COpenGLView *pView)
+: COpenGLRenderable(pView)
 {
 
 }
 
-CMPRRenderer::~CMPRRenderer()
+CMPRRenderable::~CMPRRenderable()
 {
 
 }

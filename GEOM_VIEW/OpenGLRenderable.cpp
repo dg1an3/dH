@@ -1,4 +1,4 @@
-// OpenGLRenderer.cpp: implementation of the COpenGLRenderer class.
+// OpenGLRenderable.cpp: implementation of the COpenGLRenderer class.
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -6,7 +6,7 @@
 
 #include <gl/gl.h>
 
-#include "OpenGLRenderer.h"
+#include "OpenGLRenderable.h"
 #include "OpenGLView.h"
 
 #ifdef _DEBUG
@@ -19,7 +19,7 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-COpenGLRenderer::COpenGLRenderer(COpenGLView *pView)
+COpenGLRenderable::COpenGLRenderable(COpenGLView *pView)
 	: m_pView(pView),
 		m_nDrawList(-1),
 		m_color(RGB(255, 255, 255)),
@@ -27,17 +27,17 @@ COpenGLRenderer::COpenGLRenderer(COpenGLView *pView)
 {
 }
 
-COpenGLRenderer::~COpenGLRenderer()
+COpenGLRenderable::~COpenGLRenderable()
 {
 }
 
 // color for the renderer (use depends on objects being rendered)
-COLORREF COpenGLRenderer::GetColor() const
+COLORREF COpenGLRenderable::GetColor() const
 {
 	return m_color;
 }
 
-void COpenGLRenderer::SetColor(COLORREF color)
+void COpenGLRenderable::SetColor(COLORREF color)
 {
 	// set the color
 	m_color = color;
@@ -47,12 +47,12 @@ void COpenGLRenderer::SetColor(COLORREF color)
 }
 
 // defines the modelview matrix for this renderer
-const CMatrix<4>& COpenGLRenderer::GetModelviewMatrix() const
+const CMatrix<4>& COpenGLRenderable::GetModelviewMatrix() const
 {
 	return m_mModelview;
 }
 
-void COpenGLRenderer::SetModelviewMatrix(const CMatrix<4>& m)
+void COpenGLRenderable::SetModelviewMatrix(const CMatrix<4>& m)
 {
 	// set the modelview matrix
 	m_mModelview = m;
@@ -63,12 +63,12 @@ void COpenGLRenderer::SetModelviewMatrix(const CMatrix<4>& m)
 
 
 // turns on/off the renderer;
-BOOL COpenGLRenderer::IsEnabled() const
+BOOL COpenGLRenderable::IsEnabled() const
 {
 	return m_bEnabled;
 }
 
-void COpenGLRenderer::SetEnabled(BOOL bEnabled)
+void COpenGLRenderable::SetEnabled(BOOL bEnabled)
 {
 	// set the enabled flag
 	m_bEnabled = bEnabled;
@@ -78,7 +78,7 @@ void COpenGLRenderer::SetEnabled(BOOL bEnabled)
 }
 
 
-void COpenGLRenderer::Invalidate(CObservableEvent *pEvent, void *pValue)
+void COpenGLRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 {
 	// set the current HGLRC
 	m_pView->MakeCurrentGLRC();
@@ -97,11 +97,15 @@ void COpenGLRenderer::Invalidate(CObservableEvent *pEvent, void *pValue)
 	m_pView->Invalidate();
 }
 
-void COpenGLRenderer::OnRenderScene()
+void COpenGLRenderable::RenderOpaque()
 {
 }
 
-void COpenGLRenderer::DrawScene()
+void COpenGLRenderable::RenderTransparent(double scale)
+{
+}
+
+void COpenGLRenderable::Render()
 {
 	// only draw if enabled
 	if (!IsEnabled())
@@ -125,7 +129,7 @@ void COpenGLRenderer::DrawScene()
 		glNewList(m_nDrawList, GL_COMPILE);
 
 		// now populate the draw list
-		OnRenderScene();
+		RenderOpaque();
 
 		// finish up the list
 		glEndList();
