@@ -13,7 +13,8 @@
 #endif // _MSC_VER > 1000
 
 #include <VectorN.h>
-#include "Volumep.h"
+#include <Volumep.h>
+
 
 //////////////////////////////////////////////////////////////////////
 // class CHistogram
@@ -25,28 +26,28 @@ class CHistogram : public CModelObject
 {
 public:
 	// constructor from a volume and a "region"
-	CHistogram(CVolume<double> *pImage = NULL, 
-		CVolume<double> *pRegion = NULL);
+	CHistogram(CVolume<REAL> *pImage = NULL, 
+		CVolume<REAL> *pRegion = NULL);
 
 	// destructor
 	virtual ~CHistogram();
 
 	// association to the volume over which the histogram is formed
-	CVolume<double> *GetVolume();
-	void SetVolume(CVolume<double> *pVolume);
+	CVolume<REAL> *GetVolume();
+	void SetVolume(CVolume<REAL> *pVolume);
 
 	// association to a congruent volume describing the region over
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
-	CVolume<double> *GetRegion();
-	void SetRegion(CVolume<double> *pVolume);
+	CVolume<REAL> *GetRegion();
+	void SetRegion(CVolume<REAL> *pVolume);
 
 	// histogram parameters
-	double GetBinMinValue() const;
-	double GetBinWidth() const;
-	void SetBinning(double min_value, double width, 
-		double sigma_mult = 0.0);
-	long GetBinForValue(double value) const;
+	REAL GetBinMinValue() const;
+	REAL GetBinWidth() const;
+	void SetBinning(REAL min_value, REAL width, 
+		REAL sigma_mult = 0.0);
+	long GetBinForValue(REAL value) const;
 	const CVectorN<>& GetBinMeans() const;
 
 	// accessors for bin data
@@ -55,7 +56,7 @@ public:
 	const CVectorN<>& GetCumBins() const;
 
 	// Gbinning parameter
-	void SetGBinSigma(double sigma);
+	void SetGBinSigma(REAL sigma);
 
 	// Gbin accessor
 	CVectorN<>& GetGBins();
@@ -64,21 +65,21 @@ public:
 
 	// partial derivative volumes
 	long Get_dVolumeCount() const;
-	CVolume<double> *Get_dVolume(long nAt) const;
-	long Add_dVolume(CVolume<double> *p_dVolume);
+	CVolume<REAL> *Get_dVolume(long nAt) const;
+	long Add_dVolume(CVolume<REAL> *p_dVolume);
 
 	// partial derivatives
-	const CVectorN<>& Get_dBins(long nAt) const;
-	const CVectorN<>& Get_dGBins(long nAt) const;
+	const CVectorBase<>& Get_dBins(long nAt) const;
+	const CVectorBase<>& Get_dGBins(long nAt) const;
 
 	// evaluation for testing
-	double Eval_GBin(double x) const;
-	double Eval_dGBin(long nAt_dVolume, double x) const;
+	REAL Eval_GBin(REAL x) const;
+	REAL Eval_dGBin(long nAt_dVolume, REAL x) const;
 
-	void ConvGauss(const CVectorN<>& buffer_in, 
-							CVectorN<>& buffer_out) const;
-	void Conv_dGauss(const CVectorN<>& buffer_in, 
-							CVectorN<>& buffer_out) const;
+	void ConvGauss(const CVectorBase<>& buffer_in, 
+							CVectorBase<>& buffer_out) const;
+	void Conv_dGauss(const CVectorBase<>& buffer_in, 
+							CVectorBase<>& buffer_out) const;
 
 protected:
 	// change handler for when the volume or region changes
@@ -86,16 +87,20 @@ protected:
 
 private:
 	// association to the volume over which the histogram is formed
-	CVolume<double> *m_pVolume;
+	CVolume<REAL> *m_pVolume;
 
 	// association to a congruent volume describing the region over
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
-	CVolume<double> *m_pRegion;
+	CVolume<REAL> *m_pRegion;
 
 	// 
-	double m_minValue;
-	double m_binWidth;
+	REAL m_minValue;
+	REAL m_binWidth;
+
+	// bin volume
+	mutable CVolume<short> m_binVolume;
+	mutable BOOL m_bRecomputeBinVolume;
 
 	// histogram bins
 	mutable CVectorN<> m_arrBins;
@@ -112,7 +117,7 @@ private:
 
 	// the binning kernel width -- set to zero for a traditional
 	//		histogram
-	double m_binKernelSigma;
+	REAL m_binKernelSigma;
 	CVectorN<> m_binKernel;
 	CVectorN<> m_bin_dKernel;
 
@@ -121,13 +126,22 @@ private:
 	// BOOL m_bRecomputeGBins;
 
 	// array of partial derivative volumes
-	CObArray *m_pArr_dVolumes;		// CVolume<double>
+	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arr_dVolumes;
+
+	// array of partial derivative X region
+	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arr_dVolumes_x_Region;
+
+	// flags for recalc
+	mutable CArray<BOOL, BOOL> m_arr_bRecompute_dVolumes_x_Region;
 
 	// partial derivative histogram bins
-	mutable CVectorN<> *m_arr_dBins;
+	mutable CMatrixNxM<> m_arr_dBins;
 
 	// partial derivative histogram bins
-	mutable CVectorN<> *m_arr_dGBins;
+	mutable CMatrixNxM<> m_arr_dGBins;
+
+	// flags for recalc
+	mutable CArray<BOOL, BOOL> m_arr_bRecompute_dBins;
 
 };	// class CHistogram
 
