@@ -422,6 +422,10 @@ void CDRRRenderer::ComputeDRR()
 
 void CDRRRenderer::DrawScene()
 {
+#ifdef _DEBUG
+	return;
+#endif
+
 	if (forVolume.Get() != NULL)
 	{
 		if (m_pThread != NULL)
