@@ -68,7 +68,7 @@ public:
 	void ClearVoxels();
 
 	// accumulates another volume
-	void Accumulate(const CVolume *pVolume, double weight = 1.0);
+	void Accumulate(const CVolume *pVolume, double weight = 1.0, BOOL bUseBoundingBox = FALSE);
 
 	// sum of voxels
 	VOXEL_TYPE GetSum();
@@ -76,14 +76,16 @@ public:
 	// max / min of the volume voxel values
 	VOXEL_TYPE GetMax();
 	VOXEL_TYPE GetMin();
+	VOXEL_TYPE GetAvg();
 
 	// threshold bounds
+	VOXEL_TYPE GetThreshold() const { return m_thresh; }
 	void SetThreshold(VOXEL_TYPE thresh);
-	const CRect& GetThresholdBounds();
+	const CRect& GetThresholdBounds() const;
 
 	// basis for volume
-	const CMatrixD<4, REAL>& GetBasis();
-	void SetBasis(const CMatrixD<4, REAL>& mBasis);
+	const CMatrixD<4>& GetBasis() const;
+	void SetBasis(const CMatrixD<4>& mBasis);
 
 	// serializes the volume
 	virtual void Serialize(CArchive& ar);
@@ -108,16 +110,16 @@ private:
 	CArray<VOXEL_TYPE **, VOXEL_TYPE **&> m_arrppVoxels;
 
 	// basis matrix for volume
-	CMatrixD<4, REAL> m_mBasis;
+	CMatrixD<4> m_mBasis;
 
 	// flag to recompute the volume's sum
-	BOOL m_bRecomputeSum;
-	VOXEL_TYPE m_sum;
+	mutable BOOL m_bRecomputeSum;
+	mutable VOXEL_TYPE m_sum;
 
 	// caches threshold and threshold bounds
-	BOOL m_bRecomputeThresh;
+	mutable BOOL m_bRecomputeThresh;
 	VOXEL_TYPE m_thresh;
-	CRect m_rectThresh;
+	mutable CRect m_rectThresh;
 
 };	// class CVolume
 
@@ -360,12 +362,23 @@ inline void CVolume<VOXEL_TYPE>::ClearVoxels()
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume, 
-											double weight)
+											double weight /* = 1.0 */, 
+											BOOL bUseBoundingBox /* = FALSE */ )
 {
 	ASSERT(GetWidth() == pVolume->GetWidth());
 	ASSERT(GetHeight() == pVolume->GetHeight());
 	ASSERT(GetDepth() == pVolume->GetDepth());
 
+	ASSERT(GetBasis().IsApproxEqual(pVolume->GetBasis()));
+
+	CRect rectBounds(0, 0, pVolume->GetWidth()-1, pVolume->GetHeight()-1);
+	if (bUseBoundingBox)
+	{
+		rectBounds = pVolume->GetThresholdBounds();
+	}
+
+// #define ACCUMULATE_FLAT_LOOP
+#ifdef ACCUMULATE_FLAT_LOOP
 	VOXEL_TYPE *pDst = &GetVoxels()[0][0][0];
 	const VOXEL_TYPE *pSrc = &pVolume->GetVoxels()[0][0][0];
 
@@ -374,16 +387,17 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 	{
 		pDst[nAt] += weight * pSrc[nAt];
 	}
-
-#ifdef ACCUMULATE_XYZ_LOOP
+#else
+	VOXEL_TYPE ***pppDstVoxels = GetVoxels();
+	const VOXEL_TYPE * const * const *pppSrc = pVolume->GetVoxels();
 	for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
 	{
-		for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+		for (int nAtY = rectBounds.top; nAtY <= rectBounds.bottom; nAtY++)
 		{
-			for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+			for (int nAtX = rectBounds.left; nAtX <= rectBounds.right; nAtX++)
 			{
-				GetVoxels()[nAtZ][nAtY][nAtX] += weight * 
-					pVolume->GetVoxels()[nAtZ][nAtY][nAtX];
+				pppDstVoxels[nAtZ][nAtY][nAtX] += weight * 
+					pppSrc[nAtZ][nAtY][nAtX];
 			}
 		}
 	}
@@ -465,6 +479,18 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMin()
 }	// CVolume<VOXEL_TYPE>::GetMin
 
 
+//////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::GetMin
+// 
+// forms the min of the volume voxel values
+//////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetAvg()
+{
+	return GetSum() / (VOXEL_TYPE) GetVoxelCount();
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // SetThreshold
 // 
@@ -476,7 +502,7 @@ inline void CVolume<VOXEL_TYPE>::SetThreshold(VOXEL_TYPE thresh)
 	m_thresh = thresh;
 	m_bRecomputeThresh = TRUE;
 
-}	// GetThresholdBounds
+}	// SetThreshold
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -485,7 +511,7 @@ inline void CVolume<VOXEL_TYPE>::SetThreshold(VOXEL_TYPE thresh)
 // returns the bounding box for the given threshold value
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds()
+inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds() const
 {
 	if (m_bRecomputeThresh)
 	{
@@ -500,7 +526,7 @@ inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds()
 			{
 				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
 				{
-					if (GetVoxels()[nAtZ][nAtY][nAtX] > thresh)
+					if (GetVoxels()[nAtZ][nAtY][nAtX] > m_thresh)
 					{
 						m_rectThresh.left = __min(m_rectThresh.left, nAtX);
 						m_rectThresh.top = __min(m_rectThresh.top, nAtY);
@@ -519,6 +545,34 @@ inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds()
 
 }	// GetThresholdBounds
 
+
+// basis for volume
+///////////////////////////////////////////////////////////////////////////////
+// GetBasis
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+const CMatrixD<4>& CVolume<VOXEL_TYPE>::GetBasis() const
+{
+	return m_mBasis;
+
+}	// GetBasis
+
+///////////////////////////////////////////////////////////////////////////////
+// SetBasis
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+void CVolume<VOXEL_TYPE>::SetBasis(const CMatrixD<4>& mBasis)
+{
+	m_mBasis = mBasis;
+	GetChangeEvent().Fire();
+
+}	// SetBasis
+
+
 //////////////////////////////////////////////////////////////////////
 // CVolume<VOXEL_TYPE>::Serialize
 // 
@@ -529,6 +583,8 @@ inline void CVolume<VOXEL_TYPE>::Serialize(CArchive& ar)
 {
 	if (ar.IsStoring())
 	{
+		ar << m_mBasis;
+
 		ar << m_nWidth;
 		ar << m_nHeight;
 		ar << m_nDepth;
@@ -538,6 +594,8 @@ inline void CVolume<VOXEL_TYPE>::Serialize(CArchive& ar)
 	}
 	else
 	{
+		ar >> m_mBasis;
+
 		ar >> m_nWidth;
 		ar >> m_nHeight;
 		ar >> m_nDepth;
@@ -572,8 +630,8 @@ inline void CVolume<VOXEL_TYPE>::Log(CXMLElement *pElem) const
 		for (int nAtCol = 0; nAtCol < GetWidth(); nAtCol++)
 			for (int nAtRow = 0; nAtRow < GetHeight(); nAtRow++)
 				mPlane[nAtCol][nAtRow] = pppVoxels[nAt][nAtRow][nAtCol];
-		LogExprExt(mPlane, FMT("mPlane %i", nAt), "");
-		// LOG_EXPR_EXT(mPlane);
+		// LogExprExt(mPlane, FMT("mPlane %i", nAt), "");
+		LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nAt));
 	}
 
 }	// Log
@@ -738,7 +796,7 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 	}
 
 	// TODO: how to set flags?
-	pRes->GetChangeEvent().Fire();
+	pNew->GetChangeEvent().Fire();
 
 }	// Rotate
 
