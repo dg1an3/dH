@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "GEOM_MODEL"="..\..\..\COMMON\src\GEOM_MODEL\GEOM_MODEL.dsp" - Package Owner=<4>
+Project: "GEOM_MODEL"="..\GEOM_MODEL\GEOM_MODEL.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "GEOM_VIEW"="..\..\..\COMMON\src\GEOM_VIEW\GEOM_VIEW.dsp" - Package Owner=<4>
+Project: "GEOM_VIEW"="..\GEOM_VIEW\GEOM_VIEW.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -56,6 +56,21 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name GEOM_VIEW
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name VecMat
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "VecMat"="..\VecMat\VecMat.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################
