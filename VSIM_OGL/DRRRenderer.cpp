@@ -21,8 +21,8 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 : COpenGLRenderer(pView),
 	forVolume(NULL),
 	m_bRecomputeDRR(TRUE),
-	m_nSteps(64),
-	m_nShift(6),
+	m_nSteps(128),
+	m_nShift(7),
 	m_scale(1.0f),
 	m_bias(0.0f)
 {
@@ -65,8 +65,7 @@ CDRRRenderer::~CDRRRenderer()
 //		none
 //
 ///////////////////////////////////////////////////////////////////////////////
-bool ClipRaster(int&, // nDestStart, 
-				int& nDestLength,
+bool ClipRaster(int& nDestLength,
 			CVector<3, int>& vSourceStart, const CVector<3, int> &vSourceStep, 
 			int nD, int nSourceMinD, int nSourceMaxD)
 {
@@ -332,9 +331,16 @@ void CDRRRenderer::ComputeDRR()
 
 		int nPixelAt = nY * nImageWidth;
 
+// #define USE_TANDEM_RAYS
+#ifdef USE_TANDEM_RAYS
+		for (int nX = 0; nX < nImageWidth; nX += 2, nPixelAt += 2)
+		{
+#else
 		for (int nX = 0; nX < nImageWidth; nX++, nPixelAt++)
 		{
-			m_arrPixels[nPixelAt] = 0;
+#endif
+//			m_arrPixels[nPixelAt] = 0;
+//			m_arrPixels[nPixelAt+1] = 0;
 
 			CVector<3, int> viStartOldX = viStart;
 
@@ -343,37 +349,74 @@ void CDRRRenderer::ComputeDRR()
 			viStep[1] >>= m_nShift;
 			viStep[2] >>= m_nShift;
 
-			int nDestStart = 0;
+#ifdef USE_TANDEM_RAYS
+			CVector<3, int> viStart2 = viStart + viStartStepX;
+			viEnd += viEndStepX;
+			CVector<3, int> viStep2 = viEnd - viStart2;
+			viStep2[0] >>= m_nShift;
+			viStep2[1] >>= m_nShift;
+			viStep2[2] >>= m_nShift;
+#endif
+
 			int nDestLength = m_nSteps;
-			if (ClipRaster(nDestStart, nDestLength, viStart, viStep, 0, 0, nWidth)
-				&& ClipRaster(nDestStart, nDestLength, viStart, viStep, 1, 0, nHeight)
-				&& ClipRaster(nDestStart, nDestLength, viStart, viStep, 2, 0, nDepth))
+#ifdef USE_TANDEM_RAYS
+			int nDestLength2 = m_nSteps;
+#endif
+			if (ClipRaster(nDestLength, viStart, viStep, 0, 0, nWidth)
+				&& ClipRaster(nDestLength, viStart, viStep, 1, 0, nHeight)
+				&& ClipRaster(nDestLength, viStart, viStep, 2, 0, nDepth)
+#ifdef USE_TANDEM_RAYS
+				&& ClipRaster(nDestLength, viStart2, viStep2, 0, 0, nWidth)
+				&& ClipRaster(nDestLength, viStart2, viStep2, 1, 0, nHeight)
+				&& ClipRaster(nDestLength, viStart2, viStep2, 2, 0, nDepth)
+#endif
+				)
 			{
 
-// #define USE_MMX
+#define USE_MMX
 #ifdef USE_MMX
+
+#ifdef USE_TANDEM_RAYS
+//				nDestLength = min(nDestLength, nDestLength2);
+#endif
+
 				static int viStepMMX[6];
 				viStepMMX[0] = viStep[0];
 				viStepMMX[1] = viStep[1];
 				viStepMMX[2] = viStep[2];
-				viStepMMX[3] = 0; // viStep[0];
-//					viStepMMX[4] = viStep[1];
-//					viStepMMX[5] = viStep[2];
-
+#ifndef USE_TANDEM_RAYS
+				viStepMMX[3] = 0;
+#else
+				viStepMMX[3] = viStep2[2];
+				viStepMMX[4] = viStep2[0];
+				viStepMMX[5] = viStep2[1];
+#endif
 				static int viStartMMX[6];
 				viStartMMX[0] = viStart[0];
 				viStartMMX[1] = viStart[1];
 				viStartMMX[2] = viStart[2];
-				viStartMMX[3] = 0; // viStart[0];
-//					viStartMMX[4] = viStart[1];
-//					viStartMMX[5] = viStart[2];
+#ifndef USE_TANDEM_RAYS
+				viStartMMX[3] = 0;
+#else
+				viStartMMX[3] = viStart2[2];
+				viStartMMX[4] = viStart2[0];
+				viStartMMX[5] = viStart2[1];
+#endif
 
 				char *pVoxels = (char *)&pppVoxels[0][0][0];
 				int *pCurrentPixel = (int *)&m_arrPixels[nPixelAt];
 
-				__int64 mult_mask = 512L << 1L;
+				__int64 mult_mask = nWidth << 1L;	// WATCH THIS: we need to shift by
+													//		the log2(nHeight) also
 				mult_mask <<= 32;
-				mult_mask |= (512L << 17L) | 2L;
+				mult_mask |= (nWidth << 17L) | (1 << 1L);
+
+#ifdef USE_TANDEM_RAYS
+				__int64 mult_mask2 = nWidth << 1L;	// WATCH THIS: we need to shift by
+													//		the log2(nHeight) also
+				mult_mask2 <<= 48;
+				mult_mask2 |= (nWidth << 17L) | (1 << 1L);
+#endif
 
 				__asm
 				{
@@ -387,52 +430,107 @@ void CDRRRenderer::ComputeDRR()
 					movq mm2, viStepMMX[2 * 4]
 					movq mm3, viStartMMX[2 * 4]
 
-//					movq mm4, viStepMMX[4 * 4]
-//					movq mm5, viStartMMX[4 * 4]
-
+#ifdef USE_TANDEM_RAYS
+					movq mm4, viStepMMX[4 * 4]
+					movq mm5, viStartMMX[4 * 4]
+#endif
 					mov esi, pVoxels
-					mov edi, pCurrentPixel
 
 					mov ecx, nDestLength
 					mov eax, 0
 
+#ifdef USE_TANDEM_RAYS
+					mov edi, 0
+#endif
+
 LOOP1:
 
-					// compute the address of the pixel
-					movq mm6, mm1			// move the x- and y- coordinates to work register
-					psrad mm6, 16			// adjust for fixed-point
-					movq mm7, mm3
-					psrad mm7, 16
-					packssdw mm6, mm7
+					// compute the address of the current voxel
+					//
 
-					movq mm7, mult_mask
+					movq mm6, mm1			// move the first ray's x- and y- coordinates to 
+											//		work register mm6
+					psrad mm6, 16			// adjust for fixed-point
+
+					movq mm7, mm3			// move the first ray's z- to work register mm7
+					psrad mm7, 16			// adjust for fixed-point
+						
+					packssdw mm6, mm7		// pack the four 32-bit values into four 16-bit 
+											//		values
+
+					movq mm7, mult_mask		// set up the multiplication mask for the four 
+											//		values
 					pmaddwd mm6, mm7		// perform the packed add-and-multiply
 
-					movd edx, mm6
-					psrlq mm6, 32
-					movd ebx, mm6
-					shl ebx, 9
-					add edx, ebx
+					movd edx, mm6			// now store the x- and y- offset
 
-					mov ebx, 0
-					mov bx, [esi+edx]
+					psrlq mm6, 32			// shift the z-offset down
+					movd ebx, mm6			// store the z-offset
+					shl ebx, 9				// multiply by nHeight
+					add edx, ebx			// and add the two offsets
 
-					add eax, ebx
-					// add eax, [edi]
-					// mov [edi], eax
+					mov ebx, 0				// set up ebx to convert voxel to 32-bit value
+					mov bx, [esi+edx]		// retrieve the voxel value
 
-					paddd mm1, mm0			// increment the offset vector */
-					// movq viStartMMX[0], mm1
+					add eax, ebx			// add the voxel in ebx to the accumulated voxel
+											//		values in eax
 
-					paddd mm3, mm2
-					// movq viStartMMX[2 * 4], mm3
+#ifdef USE_TANDEM_RAYS
+					xchg eax, edi			// swap the stored pixel value
 
-//						paddd mm5, mm4
-//						movq viStartMMX[4 * 4], mm5
+					// compute the address of the current voxel
+					//
 
-					loop LOOP1
+					movq mm6, mm5			// move the first ray's x- and y- coordinates to 
+											//		work register mm6
+					psrad mm6, 16			// adjust for fixed-point
 
-					mov [edi], eax
+					movq mm7, mm3			// move the first ray's z- to work register mm7
+					psrad mm7, 16			// adjust for fixed-point
+						
+					packssdw mm6, mm7		// pack the four 32-bit values into four 16-bit 
+											//		values
+
+					movq mm7, mult_mask2	// set up the multiplication mask for the four 
+											//		values
+					pmaddwd mm6, mm7		// perform the packed add-and-multiply
+
+					movd edx, mm6			// now store the x- and y- offset
+
+					psrlq mm6, 32			// shift the z-offset down
+					movd ebx, mm6			// store the z-offset
+					shl ebx, 9				// multiply by nHeight
+					add edx, ebx			// and add the two offsets
+
+					mov ebx, 0				// set up ebx to convert voxel to 32-bit value
+					mov bx, [esi+edx]		// retrieve the voxel value
+
+					add eax, ebx			// add the voxel in ebx to the accumulated voxel
+											//		values in eax
+
+					xchg eax, edi
+#endif
+
+					paddd mm1, mm0			// increment the first ray's x- and y-
+					paddd mm3, mm2			// increment the first ray's z- and the
+											//		second ray's x-
+#ifdef USE_TANDEM_RAYS
+					paddd mm5, mm4			// increment the second ray's y- and z-
+#endif
+
+					loop LOOP1				// now loop, decrementing the ECX count
+
+#ifdef USE_TANDEM_RAYS
+					mov ecx, edi
+#endif
+
+					mov edi, pCurrentPixel
+					mov [edi], eax			// store the accumulated value
+
+#ifdef USE_TANDEM_RAYS
+					inc edi
+					mov [edi], ecx
+#endif
 
 					emms					// clear MMX state 
 				}
@@ -465,7 +563,11 @@ LOOP1:
 			nMax = max(m_arrPixels[nPixelAt], nMax);
 			nMin = min(m_arrPixels[nPixelAt], nMin);
 
+#ifndef USE_TANDEM_RAYS
 			viStart = viStartOldX + viStartStepX;
+#else
+			viStart = viStartOldX + viStartStepX + viStartStepX;
+#endif
 			viEnd += viEndStepX;
 		}
 
@@ -540,8 +642,8 @@ void CDRRRenderer::OnChange(CObservable *pSource)
 	COpenGLRenderer::OnChange(pSource);
 	if (pSource == &m_pView->myProjectionMatrix)
 	{
-		m_nSteps = 64;
-		m_nShift = 6;
+		m_nSteps = 128;
+		m_nShift = 7;
 		m_bRecomputeDRR = TRUE;
 	}
 }
