@@ -118,6 +118,7 @@ BEGIN_MESSAGE_MAP(CSimView, CView)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_WIREFRAME, OnUpdateViewWireframe)
 	ON_COMMAND(ID_VIEW_COLORWASH, OnViewColorwash)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_COLORWASH, OnUpdateViewColorwash)
+	ON_WM_TIMER()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -185,6 +186,9 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// set up the trackers
 	m_wndREV.AddLeftTracker(new CRotateTracker(&m_wndREV));
 	m_wndREV.AddMiddleTracker(new CZoomTracker(&m_wndREV));
+
+	// set a timer event to occur
+	SetTimer(7, 10, NULL);
 
 	return 0;
 }
@@ -393,4 +397,20 @@ void CSimView::OnInitialUpdate()
 	pMachineRenderable->SetBeam(GetDocument()->GetBeamAt(0));
 	pMachineRenderable->SetColor(RGB(128, 128, 255));
 	m_wndREV.AddRenderable(pMachineRenderable);	
+}
+
+void CSimView::OnTimer(UINT nIDEvent) 
+{
+	CView::OnTimer(nIDEvent);
+
+	return;
+	if (NULL != m_pSurfaceRenderable)
+	{
+		for (int nAt = 0; nAt < 50; nAt++)
+			m_pSurfaceRenderable->GetSurface()->OrientFaces();
+
+		m_pSurfaceRenderable->GetSurface()->GetChangeEvent().Fire();
+		m_pSurfaceRenderable->Invalidate();
+	}
+	
 }

@@ -70,6 +70,7 @@ protected:
 	afx_msg void OnUpdateViewWireframe(CCmdUI* pCmdUI);
 	afx_msg void OnViewColorwash();
 	afx_msg void OnUpdateViewColorwash(CCmdUI* pCmdUI);
+	afx_msg void OnTimer(UINT nIDEvent);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
