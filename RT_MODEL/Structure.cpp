@@ -6,18 +6,34 @@
 #include "Structure.h"
 
 
-CVolume<double> CStructure::m_filterBinomial;
+CVolume<REAL> CStructure::m_kernel;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CStructure::CStructure()
-	: m_pMesh(NULL)
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::CStructure
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CStructure::CStructure(const CString& strName)
+	: CModelObject(strName),
+		m_pMesh(NULL)
 {
-	InitFilter();
-}
+	if (m_kernel.GetWidth() == 0)
+	{
+		m_kernel.SetDimensions(5, 5, 1);
+		CalcBinomialFilter(&m_kernel);
+	}
 
+}	// CStructure::CStructure
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::~CStructure
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
 CStructure::~CStructure()
 {
 	delete m_pMesh;
@@ -26,20 +42,32 @@ CStructure::~CStructure()
 	{
 		delete m_arrRegions[nAt];
 	}
-}
 
+}	// CStructure::~CStructure
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetMesh
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
 CMesh * CStructure::GetMesh()
 {
 	return m_pMesh;
-}
 
-CVolume<double> * CStructure::GetRegion(int nScale)
+}	// CStructure::GetMesh
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetRegion
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVolume<REAL> * CStructure::GetRegion(int nScale)
 {
 	if (m_arrRegions.GetSize() <= nScale)
 	{
 		BEGIN_LOG_SECTION(CStructure::GetRegion);
 
-		CVolume<double> *pNewRegion = new CVolume<double>();
+		CVolume<REAL> *pNewRegion = new CVolume<REAL>();
 		if (nScale == 0)
 		{
 			// set size of region
@@ -47,10 +75,10 @@ CVolume<double> * CStructure::GetRegion(int nScale)
 		}
 		else
 		{
-			CVolume<double> *pPrevRegion = GetRegion(nScale - 1);
+			CVolume<REAL> *pPrevRegion = GetRegion(nScale - 1);
 
-			CVolume<double> convRegion;
-			Convolve(pPrevRegion, &m_filterBinomial, &convRegion);
+			CVolume<REAL> convRegion;
+			Convolve(pPrevRegion, &m_kernel, &convRegion);
 
 			Decimate(&convRegion, pNewRegion);
 		}
@@ -60,66 +88,61 @@ CVolume<double> * CStructure::GetRegion(int nScale)
 		END_LOG_SECTION();
 	}
 	
-	return (CVolume<double> *) m_arrRegions[nScale];
-}
+	return (CVolume<REAL> *) m_arrRegions[nScale];
 
+}	// CStructure::GetRegion
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::InitFilter
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
 void CStructure::InitFilter()
 {
-	if (m_filterBinomial.GetWidth() == 0)
-	{
-		double filtElem[] = { 1.0, 4.0, 6.0, 4.0, 1.0 };
-
-		m_filterBinomial.SetDimensions(5, 5, 1);
-
-		double sum = 0.0;
-		for (int nAtRow = 0; nAtRow < 5; nAtRow++)
-		{
-			for (int nAtCol = 0; nAtCol < 5; nAtCol++)
-			{
-				// double value = Gauss2D<double>(((double) nAtRow - 3.0) / 2.0, 
-				//		((double) nAtCol - 3.0) / 2.0, 1.0, 1.0);
-
-				double value = filtElem[nAtRow] * filtElem[nAtCol] / 256.0;
-				m_filterBinomial.GetVoxels()[0][nAtRow][nAtCol] = value;
-				sum += value;
-			}
-		}
-	}
-}
+}	// CStructure::InitFilter
 
 
-//////////////////////////////////////////////////////////////////////
-// CMesh::GetContourCount
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetContourCount
 // 
 // returns the number of contours in the mesh
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 int CStructure::GetContourCount() const
 {
 	return m_arrContours.GetSize();
-}
 
-//////////////////////////////////////////////////////////////////////
-// CMesh::GetContour
+}	// CStructure::GetContourCount
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetContour
 // 
 // returns the contour at the given index
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 CPolygon *CStructure::GetContour(int nIndex)
 {
 	return (CPolygon *) m_arrContours[nIndex];
-}
 
-//////////////////////////////////////////////////////////////////////
-// CMesh::GetContourRefDist
+}	// CStructure::GetContour
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetContourRefDist
 // 
 // returns the reference distance of the indicated contour
-//////////////////////////////////////////////////////////////////////
-double CStructure::GetContourRefDist(int nIndex) const
+///////////////////////////////////////////////////////////////////////////////
+REAL CStructure::GetContourRefDist(int nIndex) const
 {
 	return m_arrRefDist[nIndex];
-}
+
+}	// CStructure::GetContourRefDist
 
 
-void CStructure::ContoursToRegion(CVolume<double> *pRegion)
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::ContoursToRegion
+// 
+// converts the contours to a region
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::ContoursToRegion(CVolume<REAL> *pRegion)
 {
 	CreateRegion((CPolygon *) m_arrContours.GetData(), 
 		m_arrContours.GetSize(), pRegion);
@@ -185,4 +208,5 @@ void CStructure::ContoursToRegion(CVolume<double> *pRegion)
 	}
 
 	bitmap.DeleteObject(); */
-}
+
+}	// CStructure::ContoursToRegion

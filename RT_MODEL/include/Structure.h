@@ -18,36 +18,36 @@
 class CStructure : public CModelObject  
 {
 public:
-	CStructure();
+	CStructure(const CString& strName = "");
 	virtual ~CStructure();
 
 	// contour accessors
 	int GetContourCount() const;
 	CPolygon *GetContour(int nAt);
-	double GetContourRefDist(int nIndex) const;
+	REAL GetContourRefDist(int nIndex) const;
 
 	CMesh * GetMesh();
 	
-	CVolume<double> * GetRegion(int nScale = 0);
+	CVolume<REAL> * GetRegion(int nLevel = 0);
 
-	void SetRegionResolution(double pixelScale = 1.0);
+	void SetRegionResolution(REAL pixelScale = 1.0);
 
 protected:
 	static void InitFilter();
-	void ContoursToRegion(CVolume<double> *pRegion);
+	void ContoursToRegion(CVolume<REAL> *pRegion);
 
 private:
 	// contours for the structure
-	CObArray m_arrContours;
+	CTypedPtrArray<CObArray, CPolygon*> m_arrContours;
 
 	// reference distances for the contours
-	CArray<double, double> m_arrRefDist;
+	CArray<REAL, REAL> m_arrRefDist;
 
 	CMesh * m_pMesh;
 
-	CObArray m_arrRegions;
+	CTypedPtrArray<CPtrArray, CVolume<REAL>*> m_arrRegions;
 
-	static CVolume<double> m_filterBinomial;
+	static CVolume<REAL> m_kernel;
 };
 
 #endif // !defined(AFX_STRUCTURE_H__489BF55D_7352_4E75_9689_6B1818CC8D0D__INCLUDED_)
