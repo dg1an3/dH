@@ -23,6 +23,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -329,10 +330,11 @@ int CBeam::GetBlockCount() const
 // 
 // returns a particular block on this beam
 //////////////////////////////////////////////////////////////////////
-CPolygon *CBeam::GetBlockAt(int nAt)
+CPolygon *CBeam::GetBlock(int nAt)
 {
 	return (CPolygon *) m_arrBlocks[nAt];
 }
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::AddBlock
@@ -447,8 +449,33 @@ void CBeam::Serialize(CArchive &ar)
 	SERIALIZE_VALUE(ar, m_vCollimMin);
 	SERIALIZE_VALUE(ar, m_vCollimMax);
 
-	// serialize the block(s)
-	SERIALIZE_ARRAY(ar, m_arrBlocks);
+	// serialize the block(s) -- first prepare the array
+	if (ar.IsLoading())
+	{
+		// delete any existing structures
+		for (int nAt = 0; nAt < GetBlockCount(); nAt++)
+		{
+			delete GetBlock(nAt);
+		}
+		m_arrBlocks.SetSize(0);
+
+		DWORD nCount = ar.ReadCount();
+		for (nAt = 0; nAt < nCount; nAt++)
+		{
+			// and add it to the array
+			AddBlock(new CPolygon());
+		}
+	}
+	else
+	{
+		ar.WriteCount(GetBlockCount());
+	}
+
+	// now serialize the blocks
+	for (int nAt = 0; nAt < GetBlockCount(); nAt++)
+	{
+		GetBlock(nAt)->Serialize(ar);
+	}
 
 	// check the beam object's schema; only serialize the dose if 
 	//		we are storing or if we are loading with schema >= 2

@@ -37,9 +37,9 @@ int CSeries::GetStructureCount() const
 	return m_arrStructures.GetSize();
 }
 
-CSurface *CSeries::GetStructureAt(int nAt)
+CMesh *CSeries::GetStructureAt(int nAt)
 {
-	return (CSurface *) m_arrStructures.GetAt(nAt);
+	return (CMesh *) m_arrStructures.GetAt(nAt);
 }
 
 CString CSeries::GetFileName()
@@ -94,6 +94,150 @@ void CSeries::Dump(CDumpContext& dc) const
 /////////////////////////////////////////////////////////////////////////////
 // CSeries serialization
 
+/*
+class CSurface : public CMesh
+{
+public:
+	CSurface() : CMesh() { }
+
+	DECLARE_SERIAL(CSurface)
+
+	void Serialize(CArchive& ar);
+};
+
+
+#define MESH_SCHEMA 4
+// IMPLEMENT_SERIAL(CSurface, CMesh, VERSIONABLE_SCHEMA | MESH_SCHEMA)
+
+void CSurface::Serialize(CArchive& ar)
+{
+//	if (ar.IsStoring())
+	{
+		CMesh::Serialize(ar);
+		return;
+	}
+
+	// store the schema for the beam object
+	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : MESH_SCHEMA;
+
+	// serialize the surface name
+	// name.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		CString strName;
+		ar >> strName;
+		SetName(strName);
+	}
+	else
+	{
+		ar << GetName();
+	}
+
+	// serialize the contours
+	// m_arrContours.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		// delete any existing structures
+		// m_arrContours.RemoveAll();
+		m_arrContours3D.erase(m_arrContours3D.begin(),
+			m_arrContours3D.end());
+
+		DWORD nCount = ar.ReadCount();
+		for (int nAt = 0; nAt < nCount; nAt++)
+		{
+			CPolygon *pPolygon = 
+				(CPolygon *) ar.ReadObject(RUNTIME_CLASS(CPolygon));
+			ASSERT(NULL != pPolygon);
+			// m_arrContours.Add(pPolygon);
+
+			// create the Polygon3D object
+			CComObject<CPolygon3D> *pPoly3D = NULL;
+			CComObject<CPolygon3D>::CreateInstance(&pPoly3D);
+			pPoly3D->AddRef();
+
+			pPoly3D->m_mVertex.Reshape(pPolygon->m_mVertex.GetCols(), 2);
+			pPoly3D->m_mVertex = pPolygon->m_mVertex;
+
+			// and add it to the array
+			m_arrContours3D.push_back(pPoly3D);
+		}
+	}
+	else
+	{
+		ar.WriteCount(GetContourCount());
+		for (int nAt = 0; nAt < GetContourCount(); nAt++)
+		{
+			get_Contour(nAt)->Serialize(ar);
+			// ar.WriteObject(&GetContour(nAt));
+		}
+	}
+
+	// serialize the reference distance
+	m_arrRefDist.Serialize(ar);
+
+	// serialize vertices
+	CArray<int, int&> arrVertIndex;
+	if (!ar.IsLoading())
+	{
+		arrVertIndex.SetSize(m_arrTriIndex.size() * 3);
+		memcpy(arrVertIndex.GetData(), &m_arrTriIndex[0][0], 
+			m_arrTriIndex.size() * 3 * sizeof(int));
+	}
+	arrVertIndex.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		m_arrTriIndex.resize(arrVertIndex.GetSize() / 3);
+		memcpy(&m_arrTriIndex[0][0], arrVertIndex.GetData(), 
+			m_arrTriIndex.size() * 3 * sizeof(int));
+	}
+
+	////////////////////////////////////////
+
+	CArray< CPackedVectorD<3>, CPackedVectorD<3>& > arrVertex;
+	if (!ar.IsLoading())
+	{
+		arrVertex.SetSize(m_mVertex.GetCols());
+		memcpy(arrVertex.GetData(), &m_mVertex[0][0],
+			m_mVertex.GetCols() * 3 * sizeof(REAL));
+	}
+	arrVertex.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		m_mVertex.Reshape(arrVertex.GetSize(), 3);
+		memcpy(&m_mVertex[0][0], arrVertex.GetData(), 
+			m_mVertex.GetCols() * 3 * sizeof(REAL));
+	}
+
+	/////////////////////////////////////////////
+
+	CArray< CPackedVectorD<3>, CPackedVectorD<3>& > arrNormal;
+	if (!ar.IsLoading())
+	{
+		arrNormal.SetSize(m_mVertex.GetCols());
+		memcpy(arrNormal.GetData(), &m_mNormal[0][0],
+			m_mNormal.GetCols() * 3 * sizeof(REAL));
+	}
+	arrNormal.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		m_mNormal.Reshape(arrNormal.GetSize(), 3);
+		memcpy(&m_mNormal[0][0], arrNormal.GetData(), 
+			m_mNormal.GetCols() * 3 * sizeof(REAL));
+	}
+
+	// if schema >= 4
+	if (nSchema >= 4)
+	{
+		// serialize the region also
+		if (m_pRegion == NULL)
+		{
+			m_pRegion = new CVolume<int>();
+		}
+		m_pRegion->Serialize(ar);
+	}
+}
+*/
+
 void CSeries::Serialize(CArchive& ar)
 {
 	CDocument::Serialize(ar);
@@ -108,12 +252,25 @@ void CSeries::Serialize(CArchive& ar)
 	}
 	volume.Serialize(ar);
 
-	if (!ar.IsStoring())
+	DWORD nStructureCount = GetStructureCount();
+	SERIALIZE_VALUE(ar, nStructureCount);
+
+	if (ar.IsLoading())
 	{
 		// delete any existing structures
 		m_arrStructures.RemoveAll();
+
+		for (int nAt = 0; nAt < nStructureCount; nAt++)
+		{
+			CMesh *pMesh = new CMesh;
+			m_arrStructures.Add(pMesh);
+		}
 	}
-	m_arrStructures.Serialize(ar);
+
+	for (int nAt = 0; nAt < nStructureCount; nAt++)
+	{
+		GetStructureAt(nAt)->Serialize(ar);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -130,7 +287,7 @@ BOOL CSeries::OnNewDocument()
 	return TRUE;
 }
 
-CSurface *CSeries::CreateSphereStructure(const CString &strName)
+CMesh *CSeries::CreateSphereStructure(const CString &strName)
 {
 	return NULL;
 }

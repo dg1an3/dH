@@ -15,6 +15,8 @@
 #include <afx.h>
 #include <afxwin.h>
 
+#include <afxdisp.h>
+
 #include <afxtempl.h>
 
 //{{AFX_INSERT_LOCATION}}

@@ -13,6 +13,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <vector>
+using namespace std;
+
 // vector/matrix includes
 #include <VectorD.h>
 #include <MatrixD.h>
@@ -22,6 +25,7 @@
 
 // geom model classes
 #include <Polygon.h>
+
 #include <Volumep.h>
 
 // treatment machine upon which beam is based
@@ -78,7 +82,7 @@ public:
 
 	// collection of blocks
 	int GetBlockCount() const;
-	CPolygon *GetBlockAt(int nAt);
+	CPolygon *GetBlock(int nAt);
 	int AddBlock(CPolygon *pBlock);
 
 	// the weight for this beam (from 0.0 to 1.0)
@@ -129,7 +133,7 @@ private:
 	BOOL m_bHasShieldingBlocks;
 
 	// collection of blocks
-	CObArray m_arrBlocks;	// CPolygon
+	CObArray m_arrBlocks;
 
 	// the weight for this beam (from 0.0 to 1.0)
 	double m_weight;

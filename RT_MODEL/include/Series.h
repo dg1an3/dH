@@ -13,7 +13,7 @@
 
 #include <Volumep.h>
 
-#include "Surface.h"
+#include <Mesh.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // CSeries document
@@ -34,7 +34,7 @@ public:
 
 	// Structures for the series
 	int GetStructureCount() const;
-	CSurface *GetStructureAt(int nAt);
+	CMesh *GetStructureAt(int nAt);
 
 	CObArray m_arrStructures;
 
@@ -51,7 +51,7 @@ public:
 
 // Implementation
 public:
-	CSurface * CreateSphereStructure(const CString& strName);
+	CMesh * CreateSphereStructure(const CString& strName);
 	CString GetFileRoot();
 	CString GetFileName();
 	BOOL OnNewDocument();
