@@ -13,15 +13,20 @@
 #include "stdafx.h"
 #include "Scribble.h"
 
+#include <Matrix.h>
+
 #include "ScribDoc.h"
 #include "ScribVw.h"
-#include <QuadEdge1.h>
+// #include <QuadEdge1.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+
+// #define DRAW_STROKES
 
 /////////////////////////////////////////////////////////////////////////////
 // CScribbleView
@@ -33,6 +38,8 @@ BEGIN_MESSAGE_MAP(CScribbleView, CView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
+	ON_WM_LBUTTONDBLCLK()
+	ON_WM_SIZE()
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
@@ -44,9 +51,6 @@ END_MESSAGE_MAP()
 // CScribbleView construction/destruction
 
 CScribbleView::CScribbleView()
-: m_nTimeStamp(0),
-	m_cx(100.0),
-	m_cy(100.0)
 {
 }
 
@@ -65,23 +69,24 @@ BOOL CScribbleView::PreCreateWindow(CREATESTRUCT& cs)
 /////////////////////////////////////////////////////////////////////////////
 // CScribbleView drawing
 
-void CScribbleView::DrawEdge(CDC* pDC, CEdge *pEdge)
+void CScribbleView::DrawPolygon(CDC *pDC, CPolygon& polygon, COLORREF color)
 {
-	if (pEdge && pEdge->TimeStamp(m_nTimeStamp)) 
-	{
-		// Draw the edge
-		CVector<2> a = pEdge->Org2d();
-		CVector<2> b = pEdge->Dest2d();
+	// don't draw if no vertices
+	if (polygon.GetVertexCount() < 2)
+		return;
 
-		pDC->MoveTo(CPoint((int) (a[0] * m_cx), (int) (a[1] * m_cy)));
-		pDC->LineTo(CPoint((int) (b[0] * m_cx), (int) (b[1] * m_cy)));
+	// create the pen and select it
+	CPen penStroke;
+	penStroke.CreatePen(PS_SOLID, 1, color);
+	CPen* pOldPen = pDC->SelectObject(&penStroke);
 
-		// visit neighbors
-		DrawEdge(pDC, pEdge->Onext());
-		DrawEdge(pDC, pEdge->Oprev());
-		DrawEdge(pDC, pEdge->Dnext());
-		DrawEdge(pDC, pEdge->Dprev());
-	}
+	// now draw the polygon
+	pDC->MoveTo(m_xform * polygon.GetVertex(0));
+	for (int i=1; i < polygon.GetVertexCount(); i++)
+		pDC->LineTo(m_xform * polygon.GetVertex(i));
+
+	// de-select the pen
+	pDC->SelectObject(pOldPen);
 }
 
 void CScribbleView::OnDraw(CDC* pDC)
@@ -91,25 +96,21 @@ void CScribbleView::OnDraw(CDC* pDC)
 
 	// The view delegates the drawing of individual strokes to
 	// CStroke::DrawStroke().
-	CTypedPtrList<CObList,CStroke*>& strokeList = pDoc->m_strokeList;
+/*	CTypedPtrList<CObList,CStroke*>& strokeList = pDoc->m_strokeList;
 	POSITION pos = strokeList.GetHeadPosition();
 	while (pos != NULL)
 	{
 		CStroke* pStroke = strokeList.GetNext(pos);
 		pStroke->DrawStroke(pDC);
 	}
+*/
 
-	CRect rect;
-	GetClientRect(&rect);
+	DrawPolygon(pDC, pDoc->m_polygon);
 
-	// now draw the mesh
-	m_cx = rect.Width();
-	m_cy = rect.Height();
+	CPolygon convexHull(pDoc->m_polygon);
+	convexHull.MakeConvexHull();
 
-	if (++m_nTimeStamp == 0)
-		m_nTimeStamp = 1;
-
-	DrawEdge(pDC, pDoc->m_mesh.GetStartingEdge()); 
+	DrawPolygon(pDC, convexHull, RGB(255, 0, 0));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -157,31 +158,19 @@ CScribbleDoc* CScribbleView::GetDocument() // non-debug version is inline
 
 void CScribbleView::OnLButtonDown(UINT, CPoint point)
 {
+	// add the new vertex to the polygon
+	GetDocument()->m_polygon.AddVertex(m_invXform * CVector<2>(point));
 
-#if defined(DRAW_STROKES)
-	// Pressing the mouse button in the view window starts a new stroke
-	m_pStrokeCur = GetDocument()->NewStroke();
-	// Add first point to the new stroke
-	m_pStrokeCur->m_pointArray.Add(point);
-
-#else
-
-	double x = (double) point.x / m_cx; 
-	double y = (double) point.y / m_cy; 
-
-	x = (x < 0.01) ? 0.01 : (x > 0.99) ? 0.99 : x;
-	y = (y < 0.01) ? 0.01 : (y > 0.99) ? 0.99 : y;
-
-	GetDocument()->m_mesh.AddVertex(CVector<2>(x, y));
-
-	RedrawWindow();
-#endif
-
+	// set mouse capture
 	SetCapture();       // Capture the mouse until button up.
+
+	// store the previous point
 	m_ptPrev = point;   // Serves as the MoveTo() anchor point for the
 						// LineTo() the next point, as the user drags the
 						// mouse.
-	return;
+
+	// redraw the window
+	RedrawWindow();
 }
 
 void CScribbleView::OnLButtonUp(UINT, CPoint point)
@@ -190,26 +179,8 @@ void CScribbleView::OnLButtonUp(UINT, CPoint point)
 		return; // If this window (view) didn't capture the mouse,
 				// then the user isn't drawing in this window.
 
-#if defined(DRAW_STROKES)
-	// Mouse button up is interesting in the Scribble application
-	// only if the user is currently drawing a new stroke by dragging
-	// the captured mouse.
-
-	CScribbleDoc* pDoc = GetDocument();
-
-	CClientDC dc(this);
-
-	CPen* pOldPen = dc.SelectObject(pDoc->GetCurrentPen());
-	dc.MoveTo(m_ptPrev);
-	dc.LineTo(point);
-	dc.SelectObject(pOldPen);
-	m_pStrokeCur->m_pointArray.Add(point);
-
-#endif
-
 	ReleaseCapture();   // Release the mouse capture established at
 						// the beginning of the mouse drag.
-	return;
 }
 
 void CScribbleView::OnMouseMove(UINT, CPoint point)
@@ -218,39 +189,40 @@ void CScribbleView::OnMouseMove(UINT, CPoint point)
 		return; // If this window (view) didn't capture the mouse,
 				// then the user isn't drawing in this window.
 
-#if defined(DRAW_STROKES)
-	// Mouse movement is interesting in the Scribble application
-	// only if the user is currently drawing a new stroke by dragging
-	// the captured mouse.
-
-	CClientDC dc(this);
-	m_pStrokeCur->m_pointArray.Add(point);
-
-	// Draw a line from the previous detected point in the mouse
-	// drag to the current point.
-	CPen* pOldPen = dc.SelectObject(GetDocument()->GetCurrentPen());
-	dc.MoveTo(m_ptPrev);
-	dc.LineTo(point);
-	dc.SelectObject(pOldPen);
-	m_ptPrev = point;
-#else
 	CPoint ptOffset = point - m_ptPrev;
 	if (ptOffset.x * ptOffset.x + ptOffset.y * ptOffset.y > 10 * 10)
 	{
-		// Adding a point to the mesh
+		// add the point to the polygon
+		GetDocument()->m_polygon.AddVertex(m_invXform * CVector<2>(point));
 
-		double x = (double) point.x / m_cx; 
-		double y = (double) point.y / m_cy; 
-
-		x = (x < 0.01) ? 0.01 : (x > 0.99) ? 0.99 : x;
-		y = (y < 0.01) ? 0.01 : (y > 0.99) ? 0.99 : y;
-
-		GetDocument()->m_mesh.AddVertex(CVector<2>(x, y));
-
+		// store the previous point
 		m_ptPrev = point;
+
+		// redraw the window
 		RedrawWindow();
 	}
+}
 
-#endif
-	return;
+void CScribbleView::OnLButtonDblClk(UINT nFlags, CPoint point) 
+{
+	// close the polygon
+	CVector<2> vInitVertex = GetDocument()->m_polygon.GetVertex(0);
+	GetDocument()->m_polygon.AddVertex(vInitVertex);
+
+	// redraw the window
+	RedrawWindow();
+
+	CView::OnLButtonDblClk(nFlags, point);
+}
+
+void CScribbleView::OnSize(UINT nType, int cx, int cy) 
+{
+	CView::OnSize(nType, cx, cy);
+	
+	// set up the scale matrix
+	m_xform[0][0] = (double) cx;
+	m_xform[1][1] = (double) cy;
+
+	// set up the inverse scale matrix
+	m_invXform = Invert(m_xform);
 }

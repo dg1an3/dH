@@ -11,6 +11,8 @@
 // Microsoft Foundation Classes product.
 /////////////////////////////////////////////////////////////////////////////
 
+#include <Matrix.h>
+
 class CScribbleView : public CView
 {
 protected: // create from serialization only
@@ -22,12 +24,9 @@ public:
 	CScribbleDoc* GetDocument();
 
 protected:
-	CStroke*    m_pStrokeCur;   // the stroke in progress
-	CPoint      m_ptPrev;       // the last mouse pt in the stroke in progress
 
 // Operations
 public:
-	void DrawEdge(CDC* pDC, CEdge *pEdge);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -43,6 +42,11 @@ public:
 
 // Implementation
 public:
+
+	// helper function to draw a polygon
+	void DrawPolygon(CDC *pDC, CPolygon& polygon, 
+		COLORREF color = RGB(0, 0, 0));
+
 	virtual ~CScribbleView();
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -51,11 +55,11 @@ public:
 
 protected:
 
-	// scalars for the current window size
-	double m_cx, m_cy;
+	// the last mouse pt in the stroke in progress
+	CPoint      m_ptPrev;       
 
-	// time stamp for drawing
-	int m_nTimeStamp;
+	// scale for the current window size
+	CMatrix<2> m_xform, m_invXform;
 
 // Generated message map functions
 protected:
@@ -63,6 +67,8 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
