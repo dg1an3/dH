@@ -1,3 +1,8 @@
+////////////////////////////////////
+// Copyright (C) 1996-2000 DG Lane
+// U.S. Patent Pending
+////////////////////////////////////
+
 #if !defined(CONJGRADOPTIMIZER_H)
 #define CONJGRADOPTIMIZER_H
 
@@ -89,7 +94,8 @@ private:
 	CGradLineFunction<DIM, TYPE> m_lineFunction;
 
 	// brent optimizer along the line function
-	CGradBrentOptimizer<TYPE> m_optimizeBrent;
+	// CGradBrentOptimizer<TYPE> m_optimizeBrent;
+	CBrentOptimizer<TYPE> m_optimizeBrent;
 };
 
 #endif
