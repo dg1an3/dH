@@ -32,8 +32,9 @@ static char THIS_FILE[]=__FILE__;
 // 
 // a renderable is able to describe itself given a rendering context
 //////////////////////////////////////////////////////////////////////
-CRenderable::CRenderable(CSceneView *pView)
-	: m_pView(pView),
+CRenderable::CRenderable()
+	: m_pObject(NULL),
+		m_pView(NULL),
 		m_nDrawList(-1),
 		m_color(RGB(255, 255, 255)),
 		m_alpha(1.0),
@@ -48,6 +49,35 @@ CRenderable::CRenderable(CSceneView *pView)
 //////////////////////////////////////////////////////////////////////
 CRenderable::~CRenderable()
 {
+}
+
+//////////////////////////////////////////////////////////////////////
+// IMPLEMENT_DYNCREATE
+// 
+// implements the dynamic create behavior for the renderables
+//////////////////////////////////////////////////////////////////////
+IMPLEMENT_DYNCREATE(CRenderable, CObject);
+
+
+//////////////////////////////////////////////////////////////////////
+// CRenderable::GetObject
+// 
+// returns the object being rendered
+//////////////////////////////////////////////////////////////////////
+// sets the object being rendered
+CObject *CRenderable::GetObject()
+{
+	return m_pObject;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CRenderable::SetObject
+// 
+// sets the object being rendered
+//////////////////////////////////////////////////////////////////////
+void CRenderable::SetObject(CObject *pObject)
+{
+	m_pObject = pObject;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -178,6 +208,12 @@ void CRenderable::SetEnabled(BOOL bEnabled)
 //////////////////////////////////////////////////////////////////////
 void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 {
+	// only invalidate if it is attached to a CSceneView
+	if (NULL == m_pView)
+	{
+		return;
+	}
+
 	// set the current HGLRC
 	m_pView->MakeCurrentGLRC();
 
