@@ -143,6 +143,68 @@ public:
 		// The new value should equal the second randomly generated value
 		ASSERT_RESULT(5, testValue.Get() == newValue2); ///////////////////////
 
+
+		///////////////////////////////////////////////////////////////////////
+		//	Test (6)
+		//		Synchronization - values
+		//		- Create a second value
+		//		- Initialize the second value to a random value
+		//		- Sync the second value to the first value
+		//		* The value of the second should equal the value of the first
+
+			VALUE_TYPE initialValue2 = CreateRandom<VALUE_TYPE>();
+			PERFORM_STEP("Creating a CValue<" << pszTypeName << ">",
+				CValue<VALUE_TYPE> testValue2(initialValue2));
+
+			PERFORM_STEP("Syncing to the first test value",
+				testValue2.SyncTo(&testValue));
+
+		ASSERT_RESULT(6, testValue2.Get() == testValue.Get());
+
+		///////////////////////////////////////////////////////////////////////
+		//	Test (7)
+		//		Synchronization - change events
+		//		- Change the second value
+		//		* the first value should equal the second value
+
+			// generate a unique new value
+			VALUE_TYPE newValue3;
+			do {
+				newValue3 = CreateRandom<VALUE_TYPE>();
+			} while (newValue3 == newValue);
+			PERFORM_STEP("Changing the synched-to object",
+				testValue.Set(newValue3));
+
+		ASSERT_RESULT(7, testValue.Get() == testValue2.Get());
+
+		///////////////////////////////////////////////////////////////////////
+		//	Test (8)
+		//		De-Synchronization - values
+		//		- De-synchronize the synchronized object
+		//		- Change the value of the first
+		//		* The value of the first should be different than the second,
+		//			and the second should
+
+			PERFORM_STEP("De-synchronizing the synchronized object",
+				testValue2.SyncTo(NULL));
+
+			PERFORM_STEP("Change the value of the first",
+				testValue.Set(newValue));
+			
+		ASSERT_RESULT(8, testValue.Get() != testValue2.Get()
+			&& testValue2.Get() == newValue3);
+
+		///////////////////////////////////////////////////////////////////////
+		//	Test (9)
+		//		De-Synchronization - change events
+
+		//		Test for synchronization to NULL, synchronization to self
+
+		///////////////////////////////////////////////////////////////////////
+		//	Test (10) 
+		//		De-Synchronization - after synchronized object is deleted
+	
+
 		END_TEST_BANNER("CValue<" << pszTypeName << ">");
 	}
 

@@ -95,6 +95,9 @@ class CValue:
 
 	Test (8)
 		De-Synchronization - change events
+
+	Test (9) 
+		De-Synchronization - after synchronized object is deleted
 	
 
 Association
