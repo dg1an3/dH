@@ -827,23 +827,23 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 template<class VOXEL_TYPE>
 inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 {
-	int nBase = pVol->GetWidth() / 2;
-	int nBaseDec = nBase / 2;
+	int nBase = pVol->GetWidth() / 2 + 1;
 
-	pRes->SetDimensions(nBaseDec * 2 +1, nBaseDec * 2 +1, 1);
+	pRes->SetDimensions(nBase, nBase, 1);
 
 	CMatrixD<4> mBasis = pVol->GetBasis();
-	mBasis[3][0] = -nBaseDec;
-	mBasis[3][1] = -nBaseDec;
+	mBasis[0] *= 2.0;
+	mBasis[1] *= 2.0;
+	mBasis[2] *= 2.0;
 	pRes->SetBasis(mBasis);
 	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
 	VOXEL_TYPE ***pppRes = pRes->GetVoxels();
-	for (int nAtRow = -nBaseDec; nAtRow <= nBaseDec; nAtRow++)
+	for (int nAtRow = 0; nAtRow < pRes->GetHeight(); nAtRow++)
 	{
-		for (int nAtCol = -nBaseDec; nAtCol <= nBaseDec; nAtCol++)
+		for (int nAtCol = 0; nAtCol < pRes->GetWidth(); nAtCol++)
 		{
-			pppRes[0][nAtRow + nBaseDec][nAtCol + nBaseDec] = 
-				pppVoxels[0][nAtRow*2 + nBase][nAtCol*2 + nBase];
+			pppRes[0][nAtRow][nAtCol] = 
+				pppVoxels[0][nAtRow*2][nAtCol*2];
 		}
 	}
 
@@ -1087,9 +1087,10 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 // Creates a region (bit mask) from a polygon
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-void CreateRegion(CPolygon arrPoly[], int nPolyCount,
-				  CVolume<VOXEL_TYPE> *pRegion, BOOL bSetDim = TRUE)
+void CreateRegion(const CArray<CPolygon *, CPolygon *>& arrPolygons,
+				  CVolume<VOXEL_TYPE> *pRegion, BOOL bSetDim = FALSE)
 {
+#ifdef USE_SETDIM
 	if (bSetDim)
 	{
 		int nWidth = 0;
@@ -1100,8 +1101,11 @@ void CreateRegion(CPolygon arrPoly[], int nPolyCount,
 			nHeight = __max(ceil(arrPoly[nAtPoly].GetMax()[1]), nHeight);
 		}
 
-		pRegion->SetDimensions(nWidth, nHeight, 1);
+		pRegion->SetDimensions(nWidth, nHeight, 1); 
 	}
+#endif
+
+	CMatrixD<4> mBasis = pRegion->GetBasis();
 
 	CDC dc;
 	BOOL bRes = dc.CreateCompatibleDC(NULL);
@@ -1113,15 +1117,19 @@ void CreateRegion(CPolygon arrPoly[], int nPolyCount,
 	dc.SelectStockObject(WHITE_PEN);
 	dc.SelectStockObject(WHITE_BRUSH);
 
-	for (int nAtPoly = 0; nAtPoly < nPolyCount; nAtPoly++)
+	for (int nAtPoly = 0; nAtPoly < arrPolygons.GetSize(); nAtPoly++)
 	{
 		static CArray<CPoint, CPoint&> arrPoints;
-		arrPoints.SetSize(arrPoly[nAtPoly].GetVertexCount());
-		for (int nAt = 0; nAt < arrPoly[nAtPoly].GetVertexCount(); nAt++)
+		arrPoints.SetSize(arrPolygons[nAtPoly]->GetVertexCount());
+		for (int nAt = 0; nAt < arrPolygons[nAtPoly]->GetVertexCount(); nAt++)
 		{
-			arrPoints[nAt] = arrPoly[nAtPoly].GetVertexAt(nAt);
+			CVectorD<2> vVert = arrPolygons[nAtPoly]->GetVertexAt(nAt);
+			vVert[0] = (vVert[0] - mBasis[3][0]) / mBasis[0][0];
+			vVert[1] = (vVert[1] - mBasis[3][1]) / mBasis[1][1];
+
+			arrPoints[nAt] = vVert;
 		}
-		dc.Polygon(arrPoints.GetData(), arrPoly[nAtPoly].GetVertexCount());
+		dc.Polygon(arrPoints.GetData(), arrPolygons[nAtPoly]->GetVertexCount());
 	}
 
 	// finished with DC
@@ -1145,7 +1153,7 @@ void CreateRegion(CPolygon arrPoly[], int nPolyCount,
 	{
 		for (int nX = 0; nX < pRegion->GetWidth(); nX++)
 		{
-			if ((arrBuffer[nY * bm.bmWidthBytes + nX / 8] >> (nX % 8)) & 0x01)
+			if ((arrBuffer[nY * bm.bmWidthBytes + nX / 8] >> (7 - nX % 8)) & 0x01)
 			{
 				pRegion->GetVoxels()[0][nY][nX] = (VOXEL_TYPE) 1.0;
 			}
