@@ -16,6 +16,7 @@
 class CDRRRenderer : public COpenGLRenderer  
 {
 public:
+	virtual void OnChange(CObservable *pSource);
 	CDRRRenderer(COpenGLView *pView);
 	virtual ~CDRRRenderer();
 
@@ -33,6 +34,8 @@ public:
 
 private:
 	CArray<int, int> m_arrPixels;
+
+	BOOL m_bRecomputeDRR;
 };
 
 #endif // !defined(AFX_DRRRENDERER_H__88FB0320_0C35_11D5_9E4E_00B0D0609AB0__INCLUDED_)

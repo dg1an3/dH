@@ -5,6 +5,8 @@
 #include "stdafx.h"
 #include "DRRRenderer.h"
 
+#include <float.h>
+
 #include <gl/gl.h>
 #include <gl/glu.h>
 #include <glMatrixVector.h>
@@ -17,9 +19,10 @@
 
 CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 : COpenGLRenderer(pView),
-	forVolume(NULL)
+	forVolume(NULL),
+	m_bRecomputeDRR(TRUE)
 {
-
+	m_pView->myProjectionMatrix.AddObserver(this);
 }
 
 CDRRRenderer::~CDRRRenderer()
@@ -27,11 +30,169 @@ CDRRRenderer::~CDRRRenderer()
 
 }
 
+#define CREATE_INT_VECTOR(v, vi) \
+	CVector<3, int> vi; \
+	vi[0] = (int)(v[0] * 65536.0); \
+	vi[1] = (int)(v[1] * 65536.0); \
+	vi[2] = (int)(v[2] * 65536.0);
+
+///////////////////////////////////////////////////////////////////////////////
+//  Function clipRaster(int *pnDestStart, int *pnDestLength,
+//			Vector *pvSourceStart, const Vector &vSourceStep, int nD, 
+//			int nSourceMinD, int nSourceMaxD)
+//
+//  Helper function to clip a raster associated with a 3-D chain of regularly 
+//  spaced positions, to the given "source min" and "source max" values, for 
+//  the given dimension.
+//
+//  Parameters:
+//		pnDestStart - the starting value, which is possibly modified by the 
+//			clipping
+//		pnDestLength - the length of the raster, which is possibly modified
+//			by the clipping
+//		pvSourceStart - the starting source value
+//		vSourceStep - the source step value
+//		nD - the dimension to clip
+//		nSourceMinD - the min for the dimension (in source coordinates)
+//		nSourceMaxD - the max for the dimension (in source coordinates
+//  Returns:
+//		true if the clipping results in a valid raster
+//	Exceptions/Errors:
+//		none
+//
+///////////////////////////////////////////////////////////////////////////////
+bool ClipRaster(int& nDestStart, int& nDestLength,
+			CVector<3>& vSourceStart, const CVector<3> &vSourceStep, 
+			int nD, int nSourceMinD, int nSourceMaxD)
+{
+	// First, adjust the raster start.
+
+	// if the source start is less than the allowed min,
+	if (vSourceStart[nD] < nSourceMinD)
+	{
+		// if the step size is negative, the raster doesn't intersect the range
+		if (vSourceStep[nD] <= 0.0)
+		{
+			return false;
+		}
+
+		// compute the delta for the destination start and length values, 
+		//		and the source start value
+		int nDelta = static_cast<int>(ceil((nSourceMinD - vSourceStart[nD])
+												/ vSourceStep[nD]));
+
+		// adjust the destination length
+		nDestLength -= nDelta;
+
+		// if the length has become negative, the raster doesn't intersect
+		if (nDestLength < 0)
+		{
+			return false;
+		}
+
+		// adjust the destination start
+		nDestStart += nDelta;
+
+		// adjust the source start
+		vSourceStart += static_cast<double>(nDelta) * vSourceStep;
+	}
+	// else if the source start is greater than the allowed max,
+	else if (vSourceStart[nD] > (nSourceMaxD -1))
+	{
+		// if the step size is position, the raster doesn't intersect
+		if (vSourceStep[nD] >= 0.0)
+		{
+			return false;
+		}
+
+		// compute the delta for the destination start and length values,
+		//		and the source start value
+		int nDelta = static_cast<int>
+			(ceil(((nSourceMaxD - 1) - vSourceStart[nD]) 
+							/ vSourceStep[nD]));
+
+		// adjust the destination length
+		nDestLength -= nDelta;
+
+		// if the length has become negative, the raster doesn't intersect
+		if (nDestLength < 0)
+		{
+			return false;
+		}
+
+		// adjust the destination start
+		nDestStart += nDelta;
+
+		// adjust the source start
+		vSourceStart += static_cast<double>(nDelta) * vSourceStep;
+	}
+
+	// Next, adjust the raster length.
+
+	// compute the source end
+	double sourceEndD = 
+		vSourceStart[nD] + nDestLength * vSourceStep[nD];
+
+	// if the source end is greater than the allowed max,
+	if (sourceEndD > (nSourceMaxD - 1))
+	{
+		// if the source step is negative, the raster doesn't intersect
+		if (vSourceStep[nD] <= 0.0)
+		{
+			return false;
+		}
+
+		// compute the new destination length
+		nDestLength = static_cast<int>
+			(floor(((nSourceMaxD - 1) - vSourceStart[nD]) 
+							/ vSourceStep[nD]));
+
+		// if the length has become negative, the raster doesn't intersect
+		if (nDestLength < 0)
+		{
+			return false;
+		}
+	}
+	// else if the source end is less than the allowed min,
+	else if (sourceEndD < nSourceMinD)
+	{
+		// if the source step is positive, the raster doesn't intersect
+		if (vSourceStep[nD] >= 0.0)
+		{
+			return false;
+		}
+
+		// compute the new destination length
+		nDestLength = static_cast<int>
+			(floor(((nSourceMinD - vSourceStart[nD]))
+							/ vSourceStep[nD]));
+
+		// if the length has become negative, the raster doesn't intersect
+		if (nDestLength < 0)
+		{
+			return false;
+		}
+	}
+
+	// Completed successfully, so return true
+	return true;
+}
+
 void CDRRRenderer::ComputeDRR()
 {
+	int nWidth = forVolume->width.Get();
+	int nHeight = forVolume->height.Get();
+	int nDepth = forVolume->depth.Get();
+
 	CRect rect;
 	m_pView->GetClientRect(&rect);
 	m_arrPixels.SetSize(rect.Width() * rect.Height());
+
+	TRACE2("Window size = %i, %i\n", rect.Width(), rect.Height());
+
+#ifdef _DEBUG
+	int nClipped = 0;
+#endif
 
 	// retrieve the model and projection matrices
 	GLdouble modelMatrix[16];
@@ -44,46 +205,112 @@ void CDRRRenderer::ComputeDRR()
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
+	// compute the near and far planes containing the volume
+	CVector<3> vPt;
+	double zMin = DBL_MAX, zMax = -DBL_MAX;
+
+	gluProject(0.0, 0.0, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
+	gluProject(nWidth, 0.0, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
+	gluProject(0.0, nHeight, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
+	gluProject(0.0, 0.0, nDepth, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
+	gluProject(nWidth, nHeight, 0.0, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
+	gluProject(nWidth, 0.0, nDepth, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
+	gluProject(nWidth, nHeight, nDepth, modelMatrix, projMatrix, viewport, &vPt[0], &vPt[1], &vPt[2]);
+	zMin = min(zMin, vPt[2]);
+	zMax = max(zMax, vPt[2]);
+
 	short ***pppVoxels = forVolume->GetVoxels();
 
-	int nSteps = 512;
+	// un-project the window coordinates into the model coordinate system
+	CVector<3> vStart;
+	gluUnProject((GLdouble)0, (GLdouble)0, zMin,
+		modelMatrix, projMatrix, viewport, 
+		&vStart[0], &vStart[1], &vStart[2]);
+
+	CVector<3> vStartNextX;
+	gluUnProject((GLdouble)1, (GLdouble)0, zMin,
+		modelMatrix, projMatrix, viewport, 
+		&vStartNextX[0], &vStartNextX[1], &vStartNextX[2]);
+	CVector<3> vStartStepX = vStartNextX - vStart;
+	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
+
+	CVector<3> vStartNextY;
+	gluUnProject((GLdouble)0, (GLdouble)1, zMin,
+		modelMatrix, projMatrix, viewport, 
+		&vStartNextY[0], &vStartNextY[1], &vStartNextY[2]);
+	CVector<3> vStartStepY = vStartNextY - vStart;
+	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
+
+	vStart += CVector<3>(0.5, 0.5, 0.5);
+	CREATE_INT_VECTOR(vStart, viStart);
+
+	// un-project the window coordinates into the model coordinate system
+	CVector<3> vEnd;
+	gluUnProject((GLdouble)0, (GLdouble)0, zMax,
+		modelMatrix, projMatrix, viewport, 
+		&vEnd[0], &vEnd[1], &vEnd[2]);
+
+	CVector<3> vEndNextX;
+	gluUnProject((GLdouble)1, (GLdouble)0, zMax,
+		modelMatrix, projMatrix, viewport, 
+		&vEndNextX[0], &vEndNextX[1], &vEndNextX[2]);
+	CVector<3> vEndStepX = vEndNextX - vEnd;
+	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
+
+	CVector<3> vEndNextY;
+	gluUnProject((GLdouble)0, (GLdouble)1, zMax,
+		modelMatrix, projMatrix, viewport, 
+		&vEndNextY[0], &vEndNextY[1], &vEndNextY[2]);
+	CVector<3> vEndStepY = vEndNextY - vEnd;
+	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
+
+	vEnd += CVector<3>(0.5, 0.5, 0.5);
+	CREATE_INT_VECTOR(vEnd, viEnd);
+
+	const int nSteps = 64;
+	const int nShift = 5;
 	int nMax = 0;
 	int nMin = INT_MAX;
 	
-	for (int nY = 0; nY < rect.Height(); nY++)
-		for (int nX = 0; nX < rect.Width(); nX++)
+	int nImageHeight = rect.Height();
+	int nImageWidth = rect.Width();
+
+	for (int nY = 0; nY < nImageHeight; nY++)
+	{
+		CVector<3, int> viStartOld = viStart;
+		CVector<3, int> viEndOld = viEnd;
+
+		int nPixelAt = nY * nImageWidth;
+
+		for (int nX = 0; nX < nImageWidth; nX++, nPixelAt++)
 		{
-			// un-project the window coordinates into the model coordinate system
-			CVector<3> vStart;
-			gluUnProject((GLdouble)nX, (GLdouble)nY, m_pView->GetNearPlane(),
-				modelMatrix, projMatrix, viewport, 
-				&vStart[0], &vStart[1], &vStart[2]);
-			vStart += CVector<3>(0.5, 0.5, 0.5);
+			CVector<3, int> viStartOldX = viStart;
 
-			// un-project the window coordinates into the model coordinate system
-			CVector<3> vEnd;
-			gluUnProject((GLdouble)nX, (GLdouble)nY, m_pView->GetFarPlane(),
-				modelMatrix, projMatrix, viewport, 
-				&vEnd[0], &vEnd[1], &vEnd[2]);
+			CVector<3, int> viStep = viEnd - viStart;
+			viStep[0] >>= nShift;
+			viStep[1] >>= nShift;
+			viStep[2] >>= nShift;
 
-			CVector<3> vStep = (double) (1.0f / (float) nSteps) * (vEnd - vStart);
-
-			int nPixelAt = nY * rect.Width() + nX;
 			m_arrPixels[nPixelAt] = 0;
 
-			CVector<3, int> viStart;
-			viStart[0] = vStart[0] * 65536.0;
-			viStart[1] = vStart[1] * 65536.0;
-			viStart[2] = vStart[2] * 65536.0;
-
-			CVector<3, int> viStep;
-			viStep[0] = vStep[0] * 65536.0;
-			viStep[1] = vStep[1] * 65536.0;
-			viStep[2] = vStep[2] * 65536.0;
-
-			int nWidth = forVolume->width.Get();
-			int nHeight = forVolume->height.Get();
-			int nDepth = forVolume->depth.Get();
 			for (int nAt = 0; nAt < nSteps; nAt++)
 			{
 				int nVoxelX = viStart[0] >> 16;
@@ -91,17 +318,27 @@ void CDRRRenderer::ComputeDRR()
 				int nVoxelZ = viStart[2] >> 16;
 				if (nVoxelX >= 0 && nVoxelX < nWidth
 					&& nVoxelY >= 0 && nVoxelY < nHeight
-					&& nVoxelZ >= 0 && nVoxelZ < nDepth
-					&& pppVoxels[nVoxelZ][nVoxelY][nVoxelX] >= 0)
+					&& nVoxelZ >= 0 && nVoxelZ < nDepth)
 
 					m_arrPixels[nPixelAt] += pppVoxels[nVoxelZ][nVoxelY][nVoxelX];
+#ifdef _DEBUG
+				else
+					nClipped++;
+#endif
 
 				viStart += viStep;
 			}
 
 			nMax = max(m_arrPixels[nPixelAt], nMax);
 			nMin = min(m_arrPixels[nPixelAt], nMin);
+
+			viStart = viStartOldX + viStartStepX;
+			viEnd += viEndStepX;
 		}
+
+		viStart = viStartOld + viStartStepY;
+		viEnd = viEndOld + viEndStepY;
+	}
 
 	for (nY = 0; nY < rect.Height(); nY++)
 		for (int nX = 0; nX < rect.Width(); nX++)
@@ -109,6 +346,10 @@ void CDRRRenderer::ComputeDRR()
 			m_arrPixels[nY * rect.Width() + nX] -= nMin;
 			m_arrPixels[nY * rect.Width() + nX] *= (INT_MAX / (nMax - nMin)); 
 		}
+
+	TRACE2("%i points out of %i were clipped\n", nClipped, rect.Height() * rect.Width() * nSteps);
+
+	m_bRecomputeDRR = FALSE;
 }
 
 void CDRRRenderer::DrawScene()
@@ -128,9 +369,9 @@ void CDRRRenderer::DrawScene()
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
-		glRasterPos2i(0, 0);
+		glRasterPos3f(0.0f, 0.0f, -0.99f);
 
-		if (m_arrPixels.GetSize() != rect.Height() * rect.Width())
+		if (m_bRecomputeDRR || m_arrPixels.GetSize() != rect.Height() * rect.Width())
 			ComputeDRR();
 
 		glDrawBuffer(GL_BACK);
@@ -146,4 +387,11 @@ void CDRRRenderer::DrawScene()
 
 void CDRRRenderer::OnRenderScene()
 {
+}
+
+void CDRRRenderer::OnChange(CObservable *pSource)
+{
+	COpenGLRenderer::OnChange(pSource);
+	if (pSource == &m_pView->myProjectionMatrix)
+		m_bRecomputeDRR = TRUE;
 }
