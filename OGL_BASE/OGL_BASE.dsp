@@ -89,6 +89,10 @@ SOURCE=.\OpenGLCamera.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\OpenGLLight.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\OpenGLRenderer.cpp
 # End Source File
 # Begin Source File
@@ -127,6 +131,10 @@ SOURCE=.\glMatrixVector.h
 # Begin Source File
 
 SOURCE=.\OpenGLCamera.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\OpenGLLight.h
 # End Source File
 # Begin Source File
 

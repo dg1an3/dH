@@ -143,11 +143,17 @@ void COpenGLView::OnPaint()
 	GetUpdateRect(&rect);
 
 	// clear the buffers
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(backgroundColor.Get());
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	// load the projection matrix
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrix(camera.projection.Get());
+
+	// set up the lights
+	for (int nAtLight = 0; nAtLight < lights.GetSize(); nAtLight++)
+		glLightPosition(GL_LIGHT0 + nAtLight, 
+			lights.Get(nAtLight)->position.Get());
 
 	// set the matrix mode to modelview
 	glMatrixMode(GL_MODELVIEW);
@@ -220,7 +226,7 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
 
 	// set the clear color to black
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+	// glClearColor(0.0, 0.0, 0.0, 0.0);
 
 	// set depth testing for hidden line removal
 	glClearDepth(1.0f);
@@ -423,7 +429,7 @@ void COpenGLView::OnChangeLight(CObservableObject *pSource, void *pOldValue)
 {
 	MakeCurrentGLRC();
 
-	CVector<4> vLightPosition(-500.0, 500.0, -250.0, 1.0);
+/*	CVector<4> vLightPosition(-500.0, 500.0, -250.0, 1.0);
 	CMatrix<4> mInvProj = Invert(camera.modelXform.Get()); // camera.projectionMatrix.Get());
 	vLightPosition = mInvProj * vLightPosition;
 
@@ -433,4 +439,5 @@ void COpenGLView::OnChangeLight(CObservableObject *pSource, void *pOldValue)
 		(float) vLightPosition[2], 1.0 };
 
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
+*/
 }

@@ -12,8 +12,9 @@
 #include <Matrix.h>
 
 #include "OpenGLRenderer.h"
-#include "OpenGLTracker.h"
 #include "OpenGLCamera.h"
+#include "OpenGLLight.h"
+#include "OpenGLTracker.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenGLView view
@@ -29,16 +30,22 @@ public:
 
 // Attributes
 public:
+	
+	// the background color for the view
+	CValue< COLORREF > backgroundColor;
 
 	// collection of renderers
 	CCollection< COpenGLRenderer > renderers;
 
+	// the view's camera
+	COpenGLCamera camera;
+
+	// stores the lights for the view
+	CCollection< COpenGLLight > lights;
+
 	// collection of trackers
 	CCollection< COpenGLTracker > leftTrackers;
 	CCollection< COpenGLTracker > middleTrackers;
-
-	// the view's camera
-	COpenGLCamera camera;
 
 // Operations
 public:
