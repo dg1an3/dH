@@ -55,16 +55,33 @@ public:
 	// sets the dimensions
 	void SetDimensions(int nWidth, int nHeight, int nDepth);
 
+	// sets the dimensions & basis to the same as other volume
+	// NOTE: this needs to be defined within the class, because
+	//		of limitation of Microsoft compiler
+	template<class OTHER_VOXEL_TYPE>
+	void ConformTo(const CVolume<OTHER_VOXEL_TYPE> *pVolume)
+	{
+		SetBasis(pVolume->GetBasis());
+
+		if (GetWidth() != pVolume->GetWidth()
+			|| GetHeight() != pVolume->GetHeight()
+			|| GetDepth() != pVolume->GetDepth())
+		{
+			SetDimensions(
+				pVolume->GetWidth(), 
+				pVolume->GetHeight(),
+				pVolume->GetDepth());
+		}
+
+	}	// CVolume<VOXEL_TYPE>::ConformTo
+
 	// retrieves a single voxel value
 	VOXEL_TYPE GetVoxelAt(int nX, int nY, int nZ);
 
 	// direct accessor for the voxels
 	VOXEL_TYPE ***GetVoxels();
 	const VOXEL_TYPE * const * const *GetVoxels() const;
-	void VoxelsChanged() {
-		m_bRecomputeSum = TRUE;
-		m_bRecomputeThresh = TRUE;
-	}
+	void VoxelsChanged();
 
 	// sets the raw voxel pointer
 	void SetVoxels(VOXEL_TYPE *pVoxels, int nWidth, int nHeight, int nDepth);
@@ -266,8 +283,7 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetVoxelAt(int nX, int nY, int nZ)
 template<class VOXEL_TYPE>
 inline VOXEL_TYPE ***CVolume<VOXEL_TYPE>::GetVoxels()
 {
-	return // &m_arrppVoxels[0];
-		m_arrppVoxels.GetData();
+	return m_arrppVoxels.GetData();
 
 }	// CVolume<VOXEL_TYPE>::GetVoxels
 
@@ -278,12 +294,27 @@ inline VOXEL_TYPE ***CVolume<VOXEL_TYPE>::GetVoxels()
 // accessor for voxel iliffe - const version
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-const VOXEL_TYPE * const * const *CVolume<VOXEL_TYPE>::GetVoxels() const
+inline const VOXEL_TYPE * const * const *CVolume<VOXEL_TYPE>::GetVoxels() const
 {
 	return m_arrppVoxels.GetData();
 
 }	// CVolume<VOXEL_TYPE>::GetVoxels
 
+
+///////////////////////////////////////////////////////////////////////////////
+// VoxelsChanged
+// 
+// notifies that voxels have changed
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline void CVolume<VOXEL_TYPE>::VoxelsChanged() 
+{
+	m_bRecomputeSum = TRUE;
+	m_bRecomputeThresh = TRUE;
+
+	GetChangeEvent().Fire();
+
+}	// VoxelsChanged
 
 //////////////////////////////////////////////////////////////////////
 // CVolume<VOXEL_TYPE>::SetVoxels
@@ -334,8 +365,7 @@ inline void CVolume<VOXEL_TYPE>::SetVoxels(VOXEL_TYPE *pVoxels,
 	m_nHeight = nHeight;
 	m_nDepth = nDepth;
 
-	m_bRecomputeSum = TRUE;
-	m_bRecomputeThresh = TRUE;
+	VoxelsChanged();
 
 }	// CVolume<VOXEL_TYPE>::SetVoxels
 
@@ -352,10 +382,7 @@ inline void CVolume<VOXEL_TYPE>::ClearVoxels()
 	memset(m_arrVoxels.GetData(), 0, 
 			GetVoxelCount() * sizeof(VOXEL_TYPE));
 
-	m_bRecomputeSum = TRUE;
-	m_bRecomputeThresh = TRUE;
-
-	GetChangeEvent().Fire();
+	VoxelsChanged();
 
 }	// CVolume<VOXEL_TYPE>::ClearVoxels
 
@@ -408,10 +435,7 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 	}
 #endif
 
-	m_bRecomputeSum = TRUE;
-	m_bRecomputeThresh = TRUE;
-
-	GetChangeEvent().Fire();
+	VoxelsChanged();
 
 }	// CVolume<VOXEL_TYPE>::Accumulate
 
@@ -684,9 +708,8 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 		}
 	}    
 
-	// TODO: how to set flags?
+	// flag change
 	pRes->VoxelsChanged();
-	pRes->GetChangeEvent().Fire();
 
 }	// Convolve
 
@@ -720,9 +743,8 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 		}
 	}
 
-	// TODO: how to set flags?
+	// flag change
 	pVol->VoxelsChanged();
-	pVol->GetChangeEvent().Fire();
 
 }	// CalcBinomialFilter
 
@@ -755,9 +777,8 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 		}
 	}
 
-	// TODO: how to set flags?
+	// flag change
 	pRes->VoxelsChanged();
-	pRes->GetChangeEvent().Fire();
 
 }	// Decimate
 
@@ -807,9 +828,8 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 		}
 	}
 
-	// TODO: how to set flags?
+	// flag change
 	pNew->VoxelsChanged();
-	pNew->GetChangeEvent().Fire();
 
 }	// Rotate
 
@@ -820,43 +840,12 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-/*
-inline void ClipRaster(int nDim, 
-				int nSrcStart, int nSrcEnd, 
-				CVectorD<3> vStart, CVectorD<3> vOffset, 
-				int *pnDstStart, int *pnDstEnd)
-{
-	if (IsApproxEqual(vOffset[nDim], (REAL) 0))
-	{
-		// see if we're between the start & end
-		if (vStart[nDim] < nSrcStart || vStart[nDim] > nSrcEnd)
-		{
-			int nTemp = (*pnDstStart);
-			(*pnDstStart) = (*pnDstEnd);
-			(*pnDstEnd) = nTemp;
-		}
-
-		return;
-	}
-
-	int nLambdaSrcStart = 
-		(int) ceil(((REAL) nSrcStart - vStart[nDim]) / vOffset[nDim]);
-	int nLambdaSrcEnd = 
-		(int) floor(((REAL) nSrcEnd - vStart[nDim]) / vOffset[nDim]);
-
-	(*pnDstStart) = __max(__min(nLambdaSrcStart, nLambdaSrcEnd), (*pnDstStart));
-	(*pnDstEnd) = __min(__max(nLambdaSrcStart, nLambdaSrcEnd), (*pnDstEnd));
-
-}	// ClipRaster
-*/
-
 inline void ClipRaster(int nDim, 
 				int nSrcStart, int nSrcEnd, 
 				CVectorD<3,int> vStart, CVectorD<3,int> vOffset, 
 				int *pnDstStart, int *pnDstEnd)
 {
-	if (// IsApproxEqual(vOffset[nDim], // (REAL) 0))
-		vOffset[nDim] == 0)
+	if (vOffset[nDim] == 0)
 	{
 		// see if we're between the start & end
 		if (vStart[nDim] < (nSrcStart << 8) || vStart[nDim] > (nSrcEnd << 8))
@@ -899,13 +888,11 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 	vX[0] = mXform[0][0] * 256.0;
 	vX[1] = mXform[0][1] * 256.0;
 	vX[2] = mXform[0][2] * 256.0;
-//	ASSERT(IsApproxEqual(vX.GetLength(), (REAL) 1.0));
 
 	CVectorD<3,int> vY;
 	vY[0] = mXform[1][0] * 256.0;
 	vY[1] = mXform[1][1] * 256.0;
 	vY[2] = mXform[1][2] * 256.0;
-//	ASSERT(IsApproxEqual(vY.GetLength(), (REAL) 1.0));
 
 	CVectorD<3> vOY_real = FromHG<3, REAL>(mXform[3]);
 	CVectorD<3,int> vOY;
@@ -919,7 +906,6 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 		vOY[2] += 128;
 
 	}
-//	vOY += CVectorD<3,int>(128, 128, 128);
 
 	REAL ***pppDstVoxels = pNew->GetVoxels();
 	REAL ***pppSrcVoxels = pOrig->GetVoxels();
@@ -936,34 +922,29 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 		ASSERT(nEnd <= pNew->GetWidth());
 
 		// adjust start
-		vOX += // (REAL) 
-			nStart * vX;
+		vOX += nStart * vX;
 
 		if (bBilinear)
 		{
 			for (int nX = nStart; nX < nEnd; nX++)
 			{
-				REAL xfrac = (REAL) (vOX[0] & 255) / 256.0; // vOX[0] - floor(vOX[0]);
-				REAL yfrac = (REAL) (vOX[1] & 255) / 256.0; // - floor(vOX[1]);
+				REAL xfrac = (REAL) (vOX[0] & 255) / 256.0;
+				REAL yfrac = (REAL) (vOX[1] & 255) / 256.0;
 
 				pppDstVoxels[0][nY][nX] =
 					(1.0 - yfrac) * (1.0 - xfrac)
-						// * pppSrcVoxels[0][(int) floor(vOX[1])][(int) floor(vOX[0])];
 						* pppSrcVoxels[0][vOX[1] >> 8][vOX[0] >> 8];
 
 				pppDstVoxels[0][nY][nX] +=
 					(1.0 - yfrac) * xfrac
-						// * pppSrcVoxels[0][(int) floor(vOX[1])][(int) ceil(vOX[0])];
 						* pppSrcVoxels[0][vOX[1] >> 8][(vOX[0] >> 8) + 1];
 
 				pppDstVoxels[0][nY][nX] +=
 					yfrac * (1.0 - xfrac)
-						// * pppSrcVoxels[0][(int) ceil(vOX[1])][(int) floor(vOX[0])];
 						* pppSrcVoxels[0][(vOX[1] >> 8) + 1][vOX[0] >> 8];
 
 				pppDstVoxels[0][nY][nX] +=
 					yfrac * xfrac 
-						// * pppSrcVoxels[0][(int) ceil(vOX[1])][(int) ceil(vOX[0])];
 						* pppSrcVoxels[0][(vOX[1] >> 8) + 1][(vOX[0] >> 8) + 1];
 
 				vOX[0] += vX[0]; 
@@ -971,56 +952,26 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 				vOX[2] += vX[2]; 
 			} 
 
-/*			// now resample
-			for (int nX = nStart; nX < nEnd; nX++)
-			{
-				REAL xfrac = vOX[0] & 255; // vOX[0] - floor(vOX[0]);
-				REAL yfrac = vOX[1] & 255; // - floor(vOX[1]);
-
-				pppDstVoxels[0][nY][nX] =
-					(1.0 - yfrac) * (1.0 - xfrac)
-						// * pppSrcVoxels[0][(int) floor(vOX[1])][(int) floor(vOX[0])];
-						* pppSrcVoxels[0][(int) floor(vOX[1])][(int) floor(vOX[0])];
-
-				pppDstVoxels[0][nY][nX] +=
-					(1.0 - yfrac) * xfrac
-						* pppSrcVoxels[0][(int) floor(vOX[1])][(int) ceil(vOX[0])];
-
-				pppDstVoxels[0][nY][nX] +=
-					yfrac * (1.0 - xfrac)
-						* pppSrcVoxels[0][(int) ceil(vOX[1])][(int) floor(vOX[0])];
-
-				pppDstVoxels[0][nY][nX] +=
-					yfrac * xfrac 
-						* pppSrcVoxels[0][(int) ceil(vOX[1])][(int) ceil(vOX[0])];
-
-				vOX += vX; 
-			} */
 		}
 		else
 		{
-			// vOX += CVectorD<3>(0.5, 0.5, 0.5);
-			
 			// now resample
 			for (int nX = nStart; nX < nEnd; nX++)
 			{
 				pppDstVoxels[0][nY][nX] =
-					// pppSrcVoxels[0][(int) vOX[1]][(int) vOX[0]];
 					pppSrcVoxels[0][vOX[1] >> 8][vOX[0] >> 8];
 
 				vOX[0] += vX[0]; 
 				vOX[1] += vX[1]; 
 				vOX[2] += vX[2]; 
-//				vOX += vX;
 			}
 		}
 
 		vOY += vY;
 	}
 
-	// TODO: how to set flags?
+	// flag change
 	pNew->VoxelsChanged();
-	pNew->GetChangeEvent().Fire();
 
 }	// Resample
 
@@ -1099,8 +1050,8 @@ void CreateRegion(CPolygon arrPoly[], int nPolyCount,
 	// done with bitmap
 	bitmap.DeleteObject();
 
-	// TODO: how to set flags?
-	pRegion->GetChangeEvent().Fire();
+	// flag change
+	pRegion->VoxelsChanged();
 
 }	// CreateRegion
 
