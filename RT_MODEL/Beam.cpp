@@ -48,7 +48,9 @@ CBeam::CBeam()
 		m_vCollimMin(CVectorD<2>(-20.0, -20.0)),
 		m_vCollimMax(CVectorD<2>(20.0, 20.0)),
 
-		m_weight(1.0)
+		m_weight(1.0),
+		m_bHasShieldingBlocks(FALSE),
+		m_bRecalcDose(TRUE)
 {
 	if (m_vWeightFilter.GetDim() == 0)
 	{
