@@ -27,6 +27,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "OPTIMIZER_BASE"="..\OptimizeN\OPTIMIZER_BASE.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "PenBeamEdit"=".\PenBeamEdit.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -52,6 +64,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name RT_MODEL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name OPTIMIZER_BASE
     End Project Dependency
 }}}
 
