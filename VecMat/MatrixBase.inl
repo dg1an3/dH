@@ -9,6 +9,13 @@
 #ifndef _MATRIXBASE_INL_
 #define _MATRIXBASE_INL_
 
+// valarray helper class
+#undef min
+#undef max
+
+#include <valarray>
+using namespace std;
+
 // class declaration
 #include "MatrixBase.h"
 
@@ -21,6 +28,10 @@
 
 // maximum iterations for SVD
 #define MAX_ITER 30
+
+// constant for finding the pivot during a matrix inversion
+#define MAX_TO_PIVOT (1.0)
+
 
 //////////////////////////////////////////////////////////////////////
 // pythag
@@ -51,7 +62,8 @@ TYPE pythag(TYPE a, TYPE b)
 // sets the elements of the matrix
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-void CMatrixBase<TYPE>::SetElements(int nCols, int nRows, TYPE *pElements)
+void CMatrixBase<TYPE>::SetElements(int nCols, int nRows, 
+									TYPE *pElements, BOOL bFreeElements)
 {
 	// delete previous data
 	if (m_bFreeElements && NULL != m_pElements)
@@ -60,10 +72,10 @@ void CMatrixBase<TYPE>::SetElements(int nCols, int nRows, TYPE *pElements)
 		m_pElements = NULL;
 	}
 
-	if (NULL != m_arrColumns)
+	if (NULL != m_pColumns)
 	{
-		delete [] m_arrColumns;
-		m_arrColumns = NULL;
+		delete [] m_pColumns;
+		m_pColumns = NULL;
 	}
 
 	m_nCols = nCols;
@@ -75,72 +87,19 @@ void CMatrixBase<TYPE>::SetElements(int nCols, int nRows, TYPE *pElements)
 	if (0 != m_nCols)
 	{
 		// allocate column vectors
-		m_arrColumns = new CVectorBase<TYPE>[GetCols()];
+		m_pColumns = new CVectorBase<TYPE>[GetCols()];
 
 		// initialize the column vectors and the pointers
 		for (int nAt = 0; nAt < GetCols(); nAt++)
 		{
 			// initialize the column vector
-			m_arrColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
+			m_pColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
 		}
 	}
 
-	m_bFreeElements = FALSE;
+	m_bFreeElements = bFreeElements;
 
 }	// CMatrixBase<TYPE>::SetElements
-
-
-//////////////////////////////////////////////////////////////////////
-// CMatrixBase<TYPE>::Reshape
-//
-// sets the rows and columns of the matrix
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::Reshape(int nCols, int nRows)
-{
-	if (GetRows() == nRows && GetCols() == nCols)
-	{
-		return;
-	}
-
-	// delete previous data
-	if (m_bFreeElements && NULL != m_pElements)
-	{
-		delete [] m_pElements;
-		m_pElements = NULL;
-	}
-
-	if (NULL != m_arrColumns)
-	{
-		delete [] m_arrColumns;
-		m_arrColumns = NULL;
-	}
-
-	// assign the dimensions
-	m_nRows = nRows;
-	m_nCols = nCols;
-
-	// set up the column vectors
-	if (0 != m_nCols)
-	{
-		// allocate elements
-		m_pElements = new TYPE[GetCols() * GetRows()];
-
-		// allocate column vectors
-		m_arrColumns = new CVectorBase<TYPE>[GetCols()];
-
-		// initialize the column vectors and the pointers
-		for (int nAt = 0; nAt < GetCols(); nAt++)
-		{
-			// initialize the column vector
-			m_arrColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
-		}
-	}
-
-	// populate as an identity matrix
-	SetIdentity();
-
-}	// CMatrixBase<TYPE>::Reshape
 
 
 //////////////////////////////////////////////////////////////////////
@@ -151,18 +110,23 @@ void CMatrixBase<TYPE>::Reshape(int nCols, int nRows)
 template<class TYPE>
 void CMatrixBase<TYPE>::Transpose()
 {
-	CMatrixBase<TYPE> copy;
-	copy.Reshape(GetRows(), GetCols());
+	// allocate the elements of the transposed matrix
+	TYPE *pElements = new TYPE[GetRows() * GetCols()];
+
+	// make the transposed matrix
+	CMatrixBase<TYPE> mTranspose;
+	mTranspose.SetElements(GetRows(), GetCols(), pElements);
 	
 	for (int nCol = 0; nCol < GetCols(); nCol++)
 	{
 		for (int nRow = 0; nRow < GetRows(); nRow++)
 		{
-			copy[nRow][nCol] = (*this)[nCol][nRow];
+			mTranspose[nRow][nCol] = (*this)[nCol][nRow];
 		}
 	}
 
-	(*this) = copy;
+	// set the elements of this to the transposed elements
+	SetElements(GetRows(), GetCols(), pElements, TRUE);
 
 }	// CMatrixBase<TYPE>::Transpose
 
@@ -175,11 +139,11 @@ void CMatrixBase<TYPE>::Transpose()
 template<class TYPE>
 BOOL CMatrixBase<TYPE>::IsOrthogonal() const
 {
-	CMatrixBase<TYPE> mTrans = (*this);
+	CMatrixNxM<TYPE> mTrans = (*this);
 	mTrans.Transpose();
 	mTrans *= (*this);
 
-	CMatrixBase<TYPE> mIdent(GetCols(), GetCols());
+	CMatrixNxM<TYPE> mIdent(GetCols(), GetCols());
 	mIdent.SetIdentity();
 
 	return mTrans.IsApproxEqual(mTrans);
@@ -215,7 +179,8 @@ void CMatrixBase<TYPE>::Orthogonalize()
 			TYPE scalar = (mOrtho[nAtCol] * mOrtho[nAtOrthoCol]) 
 				/ (mOrtho[nAtOrthoCol] * mOrtho[nAtOrthoCol]);
 
-			mOrtho[nAtCol] -= scalar * mOrtho[nAtOrthoCol];
+			for (int nAtRow = 0; nAtRow < mOrtho.GetRows(); nAtRow++)
+				mOrtho[nAtCol][nAtRow] -= scalar * mOrtho[nAtOrthoCol][nAtRow];
 
 			// make sure we are now orthogonal to this
 			ASSERT(mOrtho[nAtCol] * mOrtho[nAtOrthoCol] < EPS);
@@ -226,6 +191,50 @@ void CMatrixBase<TYPE>::Orthogonalize()
 	(*this) = mOrtho;
 
 }	// CMatrixBase<TYPE>::Orthogonalize
+
+
+//////////////////////////////////////////////////////////////////////
+// CMatrixBase<TYPE>::Determinant
+//
+// computes the determinant of the matrix, for square matrices
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+TYPE CMatrixBase<TYPE>::Determinant() const
+{
+	ASSERT(GetCols() == GetRows());
+
+	if (GetCols() > 2) 
+	{
+		TYPE det = 0.0;
+		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++) 
+		{
+			CMatrixNxM mMinor(GetCols()-1, GetRows()-1);
+			for (nAtRow = 1; nAtRow < GetRows(); nAtRow++) 
+			{
+				nAtMinorCol = 0;
+				for (nAtCol2 = 0; nAtCol2 < GetCols(); nAtCol2++) 
+				{
+				   if (nAtCol2 != nAtCol)
+				   {
+					   mMinor[nAtMinorCol][nAtRow-1] = a[nAtCol2][nAtRow];
+					   nAtMinorCol++;
+				   }
+				}
+			}
+			det += ((nAtCol % 2 == 0) ? 1.0 : -1.0) 
+				* (*this)[nAtCol][0] * mMinor.Determinant();
+		}
+
+		return det;
+	}
+	else if (GetCols() > 1) 
+	{
+		return (*this)[0][0] * (*this)[1][1] - (*this)[1][0] * (*this)[0][1];
+	}
+	
+	return (*this)[0][0];
+
+}	// CMatrixBase<TYPE>::Determinant
 
 
 //////////////////////////////////////////////////////////////////////
@@ -462,102 +471,106 @@ BOOL CMatrixBase<TYPE>::SVD(CVectorBase<TYPE>& w, CMatrixBase<TYPE>& v)
 	// accumulation of left-hand transformations
 	AccumulateLH(w);
 
-	int flag, i, its, j, jj, k, l, nm;
-	TYPE c, f, g, h, s, x, y, z;
-
 	// Diagonalization of the bidiagonal form
-	for (k = GetCols()-1; k >= 0; k--)
+	for (int nK = GetCols()-1; nK >= 0; nK--)
 	{
-		for (its = 1; its < MAX_ITER; its++)
+		for (int nIter = 1; nIter < MAX_ITER; nIter++)
 		{
-			flag = 1;
-			for (l = k; l >= 0; l--)
+			for (int nL = nK; nL >= 0; nL--)
 			{
-				nm = l-1;
-				if ((TYPE)(fabs(rv1[l]) + anorm) == anorm)
+				if (((TYPE) fabs(rv1[nL]) + anorm) == anorm)
 				{
-					flag = 0;
 					break;
 				}
-				if ((TYPE)(fabs(w[nm]) + anorm) == anorm)
-					break;
-			}
-			if (flag)
-			{
-				c = 0.0;
-				s = 1.0;
-				for (i = l; i <= k; i++)
-				{
-					f = s * rv1[i];
-					rv1[i] = c * rv1[i];
-					if ((TYPE)(fabs(f) + anorm) == anorm)
-						break;
-					g = w[i];
-					h = pythag(f,g);
-					w[i] = h;
-					h = 1.0 / h;
-					c = g * h;
-					s = -f * h;
-					for (j = 0; j < GetRows(); j++)
-					{
-						y = (*this)[nm][j];
-						z = (*this)[i][j];
-						(*this)[nm][j] = y * c + z * s;
-						(*this)[i][j] = z * c - y * s;
-					}	// for
-				}	// for
-			}	// if
 
-			z = w[k];
+				if (nL == 0 
+					|| (((TYPE) fabs(w[nL - 1]) + anorm) == anorm))
+				{
+					TYPE c = 0.0;
+					TYPE s = 1.0;
+					for (int nI = nL; nI <= nK; nI++)
+					{
+						TYPE f = s * rv1[nI];
+						rv1[nI] = c * rv1[nI];
+
+						if ((TYPE)(fabs(f) + anorm) == anorm)
+						{
+							break;
+						}
+
+						TYPE g = w[nI];
+						TYPE h = pythag(f,g);
+						w[nI] = h;
+						h = 1.0 / h;
+						c = g * h;
+						s = -f * h;
+						for (int nJ = 0; nJ < GetRows(); nJ++)
+						{
+							TYPE y = (*this)[nL - 1][nJ];
+							TYPE z = (*this)[nI][nJ];
+							(*this)[nL - 1][nJ] = y * c + z * s;
+							(*this)[nI][nJ] = z * c - y * s;
+						}	// for
+					}	// for
+
+					break;
+
+				}	// if
+			}
 
 			// test for convergence
-			if (l == k)
+			if (nL == nK)
 			{
-				if (z < 0.0)
+				if (w[nK] < 0.0)
 				{
 					// singular value is made non-negative
-					w[k] = -z;
-					for (j = 0; j < GetCols(); j++)
-						v[k][j] = -v[k][j];
+					w[nK] = -w[nK];
+					for (int nJ = 0; nJ < GetCols(); nJ++)
+					{
+						v[nK][nJ] = -v[nK][nJ];
+					}
 				}
+
 				break;
 			}	// if
 
-			x = w[l];	// shift from bottom 2x2 minor
-			nm = k - 1;
-			y = w[nm];
-			g = rv1[nm];
-			h = rv1[k];
-			f = ((y - z) * (y + z) + (g - h) * (g + h)) 
+			TYPE x = w[nL];	// shift from bottom 2x2 minor
+			TYPE y = w[nK - 1];
+			TYPE z = w[nK];
+
+			TYPE g = rv1[nK - 1];
+			TYPE h = rv1[nK];
+			TYPE f = ((y - z) * (y + z) + (g - h) * (g + h)) 
 				/ (2.0 * h * y);
 			g = pythag<TYPE>(f, 1.0);
 			f = ((x - z) * (x + z) + h * ((y / (f + SIGN(g,f))) - h))
 				/ x;
-			c = s = 1.0;		// next QR transformation:
-			for (j = 0; j <= nm; j++)
+
+			TYPE c = 1.0;	// next QR transformation:
+			TYPE s = 1.0;		
+			for (int nJ = 0; nJ <= nK - 1; nJ++)
 			{
-				i = j + 1;
-				g = rv1[i];
-				y = w[i];
+				g = rv1[nJ + 1];
+				y = w[nJ + 1];
 				h = s * g;
 				g = c * g;
 				z = pythag<TYPE>(f, h);
-				rv1[j] = z;
+				rv1[nJ] = z;
 				c = f / z;
 				s = h / z;
 				f = x * c + g * s;
 				g = g * c - x * s;
 				h = y * s;
 				y *= c;
-				for (jj = 0; jj < GetCols(); jj++)
+				for (int nJJ = 0; nJJ < GetCols(); nJJ++)
 				{
-					x = v[j][jj];
-					z = v[i][jj];
-					v[j][jj] = x * c + z * s;
-					v[i][jj] = z * c - x * s;
+					x = v[nJ][nJJ];
+					z = v[nJ + 1][nJJ];
+					v[nJ][nJJ] = x * c + z * s;
+					v[nJ + 1][nJJ] = z * c - x * s;
 				}
 				z = pythag(f,h);
-				w[j] = z;
+				w[nJ] = z;
 				if (z != 0.0)
 				{
 					z = 1.0/z;
@@ -566,20 +579,21 @@ BOOL CMatrixBase<TYPE>::SVD(CVectorBase<TYPE>& w, CMatrixBase<TYPE>& v)
 				}
 				f = c * g + s * y;
 				x = c * y - s * g;
-				for (jj = 0; jj < GetRows(); jj++)
+				for (nJJ = 0; nJJ < GetRows(); nJJ++)
 				{
-					y = (*this)[j][jj];
-					z = (*this)[i][jj];
-					(*this)[j][jj] = y * c + z * s;
-					(*this)[i][jj] = z * c - y * s;
+					y = (*this)[nJ][nJJ];
+					z = (*this)[nJ + 1][nJJ];
+					(*this)[nJ][nJJ] = y * c + z * s;
+					(*this)[nJ + 1][nJJ] = z * c - y * s;
 				}
 			}	// for
-			rv1[l] = 0.0;
-			rv1[k] = f;
-			w[k] = x;
+
+			rv1[nL] = 0.0;
+			rv1[nK] = f;
+			w[nK] = x;
 		}
 
-		if (its == MAX_ITER)
+		if (nIter == MAX_ITER)
 		{
 			TRACE("SVD: no convergence in %i steps\n", MAX_ITER);
 			return FALSE;
@@ -592,7 +606,7 @@ BOOL CMatrixBase<TYPE>::SVD(CVectorBase<TYPE>& w, CMatrixBase<TYPE>& v)
 
 
 //////////////////////////////////////////////////////////////////////
-// function CMatrixBase<TYPE>::Householder
+// CMatrixBase<TYPE>::Householder
 //
 // helper function for SVD to perform Householder decomposition
 //////////////////////////////////////////////////////////////////////
@@ -600,94 +614,104 @@ template<class TYPE>
 TYPE CMatrixBase<TYPE>::Householder(CVectorBase<TYPE>& w, 
 									CVectorBase<TYPE>& rv1)
 {
-	int i, j, k, l;
-	TYPE f, g, h, s, scale, anorm;
-
-	g = scale = anorm = 0.0;
+	TYPE anorm = 0.0;
 
 	// Householder reduction to bidiagonal form
-	for (i = 0; i < GetCols(); i++)
+	TYPE g = 0.0;
+	TYPE scale = 0.0;
+	for (int nI = 0; nI < GetCols(); nI++)
 	{
-		l = i + 1;
-		rv1[i] = scale * g;
-		g = s = scale = 0.0;
-		if (i <= GetRows()-1)
+		rv1[nI] = scale * g;
+		g = scale = 0.0;
+		if (nI <= GetRows()-1)
 		{
-			for (k = i; k < GetRows(); k++)
+			for (int nK = nI; nK < GetRows(); nK++)
 			{
-				scale += fabs((*this)[i][k]);
+				scale += fabs((*this)[nI][nK]);
 			}
 			if (scale != 0.0)
 			{
-				for (k = i; k < GetRows(); k++)
+				TYPE s = 0.0;
+				for (int nK = nI; nK < GetRows(); nK++)
 				{
-					(*this)[i][k] /= scale;
-					s += (*this)[i][k] * (*this)[i][k];
+					(*this)[nI][nK] /= scale;
+					s += (*this)[nI][nK] * (*this)[nI][nK];
 				}
-				f = (*this)[i][i];
+
+				TYPE f = (*this)[nI][nI];
 				g = -SIGN(sqrt(s),f);
-				h = f * g - s;
-				(*this)[i][i] = f - g;
-				for (j = l; j < GetCols(); j++)
+				TYPE h = f * g - s;
+				(*this)[nI][nI] = f - g;
+
+				for (int nJ = nI + 1; nJ < GetCols(); nJ++)
 				{
-					for (s = 0.0, k = i; k < GetRows(); k++)
+					TYPE s = 0.0;
+					for (int nK = nI; nK < GetRows(); nK++)
 					{
-						s += (*this)[i][k] * (*this)[j][k];
+						s += (*this)[nI][nK] * (*this)[nJ][nK];
 					}
-					f = s / h;
-					for (k = i; k < GetRows(); k++)
+					TYPE f = s / h;
+					for (nK = nI; nK < GetRows(); nK++)
 					{
-						(*this)[j][k] += f * (*this)[i][k];
+						(*this)[nJ][nK] += f * (*this)[nI][nK];
 					}
 				}	// for
-				for (k = i; k < GetRows(); k++)
+
+				for (nK = nI; nK < GetRows(); nK++)
 				{
-					(*this)[i][k] *= scale;
-				}
-			}	// if
-		}	// if
-		w[i] = scale * g;
-		g = s = scale = 0.0;
-		if (i < GetRows() && i != GetCols()-1)
-		{
-			for (k = l; k < GetCols(); k++)
-			{
-				scale += fabs((*this)[k][i]);
-			}
-			if (scale != 0.0)
-			{
-				for (k = l; k < GetCols(); k++)
-				{
-					(*this)[k][i] /= scale;
-					s += (*this)[k][i] * (*this)[k][i];
-				}
-				f = (*this)[l][i];
-				g = -SIGN(sqrt(s), f);
-				h = f * g - s;
-				(*this)[l][i] = f - g;
-				for (k = l; k < GetCols(); k++)
-				{
-					rv1[k] = (*this)[k][i] / h;
-				}
-				for (j = l; j < GetRows(); j++)
-				{
-					for (s = 0.0, k = l; k < GetCols(); k++)
-					{
-						s += (*this)[k][j] * (*this)[k][i];
-					}
-					for (k = l; k < GetCols(); k++)
-					{
-						(*this)[k][j] += s * rv1[k];
-					}
-				}
-				for (k = l; k < GetCols(); k++)
-				{
-					(*this)[k][i] *= scale;
+					(*this)[nI][nK] *= scale;
 				}
 			}	// if
 		}	// if
 
-		anorm = __max(anorm, (fabs(w[i]) + fabs(rv1[i])));
+		w[nI] = scale * g;
+		g = scale = 0.0;
+		if (nI < GetRows() && nI != GetCols()-1)
+		{
+			for (int nK = nI + 1; nK < GetCols(); nK++)
+			{
+				scale += fabs((*this)[nK][nI]);
+			}
+			if (scale != 0.0)
+			{
+				TYPE s = 0.0;
+				for (int nK = nI + 1; nK < GetCols(); nK++)
+				{
+					(*this)[nK][nI] /= scale;
+					s += (*this)[nK][nI] * (*this)[nK][nI];
+				}
+
+				TYPE f = (*this)[nI + 1][nI];
+				g = -SIGN(sqrt(s), f);
+				TYPE h = f * g - s;
+				(*this)[nI + 1][nI] = f - g;
+
+				for (nK = nI + 1; nK < GetCols(); nK++)
+				{
+					rv1[nK] = (*this)[nK][nI] / h;
+				}
+
+				for (int nJ = nI + 1; nJ < GetRows(); nJ++)
+				{
+					TYPE s = 0.0;
+					for (int nK = nI + 1; nK < GetCols(); nK++)
+					{
+						s += (*this)[nK][nJ] * (*this)[nK][nI];
+					}
+					for (nK = nI + 1; nK < GetCols(); nK++)
+					{
+						(*this)[nK][nJ] += s * rv1[nK];
+					}
+				}
+
+				for (nK = nI + 1; nK < GetCols(); nK++)
+				{
+					(*this)[nK][nI] *= scale;
+				}
+			}	// if
+		}	// if
+
+		anorm = __max(anorm, (fabs(w[nI]) + fabs(rv1[nI])));
 
 	}	// for
 
@@ -697,7 +721,7 @@ TYPE CMatrixBase<TYPE>::Householder(CVectorBase<TYPE>& w,
 
 
 //////////////////////////////////////////////////////////////////////
-// function CMatrixBase<TYPE>::AccumulateRH
+// CMatrixBase<TYPE>::AccumulateRH
 //
 // helper function for SVD to accumulate right-hand products
 //////////////////////////////////////////////////////////////////////
@@ -705,32 +729,38 @@ template<class TYPE>
 void CMatrixBase<TYPE>::AccumulateRH(CMatrixBase<TYPE>& v, 
 									 const CVectorBase<TYPE>& rv1)
 {
-	int i, j, k, l;
-	TYPE g, s;
-
 	// Accumulation of right-hand transformations
-	for (i = GetCols()-1; i >= 0; i--)
+	for (int nI = GetCols() - 2; nI >= 0; nI--)
 	{
-		if (i < GetCols()-1)
+		v[nI + 1][nI + 1] = 1.0;
+
+		if (rv1[nI + 1] != 0.0)
 		{
-			if (g != 0.0)
+			for (int nJ = nI + 1; nJ < GetCols(); nJ++)
 			{
-				for (j = l; j < GetCols(); j++)
-					v[i][j] = ((*this)[j][i] / (*this)[l][i]) / g;
-				for (j = l; j < GetCols(); j++)
+				v[nI][nJ] = ((*this)[nJ][nI] / (*this)[nI + 1][nI]) 
+					/ rv1[nI + 1];
+			}
+
+			for (nJ = nI + 1; nJ < GetCols(); nJ++)
+			{
+				TYPE s = 0.0;
+				for (int nK = nI + 1; nK < GetCols(); nK++)
 				{
-					for (s = 0.0, k = l; k < GetCols(); k++)
-						s += (*this)[k][i] * v[j][k];
-					for (k = l; k < GetCols(); k++)
-						v[j][k] += s * v[i][k];
-				}	// for
-			}	// if
-			for (j = l; j < GetCols(); j++)
-				v[j][i] = v[i][j] = 0.0;
+					s += (*this)[nK][nI] * v[nJ][nK];
+				}
+
+				for (nK = nI + 1; nK < GetCols(); nK++)
+				{
+					v[nJ][nK] += s * v[nI][nK];
+				}
+			}	// for
 		}	// if
-		v[i][i] = 1.0;
-		g = rv1[i];
-		l = i;
+
+		for (int nJ = nI + 1; nJ < GetCols(); nJ++)
+		{
+			v[nJ][nI] = v[nI][nJ] = 0.0;
+		}
 	}
 
 }	// CMatrixBase<TYPE>::AccumulateRH
@@ -744,85 +774,49 @@ void CMatrixBase<TYPE>::AccumulateRH(CMatrixBase<TYPE>& v,
 template<class TYPE>
 void CMatrixBase<TYPE>::AccumulateLH(CVectorBase<TYPE>& w)
 {
-	int i, j, k, l;
-	TYPE f, g, s;
-
-	for (i = __min(GetRows()-1, GetCols()-1); i >= 0; i--)
+	for (int nI = __min(GetRows()-1, GetCols()-1); nI >= 0; nI--)
 	{
-		l = i + 1;
-		g = w[i];
-		for (j = l; j < GetCols(); j++)
+		for (int nJ = nI + 1; nJ < GetCols(); nJ++)
 		{
-			(*this)[j][i] = 0.0;
+			(*this)[nJ][nI] = 0.0;
 		}
-		if (g != 0.0)
+
+		if (w[nI] != 0.0)
 		{
-			g = 1.0 / g;
-			for (j = l; j < GetCols(); j++)
+			TYPE g = 1.0 / w[nI];
+			for (int nJ = nI + 1; nJ < GetCols(); nJ++)
 			{
-				for (s = 0.0, k = l; k < GetRows(); k++)
+				TYPE s = 0.0;
+				for (int nK = nI + 1; nK < GetRows(); nK++)
 				{
-					s += (*this)[i][k] * (*this)[j][k];
+					s += (*this)[nI][nK] * (*this)[nJ][nK];
 				}
-				f = (s / (*this)[i][i]) * g;
-				for (k = i; k < GetRows(); k++)
+
+				TYPE f = (s / (*this)[nI][nI]) * g;
+				for (nK = nI; nK < GetRows(); nK++)
 				{
-					(*this)[j][k] += f * (*this)[i][k];
+					(*this)[nJ][nK] += f * (*this)[nI][nK];
 				}
+
 			}	// for
-			for (j = i; j < GetRows(); j++)
+
+			for (nJ = nI; nJ < GetRows(); nJ++)
 			{
-				(*this)[i][j] *= g;
+				(*this)[nI][nJ] *= g;
 			}
 		}
 		else
 		{
-			for (j = i; j < GetRows(); j++)
+			for (nJ = nI; nJ < GetRows(); nJ++)
 			{
-				(*this)[i][j] = 0.0;
+				(*this)[nI][nJ] = 0.0;
 			}
 		}
-		++(*this)[i][i];
+
+		++(*this)[nI][nI];
 	}
 
 }	// CMatrixBase<TYPE>::AccumulateLH
-
-
-//////////////////////////////////////////////////////////////////
-// CMatrixBase<TYPE>::Pseudoinvert
-// 
-// in-place Moore-Penrose pseudoinversion
-//////////////////////////////////////////////////////////////////
-template<class TYPE>
-BOOL CMatrixBase<TYPE>::Pseudoinvert()
-{
-	CVectorN<TYPE> w(GetCols());
-	CMatrixBase<TYPE> v(GetCols(), GetCols());
-	if (!SVD(w, v))
-	{
-		return FALSE;
-	}
-
-	// using the formula (A+)^T = U * {1/w} * V^T
-
-	// form the S matrix (S^T * S)^-1 * S^T
-	CMatrixBase<TYPE> s(GetCols(), GetCols());
-	for (int nAt = 0; nAt < GetCols(); nAt++)
-	{
-		s[nAt][nAt] = (w[nAt] > 1e-8) ? 1.0 / w[nAt] : 0.0;
-	}
-	(*this) *= s;
-
-	// multiply by V^T
-	v.Transpose();
-	(*this) *= v;
-
-	// and transpose the result to finish with A+
-	Transpose();
-
-	return TRUE;
-
-}	// CMatrixBase<TYPE>::Pseudoinvert
 
 
 #endif // define _MATRIXBASE_INL_
