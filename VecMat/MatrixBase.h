@@ -374,6 +374,44 @@ public:
 	//		elimination
 	void Invert(BOOL bFullPivot = FALSE);
 
+	// SetElements -- sets the elements to an external pointer
+	void SetElements(int nCols, int nRows, double *pElements)
+	{
+		// delete previous data
+		if (m_bFreeElements && NULL != m_pElements)
+		{
+			delete [] m_pElements;
+			m_pElements = NULL;
+		}
+
+		if (NULL != m_arrColumns)
+		{
+			delete [] m_arrColumns;
+			m_arrColumns = NULL;
+		}
+
+		m_nCols = nCols;
+		m_nRows = nRows;
+
+		m_pElements = pElements;
+
+		// set up the column vectors
+		if (0 != m_nCols)
+		{
+			// allocate column vectors
+			m_arrColumns = new CVectorBase<TYPE>[GetCols()];
+
+			// initialize the column vectors and the pointers
+			for (int nAt = 0; nAt < GetCols(); nAt++)
+			{
+				// initialize the column vector
+				m_arrColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
+			}
+		}
+
+		m_bFreeElements = FALSE;
+	}
+
 protected:
 	//////////////////////////////////////////////////////////////////
 	// Reshape -- sets the rows and columns of the matrix
@@ -468,7 +506,7 @@ void CMatrixBase<TYPE>::Transpose()
 	{
 		for (int nRow = 0; nRow < GetRows(); nRow++)
 		{
-			copy[nRows][nCols] = (*this)[nCols][nRows];
+			copy[nRow][nCol] = (*this)[nCol][nRow];
 		}
 	}
 
