@@ -146,7 +146,7 @@ void CBeamRenderable::DescribeOpaque()
 	m_vMaxXMinY[1] = m_vMin[1];
 
 	// set the color for the beam rendering
-	glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+	// glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
 
 	// first describe items on the collimator plane
 	glPushMatrix();
@@ -164,11 +164,6 @@ void CBeamRenderable::DescribeOpaque()
 		DescribeBlocks();
 
 	glPopMatrix();
-
-	glDisable(GL_LIGHTING);
-
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(1.0f);
 
 	// describe the central axis
 	DescribeCentralAxis();
@@ -367,9 +362,8 @@ void CBeamRenderable::DescribeAlpha()
 	// Set the shading model
 	glShadeModel(GL_FLAT);
 
-	// glEnable(GL_BLEND);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// disable lighting
+	glDisable(GL_LIGHTING);
 
 	// describe the field divergence surfaces
 	DescribeFieldDivergenceSurfaces();
@@ -377,7 +371,11 @@ void CBeamRenderable::DescribeAlpha()
 	// describe the block divergence surfaces
 	DescribeBlockDivergenceSurfaces();
 
+	// enable lighting
+	glEnable(GL_LIGHTING);
+
 	// Set the shading model
+	//  TODO: add this to setup
 	glShadeModel(GL_SMOOTH);
 }
 

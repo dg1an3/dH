@@ -106,34 +106,50 @@ void CMachineRenderable::DescribeOpaque()
 	// set up the rendering parameters
 	if (m_bWireFrame)
 	{
-		glColor(RGB(255, 255, 255));
+		// set up for wire frame rendering
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+		// no lighting
 		glDisable(GL_LIGHTING);
 
+		// line defaults
 		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(1.0f);
-	}
-	else
-	{
-		// set the color for the machine rendering
-		glColor(GetColor());
 
-		// set the material properties
-		GLfloat specular [] = { 0.0, 0.0, 0.0, 1.0 };
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-		GLfloat shininess [] = { 0.0 };
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+		// describe the table
+		DescribeTable();
 
-		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-		glEnable(GL_COLOR_MATERIAL);
+		// compute the axis-to-collimator distance
+		double SAD = GetBeam()->GetTreatmentMachine()->GetSAD();
+		double SCD = GetBeam()->GetTreatmentMachine()->GetSCD();
+		double axisToCollim = SAD - SCD;
 
+		// rotate for the gantry
+		glRotated(GetBeam()->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
+
+		// describe the gantry itself
+		DescribeGantry(axisToCollim);
+
+		// describe the collimator
+		DescribeCollimator(axisToCollim);
+
+		// set back to polygon fill mode
+		// TODO: do this in SetupRenderingContext
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glShadeModel(GL_SMOOTH);
 
+		// re-enable lighting
+		// TODO: do this in SetupRenderingContext
 		glEnable(GL_LIGHTING);
 	}
+}
 
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::DescribeAlpha
+// 
+// describes the treatment machine
+//////////////////////////////////////////////////////////////////////
+void CMachineRenderable::DescribeAlpha()
+{
 	// describe the table
 	DescribeTable();
 
@@ -150,15 +166,6 @@ void CMachineRenderable::DescribeOpaque()
 
 	// describe the collimator
 	DescribeCollimator(axisToCollim);
-
-	// turn off wire frame mode
-	if (m_bWireFrame)
-	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		glEnable(GL_LIGHTING);
-	}
-
 }
 
 //////////////////////////////////////////////////////////////////////

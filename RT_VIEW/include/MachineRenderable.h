@@ -28,6 +28,7 @@
 class CMachineRenderable : public CRenderable 
 {
 public:
+	void DescribeAlpha();
 	// constructor/destructor
 	CMachineRenderable();
 	virtual ~CMachineRenderable();
