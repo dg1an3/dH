@@ -3,6 +3,10 @@
 
 #include "stdafx.h"
 
+#define XMLLOGGING_ON
+#include <XMLLogging.h>
+
+#define USE_XMLLOGGING
 #include <VectorN.h>
 
 #include <PowellOptimizer.h>
@@ -32,7 +36,7 @@ public:
 		m_vOffset = vOffset;
 	}
 
-	virtual REAL operator()(const CVectorN<>& vInput, CVectorN<> *pGrad)
+	virtual REAL operator()(const CVectorN<>& vInput, CVectorN<> *pGrad) const
 	{
 		if (NULL != pGrad)
 		{
@@ -53,6 +57,67 @@ private:
 	CVectorN<> m_vOffset;
 };
 
+
+class CQuadratic : public CObjectiveFunction // <DIM, TYPE>
+{
+public:
+	CQuadratic(const CMatrixNxM<>& mA, const CVectorN<>& vB)
+		: CObjectiveFunction(TRUE),
+			m_mA(mA),
+			m_vB(vB)
+	{
+		BEGIN_LOG_SECTION(CQuadratic::CQuadratic);
+		LOG_EXPR_EXT(m_mA);
+		LOG_EXPR_EXT(m_vB);
+		END_LOG_SECTION();
+	}
+
+	virtual REAL operator()(const CVectorN<>& vInput, CVectorN<> *pGrad = NULL) const
+	{
+		REAL res = 0.0;
+		BEGIN_LOG_SECTION(CQuadratic::operator());
+		LOG_EXPR_EXT(vInput);
+
+		res = vInput * (m_mA * vInput);
+		LOG_EXPR_EXT(m_mA * vInput);
+		LOG_EXPR_DESC(res, "vInput * (m_mA * vInput)");
+
+		res += m_vB * vInput;
+		res /= 2.0;
+		LOG_EXPR_DESC(res, "res = 0.5 * vInput * (m_mA * vInput) + m_vB * vInput");
+
+		if (NULL != pGrad)
+		{
+			Gradient(vInput, (*pGrad));
+		}
+
+		END_LOG_SECTION();	// CQuadratic::operator()
+		return res;
+	}
+
+	virtual void Gradient(const CVectorN<>& vInput, CVectorN<>& vGrad_out) const
+	{
+		BEGIN_LOG_SECTION(CQuadratic::Gradient);
+
+		vGrad_out = m_mA * vInput;
+		vGrad_out += m_vB;
+		LOG_EXPR_EXT(m_mA * vInput);
+		LOG_EXPR_EXT_DESC(vGrad_out, "Gradient = m_mA * vInput + m_vB");
+
+		END_LOG_SECTION();	// CQuadratic::Gradient
+	}
+
+	virtual void Hessian(const CVectorN<>& vIn, CMatrixNxM<>& mHess) const
+	{
+		mHess.Reshape(m_mA.GetCols(), m_mA.GetRows());
+		mHess = m_mA;
+	}
+
+private:
+	CMatrixNxM<> m_mA;
+	CVectorN<> m_vB;
+};
+
 class CRosenbrock : public CObjectiveFunction
 {
 public:
@@ -61,7 +126,7 @@ public:
 	{
 	}
 
-	virtual REAL operator()(const CVectorN<>& vInput, CVectorN<> *pGrad = NULL)
+	virtual REAL operator()(const CVectorN<>& vInput, CVectorN<> *pGrad = NULL) const
 	{
 		ASSERT(vInput.GetDim() == 2);
 
@@ -97,7 +162,7 @@ public:
 	{
 	}
 
-	virtual REAL operator()(const CVectorN<>& v, CVectorN<> *pGrad = NULL)
+	virtual REAL operator()(const CVectorN<>& v, CVectorN<> *pGrad = NULL) const
 	{
 		ASSERT(v.GetDim() == 1);
 
@@ -129,17 +194,17 @@ void TestCubicInterp()
 
 	CCubicInterpOptimizer cubOpt(&cub);
 
-	CVectorN<> opt = cubOpt.Optimize(CVector<1>(1.9));
+	CVectorN<> opt = cubOpt.Optimize(CVectorD<1>(1.9));
 }
 
 void TestRosenbrock()
 {
 	CRosenbrock rosen;
-	CVectorN<> vInit = CVector<2>(-1.9, 2.0);
+	CVectorN<> vInit = CVectorD<2>(-1.9, 2.0);
 
-	TRACE1("Rosenbrock at <-1.9, 2.0> = %lf\n", rosen(CVector<2>(-1.9, 2.0)));
-	TRACE1("Rosenbrock at <-1.9, 2.0> = %lf\n", rosen(CVector<2>(-0.5, 0.5)));
-	TRACE1("Rosenbrock at <1.0, 1.0> = %lf\n", rosen(CVector<2>(1.0, 1.0)));
+	TRACE1("Rosenbrock at <-1.9, 2.0> = %lf\n", rosen(CVectorD<2>(-1.9, 2.0)));
+	TRACE1("Rosenbrock at <-1.9, 2.0> = %lf\n", rosen(CVectorD<2>(-0.5, 0.5)));
+	TRACE1("Rosenbrock at <1.0, 1.0> = %lf\n", rosen(CVectorD<2>(1.0, 1.0)));
 
 	CPowellOptimizer pow(&rosen);
 	pow.SetTolerance(0.1);
@@ -179,11 +244,60 @@ void TestParabola()
 
 int main(int argc, char* argv[])
 {
-	TestCubicInterp();
+	CXMLLogFile::GetLogFile()->SetFormat((double) 0, " %le ");
+
+	CMatrixNxM<> m1(1, 1);
+	m1[0][0] = 4.0;
+
+	CVectorN<> v1(1);
+	v1[0] = -0.5;
+
+	CQuadratic quad(m1, v1);
+
+	CVectorN<> vInit(1);
+	vInit[0] = 3.0;
+	REAL res = quad(vInit);
+
+	CVectorN<> vGrad;
+	quad.Gradient(vInit, vGrad);
+	quad.TestGradient(vInit, 1e-6);
+
+	CMatrixNxM<> mHess;
+	quad.Hessian(vInit, mHess);
+	quad.TestHessian(vInit, 1e-6);
+
+	//////////////////////////////////////////// 
+
+	CMatrixNxM<> m2(2, 2);
+	m2[0][0] = 4.0;
+	m2[0][1] = -1.0;
+	m2[1][1] = 4.0;
+	m2[1][0] = -1.0;
+
+	CVectorN<> v2(2);
+	v2[0] = -0.5;
+	v2[1] = 0.3;
+
+	CQuadratic quad2(m2, v2);
+
+	CVectorN<> vInit2(2);
+	vInit2[0] = 3.0;
+	vInit2[1] = -2.0;
+	REAL res2 = quad2(vInit2);
+
+	CVectorN<> vGrad2;
+	quad2.Gradient(vInit2, vGrad2);
+	quad2.TestGradient(vInit2, 1e-6);
+
+	CMatrixNxM<> mHess2;
+	quad2.Hessian(vInit2, mHess2);
+	quad2.TestHessian(vInit2, 1e-4);
+
+/*	TestCubicInterp();
 
 	TestParabola();
 
-	TestRosenbrock();
+	TestRosenbrock(); */
 /*
 	CVectorN<> vInit1d(1);
 	vInit1d[0] = -11.0;
@@ -214,7 +328,7 @@ int main(int argc, char* argv[])
 	vInit.SetDim(4);
 	CVectorN<> vFinal; 
 	vFinal.SetDim(4);
-//	CGradParabola<4, double> parabola4d(CVector<4>(0.0, 0.0, 0.0, 0.0)); // -1.0, -3.0, -7.0, -11.0));
+//	CGradParabola<4, double> parabola4d(CVectorD<4>(0.0, 0.0, 0.0, 0.0)); // -1.0, -3.0, -7.0, -11.0));
 //	CPowellOptimizer<4, double> po(&parabola4d);
 //
 //	vInit[0] = 10.0;
