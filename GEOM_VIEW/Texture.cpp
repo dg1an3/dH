@@ -226,3 +226,22 @@ void CTexture::Unbind()
 	m_pView = NULL;
 	ASSERT(glGetError() == GL_NO_ERROR);
 }
+
+// accessors for the texture projection
+const CMatrix<4>& CTexture::GetProjection()
+{
+	return m_mProjection;
+}
+
+void CTexture::SetProjection(const CMatrix<4>& mProjection)
+{
+	m_mProjection = mProjection;
+
+	GetChangeEvent().Fire();
+}
+
+
+CObservableEvent& CTexture::GetChangeEvent()
+{
+	return m_eventChange;
+}

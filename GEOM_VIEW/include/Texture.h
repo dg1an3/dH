@@ -12,6 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <Matrix.h>
+
+#include <Observer.h>
+
 // forward declaration of the view class
 class CSceneView;
 
@@ -38,9 +42,16 @@ public:
 	// loads the texture from a bitmap
 	BOOL LoadBitmap(UINT nResourceID);
 
+	// accessors for the texture projection
+	const CMatrix<4>& GetProjection();
+	void SetProjection(const CMatrix<4>& mXform);
+
 	// binds for rendering
 	void Bind(CSceneView *pView, BOOL bWrap = FALSE);
 	void Unbind();
+
+	// returns reference to the change event
+	CObservableEvent& GetChangeEvent();
 
 protected:
 	// helper function to process the transparency color
@@ -68,6 +79,12 @@ private:
 
 	// the actual pixel values for the texture
 	CArray<COLORREF, COLORREF> m_arrPixels;
+
+	// the texture xform
+	CMatrix<4> m_mProjection;
+
+	// the change event for this object
+	CObservableEvent m_eventChange;
 };
 
 #endif // !defined(TEXTURE_H)
