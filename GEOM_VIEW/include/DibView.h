@@ -58,6 +58,7 @@ public:
 
 // Implementation
 public:
+	BOOL m_bDrawMarks;
 	virtual ~CDibView();
 
 	// Generated message map functions

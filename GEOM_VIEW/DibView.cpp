@@ -18,7 +18,8 @@ CDibView::CDibView()
 		m_pDib(NULL),
 		m_pTransform(NULL),
 		m_nDataSet(-1),
-		m_nDraggingLandmark(-1)
+		m_nDraggingLandmark(-1),
+		m_bDrawMarks(TRUE)
 {
 }
 
@@ -84,7 +85,7 @@ void CDibView::OnPaint()
 		m_pDib->Draw(dc, &rectDst, &rectSrc);
 
 		// draw the landmarks
-		if (m_nDataSet >= 0)
+		if (m_nDataSet >= 0 && m_bDrawMarks)
 		{
 			CBrush *pOldBrush = (CBrush *) dc.SelectStockObject(HOLLOW_BRUSH);
 
@@ -97,13 +98,13 @@ void CDibView::OnPaint()
 				CPoint pt = 
 					Image2Client(m_pTransform->GetLandmark(m_nDataSet, nAt));
 
-				dc.Ellipse(pt.x - 5, pt.y - 5, pt.x + 6, pt.y + 6);
+				// dc.Ellipse(pt.x - 5, pt.y - 5, pt.x + 6, pt.y + 6);
 
-				dc.MoveTo(pt.x - 5, pt.y);
-				dc.LineTo(pt.x + 6, pt.y);
+				dc.MoveTo(pt.x - 3, pt.y);
+				dc.LineTo(pt.x + 4, pt.y);
 
-				dc.MoveTo(pt.x, pt.y - 5);
-				dc.LineTo(pt.x, pt.y + 6);
+				dc.MoveTo(pt.x, pt.y - 3);
+				dc.LineTo(pt.x, pt.y + 4);
 
 				dc.SelectObject(pOldPen);
 			}
