@@ -24,7 +24,7 @@ class COptimizer
 public:
 	COptimizer(CObjectiveFunction<DIM, TYPE> *pFunc)
 		: m_pFunc(pFunc),
-			tolerance((TYPE) 0.1),
+			tolerance((TYPE) 0.5),
 			iteration(0)
 	{
 	}
