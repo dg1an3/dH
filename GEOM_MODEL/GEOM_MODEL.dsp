@@ -89,10 +89,6 @@ SOURCE=.\Dib.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\Histogram.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\ModelObject.cpp
 # End Source File
 # Begin Source File
@@ -135,10 +131,6 @@ SOURCE=.\WinLevFilter.cpp
 # Begin Source File
 
 SOURCE=.\include\Dib.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\Histogram.h
 # End Source File
 # Begin Source File
 
