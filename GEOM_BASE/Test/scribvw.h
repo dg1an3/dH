@@ -27,7 +27,7 @@ protected:
 
 // Operations
 public:
-	void DrawEdge(CDC* pDC, Edge *pEdge);
+	void DrawEdge(CDC* pDC, CEdge *pEdge);
 
 // Overrides
 	// ClassWizard generated virtual function overrides

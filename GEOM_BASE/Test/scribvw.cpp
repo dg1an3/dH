@@ -15,6 +15,7 @@
 
 #include "ScribDoc.h"
 #include "ScribVw.h"
+#include <QuadEdge1.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -64,10 +65,9 @@ BOOL CScribbleView::PreCreateWindow(CREATESTRUCT& cs)
 /////////////////////////////////////////////////////////////////////////////
 // CScribbleView drawing
 
-void CScribbleView::DrawEdge(CDC* pDC, Edge *pEdge)
+void CScribbleView::DrawEdge(CDC* pDC, CEdge *pEdge)
 {
-	// pEdge->Draw(m_timeStamp);
-	if (pEdge->Qedge()->TimeStamp(m_nTimeStamp)) 
+	if (pEdge && pEdge->TimeStamp(m_nTimeStamp)) 
 	{
 		// Draw the edge
 		CVector<2> a = pEdge->Org2d();
@@ -172,7 +172,7 @@ void CScribbleView::OnLButtonDown(UINT, CPoint point)
 	x = (x < 0.01) ? 0.01 : (x > 0.99) ? 0.99 : x;
 	y = (y < 0.01) ? 0.01 : (y > 0.99) ? 0.99 : y;
 
-	GetDocument()->m_mesh.InsertSite(CVector<2>(x, y));
+	GetDocument()->m_mesh.AddVertex(CVector<2>(x, y));
 
 	RedrawWindow();
 #endif
@@ -245,7 +245,7 @@ void CScribbleView::OnMouseMove(UINT, CPoint point)
 		x = (x < 0.01) ? 0.01 : (x > 0.99) ? 0.99 : x;
 		y = (y < 0.01) ? 0.01 : (y > 0.99) ? 0.99 : y;
 
-		GetDocument()->m_mesh.InsertSite(CVector<2>(x, y));
+		GetDocument()->m_mesh.AddVertex(CVector<2>(x, y));
 
 		m_ptPrev = point;
 		RedrawWindow();

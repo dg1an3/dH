@@ -15,6 +15,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "MODEL_BASE"="..\..\MODEL_BASE\MODEL_BASE.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "Scribble"=".\scribble.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -25,6 +37,9 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name GEOM_BASE
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name MODEL_BASE
     End Project Dependency
 }}}
 

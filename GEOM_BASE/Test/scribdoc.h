@@ -11,8 +11,7 @@
 // Microsoft Foundation Classes product.
 /////////////////////////////////////////////////////////////////////////////
 
-#include <quadedge.h>
-
+#include <DelaunayTess.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // class CStroke
@@ -67,7 +66,7 @@ public:
 	CPen*           GetCurrentPen() { return &m_penCur; }
 
 	// holds the Delaunay triangulation
-	Subdivision m_mesh;
+	CDelaunayTess m_mesh;
 
 // Operations
 public:
