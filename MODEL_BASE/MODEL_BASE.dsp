@@ -93,19 +93,6 @@ SOURCE=.\Collection.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=MatrixFunction.cpp
-
-!IF  "$(CFG)" == "MODEL_BASE - Win32 Release"
-
-# ADD CPP /Yu
-
-!ELSEIF  "$(CFG)" == "MODEL_BASE - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=.\ModelObject.cpp
 # End Source File
 # Begin Source File
@@ -114,16 +101,8 @@ SOURCE=Observer.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=Polygon.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
-# End Source File
-# Begin Source File
-
-SOURCE=.\Volumep.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -147,14 +126,6 @@ SOURCE=Function.h
 # End Source File
 # Begin Source File
 
-SOURCE=Matrix.h
-# End Source File
-# Begin Source File
-
-SOURCE=MatrixFunction.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\ModelObject.h
 # End Source File
 # Begin Source File
@@ -163,23 +134,11 @@ SOURCE=Observer.h
 # End Source File
 # Begin Source File
 
-SOURCE=Polygon.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\StdAfx.h
 # End Source File
 # Begin Source File
 
 SOURCE=Value.h
-# End Source File
-# Begin Source File
-
-SOURCE=Vector.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Volumep.h
 # End Source File
 # End Group
 # Begin Source File
