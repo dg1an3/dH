@@ -210,7 +210,7 @@ CVolume<double> *CBeamIMRT::GetDoseMatrix(int nScale)
 
 		for (int nAt = 0; nAt < m_arrBeamlets[nScale].GetSize(); nAt++)
 		{
-			CVolume<double> *pBeamlet = (CVolume<double> *) m_arrBeamlets[nScale][nAt];
+			CVolume<double> *pBeamlet = m_arrBeamlets[nScale][nAt];
 			pDose->Accumulate(pBeamlet, m_arrBeamletWeights[nScale][nAt]);
 		}
 
@@ -379,27 +379,6 @@ void CBeamIMRT::GenFilterMat()
 			}
 		}
 		LOG_EXPR_EXT(m_mFilter[nAtScale]);
-
-/*		// generate the filter matrix
-		m_mFilter[nAtScale].Reshape(GetBeamletCount(nAtScale), GetBeamletCount(nAtScale+1));
-		ZeroMemory(m_mFilter[nAtScale], 
-			m_mFilter[nAtScale].GetRows() * m_mFilter[nAtScale].GetCols() * sizeof(REAL));
-
-		// iterate over rows
-		for (int nAtRow = 0; nAtRow < GetBeamletCount(nAtScale+1); nAtRow++)
-		{
-			int nColStart = nAtRow * 2 + 1 - m_vWeightFilter.GetDim() / 2;
-			for (int nColOffset = 0; nColOffset < m_vWeightFilter.GetDim(); nColOffset++)
-			{
-				m_mFilter[nAtScale][nColStart + nColOffset][nAtRow] = m_vWeightFilter[nColOffset];
-			}
-		}
-*/
-//		TRACE_MATRIX("m_mFilter", m_mFilter[nAtScale]);
-
-//		m_mFilter_pinv[nAtScale].Reshape(GetBeamletCount(nAtScale), GetBeamletCount(nAtScale+1));
-//		m_mFilter_pinv[nAtScale] = m_mFilter[nAtScale];
-//		m_mFilter_pinv[nAtScale].Pseudoinvert();
 	}
 
 }	// CBeamIMRT::GenFilterMat
@@ -420,29 +399,6 @@ void CBeamIMRT::InvFiltIntensityMap(int nScale, const CVectorN<>& vWeights, CVec
 	{
 		vFilterOut[nAt * 2 + 1] = vWeights[nAt];
 	}
-
-/*.	// set up the filter matrix
-	CMatrixNxM<> mFilter;
-	mFilter.Reshape(vFilterOut.GetDim(), vFilterOut.GetDim());
-	for (nAt = 0; nAt < mFilter.GetRows(); nAt++)
-	{
-		if (nAt > 0)
-		{
-			mFilter[nAt - 1][nAt] = m_vWeightFilter[0];
-		}
-
-		mFilter[nAt][nAt] = m_vWeightFilter[1];
-
-		if (nAt < mFilter.GetRows()-1)
-		{
-			mFilter[nAt + 1][nAt] = m_vWeightFilter[2];
-		}
-	}
-	LOG_EXPR_EXT(mFilter);
-	LOG_EXPR_EXT(m_mFilter[nScale-1]);
-	ASSERT(mFilter.GetRows() == m_mFilter[nScale-1].GetRows());
-	ASSERT(mFilter.GetCols() == m_mFilter[nScale-1].GetCols());
-	ASSERT(mFilter == m_mFilter[nScale-1]); */
 
 	vFiltWeights = m_mFilter[nScale-1] * vFilterOut;
 	vFiltWeights *= 2.0;

@@ -42,7 +42,7 @@ protected:
 	void GenBeamlets();
 	void GenFilterMat();
 
-	friend class CPlanIMRT;
+	friend class CPlan;
 
 	mutable CVectorN<> m_arrBeamletWeights[MAX_SCALES];
 	mutable BOOL m_arrRecalcWeights[MAX_SCALES];
@@ -50,7 +50,7 @@ protected:
 	CMatrixNxM<> m_mFilter[MAX_SCALES - 1];
 
 private:
-	CObArray m_arrBeamlets[MAX_SCALES];
+	CTypedPtrArray<CPtrArray, CVolume<double>* > m_arrBeamlets[MAX_SCALES];
 
 	CVolume<double> m_filtGauss5x5;
 
