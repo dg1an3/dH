@@ -59,6 +59,7 @@ public:
 
 	// computed transform from patient to beam coordinates
 	CValue< CMatrix<4> > beamToPatientXform;
+	void SetBeamToPatientXform(const CMatrix<4>& mXform);
 
 	// boolean value to indicate that shielding blocks are used
 	//		by this beam

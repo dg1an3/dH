@@ -171,6 +171,64 @@ void CBeam::Dump(CDumpContext& dc) const
 }
 #endif //_DEBUG
 
+void CBeam::SetBeamToPatientXform(const CMatrix<4>& mXform)
+{
+	beamToPatientXform.Set(mXform);
+	return;
+
+	// now factor the B2P matrix into translation and rotation components
+	double gantry = acos(mXform[2][2]);	// gantry in [0..PI]
+
+	double couch = 0.0;
+	double coll = 0.0;
+
+	if (gantry != 0.0)
+	{
+		double cos_couch = mXform[2][0] / sin(gantry);
+		// make sure the couch angle will be in [-PI..PI]
+		if (cos_couch < 0.0)
+		{
+			gantry = 2 * PI - gantry;
+			cos_couch = mXform[2][0] / sin(gantry);
+		}
+
+		double sin_couch = mXform[2][1] / sin(gantry);
+		couch = AngleFromSinCos(sin_couch, cos_couch);
+
+		double cos_coll =  -mXform[0][2] / sin(gantry);
+		double sin_coll =  mXform[1][2] / sin(gantry);
+		coll = AngleFromSinCos(sin_coll, cos_coll);
+	}
+
+	couchAngle.Set(couch);
+
+	double actGantry = PI - gantry;
+	actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
+	gantryAngle.Set(actGantry);
+
+	collimAngle.Set(coll);
+
+	CMatrix<4> mOldXform = beamToPatientXform.Get();
+	mOldXform[0][3] = 0.0;
+	mOldXform[1][3] = 0.0;
+	mOldXform[2][3] = 0.0;
+
+	CMatrix<4> mNewXform = mXform;
+	mNewXform[0][3] = 0.0;
+	mNewXform[1][3] = 0.0;
+	mNewXform[2][3] = 0.0;
+
+	// inverse-compute the expected matrix
+	CMatrix<4> mBeamToPatientExpected = 
+		CreateRotate(couch,			CVector<3>(0.0, 0.0, -1.0))
+		* CreateRotate(gantry,		CVector<3>(0.0, -1.0, 0.0))
+		* CreateRotate(coll,		CVector<3>(0.0, 0.0, -1.0));
+
+	CMatrix<4> mIdent = mNewXform * Transpose(mOldXform);
+	TRACE_MATRIX4("Should be identity", mIdent);
+	// ASSERT(mIdent.IsApproxEqual(CMatrix<4>()));
+}
+
 BOOL m_bChangingXform = FALSE;
 
 void CBeam::OnBeamToPatientXformChanged(CObservableObject *pFromObject, 
@@ -183,25 +241,25 @@ void CBeam::OnBeamToPatientXformChanged(CObservableObject *pFromObject,
 	const CMatrix<4>& mXform = beamToPatientXform.Get();
 
 	// now factor the B2P matrix into translation and rotation components
-	double gantry = 2 * PI - acos(mXform[2][2]);	// gantry in [0..PI]
+	double gantry = acos(mXform[2][2]);	// gantry in [0..PI]
 
 	double couch = 0.0;
 	double coll = 0.0;
 
-	if (gantry > 0.0)
+	if (gantry != 0.0)
 	{
 		double cos_couch = mXform[2][0] / sin(gantry);
 		// make sure the couch angle will be in [-PI..PI]
-/*		if (cos_couch < 0.0)
+		if (cos_couch < 0.0)
 		{
 			gantry = 2 * PI - gantry;
 			cos_couch = mXform[2][0] / sin(gantry);
 		}
-*/
+
 		double sin_couch = mXform[2][1] / sin(gantry);
 		couch = AngleFromSinCos(sin_couch, cos_couch);
 
-		double cos_coll =  mXform[0][2] / -sin(gantry);
+		double cos_coll =  -mXform[0][2] / sin(gantry);
 		double sin_coll =  mXform[1][2] / sin(gantry);
 		coll = AngleFromSinCos(sin_coll, cos_coll);
 	}
@@ -209,8 +267,10 @@ void CBeam::OnBeamToPatientXformChanged(CObservableObject *pFromObject,
 	m_bChangingXform = TRUE;
 
 	couchAngle.Set(couch);
+
 	double actGantry = PI - gantry;
 	actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
+
 	gantryAngle.Set(actGantry);
 	collimAngle.Set(coll);
 
