@@ -303,6 +303,32 @@ inline CVectorN<TYPE> operator*(const CVectorN<TYPE>& vLeft,
 }	// operator*(const CVectorN, TYPE scalar)
 
 
+///////////////////////////////////////////////////////////////////////////////
+// CalcBinomialCoeff
+// 
+// calculates the binomial coefficients, returns in the vector
+///////////////////////////////////////////////////////////////////////////////
+template<class TYPE>
+inline void CalcBinomialCoeff(CVectorN<TYPE>& vCoeff)
+{
+	CVectorN<TYPE> vAltCoeff;
+	vAltCoeff.SetDim(vCoeff.GetDim());
+
+	for (int nAt = 0; nAt < vCoeff.GetDim()-1; nAt++)
+	{
+		vCoeff[0] = 1.0;
+		for (int nAtElem = 0; nAtElem < nAt; nAtElem++)
+		{
+			vCoeff[nAtElem+1] = vAltCoeff[nAtElem] + vAltCoeff[nAtElem+1];
+		}
+		vCoeff[nAt+1] = 1.0;
+
+		vAltCoeff = vCoeff;
+	}
+
+}	// CalcBinomialCoeff
+
+
 #ifdef __AFX_H__
 
 //////////////////////////////////////////////////////////////////////
