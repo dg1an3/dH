@@ -617,6 +617,48 @@ void LogExprExt(const CVectorBase<TYPE>& vVec, const char *pszName, const char *
 
 }	// LogExprExt
 
+//////////////////////////////////////////////////////////////////////
+// LogExprExt
+//
+// helper function for XML logging of vectors
+//////////////////////////////////////////////////////////////////////
+inline void LogExprExt(const CRect& rect, const char *pszName, const char *pszModule)
+{
+	// get the global log file
+	CXMLLogFile *pLog = CXMLLogFile::GetLogFile();
+
+	// only if we are logging --
+	if (pLog->IsLogging())
+	{
+		// create a new expression element
+		CXMLElement *pVarElem = pLog->NewElement("lx", pszModule);
+
+		// if there is a name,
+		if (strlen(pszName) > 0)
+		{
+			// set it.
+			pVarElem->Attribute("name", pszName);
+		}
+
+		// set type to generice "CVector"
+		pVarElem->Attribute("type", "CRect");
+		
+		// get the current format for the element type
+		const char *pszFormat = pLog->GetFormat(rect.bottom);
+
+		// format each element
+		pLog->Format(pszFormat, rect.top);
+		pLog->Format(pszFormat, rect.left);
+		pLog->Format(pszFormat, rect.bottom);
+		pLog->Format(pszFormat, rect.right);
+
+		// done.
+		pLog->GetLogFile()->CloseElement();
+	}
+
+}	// LogExprExt
+
+
 #endif	// USE_XMLLOGGING
 
 
