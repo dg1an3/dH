@@ -1,19 +1,23 @@
 //////////////////////////////////////////////////////////////////////
-// Surface.h: interface for the CSurface class.
+// Mesh.h: interface for the CMesh class.
 //
-// Copyright (C) 2000-2001
+// Copyright (C) 2000-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_SURFACE_H__C7A6AA31_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)
-#define AFX_SURFACE_H__C7A6AA31_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_
+#if !defined(_MESH_H_)
+#define _MESH_H_
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <vector>
+using namespace std;
+
 // vectors
 #include <VectorD.h>
+#include <MatrixNxM.h>
 
 // modelobject base class
 #include "ModelObject.h"
@@ -24,58 +28,70 @@
 // volume (for region)
 #include "Volumep.h"
 
+template<class TYPE = int>
+class CTriIndex
+{
+public:
+	CTriIndex() { memset(m_index, 0, sizeof(TYPE) * 3); }
+
+	TYPE& operator[](int nIndex) { return m_index[nIndex]; }
+	const TYPE& operator[](int nIndex) const { return m_index[nIndex]; }
+
+private:
+	TYPE m_index[3];
+};
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSurface
+// class CMesh
 //
 // represents a meshed surface
 ///////////////////////////////////////////////////////////////////////////////
-class CSurface : public CModelObject
+class CMesh : public CModelObject
 {
 public:
-	// constructor
-	CSurface();
-
-	// copy constructor
-	CSurface(const CSurface& fromSurface);
-
-	// destructor
-	virtual ~CSurface();
+	// constructors / destructor
+	CMesh();
+	CMesh(const CMesh& fromSurface);
+	virtual ~CMesh();
 
 	// serialization support
-	DECLARE_SERIAL(CSurface)
+	DECLARE_DYNAMIC(CMesh)
 
 	// assignment
-	CSurface& operator=(const CSurface& fromSurface);
+	CMesh& operator=(const CMesh& fromSurface);
 
 	// contour accessors
 	int GetContourCount() const;
-	CPolygon& GetContour(int nIndex) const;
+	CPolygon *GetContour(int nAt);
 	double GetContourRefDist(int nIndex) const;
 
 	// triangle accessors
 	int GetTriangleCount();
 
-	// accessors for triangle vertices
-	const CPackedVectorD<3>& GetTriVert(int nTriangle, int nVertex);
+	// accessors for triangle vertices and normals
+	const CVectorD<3>& GetTriVert(int nTriangle, int nVertex) const;
+	const CVectorD<3>& GetTriNorm(int nTriangle, int nVertex) const;
 
-	// accessors for triangle normals
-	const CPackedVectorD<3>& GetTriNorm(int nTriangle, int nVertex);
+	// returns the adjacent triangle
+	int GetAdjacentTri(int nTriangle, int nSide) const;
 
 	// volume bounds for the surface
-	CVectorD<3> GetBoundsMin() const;
-	CVectorD<3> GetBoundsMax() const;
+	const CVectorD<3>& GetBoundsMin() const;
+	const CVectorD<3>& GetBoundsMax() const;
 
 	// returns largest dimension
-	double GetMaxSize();
+	double GetMaxSize() const;
 
 	// direct access to index, vertex, and normal arrays
-	// WARNING: if you change the values through these references, you
-	//		MUST call CSurface::FireChange() as soon as possible to
-	//		notify observers of the change
-	CArray<int, int>& GetIndexArray();
-	CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& GetVertexArray();
-	CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& GetNormalArray();
+	// WARNING: calls to Lock* must be matched by calls to Unlock*
+	vector< CTriIndex<int> >& LockIndexArray();
+	void UnlockIndexArray(BOOL bChanged = TRUE);
+
+	CMatrixNxM<>& LockVertexMatrix();
+	void UnlockVertexMatrix(BOOL bChanged = TRUE);
+
+	CMatrixNxM<>& LockNormalMatrix();
+	void UnlockNormalMatrix(BOOL bChanged = TRUE);
 
 	// function to ensure the orientation of the triangle orientations are 
 	//		consistent; returns FALSE when all are consistent
@@ -92,13 +108,12 @@ protected:
 	int FindTriangleWithVertices(int nStart, const CVectorD<3>& v1, 
 			const CVectorD<3>& v2, BOOL *bOriented, int *pNeighborVertex);
 
-
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-private:
+protected:
 	// contours for the structure
 	CObArray m_arrContours;
 
@@ -106,9 +121,9 @@ private:
 	CArray<double, double> m_arrRefDist;
 
 	// mesh vertices
-	CArray<int, int> m_arrVertIndex;
-	CArray<CPackedVectorD<3>, CPackedVectorD<3>&> m_arrVertex;
-	CArray<CPackedVectorD<3>, CPackedVectorD<3>&> m_arrNormal;
+	vector< CTriIndex<> > m_arrTriIndex;
+	CMatrixNxM<> m_mVertex;
+	CMatrixNxM<> m_mNormal;
 
 	// surface bounding box
 	mutable CVectorD<3> m_vBoundsMax;
@@ -133,63 +148,65 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSurface::GetTriangleCount
+// CMesh::GetTriangleCount
 // 
 // returns the number of triangles in the mesh
 ///////////////////////////////////////////////////////////////////////////////
-inline int CSurface::GetTriangleCount()
+inline int CMesh::GetTriangleCount()
 {
-	return m_arrVertIndex.GetSize() / 3;
+	return m_arrTriIndex.size() / 3;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSurface::GetTriVert
+// CMesh::GetTriVert
 // 
-// returns the vertex for a specific triangle as a CPackedVectorD<3>
+// returns the vertex for a specific triangle as a CVectorD<3>
 ///////////////////////////////////////////////////////////////////////////////
-inline const CPackedVectorD<3>& CSurface::GetTriVert(int nTriangle, int nVertex)
+inline const CVectorD<3>& CMesh::GetTriVert(int nTriangle, int nVertex) const
 {
-	return m_arrVertex[m_arrVertIndex[nTriangle*3 + nVertex]-1];
+	int nVertIndex = m_arrTriIndex[nTriangle][nVertex]-1;
+	return static_cast< const CVectorD<3>& >(m_mVertex[nVertIndex]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSurface::GetTriNorm
+// CMesh::GetTriNorm
 // 
-// returns the normal for a specific triangle as a CPackedVectorD<3>
+// returns the normal for a specific triangle as a CVectorD<3>
 ///////////////////////////////////////////////////////////////////////////////
-inline const CPackedVectorD<3>& CSurface::GetTriNorm(int nTriangle, int nVertex)
+inline const CVectorD<3>& CMesh::GetTriNorm(int nTriangle, int nVertex) const
 {
-	return m_arrNormal[m_arrVertIndex[nTriangle*3 + nVertex]-1];
+	int nVertIndex = m_arrTriIndex[nTriangle][nVertex]-1;
+	return static_cast< const CVectorD<3>& >(m_mNormal[nVertIndex]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSurface::GetIndexArray
+// CMesh::GetIndexArray
 // 
 // returns a reference to the index array
 ///////////////////////////////////////////////////////////////////////////////
-inline CArray<int, int>& CSurface::GetIndexArray() 
+inline vector< CTriIndex<int> >& CMesh::LockIndexArray() 
 { 
-	return m_arrVertIndex; 
+	return m_arrTriIndex; 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSurface::GetVertexArray
+// CMesh::GetVertexArray
 // 
 // returns a reference to the vertex array
 ///////////////////////////////////////////////////////////////////////////////
-inline CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& CSurface::GetVertexArray() 
+inline CMatrixNxM<>& CMesh::LockVertexMatrix() 
 { 
-	return m_arrVertex; 
+	return m_mVertex; 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSurface::GetNormalArray
+// CMesh::GetNormalArray
 // 
 // returns a reference to the normal array
 ///////////////////////////////////////////////////////////////////////////////
-inline CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& CSurface::GetNormalArray() 
+inline CMatrixNxM<>& CMesh::LockNormalMatrix() 
 { 
-	return m_arrNormal; 
+	return m_mNormal; 
 }
 
-#endif // !defined(AFX_SURFACE_H__C7A6AA31_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)
+#endif // !defined(_MESH_H_)

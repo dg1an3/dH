@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////
-// Surface.cpp: implementation of the CSurface class.
+// Mesh.cpp: implementation of the CMesh class.
 //
 // Copyright (C) 2000-2002 Derek G. Lane
 // $Id$
@@ -11,11 +11,14 @@
 // floating point constants
 #include <float.h>
 
+// matrix base class
+#include <MatrixBase.inl>
+
 // utility macros
 #include <UtilMacros.h>
 
 // class declaration
-#include "Surface.h"
+#include "Mesh.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -28,11 +31,11 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::CSurface
+// CMesh::CMesh
 // 
 // constructs a new surface object
 //////////////////////////////////////////////////////////////////////
-CSurface::CSurface()
+CMesh::CMesh()
 	: m_pRegion(NULL),
 		m_bRecomputeBoundsMax(TRUE),
 		m_bRecomputeBoundsMin(TRUE)
@@ -40,11 +43,11 @@ CSurface::CSurface()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::CSurface
+// CMesh::CMesh
 // 
 // copy constructor
 //////////////////////////////////////////////////////////////////////
-CSurface::CSurface(const CSurface& fromSurface)
+CMesh::CMesh(const CMesh& fromSurface)
 	: m_pRegion(NULL)
 {
 	// assign the surface
@@ -52,20 +55,17 @@ CSurface::CSurface(const CSurface& fromSurface)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::~CSurface
+// CMesh::~CMesh
 // 
 // destructor
 //////////////////////////////////////////////////////////////////////
-CSurface::~CSurface()
+CMesh::~CMesh()
 {
 	// delete the contours
-	for (int nAt = 0; nAt < m_arrContours.GetSize(); nAt++)
+	for (int nAt = 0; nAt < GetContourCount(); nAt++)
 	{
 		delete m_arrContours[nAt];
 	}
-
-	// and remove the items from the array
-	m_arrContours.RemoveAll();
 
 	// delete the region
 	delete m_pRegion;
@@ -78,28 +78,30 @@ CSurface::~CSurface()
 // provides serialization support for the surface
 //////////////////////////////////////////////////////////////////////
 
-#define SURFACE_SCHEMA 4
+const int MESH_SCHEMA = 4;
 	// 4 - added the region
-	// 3
-	// 2
-	// 1
 
-IMPLEMENT_SERIAL(CSurface, CModelObject, VERSIONABLE_SCHEMA | SURFACE_SCHEMA)
+IMPLEMENT_DYNAMIC(CMesh, CModelObject)
 
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::operator=
+// CMesh::operator=
 // 
 // assignment operator
 //////////////////////////////////////////////////////////////////////
-CSurface& CSurface::operator=(const CSurface& fromSurface)
+CMesh& CMesh::operator=(const CMesh& fromSurface)
 {
-	// set the name of the surface
+	ASSERT(FALSE);
+
+/*	// set the name of the surface
 	SetName(fromSurface.GetName());
 
 	// copy the contours
 	for (int nAt = 0; nAt < fromSurface.GetContourCount(); nAt++)
 	{
+		CComObject<CPolygon> *pPoly = NULL;
+		CComObject<CPolygon>::CreateInstance(&pPoly);
+
 		m_arrContours.Add(new CPolygon(fromSurface.GetContour(nAt)));
 	}
 
@@ -107,50 +109,51 @@ CSurface& CSurface::operator=(const CSurface& fromSurface)
 	m_arrRefDist.Copy(fromSurface.m_arrRefDist);
 
 	// copy the mesh vertices
-	m_arrVertIndex.Copy(fromSurface.m_arrVertIndex);
-	m_arrVertex.Copy(fromSurface.m_arrVertex);
-	m_arrNormal.Copy(fromSurface.m_arrNormal);
-
+	m_arrTriIndex.assign(fromSurface.m_arrTriIndex.begin(),
+		fromSurface.m_arrTriIndex.end());
+	m_mVertex = fromSurface.m_mVertex;
+	m_mNormal = fromSurface.m_mNormal;
+*/
 	// return a reference to this
 	return (*this);
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::GetContourCount
+// CMesh::GetContourCount
 // 
 // returns the number of contours in the mesh
 //////////////////////////////////////////////////////////////////////
-int CSurface::GetContourCount() const
+int CMesh::GetContourCount() const
 {
 	return m_arrContours.GetSize();
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::GetContour
+// CMesh::GetContour
 // 
 // returns the contour at the given index
 //////////////////////////////////////////////////////////////////////
-CPolygon& CSurface::GetContour(int nIndex) const
+CPolygon *CMesh::GetContour(int nIndex)
 {
-	return *(CPolygon *)m_arrContours[nIndex];
+	return (CPolygon *) m_arrContours[nIndex];
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::GetContourRefDist
+// CMesh::GetContourRefDist
 // 
 // returns the reference distance of the indicated contour
 //////////////////////////////////////////////////////////////////////
-double CSurface::GetContourRefDist(int nIndex) const
+double CMesh::GetContourRefDist(int nIndex) const
 {
 	return m_arrRefDist[nIndex];
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::GetBoundsMin
+// CMesh::GetBoundsMin
 // 
 // returns the minimum of the mesh
 //////////////////////////////////////////////////////////////////////
-CVectorD<3> CSurface::GetBoundsMin() const
+const CVectorD<3>& CMesh::GetBoundsMin() const
 {
 	if (m_bRecomputeBoundsMin)
 	{
@@ -158,15 +161,14 @@ CVectorD<3> CSurface::GetBoundsMin() const
 		m_vBoundsMin = CVectorD<3>(FLT_MAX, FLT_MAX, FLT_MAX);
 
 		// accumulate the minimum
-		int nVertex;
-		for (nVertex = 0; nVertex < m_arrVertex.GetSize(); nVertex++) 
+		for (int nVertex = 0; nVertex < m_mVertex.GetCols(); nVertex++) 
 		{
 			m_vBoundsMin[0] = 
-				min(m_arrVertex[nVertex][0], m_vBoundsMin[0]);
+				__min(m_mVertex[nVertex][0], m_vBoundsMin[0]);
 			m_vBoundsMin[1] = 
-				min(m_arrVertex[nVertex][1], m_vBoundsMin[1]);
+				__min(m_mVertex[nVertex][1], m_vBoundsMin[1]);
 			m_vBoundsMin[2] = 
-				min(m_arrVertex[nVertex][2], m_vBoundsMin[2]);
+				__min(m_mVertex[nVertex][2], m_vBoundsMin[2]);
 		}
 
 		m_bRecomputeBoundsMin = FALSE;
@@ -177,11 +179,11 @@ CVectorD<3> CSurface::GetBoundsMin() const
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::GetBoundsMax
+// CMesh::GetBoundsMax
 // 
 // returns the maximum of the mesh
 //////////////////////////////////////////////////////////////////////
-CVectorD<3> CSurface::GetBoundsMax() const
+const CVectorD<3>& CMesh::GetBoundsMax() const
 {
 	if (m_bRecomputeBoundsMax)
 	{
@@ -189,15 +191,14 @@ CVectorD<3> CSurface::GetBoundsMax() const
 		m_vBoundsMax = CVectorD<3>(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
 		// accumulate the maximum
-		int nVertex;
-		for (nVertex = 0; nVertex < m_arrVertex.GetSize(); nVertex++)
+		for (int nVertex = 0; nVertex < m_mVertex.GetCols(); nVertex++) 
 		{
 			m_vBoundsMax[0] = 
-				max(m_arrVertex[nVertex][0], m_vBoundsMax[0]);
+				__max(m_mVertex[nVertex][0], m_vBoundsMax[0]);
 			m_vBoundsMax[1] = 
-				max(m_arrVertex[nVertex][1], m_vBoundsMax[1]);
+				__max(m_mVertex[nVertex][1], m_vBoundsMax[1]);
 			m_vBoundsMax[2] = 
-				max(m_arrVertex[nVertex][2], m_vBoundsMax[2]);
+				__max(m_mVertex[nVertex][2], m_vBoundsMax[2]);
 		}
 
 		m_bRecomputeBoundsMax = FALSE;
@@ -208,23 +209,23 @@ CVectorD<3> CSurface::GetBoundsMax() const
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::GetMaxSize
+// CMesh::GetMaxSize
 // 
 // returns the largest dimension of the bounding box
 //////////////////////////////////////////////////////////////////////
-double CSurface::GetMaxSize()
+double CMesh::GetMaxSize() const
 {
 	return (GetBoundsMax() - GetBoundsMin()).GetLength() 
 		/ sqrt(2.0); 
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::OrientNextFace
+// CMesh::OrientNextFace
 // 
 // orients a face of the surface, and returns TRUE if more
 //		passes are needed
 //////////////////////////////////////////////////////////////////////
-BOOL CSurface::OrientNextFace()
+BOOL CMesh::OrientNextFace()
 {
 	if (m_arrIsOriented.GetSize() < GetTriangleCount())
 	{
@@ -303,40 +304,67 @@ BOOL CSurface::OrientNextFace()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::Serialize
+// CMesh::Serialize
 // 
 // returns the number of triangles in the mesh
 //////////////////////////////////////////////////////////////////////
-void CSurface::Serialize(CArchive &ar)
+void CMesh::Serialize(CArchive &ar)
 {
-	// store the schema for the beam object
-	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : SURFACE_SCHEMA;
+	UINT nSchema = MESH_SCHEMA;
+	SERIALIZE_VALUE(ar, nSchema);
 
 	// serialize the surface name
-	// name.Serialize(ar);
+	SERIALIZE_VALUE(ar, m_strName);
+
+	DWORD nContourCount = GetContourCount();
+	SERIALIZE_VALUE(ar, nContourCount);
+
+	// serialize the contours -- first prepare the array
 	if (ar.IsLoading())
 	{
-		CString strName;
-		ar >> strName;
-		SetName(strName);
-	}
-	else
-	{
-		ar << GetName();
+		// delete any existing contours
+		for (int nAt = 0; nAt < GetContourCount(); nAt++)
+		{
+			delete GetContour(nAt);
+		}
+		m_arrContours.SetSize(0);
+
+		// create new contours
+		for (nAt = 0; nAt < nContourCount; nAt++)
+		{
+			// and add it to the array
+			m_arrContours.Add(new CPolygon());
+		}
 	}
 
-	// serialize the contours
-	m_arrContours.Serialize(ar);
+	// now serialize the blocks
+	for (int nAt = 0; nAt < nContourCount; nAt++)
+	{
+		GetContour(nAt)->Serialize(ar);
+	}
 
 	// serialize the reference distance
 	m_arrRefDist.Serialize(ar);
 
-	// serialize vertices
-	m_arrVertIndex.Serialize(ar);
-	m_arrVertex.Serialize(ar);
-	m_arrNormal.Serialize(ar);
+	UINT nSize = m_arrTriIndex.size();
+	SERIALIZE_VALUE(ar, nSize);
 
-	// if schema >= 4
+	// serialize vertices
+	if (ar.IsLoading())
+	{
+		m_arrTriIndex.resize(nSize);
+		ar.Read((void *) &m_arrTriIndex[0][0], 
+			m_arrTriIndex.size() * sizeof(CTriIndex<>));
+	}
+	else
+	{
+		ar.Write((const void *) &m_arrTriIndex[0][0], 
+			m_arrTriIndex.size() * sizeof(CTriIndex<>));
+	}
+
+	SERIALIZE_VALUE(ar, m_mVertex);
+	SERIALIZE_VALUE(ar, m_mNormal);
+
 	if (nSchema >= 4)
 	{
 		// serialize the region also
@@ -349,23 +377,23 @@ void CSurface::Serialize(CArchive &ar)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::ReverseTriangleOrientation
+// CMesh::ReverseTriangleOrientation
 // 
 // helper function to reverse the orientation of a face
 //////////////////////////////////////////////////////////////////////
-void CSurface::ReverseTriangleOrientation(int nAt)
+void CMesh::ReverseTriangleOrientation(int nAt)
 {
-	int nTemp = m_arrVertIndex[nAt * 3 + 1];
-	m_arrVertIndex[nAt * 3 + 1] = m_arrVertIndex[nAt*3 + 2];
-	m_arrVertIndex[nAt * 3 + 2] = nTemp;
+	int nTemp = m_arrTriIndex[nAt][1];
+	m_arrTriIndex[nAt][1] = m_arrTriIndex[nAt][2];
+	m_arrTriIndex[nAt][2] = nTemp;
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::FindTriangleWithVertices
+// CMesh::FindTriangleWithVertices
 // 
 // helper function to find a neighbor triangle
 //////////////////////////////////////////////////////////////////////
-int CSurface::FindTriangleWithVertices(int nSkip, const CVectorD<3>& v1, 
+int CMesh::FindTriangleWithVertices(int nSkip, const CVectorD<3>& v1, 
 		const CVectorD<3>& v2, BOOL *bOriented, int *pNeighborVertex)
 {
 	// search for the vertices
@@ -429,32 +457,33 @@ int CSurface::FindTriangleWithVertices(int nSkip, const CVectorD<3>& v1,
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CSurface diagnostics
+// CMesh diagnostics
 
 #ifdef _DEBUG
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::AssertValid
+// CMesh::AssertValid
 // 
 // asserts validity of the surface object
 //////////////////////////////////////////////////////////////////////
-void CSurface::AssertValid() const
+void CMesh::AssertValid() const
 {
 	// base class assert
 	CObject::AssertValid();
 
 	// array assert
-	m_arrVertIndex.AssertValid();
-	m_arrVertex.AssertValid();
-	m_arrNormal.AssertValid();
+	// m_arrTriIndex.AssertValid();
+	ASSERT(m_mVertex.GetRows() == 3);
+	ASSERT(m_mNormal.GetRows() == 3);
+	ASSERT(m_mNormal.GetCols() == m_mVertex.GetCols());
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSurface::Dump
+// CMesh::Dump
 // 
 // helper function to find a neighbor triangle
 //////////////////////////////////////////////////////////////////////
-void CSurface::Dump(CDumpContext& dc) const
+void CMesh::Dump(CDumpContext& dc) const
 {
 	// dump base class
 	CObject::Dump(dc);
@@ -463,7 +492,7 @@ void CSurface::Dump(CDumpContext& dc) const
 	CREATE_TAB(dc.GetDepth());
 
 	// output triangle count
-	DC_TAB(dc) << "Number of triangles = " << m_arrVertIndex.GetSize() << "\n";
+	DC_TAB(dc) << "Number of triangles = " << m_arrTriIndex.size() << "\n";
 
 	// output bounding box
 	CVectorD<3> vMin = GetBoundsMin();
