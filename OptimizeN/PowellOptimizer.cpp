@@ -12,7 +12,7 @@
 // include the Powell optimizer
 #include "PowellOptimizer.h"
 
-const int ITER_MAX = 10;		// maximum iteration
+const int ITER_MAX = 1000;		// maximum iteration
 
 //////////////////////////////////////////////////////////////////////
 // CPowellOptimizer::CPowellOptimizer

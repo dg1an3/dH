@@ -13,7 +13,7 @@
 // holds the initial value for the brent optimization
 const CVectorN<> CCubicInterpOptimizer::m_vInit(1);
 
-const double BRACKET = 10.0;		// initial bracket size
+const REAL BRACKET = 10.0;		// initial bracket size
 
 
 //////////////////////////////////////////////////////////////////////

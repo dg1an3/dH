@@ -22,7 +22,7 @@ const int ITER_MAX = 100;
 
 // z-epsilon -- small number to protect against fractional accuracy for 
 //		a minimum that happens to be exactly zero.
-const double ZEPS = 1.0e-10;	
+const REAL ZEPS = 1.0e-10;	
 
 ///////////////////////////////////////////////////////////////////////////////
 // CConjGradOptimizer::CConjGradOptimizer

@@ -30,23 +30,23 @@
 // constants used to optimize
 ///////////////////////////////////////////////////////////////////////////////
 
-const double GOLD = 1.618034;	// golden mean
+const REAL GOLD = 1.618034;	// golden mean
 
-const double CGOLD = 0.3819660;	// golden section ratio
+const REAL CGOLD = 0.3819660;	// golden section ratio
 								
-const double ZEPS = 1.0e-1;		// z-epsilon -- small number to protect against 
+const REAL ZEPS = 1.0e-1;		// z-epsilon -- small number to protect against 
 								// fractional accuracy for a minimum that
 								// happens to be exactly zero;  used in
 								//    function FindMinimum
 
 
-const double TINY = 1.0e-20;	// used in function BracketMinimum 
+const REAL TINY = 1.0e-20;	// used in function BracketMinimum 
 
-const double BRACKET = 10.0;		// initial bracket size
+const REAL BRACKET = 10.0;		// initial bracket size
 
-const double GLIMIT = 100.0;	// parameter needed by function BracketMinimum  
+const REAL GLIMIT = 100.0;	// parameter needed by function BracketMinimum  
 
-const int ITER_MAX = 100;		// maximum iteration
+const int ITER_MAX = 1000;		// maximum iteration
 
 
 // holds the initial value for the brent optimization

@@ -17,7 +17,7 @@
 // constants used to optimize
 ///////////////////////////////////////////////////////////////////////////////
 
-const double STEP_SCALE = 0.99;	// scale for each step
+const REAL STEP_SCALE = 0.99;	// scale for each step
 
 const int ITER_MAX = 1500;		// maximum iteration
 
