@@ -28,6 +28,8 @@ public:
 
 	virtual BOOL InitInstance() { return TRUE; }
 
+	void Immediate();
+
 	virtual int Run();
 
 	virtual BOOL Callback(REAL value, const CVectorN<>& vDir);
@@ -46,6 +48,7 @@ private:
 	CCriticalSection m_csResult;
 	REAL m_bestValue;
 	CVectorN<> m_vResult;
+public:
 	BOOL m_evtNewResult;
 
 public:

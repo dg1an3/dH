@@ -24,6 +24,23 @@ BOOL ExtCallback(REAL lambda, const CVectorN<>& vDir,
 	return pOptThread->Callback(lambda, vDir);
 }
 
+void COptThread::Immediate()
+{
+	m_evtParamChanged = FALSE;
+
+	// call optimize
+	CVectorN<> vInit;
+	m_pPresc->GetInitStateVector(vInit);
+	if (m_pPresc->Optimize(vInit, ExtCallback, (void *) this))
+	{
+		m_evtNewResult = TRUE;
+
+		// set updated results
+		// ...
+		m_pPrescParam->SetStateVectorToPlan(m_vResult);
+	}
+}
+
 int COptThread::Run()
 {
 	while (m_pPresc)
@@ -39,7 +56,7 @@ int COptThread::Run()
 		{
 			// set updated results
 			// ...
-
+			m_evtNewResult = TRUE;
 			m_bDone = TRUE;
 
 			// wait for new params
@@ -74,7 +91,7 @@ BOOL COptThread::Callback(REAL value, const CVectorN<>& vRes)
 
 	if (vRes.GetDim() == m_pPresc->m_pPlan->GetTotalBeamletCount(0))
 	{
-		m_csResult.Lock();
+		// m_csResult.Lock();
 
 		// set results
 		m_bestValue = value;
@@ -87,9 +104,9 @@ BOOL COptThread::Callback(REAL value, const CVectorN<>& vRes)
 		}
 
 		// flag new result
-		m_evtNewResult = TRUE;
+//		m_evtNewResult = TRUE;
 
-		m_csResult.Unlock();
+		// m_csResult.Unlock();
 	}
 
 	return TRUE;
@@ -99,13 +116,13 @@ void COptThread::UpdatePlan()
 {
 	if (m_evtNewResult)
 	{
-		m_csResult.Lock();
+//		m_csResult.Lock();
 
 		m_pPrescParam->SetStateVectorToPlan(m_vResult);
 				
 		m_evtNewResult = FALSE;
 
-		m_csResult.Unlock();
+//		m_csResult.Unlock();
 	}
 }
 
@@ -130,7 +147,8 @@ CBrimstoneDoc::CBrimstoneDoc()
 	m_pOptThread(NULL)
 {
 	m_pOptThread = (COptThread *) ::AfxBeginThread(RUNTIME_CLASS(COptThread),
-		THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);
+		THREAD_PRIORITY_HIGHEST, // THREAD_PRIORITY_NORMAL, 
+		0, CREATE_SUSPENDED);
 }
 
 CBrimstoneDoc::~CBrimstoneDoc()
