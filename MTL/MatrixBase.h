@@ -79,7 +79,7 @@ public:
 
 	// Invert -- inverts the matrix using the Gauss-Jordan 
 	//		elimination
-	void Invert(BOOL bFullPivot = FALSE);
+	BOOL Invert(BOOL bFullPivot = FALSE);
 
 	// SVD -- singular-valued decomposition -- returns the singular
 	//		value matrix as a vector of diagonal values w, and 

@@ -250,7 +250,7 @@ TYPE CMatrixBase<TYPE>::Determinant() const
 // swaps two rows of the matrix
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
+BOOL CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
 {
 	// only invert square matrices
 	ASSERT(GetCols() == GetRows());
@@ -298,7 +298,10 @@ void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
     	// obtain a 1 in the diagonal position
 		//		(the pivot ensures that copy[nCol][nCol] is not zero)
 		// make sure we are numerically stable
-		ASSERT(fabs(mCopy[nCol][nCol]) > 1e-8);
+		if (fabs(mCopy[nCol][nCol]) < 1e-8)
+		{
+			return FALSE;
+		}
 
 		// scale factor to be applied
     	TYPE scale = 1.0 / mCopy[nCol][nCol];	
@@ -349,6 +352,9 @@ void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
 
 	// assign this to inverse
 	(*this) = mInv; 
+
+	// return OK
+	return TRUE;
 
 }	// CMatrixBase<TYPE>::Invert
 
