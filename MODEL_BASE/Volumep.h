@@ -84,10 +84,16 @@ public:
 		height.Serialize(ar);
 		depth.Serialize(ar);
 
+		UINT nBytes = depth.Get() * height.Get() * width.Get() * sizeof(VOXEL_TYPE);
 		if (ar.IsStoring())
-			ar.Write(m_pVoxels, depth.Get() * height.Get() * width.Get() * sizeof(VOXEL_TYPE));
+		{
+			ar.Write(m_pVoxels, nBytes);
+		}
 		else
-			ar.Read(m_pVoxels, depth.Get() * height.Get() * width.Get() * sizeof(VOXEL_TYPE));
+		{
+			UINT nActBytes = ar.Read(m_pVoxels, nBytes);
+			ASSERT(nActBytes == nBytes);
+		}
 	}
 
 	virtual void OnChange(CObservable *pSource)
