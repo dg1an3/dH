@@ -437,7 +437,7 @@ void COpenGLView::MakeCurrentGLRC()
 	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
 }
 
-void COpenGLView::OnChange(CObservable *pSource)
+void COpenGLView::OnChange(CObservableObject *pSource)
 {
 	if (pSource == &projectionMatrix)
 	{

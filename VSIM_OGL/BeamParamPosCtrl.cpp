@@ -70,7 +70,7 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 	}
 }
 
-void CBeamParamPosCtrl::OnChange(CObservable *pFromObject)
+void CBeamParamPosCtrl::OnChange(CObservableObject *pFromObject)
 {
 	if (::IsWindow(m_hWnd))
 		UpdateData(FALSE);

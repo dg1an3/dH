@@ -69,15 +69,15 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 		forBeam->collimAngle.Set(((double)m_nCollimAngle) * PI / 180.0);
 
 		CVector<2> vMin(m_nJawX1, m_nJawY1);
-		forBeam->collimMin = vMin;
+		forBeam->collimMin.Set(vMin);
 
 		CVector<2> vMax(m_nJawX2, m_nJawY2);
-		forBeam->collimMax = vMax;
+		forBeam->collimMax.Set(vMax);
 	}
 	
 }
 
-void CBeamParamCollimCtrl::OnChange(CObservable *pFromObject)
+void CBeamParamCollimCtrl::OnChange(CObservableObject *pFromObject)
 {
 	if (::IsWindow(m_hWnd))
 		UpdateData(FALSE);

@@ -19,7 +19,7 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 
 CObjectTreeItem::CObjectTreeItem()
-    : m_pObject(NULL),
+    : forObject(NULL),
 		m_pParent(NULL),
 		m_hTreeItem(NULL),
 		m_pObjectExplorer(NULL),
@@ -27,22 +27,24 @@ CObjectTreeItem::CObjectTreeItem()
 		selectedImageResourceID(IDB_FOLDER_OPENED),
 		isChecked(TRUE)
 {
+	forObject.SetAutoObserver(this);
 }
-    
+
 CObjectTreeItem::~CObjectTreeItem()
 {
 }
 
 CObject * CObjectTreeItem::GetObject()
 {
-    return m_pObject;
+    return forObject.Get(); // m_pObject;
 }
 
 void CObjectTreeItem::SetObject(CObject *pObject)
 {
-    m_pObject = pObject;
-if (pObject->IsKindOf(RUNTIME_CLASS(CObservable)))
- 	((CObservable *)m_pObject)->AddObserver(this);
+	forObject.Set(pObject);
+//    m_pObject = pObject;
+//if (pObject->IsKindOf(RUNTIME_CLASS(CObservable)))
+// 	((CObservable *)m_pObject)->AddObserver(this);
 }
 
 int CObjectTreeItem::GetChildCount()
@@ -139,19 +141,19 @@ CString CObjectTreeItem::GetClassLabel()
 
     return strClassName;
 }
-    
-BOOL CObjectTreeItem::IsChecked()
-{
-	return isChecked.Get();
-}
-
-void CObjectTreeItem::SetChecked(BOOL bChecked)
-{
-	isChecked.Set(bChecked);
-
-	if (m_pObjectExplorer->GetCheck(m_hTreeItem))
-  		m_pObjectExplorer->SetCheck(m_hTreeItem, isChecked.Get());
-}
+//    
+//BOOL CObjectTreeItem::IsChecked()
+//{
+//	return isChecked.Get();
+//}
+//
+//void CObjectTreeItem::SetChecked(BOOL bChecked)
+//{
+//	isChecked.Set(bChecked);
+//
+//	if (m_pObjectExplorer->GetCheck(m_hTreeItem))
+//  		m_pObjectExplorer->SetCheck(m_hTreeItem, isChecked.Get());
+//}
     
 void CObjectTreeItem::OnRenameItem()
 {
@@ -163,9 +165,9 @@ void CObjectTreeItem::OnDeleteItem()
 	// TODO: delete the item
 }
     
-void CObjectTreeItem::OnChange(CObservable *pSource)
+void CObjectTreeItem::OnChange(CObservableObject *pSource)
 {
-	if (pSource == m_pObject && m_pObjectExplorer != NULL)
+	if (pSource == forObject.Get() && m_pObjectExplorer != NULL)
 	{
 		m_pObjectExplorer->SetItem(m_hTreeItem, TVIF_TEXT, 
   			GetLabel(), // GetClassLabel() + ": " + m_pObject->name.Get(), 
@@ -232,19 +234,19 @@ BEGIN_MESSAGE_MAP(CObjectTreeItem, CCmdTarget)
 END_MESSAGE_MAP()
 
 
-CObjectTreeItem * CObjectTreeItem::CopyItem(CObjectTreeItem *pParent)
-{
-    CObjectTreeItem * pCopy = new CObjectTreeItem();
-    pCopy->SetParent(pParent);
-
-    // copy the children
-    for (int nIndex = 0; nIndex < GetChildCount(); nIndex++)
-    {
-    	pCopy->AddChild(GetChild(nIndex)->CopyItem(pCopy));
-    }
-
-    // now create this
-    pCopy->Create(m_pObjectExplorer);
-
-    return NULL;
-}
+//CObjectTreeItem * CObjectTreeItem::CopyItem(CObjectTreeItem *pParent)
+//{
+//    CObjectTreeItem * pCopy = new CObjectTreeItem();
+//    pCopy->SetParent(pParent);
+//
+//    // copy the children
+//    for (int nIndex = 0; nIndex < GetChildCount(); nIndex++)
+//    {
+//    	pCopy->AddChild(GetChild(nIndex)->CopyItem(pCopy));
+//    }
+//
+//    // now create this
+//    pCopy->Create(m_pObjectExplorer);
+//
+//    return NULL;
+//}

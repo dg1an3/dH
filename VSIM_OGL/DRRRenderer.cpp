@@ -717,7 +717,7 @@ void CDRRRenderer::OnRenderScene()
 {
 }
 
-void CDRRRenderer::OnChange(CObservable *pSource)
+void CDRRRenderer::OnChange(CObservableObject *pSource)
 {
 	COpenGLRenderer::OnChange(pSource);
 	if (pSource == &m_pView->projectionMatrix)

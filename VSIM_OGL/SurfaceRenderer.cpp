@@ -174,10 +174,10 @@ void CSurfaceRenderer::OnRenderScene()
 		glLoadMatrix(mTex);
 
 		// beam projection
-		glMultMatrix(m_pBeam->forMachine->GetProjection());
+		glMultMatrix(m_pBeam->forMachine->projection.Get());
 
 		// transform from patient -> beam coordinates
-		CMatrix<4> mXform = m_pBeam->GetBeamToPatientXform();
+		CMatrix<4> mXform = m_pBeam->beamToPatientXform.Get();
 		mXform.Invert();
 		glMultMatrix(mXform);
 
@@ -208,7 +208,7 @@ void CSurfaceRenderer::OnRenderScene()
 	}
 }
 
-void CSurfaceRenderer::OnChange(CObservable *pFromObject)
+void CSurfaceRenderer::OnChange(CObservableObject *pFromObject)
 {
 	if (pFromObject == GetLightFieldBeam())
 	{

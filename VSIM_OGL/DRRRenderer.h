@@ -18,7 +18,7 @@ class CDRRRenderer : public COpenGLRenderer
 public:
 	int m_nShift;
 	int m_nSteps;
-	virtual void OnChange(CObservable *pSource);
+	virtual void OnChange(CObservableObject *pSource);
 	CDRRRenderer(COpenGLView *pView);
 	virtual ~CDRRRenderer();
 

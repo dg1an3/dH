@@ -65,7 +65,7 @@ HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
     	pNewItem->GetLabel(), 
  		nImageIndex, // pNewItem->GetImageIndex(),
  		nSelImageIndex, // pNewItem->GetSelectedImageIndex(),
-    	INDEXTOSTATEIMAGEMASK(pNewItem->IsChecked() ? 2 : 1) 
+    	INDEXTOSTATEIMAGEMASK(pNewItem->isChecked.Get() ? 2 : 1) 
     		| TVIS_EXPANDED, // nState, 
     	TVIS_STATEIMAGEMASK | 0xFF, // nStateMask, 
     	NULL, // lParam, 

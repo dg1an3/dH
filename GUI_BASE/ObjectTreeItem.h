@@ -6,6 +6,8 @@
 #define AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_
 
 #include <Value.h>
+#include <Association.h>
+#include <Collection.h>
 #include <ModelObject.h>
 
 class CObjectExplorer;
@@ -20,28 +22,32 @@ public:
 	// conversion to an HTREEITEM handle
 	operator HTREEITEM() const;
     
+	// string holding the name (label) for this tree item
 	CValue< CString > name;
 
+	// value to indicate that the item should be checked
 	CValue< BOOL > isChecked; 
-	void SetChecked(BOOL bChecked = TRUE);
-	BOOL IsChecked();
 
-	// access to the model object represented by this item
+	// access to the object represented by this item
+	CAssociation< CObject > forObject;
 	void SetObject(CObject *pObject);
 	CObject * GetObject();
 
+	// access to the parent tree item
+//	CAssociation< CObjectTreeItem > parent;
 	CObjectTreeItem *GetParent() { return m_pParent; }
 	void SetParent(CObjectTreeItem *pParent);
 
 	// child access -- override GetChildCount and GetChild in order to
 	//		create children from model object's contained objects
+	CCollection< CObjectTreeItem > children;
 	virtual int GetChildCount();
 	virtual CObjectTreeItem * GetChild(int nIndex);
 	int AddChild(CObjectTreeItem * pChild);
 
 	BOOL IsChildOf(CObjectTreeItem *pSuspectedParent);
 
-	CObjectTreeItem * CopyItem(CObjectTreeItem *pParent = NULL);
+//	CObjectTreeItem * CopyItem(CObjectTreeItem *pParent = NULL);
 
 	// returns the string that is the label for the object; override to
 	//		provide custom label processing
@@ -61,7 +67,7 @@ public:
 
 	DECLARE_DYNCREATE(CObjectTreeItem)
 
-	virtual void OnChange(CObservable *pSource);
+	virtual void OnChange(CObservableObject *pSource);
 
 	virtual void OnSelected();
 	virtual BOOL OnDrop(CObjectTreeItem *pDroppedItem);
@@ -89,7 +95,7 @@ private:
     CArray<CObjectTreeItem *, CObjectTreeItem *> m_arrChildren;
 
     // a pointer to the object that this item manages
-	CObject * m_pObject;
+//	CObject * m_pObject;
 };
     
 #endif // !defined(AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_)

@@ -71,7 +71,7 @@ void CSimView::OnDraw(CDC* pDC)
 	pDC->SelectObject(pOldBrush);
 }
 
-void CSimView::OnChange(CObservable *pFromObject)
+void CSimView::OnChange(CObservableObject *pFromObject)
 {
 	CBeam *pBeam = (CBeam *)pFromObject;
 	SetBEVPerspective(*pBeam);
@@ -358,7 +358,7 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	// translate forward slightly (will not affect projection, since it occurs _after_ the perspective)
 	mProj *= CreateTranslate(0.01, CVector<3>(0.0, 0.0, 1.0));
 
-	mProj *= beam.forMachine->GetProjection();
+	mProj *= beam.forMachine->projection.Get();
 
 	CVector<2> vMin = beam.collimMin.Get();
 	CVector<2> vMax = beam.collimMax.Get();
@@ -381,7 +381,7 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	mProj *= CreateRotate(PI, CVector<3>(0.0, 1.0, 0.0));
 
 	// and inverse transform from beam to patient
-	CMatrix<4> mB2P = beam.GetBeamToPatientXform();
+	CMatrix<4> mB2P = beam.beamToPatientXform.Get();
 	mB2P.Invert();
 	mProj *= mB2P;
 

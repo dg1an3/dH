@@ -25,10 +25,9 @@ CBeamRenderer::CBeamRenderer(COpenGLView *pView)
 	: COpenGLRenderer(pView),
 		isCentralAxisEnabled(TRUE),
 		isDivergenceSurfacesEnabled(TRUE),
-		privBeamToPatientXform(&forBeam, 
-			(CValue< CMatrix<4> > CBeam::*)&CBeam::GetBeamToPatientXform),
+		privBeamToPatientXform(&forBeam, &CBeam::beamToPatientXform),
 		privMachineProjection(&forBeam, 
-			(CValue< CMatrix<4> > CBeam::*)&CBeam::projection)
+			(CValue< CMatrix<4> > CBeam::*) &CBeam::projection)
 {
 	forBeam.AddObserver(this);
 
@@ -61,7 +60,7 @@ void CBeamRenderer::SetBeam(CBeam *pBeam)
 	{
 		forBeam->AddObserver(this);
 		CValue< CMatrix<4> > *pProjValue = 
-			(CValue< CMatrix<4> > *)&forBeam->forMachine->GetProjection;
+			(CValue< CMatrix<4> > *)&forBeam->forMachine->projection;
 		privMachineProjection.SyncTo(pProjValue);
 	}
 

@@ -58,7 +58,7 @@ public:
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
 	//}}AFX_VIRTUAL
 
-	virtual void OnChange(CObservable *pFromObject);
+	virtual void OnChange(CObservableObject *pFromObject);
 
 // Implementation
 protected:
