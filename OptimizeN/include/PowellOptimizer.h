@@ -9,6 +9,8 @@
 #if !defined(POWELLOPTIMIZER_H)
 #define POWELLOPTIMIZER_H
 
+#include <MatrixNxM.h>
+
 // optimizer base class
 #include "Optimizer.h"
 
@@ -34,6 +36,11 @@ public:
 	// performs the optimization
 	virtual const CVectorN<>& Optimize(const CVectorN<>& vInit);
 
+protected:
+	// helper functions for optimization
+	int IterateOverDirectionSet(REAL& del);
+	void FindNewDirection(REAL fp, REAL fptt, REAL del, int nBigDir);
+
 private:
 	// line function that projects the objective function along a given line
 	CLineFunction m_lineFunction;
@@ -42,7 +49,7 @@ private:
 	CBrentOptimizer m_optimizeBrent;
 
 	// the current direction set for the optimization
-	CVectorN<> *m_pDirections;
+	CMatrixNxM<> m_mDirections;
 
 	// "locals" for the optimization, declared members to avoid initializing
 	CVectorN<> m_vScaledDir;
