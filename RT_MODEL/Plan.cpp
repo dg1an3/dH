@@ -7,27 +7,13 @@
 
 #include <MatrixBase.inl>
 
-#include "Plan.h"
+#include <Plan.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
-
-/////////////////////////////////////////////////////////////////////////////
-// CPlan
-
-BEGIN_MESSAGE_MAP(CPlan, CDocument)
-	//{{AFX_MSG_MAP(CPlan)
-		// NOTE - the ClassWizard will add and remove mapping macros here.
-		//    DO NOT EDIT what you see in these blocks of generated code!
-	//}}AFX_MSG_MAP
-END_MESSAGE_MAP()
-
-
-/////////////////////////////////////////////////////////////////////////////
-// CPlan 
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPlan::CPlan
@@ -38,7 +24,6 @@ CPlan::CPlan()
 	: m_pSeries(NULL),
 		m_bRecomputeTotalDose(TRUE)
 {
-
 }	// CPlan::CPlan
 
 
@@ -123,13 +108,13 @@ int CPlan::GetBeamCount() const
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-int CPlan::GetTotalBeamletCount(int nScale)
+int CPlan::GetTotalBeamletCount(int nLevel)
 {
 	int nBeamlets = 0;
 
 	for (int nAtBeam = 0; nAtBeam < GetBeamCount(); nAtBeam++)
 	{
-		nBeamlets += GetBeamAt(nAtBeam)->GetBeamletCount(nScale);
+		nBeamlets += GetBeamAt(nAtBeam)->GetBeamletCount(nLevel);
 	}
 
 	return nBeamlets;
@@ -142,7 +127,7 @@ int CPlan::GetTotalBeamletCount(int nScale)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CBeamIMRT * CPlan::GetBeamAt(int nAt)
+CBeam * CPlan::GetBeamAt(int nAt)
 {
 	return m_arrBeams.GetAt(nAt);
 
@@ -154,21 +139,22 @@ CBeamIMRT * CPlan::GetBeamAt(int nAt)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-int CPlan::AddBeam(CBeamIMRT *pBeam)
+int CPlan::AddBeam(CBeam *pBeam)
 {
 	int nIndex = m_arrBeams.Add(pBeam);
 	pBeam->GetChangeEvent().AddObserver(this, (ListenerFunction) OnBeamChange);
 
 	m_bRecomputeTotalDose = TRUE;
 
-	// a change has occurred, so update views
-	UpdateAllViews(NULL);
+	// a change has occurred, so fire
+	GetChangeEvent().Fire();
 
 	return nIndex;
 
 }	// CPlan::AddBeam
 
 
+/*
 ///////////////////////////////////////////////////////////////////////////////
 // CPlan::SetBeamCount
 // 
@@ -187,7 +173,7 @@ void CPlan::SetBeamCount(int nCount)
 		// 2.25 * atan(1.0) * 8.0 / 7.0;
 	for (int nAngle = 0; nAngle < nCount; nAngle++)
 	{
-		CBeamIMRT *pBeam = new CBeamIMRT();
+		CBeam *pBeam = new CBeam();
 		pBeam->SetGantryAngle(angle);
 		m_arrBeams.Add(pBeam);
 
@@ -195,39 +181,40 @@ void CPlan::SetBeamCount(int nCount)
 	}
 
 }	// CPlanIMRT::SetBeamCount
-
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPlan::GetDoseMatrix
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<double> *CPlan::GetDoseMatrix(int nScale)
+CVolume<REAL> *CPlan::GetDoseMatrix()
 {
 	if (TRUE) // m_bRecomputeTotalDose)
 	{
 		// total the dose for all beams
 		if (GetBeamCount() > 0)
 		{
-			CVolume<double> *pBeamDose = GetBeamAt(0)->GetDoseMatrix(nScale);
+			CVolume<REAL> *pBeamDose = GetBeamAt(0)->GetDoseMatrix();
 
-			m_arrDose[nScale].SetDimensions(pBeamDose->GetWidth(), 
+			m_dose.SetDimensions(pBeamDose->GetWidth(), 
 				pBeamDose->GetHeight(),
 				pBeamDose->GetDepth());
 
 			// clear the dose matrix
-			m_arrDose[nScale].ClearVoxels();
+			m_dose.ClearVoxels();
 
 			for (int nAt = 0; nAt < GetBeamCount(); nAt++)
 			{
 				// add this beam's dose matrix to the total
-				m_arrDose[nScale].Accumulate(GetBeamAt(nAt)->GetDoseMatrix(nScale),
+				m_dose.Accumulate(GetBeamAt(nAt)->GetDoseMatrix(),
 					GetBeamAt(nAt)->GetWeight());
 			}
 		}
 
+#ifdef NORMALIZE_DOSE
 		// compute voxel count
-/*		int nVoxelCount = m_dose.GetHeight() * m_dose.GetWidth() 
+		int nVoxelCount = m_dose.GetHeight() * m_dose.GetWidth() 
 			* m_dose.GetDepth();
 
 		if (nVoxelCount > 0)
@@ -240,11 +227,12 @@ CVolume<double> *CPlan::GetDoseMatrix(int nScale)
 				pVoxels[nAt] /= maxDose;
 			}
 		}
-*/
+#endif
+
 		m_bRecomputeTotalDose = FALSE;
 	}
 
-	return &m_arrDose[nScale];
+	return &m_dose;
 
 }	// CPlan::GetDoseMatrix
 
@@ -266,33 +254,6 @@ CHistogram *CPlan::GetHistogram(CStructure *pStructure)
 	}
 
 	return pHisto;
-
-/*	for (int nAt = 0; nAt < GetSeries()->GetStructureCount(); nAt++)
-	{
-		if (GetSeries()->GetStructureAt(nAt) == pStructure)
-		{
-			if (m_arrHistograms.GetSize() <= nAt)
-			{
-				m_arrHistograms.SetSize(nAt+1);
-			}
-
-			if (NULL == m_arrHistograms[nAt])
-			{
-				CHistogram *pHisto = new CHistogram();
-				pHisto->SetVolume(GetDoseMatrix());
-
-				ASSERT(FALSE);
-				// TODO: fix this
-				// pHisto->SetRegion(pStructure->GetRegion());
-
-				m_arrHistograms[nAt] = pHisto;
-			}
-
-			return (CHistogram *) m_arrHistograms[nAt];
-		}
-	} 
-
-	return NULL; */
 
 }	// CPlan::GetHistogram
 
@@ -318,20 +279,8 @@ void CPlan::Serialize(CArchive& ar)
 	// schema for the plan object
 	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : PLAN_SCHEMA;
 
-	// serialize the document
-	CDocument::Serialize(ar);
-
-	if (ar.IsStoring())
+	if (ar.IsLoading())
 	{
-		// write the filename for the series
-		ar << ((m_pSeries != NULL) ? m_pSeries->GetFileName() : "");
-	}
-	else
-	{
-		// just read the filename into the member variable (OnOpenDocument
-		//		actually finds the series and connects this object)
-		ar >> m_strSeriesFilename;
-
 		// now clear out any existing beams
 		m_arrBeams.RemoveAll();
 	}
@@ -357,21 +306,14 @@ void CPlan::Serialize(CArchive& ar)
 	// empty the dose matrix if it is not valid
 	// if (ar.IsStoring() && !m_bDoseValid)
 	{
-		m_arrDose[0].SetDimensions(0, 0, 0);
+		m_dose.SetDimensions(0, 0, 0);
 	}
 
 	// serialize the dose matrix
-	m_arrDose[0].Serialize(ar);
+	m_dose.Serialize(ar);
 
 	// trigger recalculation of total dose
 	m_bRecomputeTotalDose = TRUE;
-
-	// now make sure the series is loaded
-	if (ar.IsStoring())
-	{ 
-		// now save the associated series
-		GetSeries()->OnSaveDocument(GetSeries()->GetFileName());
-	}
 
 	// for the schema 2, serialize target DVHs
 	if (nSchema >= 2)
@@ -421,19 +363,7 @@ void CPlan::Serialize(CArchive& ar)
 
 }	// CPlan::Serialize
 
-CDocTemplate * CPlan::m_pSeriesDocTemplate = NULL;
 
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlan::SetSeriesDocTemplate
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-void CPlan::SetSeriesDocTemplate(CDocTemplate *pTemplate)
-{
-	m_pSeriesDocTemplate = pTemplate;
-
-}	// CPlan::SetSeriesDocTemplate
 
 /////////////////////////////////////////////////////////////////////////////
 // CPlan diagnostics
@@ -441,7 +371,7 @@ void CPlan::SetSeriesDocTemplate(CDocTemplate *pTemplate)
 #ifdef _DEBUG
 void CPlan::AssertValid() const
 {
-	CDocument::AssertValid();
+	CModelObject::AssertValid();
 
 	// make sure the plan's beams are valid
 	// m_arrBeams.AssertValid();
@@ -449,7 +379,7 @@ void CPlan::AssertValid() const
 
 void CPlan::Dump(CDumpContext& dc) const
 {
-	CDocument::Dump(dc);
+	CModelObject::Dump(dc);
 
 	int nOrigDepth = dc.GetDepth();
 	dc.SetDepth(nOrigDepth + 1);
@@ -461,116 +391,6 @@ void CPlan::Dump(CDumpContext& dc) const
 }
 #endif //_DEBUG
 
-/////////////////////////////////////////////////////////////////////////////
-// CPlan commands
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlan::OnNewDocument
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-BOOL CPlan::OnNewDocument()
-{
-	if (!CDocument::OnNewDocument())
-		return FALSE;
-
-	// now clear out any existing beams
-	m_arrBeams.RemoveAll();
-
-	// delete pointer to series
-	m_pSeries = NULL;
-
-	return TRUE;
-
-}	// CPlan::OnNewDocument
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlan::OnOpenDocument
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-BOOL CPlan::OnOpenDocument(LPCTSTR lpszPathName) 
-{
-	// call CDocument::OnOpenDocument for serialization behavior
-	if (!CDocument::OnOpenDocument(lpszPathName))
-		return FALSE;
-
-	// now try to find the series
-	m_pSeries = NULL;
-
-	// pass through the path name to the series
-	POSITION pos = m_pSeriesDocTemplate->GetFirstDocPosition();
-	do 
-	{
-		// get the next loaded CSeries
-		m_pSeries = (CSeries *)m_pSeriesDocTemplate->GetNextDoc(pos);	
-
-		// see if it's filename is correct
-		if ((m_pSeries != NULL) 
-				&& (m_pSeries->GetFileName() != m_strSeriesFilename))
-		{
-			m_pSeries = NULL;
-		}
-	} while ((m_pSeries == NULL) && (pos != NULL));
-
-	// if the series was not found...
-	if (m_pSeries == NULL)
-	{
-		m_pSeries = (CSeries *)m_pSeriesDocTemplate->CreateNewDocument();
-		if (!m_pSeries->OnOpenDocument(m_strSeriesFilename))
-		{
-			// series file not found
-			delete m_pSeries;
-			m_pSeries = NULL;
-		}
-		else
-		{
-			// set the file name for the series
-			m_pSeries->SetPathName(m_strSeriesFilename);
-		}
-	}
-
-	// we succesfully loaded the plan
-	return TRUE;
-
-}	// CPlan::OnOpenDocument
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlan::GetFileName
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-CString CPlan::GetFileName()
-{
-	// see if its filename is correct
-	int nAt = GetPathName().ReverseFind('\\');
-	CString strFilename = GetPathName().Mid(nAt+1);
-
-	return strFilename;
-
-}	// CPlan::GetFileName
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlan::GetFileRoot
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-CString CPlan::GetFileRoot()
-{
-	CString strName = GetFileName();
-	int nDot = strName.ReverseFind('.');
-	if (nDot >= 0)
-		return strName.Left(nDot);
-
-	return strName;
-
-}	// CPlan::GetFileRoot
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // CPlan::OnBeamChange
 // 
@@ -579,7 +399,7 @@ CString CPlan::GetFileRoot()
 void CPlan::OnBeamChange(CObservableEvent *, void *)
 {
 	m_bRecomputeTotalDose = TRUE;
-	m_arrDose[0].GetChangeEvent().Fire();
+	m_dose.GetChangeEvent().Fire();
 
 }	// CPlan::OnBeamChange
 

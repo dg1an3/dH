@@ -13,34 +13,33 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <VectorN.h>
+#include <MatrixNxM.h>
+
 // series upon which plan is based
-#include "Series.h"
+#include <Series.h>
 
 // beams belonging to the plan
-#include "BeamIMRT.h"
+#include <Beam.h>
 
 // histograms for the plan
 #include <Histogram.h>
-
-#include <VectorN.h>
-#include <MatrixNxM.h>
 
 //////////////////////////////////////////////////////////////////////
 // class CPlan
 //
 // represents a treatment plan
 //////////////////////////////////////////////////////////////////////
-class CPlan : public CDocument
+class CPlan : public CModelObject
 {
-public: // create from serialization only
+public:
 	// constructor
 	CPlan();
+	virtual ~CPlan();
 
 	// dynamic create
 	DECLARE_SERIAL(CPlan)
 
-// Attributes
-public:
 	// series accessor
 	CSeries * GetSeries();
 	void SetSeries(CSeries *pSeries);
@@ -50,10 +49,10 @@ public:
 
 	// the beams for this plan
 	int GetBeamCount() const;
-	CBeamIMRT * GetBeamAt(int nAt);
-	int AddBeam(CBeamIMRT *pBeam);
+	CBeam * GetBeamAt(int nAt);
+	int AddBeam(CBeam *pBeam);
 
-	int GetTotalBeamletCount(int nScale);
+	int GetTotalBeamletCount(int nLevel);
 	void SetBeamCount(int nCount);
 
 	int m_nFields;
@@ -67,28 +66,17 @@ public:
 	void SetTargetDVH(CMesh *pStructure, CMatrixNxM<> *pmTarget);
 
 	// the computed dose for this plan (NULL if no dose exists)
-	CVolume<double> *GetDoseMatrix(int nScale = 0);
-
-// Operations
-public:
-	// sets the document template from which to obtain the
-	//		CSeries
-	static void SetSeriesDocTemplate(CDocTemplate *pTemplate);
+	CVolume<REAL> *GetDoseMatrix();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CPlan)
 	public:
-	virtual BOOL OnNewDocument();
 	virtual void Serialize(CArchive& ar);
-	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
 	//}}AFX_VIRTUAL
 
 // Implementation
 public:
-	CString GetFileRoot();
-	CString GetFileName();
-	virtual ~CPlan();
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
@@ -97,16 +85,8 @@ public:
 protected:
 	void OnBeamChange(CObservableEvent *, void *);
 
-// Generated message map functions
-protected:
-	//{{AFX_MSG(CPlan)
-		// NOTE - the ClassWizard will add and remove member functions here.
-		//    DO NOT EDIT what you see in these blocks of generated code !
-	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
-
 	// the plan's beams
-	CTypedPtrArray<CPtrArray, CBeamIMRT*> m_arrBeams;
+	CTypedPtrArray<CObArray, CBeam*> m_arrBeams;
 
 private:
 	// the series upon which this plan is based
@@ -116,20 +96,13 @@ private:
 	CMapStringToPtr m_mapTargetDVHs;
 
 	// the dose matrix for the plan
-	CVolume<double> m_arrDose[MAX_SCALES];
+	CVolume<REAL> m_dose;
 
 	// flag to indicate the total dose is to be recomputed
 	BOOL m_bRecomputeTotalDose;
 
 	// the histograms
 	CMapPtrToPtr m_mapHistograms;
-
-	// static variable that stores a pointer to the 
-	//		CSeries document template
-	static CDocTemplate * m_pSeriesDocTemplate;
-
-	// stores the filename for the corresponding series
-	CString m_strSeriesFilename;
 
 };	// class CPlan
 
