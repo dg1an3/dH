@@ -44,7 +44,7 @@ public:
 		if (m_pAutoObserver 
 				&& m_value 
 				&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
-			((CObservableObject *)m_value)->AddObserver(m_pAutoObserver, func);
+			::AddObserver<CObject>((CObservableObject *)m_value, m_pAutoObserver, func);
 	}
 
 	TYPE *operator->() 
@@ -75,7 +75,7 @@ public:
 			if (m_pAutoObserver 
 					&& m_value 
 					&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
-				((CObservableObject *)m_value)->AddObserver(m_pAutoObserver, 
+				::AddObserver<CObject>((CObservableObject *)m_value, m_pAutoObserver,
 					m_autoObserverFunction);
 
 			FireChange(pOldValue);
@@ -88,6 +88,55 @@ protected:
 	//		target.
 	CObject *m_pAutoObserver;
 	ChangeFunction m_autoObserverFunction;
+};
+
+//////////////////////////////////////////////////////////////////////
+// template class CAutoSyncValue
+//
+// Special type of CValue that automatically syncs to a member 
+// variable of a specified CAssociation.
+//////////////////////////////////////////////////////////////////////
+template<class TYPE, class MEMBER_TYPE>
+class CAutoSyncValue : public CValue<MEMBER_TYPE>
+{
+public:
+	CAutoSyncValue(CAssociation<TYPE> *pAssoc, 
+		CValue<MEMBER_TYPE> TYPE::*pMember)
+		: m_pAssoc(pAssoc),
+			m_pMember(pMember)
+	{
+		::AddObserver< CAutoSyncValue >(m_pAssoc, this, OnChange);
+
+		// trigger an update
+		OnChange(m_pAssoc, NULL);
+	}
+
+	virtual ~CAutoSyncValue()
+	{
+		m_pAssoc->RemoveObserver(this, (ChangeFunction) OnChange);
+	}
+
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue)
+	{
+		if (pSource == m_pAssoc)
+		{
+			TYPE *pObj = (TYPE *) m_pAssoc->Get();
+			
+			// if we are pointing to something
+			if (pObj != NULL)
+				// sync the member
+				SyncTo(&(pObj->*m_pMember));
+			else
+				// sync to nothing
+				SyncTo(NULL);
+		}
+		else
+			CValue<MEMBER_TYPE>::OnChange(pSource, pOldValue);
+	}
+
+private:
+	CAssociation<TYPE> *m_pAssoc;
+	CValue<MEMBER_TYPE> TYPE::*m_pMember;
 };
 
 #endif // !defined(AFX_ASSOCIATION_H__76008148_F6DF_11D4_9E3E_00B0D0609AB0__INCLUDED_)

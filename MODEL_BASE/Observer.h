@@ -13,11 +13,17 @@
 // forward declaration of the CObservableObject class
 class CObservableObject;
 
+//////////////////////////////////////////////////////////////////////
+// defines the ChangeFunction which is called when a change occurs
+//////////////////////////////////////////////////////////////////////
 typedef void (CObject::*ChangeFunction)(CObservableObject *, void *);
 
 //////////////////////////////////////////////////////////////////////
-// a CObservableObject fires change events that can be processed by a CObserver
-
+// class CObservableObject
+// 
+// a CObservableObject fires change events that can be processed by 
+// an observer
+//////////////////////////////////////////////////////////////////////
 class CObservableObject : public CObject
 {
 public:
@@ -30,18 +36,20 @@ public:
 
 	// called to fire a change
 	void FireChange(void *pOldValue = NULL);
-
+	
 private:
 	// the array of observers
 	mutable CArray<CObject *, CObject *> m_arrObservers;
-	mutable CArray<ChangeFunction, ChangeFunction> m_arrFunctions;
 
-#ifdef _DEBUG
-	// counts the total number of observers in the system
-	static int m_nNumObservers;
-#endif
+	// the array of member functions
+	mutable CArray<ChangeFunction, ChangeFunction> m_arrFunctions;
 };
 
+//////////////////////////////////////////////////////////////////////
+// template function AddObserver
+// 
+// type-safe function to add an observer to a CObservableObject
+//////////////////////////////////////////////////////////////////////
 template<class OBSERVER_TYPE>
 void AddObserver(CObservableObject *pObservable, 
 				 OBSERVER_TYPE *pObserver, 
@@ -50,6 +58,11 @@ void AddObserver(CObservableObject *pObservable,
 	pObservable->AddObserver(pObserver, (ChangeFunction) func);
 }
 
+//////////////////////////////////////////////////////////////////////
+// template function RemoveObserver
+// 
+// type-safe function to remove an observer from a CObservableObject
+//////////////////////////////////////////////////////////////////////
 template<class OBSERVER_TYPE>
 void RemoveObserver(CObservableObject *pObservable, 
 					OBSERVER_TYPE *pObserver, 

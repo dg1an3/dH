@@ -85,14 +85,6 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\AutoSyncValue.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\Collection.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\ModelObject.cpp
 # End Source File
 # Begin Source File
@@ -111,10 +103,6 @@ SOURCE=.\StdAfx.cpp
 # Begin Source File
 
 SOURCE=Association.h
-# End Source File
-# Begin Source File
-
-SOURCE=AutoSyncValue.h
 # End Source File
 # Begin Source File
 

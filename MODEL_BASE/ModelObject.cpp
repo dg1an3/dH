@@ -19,7 +19,7 @@ static char THIS_FILE[]=__FILE__;
 CModelObject::CModelObject(const CString& strName)
 	: name(strName)
 {
-	name.AddObserver(this, (ChangeFunction)&CModelObject::OnChange);
+	::AddObserver<CModelObject>(&name, this, OnChange);
 }
 
 CModelObject::~CModelObject()
@@ -33,7 +33,7 @@ void CModelObject::AddObserverToChildren(CObject *pObserver, ChangeFunction func
 {
 	for (int nAt = 0; nAt < children.GetSize(); nAt++)
 	{
-		children.Get(nAt)->AddObserver((CObject *)pObserver, func);
+		::AddObserver<CObject>(children.Get(nAt), pObserver, func);
 		if (nLevels != 0)
 			children.Get(nAt)->AddObserverToChildren(pObserver, func, nLevels-1);
 	}

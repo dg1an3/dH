@@ -84,7 +84,7 @@ public:
 
 		if (m_pSyncTo)
 		{
-			m_pSyncTo->AddObserver(this, (ChangeFunction) OnChange);
+			::AddObserver<CValue>(m_pSyncTo, this, OnChange);
 
 			// fire a change, since the effective value has changed
 			FireChange();

@@ -20,7 +20,7 @@ public:
 			m_pArg(pArg)
 	{
 		ASSERT(m_pArg != NULL);
-		m_pArg->AddObserver(this, (ChangeFunction) OnChange);
+		::AddObserver<CFunction1>((CValue<ARG_TYPE> *)m_pArg, this, OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg->Get()));
@@ -60,10 +60,10 @@ public:
 			m_pArg2(pArg2)
 	{
 		ASSERT(m_pArg1 != NULL);
-		m_pArg1->AddObserver(this, (ChangeFunction) OnChange);
+		::AddObserver<CFunction2>((CValue<ARG1_TYPE> *)m_pArg1, this, OnChange);
 
 		ASSERT(m_pArg2 != NULL);
-		m_pArg2->AddObserver(this, (ChangeFunction) OnChange);
+		::AddObserver<CFunction2>((CValue<ARG2_TYPE> *)m_pArg2, this, OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
@@ -78,7 +78,7 @@ public:
 			m_pArg2(&m_argConst2)
 	{
 		ASSERT(m_pArg1 != NULL);
-		m_pArg1->AddObserver(this, (ChangeFunction) OnChange);
+		::AddObserver<CFunction2>((CValue<ARG1_TYPE> *)m_pArg1, this, OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
@@ -93,7 +93,7 @@ public:
 			m_pArg2(pArg2)
 	{
 		ASSERT(m_pArg2 != NULL);
-		m_pArg2->AddObserver(this, (ChangeFunction) OnChange);
+		::AddObserver<CFunction2>((CValue<ARG2_TYPE> *)m_pArg2, this, OnChange);
 	}
 
 	virtual ~CFunction2()

@@ -1,5 +1,7 @@
+//////////////////////////////////////////////////////////////////////
 // Collection.h: interface for the CCollection class.
 //
+// Copyright (C) 1999-2000 DGLane
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(AFX_COLLECTION_H__4CA62889_01F1_11D5_9E46_00B0D0609AB0__INCLUDED_)
@@ -11,6 +13,11 @@
 
 #include "Observer.h"
 
+//////////////////////////////////////////////////////////////////////
+// template class CCollection
+//
+// Represents a collection of objects of TYPE.
+//////////////////////////////////////////////////////////////////////
 template<class TYPE>
 class CCollection : public CObservableObject
 {
@@ -129,5 +136,6 @@ private:
 
 	CCollection<TYPE> *m_pSyncTo;
 };
+
 
 #endif // !defined(AFX_COLLECTION_H__4CA62889_01F1_11D5_9E46_00B0D0609AB0__INCLUDED_)
