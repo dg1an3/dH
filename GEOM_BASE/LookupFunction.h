@@ -30,7 +30,10 @@ public:
 	//////////////////////////////////////////////////////////////////	
 	CLookupFunction(TYPE (*pFunc)(TYPE, TYPE), 
 		TYPE minA, TYPE maxA, int nStepA, TYPE minB, TYPE maxB, int nStepB,
-		const CString& strCacheFilename, BOOL bIntegralMode = FALSE)
+		const CString& strCacheFilename, 
+		const CString& strVersion,
+		BOOL bIntegralMode = FALSE)
+
 		: m_pFunc(pFunc),
 			m_minA(minA),
 			m_maxA(maxA),
@@ -44,7 +47,7 @@ public:
 		m_deltaB = (m_maxB - m_minB) / (TYPE)(nStepB);
 
 		// try to read in the table
-		if (!ReadFromFile(strCacheFilename))
+		if (!ReadFromFile(strCacheFilename, strVersion))
 		{
 			// set up the lookup table
 			SetTableSize(nStepA, nStepB);
@@ -56,7 +59,7 @@ public:
 			SetClampValues();
 
 			// now write out the computed table
-			WriteToFile(strCacheFilename);
+			WriteToFile(strCacheFilename, strVersion);
 		}
 	}
 
@@ -209,12 +212,27 @@ protected:
 	//////////////////////////////////////////////////////////////////
 	// ReadFromFile -- reads in the value from a cache file
 	//////////////////////////////////////////////////////////////////
-	BOOL ReadFromFile(const CString& strFilename)
+	BOOL ReadFromFile(const CString& strFilename, 
+			const CString& strVersionRequested)
 	{
+		// form the temporary path name
+		CString strPathname;
+		::GetTempPath(_MAX_PATH, strPathname.GetBuffer(_MAX_PATH));
+		strPathname.ReleaseBuffer();
+		strPathname += strFilename;
+
 		CFile inFile;
-		if (inFile.Open(strFilename, CFile::modeRead))
+		if (inFile.Open(strPathname, CFile::modeRead))
 		{
 			CArchive ar(&inFile, CArchive::load);
+
+			// read in the version string
+			CString strVersion;
+			ar >> strVersion;
+
+			// check the version of the file on disk
+			if (strVersion != strVersionRequested)
+				return FALSE;
 
 			// read in the range values
 			ar >> m_minA >> m_maxA >> m_deltaA;
@@ -255,12 +273,22 @@ protected:
 	//////////////////////////////////////////////////////////////////
 	// WriteToFile -- writes the values to a cache file
 	//////////////////////////////////////////////////////////////////
-	BOOL WriteToFile(const CString& strFilename)
+	BOOL WriteToFile(const CString& strFilename,
+			const CString& strVersion)
 	{
+		// form the temporary path name
+		CString strPathname;
+		::GetTempPath(_MAX_PATH, strPathname.GetBuffer(_MAX_PATH));
+		strPathname.ReleaseBuffer();
+		strPathname += strFilename;
+
 		CFile outFile;
-		if (outFile.Open(strFilename, CFile::modeWrite | CFile::modeCreate))
+		if (outFile.Open(strPathname, CFile::modeWrite | CFile::modeCreate))
 		{
 			CArchive ar(&outFile, CArchive::store);
+
+			// write the version string
+			ar << strVersion;
 
 			// write the range values
 			ar << m_minA << m_maxA << m_deltaA;
