@@ -89,6 +89,11 @@ float COpenGLView::GetNearPlane()
 	return m_nearPlane;
 }
 
+float COpenGLView::GetFarPlane()
+{
+	return m_farPlane;
+}
+
 void COpenGLView::SetMaxObjSize(float maxObjSize)
 {
 	m_farPlane = m_nearPlane + maxObjSize * 2.5f;
@@ -174,10 +179,13 @@ void COpenGLView::RecalcProjectionMatrix()
 }
 
 
-CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj)
+CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj, float z)
 {
 	if (mProj == NULL)
 		mProj = &myProjectionMatrix.Get();
+
+//	if (z == -999.0)
+//		z = GetNearPlane();
 
 	// retrieve the model and projection matrices
 	CMatrix<4> mModel;
@@ -251,6 +259,7 @@ void COpenGLView::OnPaint()
 		// glPopAttrib();
 
 		// restore the model matrix state
+		glMatrixMode(GL_MODELVIEW);
 		glPopMatrix();
 	}
 

@@ -42,10 +42,11 @@ public:
 
 	// accessors for the near and far clipping planes
 	float GetNearPlane();
+	float GetFarPlane();
 	void SetClippingPlanes(float nearPlane, float farPlane);
 
 	// compute the model point from a window coordinate
-	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj = NULL);
+	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj = NULL, float z = 999.0);
 
 	virtual void OnChange(CObservable *pSource);
 

@@ -77,7 +77,8 @@ void COpenGLRenderer::DrawScene()
 		glEndList();
 
 		// make sure nothing bad happened
-		ASSERT(glGetError() == GL_NO_ERROR);
+		GLenum error = glGetError();
+		ASSERT(error == GL_NO_ERROR);
 	}
 
 	// now actually render the scene

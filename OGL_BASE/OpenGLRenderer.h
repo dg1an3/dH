@@ -37,7 +37,7 @@ public:
 	virtual void OnChange(CObservable *pSource);
 
 	void Invalidate();
-	void DrawScene();
+	virtual void DrawScene();
 
 protected:
 	COpenGLView * m_pView;
