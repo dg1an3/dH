@@ -313,7 +313,7 @@ template<int DIM, class TYPE>
 void CMatrix<DIM, TYPE>::Transpose()
 {
 	for (int nCol = 0; nCol < DIM; nCol++)
-		for (int nRow = 0; nRow < DIM; nRow++)
+		for (int nRow = 0; nRow < nCol; nRow++)
 		{
 			TYPE temp = (*this)[nRow][nCol];
 			(*this)[nRow][nCol] = (*this)[nCol][nRow];
@@ -322,7 +322,7 @@ void CMatrix<DIM, TYPE>::Transpose()
 }
 
 //////////////////////////////////////////////////////////////////////
-// function CMatrix<DIM, TYPE>::Transpose
+// function Transpose
 //
 // transposes the matrix
 //////////////////////////////////////////////////////////////////////
@@ -332,6 +332,48 @@ CMatrix<DIM, TYPE> Transpose(const CMatrix<DIM, TYPE>& m)
 	CMatrix<DIM, TYPE> mTranspose = m;
 	mTranspose.Transpose();
 	return mTranspose;
+}
+
+//////////////////////////////////////////////////////////////////////
+// function Orthogonalize
+//
+// orthogonalizes the input matrix
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+CMatrix<DIM, TYPE> Orthogonalize(const CMatrix<DIM, TYPE>& m)
+{
+	// Gramm-Schmidt orthogonalization
+
+	// begin by setting the first orthogonal row vector
+	CMatrix<DIM, TYPE> mOrtho;
+	mOrtho[0] = m[0];
+
+	// apply to each row vector after the zero-th
+	for (int nAtRow = 1; nAtRow < DIM; nAtRow++)
+	{
+		mOrtho[nAtRow] = m[nAtRow];
+		for (int nAtOrthoRow = nAtRow-1; nAtOrthoRow >= 0; nAtOrthoRow--)
+		{
+			double scalar = (m[nAtRow] * mOrtho[nAtOrthoRow])
+				/ (mOrtho[nAtOrthoRow] * mOrtho[nAtOrthoRow]);
+			mOrtho[nAtRow] -= scalar * mOrtho[nAtOrthoRow];
+			TRACE1("Dot product = %lf\n", (mOrtho[nAtRow] * mOrtho[nAtOrthoRow]));
+		}
+	}
+
+	// test for orthogonality
+	for (nAtRow = 1; nAtRow < DIM; nAtRow++)
+		for (int nAtOrthoRow = nAtRow-1; nAtOrthoRow >= 0; nAtOrthoRow--)
+		{
+			// TRACE1("Dot product = %lf\n", (mOrtho[nAtRow] * mOrtho[nAtOrthoRow]));
+			// ASSERT((mOrtho[nAtRow] * mOrtho[nAtOrthoRow]) < EPS);
+		}
+
+	// now normalize all rows
+	for (nAtRow = 0; nAtRow < DIM; nAtRow++)
+		mOrtho[nAtRow].Normalize();
+
+	return mOrtho;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -561,6 +603,22 @@ FUNCTION_FACTORY1(CreateScale, CMatrix<4>)
 // declare function factories for matrix inversion
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY1(Invert, CMatrix<4>)
+
+//////////////////////////////////////////////////////////////////////
+// macro TRACE_MATRIX4
+//
+// helper macro to output a vector for debugging
+//////////////////////////////////////////////////////////////////////
+#define TRACE_MATRIX2(message, matrix) \
+	TRACE1("%s = \n", message); \
+	{ \
+		for (int nAtTRACE = 0; nAtTRACE < 2; nAtTRACE++) \
+		{ \
+			TRACE2("<%lf\t%lf>\n", \
+				(matrix)[nAtTRACE][0], \
+				(matrix)[nAtTRACE][1] ); \
+		} \
+	}			
 
 //////////////////////////////////////////////////////////////////////
 // macro TRACE_MATRIX4
