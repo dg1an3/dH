@@ -513,8 +513,15 @@ CVolume<REAL> *CBeam::GetDoseMatrix()
 		CVolume<REAL> *pBeamlet = m_arrBeamlets[0][0];
 		if (m_dose.GetWidth() != pBeamlet->GetWidth())
 		{
+			// TODO: take this from plan dose, not beamlets
 			m_dose.SetDimensions(pBeamlet->GetWidth(), 
 				pBeamlet->GetHeight(), pBeamlet->GetDepth());
+
+			CMatrixD<4> mBasis;
+			mBasis[3][0] = -(m_dose.GetWidth() - 1) / 2;
+			mBasis[3][1] = -(m_dose.GetHeight() - 1) / 2;
+			m_dose.SetBasis(mBasis);
+
 		}
 
 		// clear voxels for accumulation
