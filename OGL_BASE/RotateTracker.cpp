@@ -37,7 +37,7 @@ CMatrix<4> ComputeRotMatrix(const CVector<3>& vInitPt,
 	double theta = 0.0;
 	if (a * b != 0.0)
 	{
-		theta = 3.0 * acos((a * a + b * b - c * c) / (2 * a * b));
+		theta = 3.0 * (2 * PI - acos((a * a + b * b - c * c) / (2 * a * b)));
 	}
 
 	// compute the axis of rotation = normalized cross product of 
@@ -69,7 +69,8 @@ void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// store the current projection matrix from the view
 	m_initProjMatrix = m_pView->camera.projection.Get();
-	m_initModelXform = m_pView->camera.modelXform.Get();
+	// m_initModelXform = m_pView->camera.modelXform.Get();
+	m_vInitDirection = m_pView->camera.direction.Get();
 
 	// store the current mouse position in 3-d
 	m_vInitPoint = m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
@@ -81,13 +82,11 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 	CVector<3> vFinalPoint = 
 		m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
 
-	// compute the new projection matrix
-	CMatrix<4> mProj = m_initModelXform
-		* ComputeRotMatrix(m_vInitPoint, vFinalPoint);
-
-	// set the new projection matrix
-	m_pView->camera. // projectionMatrix.Set(mProj);
-		modelXform.Set(mProj);
+	CVector<4> vNewDirection = 
+		ComputeRotMatrix(vFinalPoint, m_vInitPoint) 
+			* ToHomogeneous(m_vInitDirection);
+	m_pView->camera.direction.Set(
+		FromHomogeneous<3, double>(vNewDirection));
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
