@@ -32,7 +32,7 @@ public:
 	CVectorD(TYPE x, TYPE y, TYPE z, TYPE w);
 	CVectorD(const CVectorD& vFrom);
 	explicit CVectorD(const CVectorBase<TYPE>& vFrom);
-#ifdef __AFX_H__
+#ifdef __AFXWIN_H__
 	CVectorD(const CPoint& pt);
 #endif
 	~CVectorD();
@@ -41,7 +41,7 @@ public:
 	CVectorD& operator=(const CVectorD& vFrom);
 
 	// conversion
-#ifdef __AFX_H__
+#ifdef __AFXWIN_H__
 	operator CPoint() const;
 #endif
 
@@ -223,7 +223,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom)
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorBase<TYPE>& vFrom) 
 
 
-#ifdef __AFX_H__
+#ifdef __AFXWIN_H__
 //////////////////////////////////////////////////////////////////
 // CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
 //
@@ -267,7 +267,7 @@ CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 }	// CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 
 
-#ifdef __AFX_H__
+#ifdef __AFXWIN_H__
 //////////////////////////////////////////////////////////////////
 // CVectorD<DIM, TYPE>::operator CPoint() const
 //
@@ -276,7 +276,8 @@ CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>::operator CPoint() const
 {
-	return CPoint((int)(*this)[0], (int)(*this)[1]);
+	return CPoint((int) floor((*this)[0] + 0.5), 
+		(int) floor((*this)[1] + 0.5));
 
 }	// CVectorD<DIM, TYPE>::operator CPoint() const
 #endif
@@ -507,7 +508,7 @@ inline CVectorD<3, TYPE> Cross(const CVectorD<3, TYPE>& vLeft,
 
 
 //////////////////////////////////////////////////////////////////////
-// ToHomogeneous(const CVectorD&)
+// ToHG(const CVectorD&)
 //
 // converts an N-dimensional vector to an N+1-dimensional homogeneous
 //		vector
@@ -529,12 +530,12 @@ inline CVectorD<DIM + 1, TYPE> ToHG(const CVectorD<DIM, TYPE>& v)
 
 	return vh;
 
-}	// ToHomogeneous(const CVectorD&)
+}	// ToHG(const CVectorD&)
 
 #define ToHomogeneous ToHG
 
 //////////////////////////////////////////////////////////////////////
-// FromHomogeneous(const CVectorD&)
+// FromHG(const CVectorD&)
 //
 // converts an N+1-dimensional homogeneous vector to an N-dimensional 
 //		vector
@@ -553,7 +554,7 @@ inline CVectorD<DIM, TYPE> FromHG(const CVectorD<DIM + 1, TYPE>& vh)
 
 	return v;
 
-}	// FromHomogeneous(const CVectorD&)
+}	// FromHG(const CVectorD&)
 
 #define FromHomogeneous FromHG
 
