@@ -68,6 +68,10 @@ void ReadVolumeFile(const char *pszFilename, CVolume<VOXEL_TYPE> *pBeamlet)
 
 }	// ReadVolumeFile
 
+const int MARGIN = 22;
+// generate number of shifts for base scale
+const int SHIFTS = pow(2, MAX_SCALES+1) - 1;
+const int DENS_SIZE = SHIFTS * 2 + 1 + 2 * MARGIN;
 
 ///////////////////////////////////////////////////////////////////////////////
 // GenBeamlets
@@ -78,24 +82,19 @@ void GenBeamlets(CBeam *pBeam)
 {
 	BEGIN_LOG_SECTION(GenBeamlets);
 
-	int nMargin = 22;
-	LOG_EXPR(nMargin);
-
-	// generate number of shifts for base scale
-	int nShifts = pow(2, MAX_SCALES+1) - 1;
-	int nDim = nShifts * 2 + 1 + 2 * nMargin;
-	LOG_EXPR(nShifts);
-	LOG_EXPR(nDim);
+	LOG_EXPR(MARGIN);
+	LOG_EXPR(SHIFTS);
+	LOG_EXPR(DENS_SIZE);
 
 	for (int nAt = 0; nAt < pBeam->m_arrBeamlets[0].GetSize(); nAt++)
 		delete pBeam->m_arrBeamlets[0][nAt];
 	pBeam->m_arrBeamlets[0].RemoveAll();
 
 	// generate beamlets for base scale
-	for (int nAtShift = -nShifts; nAtShift <= nShifts; nAtShift++)
+	for (int nAtShift = -SHIFTS; nAtShift <= SHIFTS; nAtShift++)
 	{
 		CVolume<REAL> *pBeamlet = new CVolume<REAL>;
-		pBeamlet->SetDimensions(nDim, nDim, 1);
+		pBeamlet->SetDimensions(DENS_SIZE, DENS_SIZE, 1);
 
 		if (g_bCylBeamlets)
 		{
@@ -108,12 +107,12 @@ void GenBeamlets(CBeam *pBeam)
 			{
 				for (int nAtCol = 0; nAtCol < pBeamlet->GetWidth(); nAtCol++)
 				{
-					REAL x = cos(gantry) * (REAL) (nAtCol - nShifts - nMargin)
-						- sin(gantry) * (REAL) (nAtRow - nShifts - nMargin)
+					REAL x = cos(gantry) * (REAL) (nAtCol - SHIFTS - MARGIN)
+						- sin(gantry) * (REAL) (nAtRow - SHIFTS - MARGIN)
 						- (REAL) nAtShift;
 
-					REAL px = 0.2 * (nAtCol - nShifts - nMargin);
-					REAL py = 0.2 * (nAtRow - nShifts - nMargin);
+					REAL px = 0.2 * (nAtCol - SHIFTS - MARGIN);
+					REAL py = 0.2 * (nAtRow - SHIFTS - MARGIN);
 
 					REAL dx = sin(gantry);
 					REAL dy = -cos(gantry);
@@ -205,14 +204,15 @@ void GenBeamlets(CBeam *pBeam)
 
 		pBeam->m_arrBeamlets[nAtScale].RemoveAll();
 
-		nShifts = pow(2, MAX_SCALES+1 - nAtScale) - 1;
+		int nShifts = pow(2, MAX_SCALES+1 - nAtScale) - 1;
+		// int nDim = pBeam->GetBeamlet(0, nAtScale-1)->GetWidth();
 
 		// generate beamlets for base scale
 		for (int nAtShift = -nShifts; nAtShift <= nShifts; nAtShift++)
 		{
 			CVolume<REAL> *pBeamlet = new CVolume<REAL>;
-			pBeamlet->SetDimensions(nDim, nDim, 1);
-			pBeamlet->SetBasis(pBeam->GetBeamlet(0, nAtScale-1)->GetBasis());
+			// pBeamlet->SetDimensions(nDim, nDim, 1);
+			pBeamlet->ConformTo(pBeam->GetBeamlet(0, nAtScale-1));
 			pBeamlet->ClearVoxels();
 
 			pBeamlet->Accumulate(pBeam->GetBeamlet(nAtShift * 2 - 1, nAtScale-1), 
@@ -247,8 +247,6 @@ void GenBeamlets(CBeam *pBeam)
 
 			pBeam->m_arrBeamlets[nAtScale].Add(pBeamletConvDec);
 		}
-
-		nDim = pBeam->GetBeamlet(0, nAtScale)->GetWidth();
 	}
 
 	END_LOG_SECTION();	// CBeamIMRT::GenBeamlets
@@ -285,7 +283,35 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		strcpy(g_pszBeamletPath, argv[1]);
 
+		// create series
+		CSeries *pSeries = new CSeries();
+
+		pSeries->m_pDens->SetDimensions(DENS_SIZE, DENS_SIZE, 1);
+		CMatrixD<4> mBasis;
+		mBasis[3][0] = -(pSeries->m_pDens->GetWidth() - 1) / 2;
+		mBasis[3][1] = -(pSeries->m_pDens->GetHeight() - 1) / 2;
+		pSeries->m_pDens->SetBasis(mBasis);
+
+
+		CVolume<REAL> origDensity;
+		origDensity.SetDimensions(127, 127, 1);
+		mBasis[3][0] = -(origDensity.GetWidth() - 1) / 2;
+		mBasis[3][1] = -(origDensity.GetHeight() - 1) / 2;
+		origDensity.SetBasis(mBasis);
+
+		// form file name
+		char pszFilename[80];
+		sprintf(pszFilename, 
+			"%s\\format_density.dat", g_pszBeamletPath);
+
+		ReadVolumeFile(pszFilename, &origDensity);
+		Resample(&origDensity, pSeries->m_pDens, TRUE);
+
+		pSeries->AddStructure(new CStructure("Target"));
+		pSeries->AddStructure(new CStructure("Avoid"));
+
 		CPlan *pPlan = new CPlan();
+		pPlan->SetSeries(pSeries);
 		for (int nAt = 3; nAt < argc; nAt++)
 		{
 			double gantry;
@@ -307,6 +333,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		CObArray arrWorkspace;
 		arrWorkspace.Add(pPlan);
+		arrWorkspace.Add(pSeries);
 		arrWorkspace.Serialize(ar);
 		ar.Close();
 		planFile.Close();

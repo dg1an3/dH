@@ -29,9 +29,6 @@ CSeries *g_pSeries = NULL;
 char g_pszPlanFile[128];
 CPlan *g_pPlan = NULL;
 
-CStructure *g_pStructTarget = NULL;
-CStructure *g_pStructAvoid = NULL;
-
 CPrescription *g_pPresc = NULL;
 
 
@@ -68,7 +65,6 @@ void InitPlan()
 	{
 		g_pSeries = new CSeries();
 	}
-
 	g_pPlan->SetSeries(g_pSeries);
 
 	g_pPresc = new CPrescription(g_pPlan, 0);
@@ -85,12 +81,9 @@ void InitUTarget(CVolume<REAL> *pTarget, CVolume<REAL> *pAvoid)
 {
 	BEGIN_LOG_SECTION(InitUTarget);
 
-	int nBeamletCount = 31;
+	int nBeamletCount = g_pPlan->GetBeamAt(0)->GetBeamletCount(0); // 31;
 	int nRegionSize = ((REAL) nBeamletCount / sqrt(2.0)) / 2 + 1;
 	int nMargin = pTarget->GetWidth() / 2 - nRegionSize;
-
-//	int nMargin = 4;
-//	int nRegionSize = pTarget->GetWidth() / 2 - nMargin;
 
 	REAL ***pppVoxelsTarget = pTarget->GetVoxels();
 	REAL ***pppVoxelsAvoid = pAvoid->GetVoxels();
@@ -130,36 +123,27 @@ void InitVolumes()
 {
 	BEGIN_LOG_SECTION(InitVolumes);
 
-	CVolume<REAL> *pDose = g_pPlan->GetDoseMatrix();
+	CStructure *pStructTarget = g_pSeries->GetStructureFromName("Target");	
 
-	g_pStructTarget = new CStructure("Target");
-	g_pSeries->m_arrStructures.Add(g_pStructTarget);
-
-	CMatrixD<4> mBasis;
-	mBasis[3][0] = -pDose->GetWidth() / 2;
-	mBasis[3][1] = -pDose->GetHeight() / 2;
-	CVolume<REAL> *pRegionTarget = g_pStructTarget->GetRegion(0);
-	pRegionTarget->ConformTo(pDose);
+	CVolume<REAL> *pRegionTarget = pStructTarget->GetRegion(0);
 	pRegionTarget->ClearVoxels();
 
-	g_pStructAvoid = new CStructure("Avoid");
-	g_pSeries->m_arrStructures.Add(g_pStructAvoid);
+	CStructure *pStructAvoid = g_pSeries->GetStructureFromName("Avoid");
 
-	CVolume<REAL> *pRegionAvoid = g_pStructAvoid->GetRegion(0);
-	pRegionAvoid->ConformTo(pDose);
+	CVolume<REAL> *pRegionAvoid = pStructAvoid->GetRegion(0);
 	pRegionAvoid->ClearVoxels();
 
 	InitUTarget(pRegionTarget, pRegionAvoid);
 
-	CKLDivTerm *pKLDT_Target = new CKLDivTerm(g_pStructTarget, 5.0);
+	CKLDivTerm *pKLDT_Target = new CKLDivTerm(pStructTarget, 5.0);
 	g_pPresc->AddStructureTerm(pKLDT_Target);
 
 	// need to call after adding to prescription (so that binning has been set)
 	pKLDT_Target->SetInterval(MAX_DOSE, MAX_DOSE * /* 1.05 */ 1.01, 1.0);
 
-	CKLDivTerm *pKLDT_Avoid = new CKLDivTerm(g_pStructAvoid, 0.5);
+	CKLDivTerm *pKLDT_Avoid = new CKLDivTerm(pStructAvoid, 0.5);
 	g_pPresc->AddStructureTerm(pKLDT_Avoid);
-	pKLDT_Avoid->SetInterval((REAL) 0.0, (REAL) 0.30,
+	pKLDT_Avoid->SetInterval((REAL) 0.0, (REAL) 0.40,
 		/* MAX_DOSE * 0.50 */ (REAL) 1.0);
 
 	END_LOG_SECTION();	// InitVolumes
