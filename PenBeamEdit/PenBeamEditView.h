@@ -12,8 +12,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Histogram.h>
 #include <Plan.h>
+#include "Histogram.h"
 
 class CPenBeamEditView : public CView
 {
