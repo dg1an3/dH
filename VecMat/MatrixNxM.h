@@ -1,12 +1,12 @@
 //////////////////////////////////////////////////////////////////////
-// Matrix.h: declaration and definition of the CMatrixN template class.
+// MatrixNxM.h: declaration and definition of the CMatrixNxM template class.
 //
 // Copyright (C) 1999-2001
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(MATRIXN_H)
-#define MATRIXN_H
+#if !defined(MATRIXNXM_H)
+#define MATRIXNXM_H
 
 #include "MathUtil.h"
 
@@ -14,80 +14,100 @@
 #include "VectorN.h"
 
 //////////////////////////////////////////////////////////////////////
-// class CMatrixN<TYPE>
+// class CMatrixNxM<TYPE>
 //
 // represents a square matrix with GetDim()ension and type given.
 //////////////////////////////////////////////////////////////////////
 template<class TYPE = double>
-class CMatrixN : public CMatrixBase<TYPE>
+class CMatrixNxM : public CMatrixBase<TYPE>
 {
 public:
 	//////////////////////////////////////////////////////////////////
 	// default constructor -- initializes to 0x0 matrix
 	//////////////////////////////////////////////////////////////////
-	CMatrixN()
+	CMatrixNxM()
 	{
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// constructs a specific-dimensioned matrix
 	//////////////////////////////////////////////////////////////////
-	CMatrixN(int nDim)
+	CMatrixNxM(int nCols, int nRows)
 	{
-		SetDim(nDim);
+		Reshape(nCols, nRows);
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
-	CMatrixN(const CMatrixN& fromMatrix)
+	CMatrixNxM(const CMatrixNxM& fromMatrix)
 	{
 		// sets the dimensions
-		SetDim(fromMatrix.GetDim());
-
-		// copy the elements
-		(*this) = fromMatrix;
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// copy constructor
-	//////////////////////////////////////////////////////////////////
-	CMatrixN(const CMatrixBase<TYPE>& fromMatrix)
-	{
-		// sets the dimensions
-		SetDim(fromMatrix.GetDim());
-
-		// copy the elements
-		(*this) = fromMatrix;
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// assignment operator
-	//////////////////////////////////////////////////////////////////
-	CMatrixN& operator=(const CMatrixBase<TYPE>& fromMatrix)
-	{
-		// sets the dimensions
-		SetDim(fromMatrix.GetDim());
+		Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
 
 		// SetIdentity to fill unoccupied parts of matrix
 		SetIdentity();
 
 		// copy the elements
-		int nDim = __min(GetDim(), fromMatrix.GetDim());
-		for (int nAt = 0; nAt < nDim; nAt++)
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			(*this)[nAt] = fromMatrix[nAt];
+			for (int nRow = 0; nRow < GetRows(); nRow++)
+			{
+				(*this)[nCol][nRow] = fromMatrix[nCol][nRow];
+			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// copy constructor
+	//////////////////////////////////////////////////////////////////
+	CMatrixNxM(const CMatrixBase<TYPE>& fromMatrix)
+	{
+		// sets the dimensions
+		Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
+
+		// SetIdentity to fill unoccupied parts of matrix
+		SetIdentity();
+
+		// copy the elements
+		for (int nCol = 0; nCol < GetCols(); nCol++)
+		{
+			for (int nRow = 0; nRow < GetRows(); nRow++)
+			{
+				(*this)[nCol][nRow] = fromMatrix[nCol][nRow];
+			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// assignment operator
+	//////////////////////////////////////////////////////////////////
+	CMatrixNxM& operator=(const CMatrixBase<TYPE>& fromMatrix)
+	{
+		// sets the dimensions
+		Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
+
+		// SetIdentity to fill unoccupied parts of matrix
+		SetIdentity();
+
+		// copy the elements
+		for (int nCol = 0; nCol < GetCols(); nCol++)
+		{
+			for (int nRow = 0; nRow < GetRows(); nRow++)
+			{
+				(*this)[nCol][nRow] = fromMatrix[nCol][nRow];
+			}
 		}
 
 		return (*this);
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// SetDim -- sets the dimension of the matrix
+	// Reshape -- sets the dimension of the matrix
 	//////////////////////////////////////////////////////////////////
-	void SetDim(int nDim)
+	void Reshape(int nCols, int nRows)
 	{
-		CMatrixBase<TYPE>::SetDim(nDim);
+		CMatrixBase<TYPE>::Reshape(nCols, nRows);
 	}
 };
 
@@ -99,13 +119,14 @@ public:
 // matrix serialization
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-CArchive& operator<<(CArchive &ar, CMatrixN<TYPE> m)
+CArchive& operator<<(CArchive &ar, CMatrixNxM<TYPE> m)
 {
 	// serialize the dimension
-	ar << m.GetDim();
+	ar << m.GetCols();
+	ar << m.GetRows();
 
 	// serialize the individual row vectors
-	for (int nAt = 0; nAt < m.GetDim(); nAt++)
+	for (int nAt = 0; nAt < m.GetCols(); nAt++)
 	{
 		ar << m[nAt];
 	}
@@ -120,15 +141,15 @@ CArchive& operator<<(CArchive &ar, CMatrixN<TYPE> m)
 // matrix serialization
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-CArchive& operator>>(CArchive &ar, CMatrixN<TYPE>& m)
+CArchive& operator>>(CArchive &ar, CMatrixNxM<TYPE>& m)
 {
 	// serialize the dimension
-	int nDim;
-	ar >> nDim;
-	m.SetDim(nDim);
+	int nCols, nRows;
+	ar >> nCols >> nRows;
+	m.Reshape(nCols, nRows);
 
 	// serialize the individual row vectors
-	for (int nAt = 0; nAt < m.GetDim(); nAt++)
+	for (int nAt = 0; nAt < m.GetCols(); nAt++)
 	{
 		ar >> m[nAt];
 	}
