@@ -26,3 +26,24 @@ COpenGLTracker::~COpenGLTracker()
 {
 
 }
+
+BOOL COpenGLTracker::IsInside(CPoint point) 
+{ 
+	return TRUE; 
+}
+
+void COpenGLTracker::OnButtonDown(UINT nFlags, CPoint point) 
+{ 
+}	
+
+void COpenGLTracker::OnButtonUp(UINT nFlags, CPoint point)   
+{ 
+}	
+
+void COpenGLTracker::OnMouseMove(UINT nFlags, CPoint point)  
+{ 
+}
+
+void COpenGLTracker::OnMouseDrag(UINT nFlags, CPoint point)  
+{ 
+}

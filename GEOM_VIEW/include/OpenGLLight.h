@@ -2,15 +2,21 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_OPENGLLIGHT_H__61F32F74_8AC7_11D5_ABAE_00B0D0AB90D6__INCLUDED_)
-#define AFX_OPENGLLIGHT_H__61F32F74_8AC7_11D5_ABAE_00B0D0AB90D6__INCLUDED_
+#if !defined(OPENGLLIGHT_H)
+#define OPENGLLIGHT_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+// vector include file
 #include <Vector.h>
 
+//////////////////////////////////////////////////////////////////////
+// class COpenGLLight
+// 
+// a light that lights a scene
+//////////////////////////////////////////////////////////////////////
 class COpenGLLight : public CObject  
 {
 public:
@@ -18,7 +24,6 @@ public:
 	COpenGLLight();
 	virtual ~COpenGLLight();
 
-public:
 	// accessors for the position of the light
 	const CVector<3>& GetPosition() const;
 	void SetPosition(const CVector<3>& vPos);
@@ -38,4 +43,4 @@ private:
 	COLORREF m_diffuseColor;
 };
 
-#endif // !defined(AFX_OPENGLLIGHT_H__61F32F74_8AC7_11D5_ABAE_00B0D0AB90D6__INCLUDED_)
+#endif // !defined(OPENGLLIGHT_H)

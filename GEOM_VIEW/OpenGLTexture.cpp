@@ -6,6 +6,8 @@
 //#include "vsim_ogl.h"
 #include "OpenGLTexture.h"
 
+#include "OpenGLView.h"
+
 #include "gl/gl.h"
 #include "gl/glu.h"
 

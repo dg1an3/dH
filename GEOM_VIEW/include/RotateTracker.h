@@ -2,25 +2,34 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_ROTATETRACKER_H__1369AB32_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_)
-#define AFX_ROTATETRACKER_H__1369AB32_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_
+#if !defined(ROTATETRACKER_H)
+#define ROTATETRACKER_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+// matrix/vector include files
 #include <Vector.h>
 #include <Matrix.h>
 
+// base class
 #include "OpenGLTracker.h"
 
+//////////////////////////////////////////////////////////////////////
+// class CRotateTracker
+//
+// tracker for rotating the view about a central point
+//////////////////////////////////////////////////////////////////////
 class CRotateTracker : public COpenGLTracker  
 {
 public:
+	// constructor/destructor
 	CRotateTracker(COpenGLView *pView);
 	virtual ~CRotateTracker();
 
-	virtual void OnLButtonDown(UINT nFlags, CPoint point);
+	// over-rides for handling button down and drag
+	virtual void OnButtonDown(UINT nFlags, CPoint point);
 	virtual void OnMouseDrag(UINT nFlags, CPoint point);
 
 private:
@@ -29,7 +38,9 @@ private:
 
 	// stores the initial projection matrix
 	CMatrix<4> m_initProjMatrix;
-	CMatrix<4> m_initModelXform;
+
+	// stores the initial view xform
+	CMatrix<4> m_initXform;
 };
 
-#endif // !defined(AFX_ROTATETRACKER_H__1369AB32_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_)
+#endif // !defined(ROTATETRACKER_H)

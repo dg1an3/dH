@@ -2,23 +2,32 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_OPENGLTEXTURE_H__88503651_F301_11D4_9E3D_00B0D0609AB0__INCLUDED_)
-#define AFX_OPENGLTEXTURE_H__88503651_F301_11D4_9E3D_00B0D0609AB0__INCLUDED_
+#if !defined(OPENGLTEXTURE_H)
+#define OPENGLTEXTURE_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "OpenGLView.h"
+// forward declaration of the view class
+class COpenGLView;
 
-class COpenGLTexture  
+//////////////////////////////////////////////////////////////////////
+// class COpenGLTexture
+//
+// represents a texture for texture-mapping
+//////////////////////////////////////////////////////////////////////
+class COpenGLTexture : public CObject 
 {
 public:
+	// constructor/destructor
 	COpenGLTexture();
 	virtual ~COpenGLTexture();
 
+	// width and height of texture image
 	void SetWidthHeight(int nWidth, int nHeight);
 
+	// get a DC for drawing the texture
 	CDC * GetDC();
 	void DrawBorder(int nWidth = 1);
 	void ReleaseDC();
@@ -26,25 +35,36 @@ public:
 	// loads the texture from a bitmap
 	BOOL LoadBitmap(UINT nResourceID);
 
+	// binds for rendering
 	void Bind(COpenGLView *pView, BOOL bWrap = FALSE);
 	void Unbind();
 
-private:
-	COpenGLView * m_pView;
-	int m_nWidth, m_nHeight;
+protected:
+	// helper function to process the transparency color
+	void ProcessTransparency();
 
+private:
+	// the view for the texture
+	COpenGLView *m_pView;
+
+	// the height and width of the texture
+	int m_nWidth;
+	int m_nHeight;
+
+	// texture handle
 	int m_nHandle;
 
-	CDC * m_pDC;
+	// the display context
+	CDC *m_pDC;
 
+	// the bitmap that holds the texture
 	CBitmap *m_pBitmap;
 
+	// the old bitmap (bookkeeping purposes)
 	CBitmap *m_pOldBitmap;
 
+	// the actual pixel values for the texture
 	CArray<COLORREF, COLORREF> m_arrPixels;
-
-protected:
-	void ProcessTransparency();
 };
 
-#endif // !defined(AFX_OPENGLTEXTURE_H__88503651_F301_11D4_9E3D_00B0D0609AB0__INCLUDED_)
+#endif // !defined(OPENGLTEXTURE_H)

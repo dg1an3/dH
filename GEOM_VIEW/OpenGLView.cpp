@@ -75,12 +75,12 @@ int COpenGLView::GetRendererCount() const
 	return m_arrRenderers.GetSize();
 }
 
-COpenGLRenderer *COpenGLView::GetRendererAt(int nAt)
+COpenGLRenderable *COpenGLView::GetRenderableAt(int nAt)
 {
-	return (COpenGLRenderer *) m_arrRenderers[nAt];
+	return (COpenGLRenderable *) m_arrRenderers[nAt];
 }
 
-int COpenGLView::AddRenderer(COpenGLRenderer *pRenderer) 
+int COpenGLView::AddRenderable(COpenGLRenderable *pRenderer) 
 { 
 	return m_arrRenderers.Add(pRenderer);
 }
@@ -120,17 +120,17 @@ int COpenGLView::AddLeftTracker(COpenGLTracker *pRenderer)
 // collection of trackers for middle button
 int COpenGLView::GetMiddleTrackerCount() const 
 { 
-	return m_arrLeftTrackers.GetSize();
+	return m_arrMiddleTrackers.GetSize();
 }
 
 COpenGLTracker *COpenGLView::GetMiddleTrackerAt(int nAt) 
 { 
-	return (COpenGLTracker *) m_arrLeftTrackers[nAt];
+	return (COpenGLTracker *) m_arrMiddleTrackers[nAt];
 }
 
 int COpenGLView::AddMiddleTracker(COpenGLTracker *pRenderer)
 {
-	return m_arrLeftTrackers.Add(pRenderer);
+	return m_arrMiddleTrackers.Add(pRenderer);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -466,13 +466,13 @@ void COpenGLView::OnPaint()
 		glPushMatrix();
 
 		// load the renderer's modelview matrix
-		glLoadMatrix(GetRendererAt(nAt)->GetModelviewMatrix());
+		glLoadMatrix(GetRenderableAt(nAt)->GetModelviewMatrix());
 
 		// save the current rendering attributes
 		// glPushAttrib(GL_ALL_ATTRIB_BITS);
 
 		// draw its scene
-		GetRendererAt(nAt)->DrawScene();
+		GetRenderableAt(nAt)->Render();
 
 		// restore the rendering attributes
 		// glPopAttrib();
@@ -512,7 +512,7 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 		if (GetLeftTrackerAt(nAt)->IsInside(point))
 		{
 			// found one
-			GetLeftTrackerAt(nAt)->OnLButtonDown(nFlags, point);
+			GetLeftTrackerAt(nAt)->OnButtonDown(nFlags, point);
 			break;
 		}
 	}
@@ -540,7 +540,7 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 	{
 		if (GetLeftTrackerAt(nAt)->IsInside(point))
 		{
-			GetLeftTrackerAt(nAt)->OnLButtonUp(nFlags, point);
+			GetLeftTrackerAt(nAt)->OnButtonUp(nFlags, point);
 			break;
 		}
 	}
@@ -568,10 +568,13 @@ void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point)
 	{
 		if (GetMiddleTrackerAt(nAt)->IsInside(point))
 		{
-			GetMiddleTrackerAt(nAt)->OnLButtonDown(nFlags, point);
+			GetMiddleTrackerAt(nAt)->OnButtonDown(nFlags, point);
 			break;
 		}
 	}
+
+	// set the capture for this window
+	SetCapture();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -593,10 +596,13 @@ void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point)
 	{
 		if (GetMiddleTrackerAt(nAt)->IsInside(point))
 		{
-			GetMiddleTrackerAt(nAt)->OnLButtonUp(nFlags, point);
+			GetMiddleTrackerAt(nAt)->OnButtonUp(nFlags, point);
 			break;
 		}
 	}
+
+	// release the capture
+	::ReleaseCapture();
 }
 
 /////////////////////////////////////////////////////////////////////////////

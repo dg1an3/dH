@@ -24,38 +24,6 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-/*
-//////////////////////////////////////////////////////////////////////
-// declare function factories for matrix arithmetic
-//////////////////////////////////////////////////////////////////////
-FUNCTION_FACTORY2(operator+, CMatrix<4>)
-FUNCTION_FACTORY2_ARG(operator*, CMatrix<4>, CMatrix<4>, CMatrix<4>)
-
-//////////////////////////////////////////////////////////////////////
-// declare function factories for matrix creation from parameters
-//////////////////////////////////////////////////////////////////////
-FUNCTION_FACTORY2(CreateRotate, CMatrix<4>)
-FUNCTION_FACTORY1(CreateTranslate, CMatrix<4>)
-FUNCTION_FACTORY2(CreateTranslate, CMatrix<4>)
-FUNCTION_FACTORY1(CreateScale, CMatrix<4>)
-
-//////////////////////////////////////////////////////////////////////
-// declare function factories for matrix inversion
-//////////////////////////////////////////////////////////////////////
-FUNCTION_FACTORY1(Invert, CMatrix<4>)
-*/
-CMatrix<4> ComputeScaleMatrix(const double& initY, const double& finalY)
-{
-	// compute the difference
-	double scale = exp(4.0 * (initY - finalY));
-	TRACE1("Scale = %lf\n", scale);
-
-	// now compute the rotation matrix
-	return CreateScale(CVector<3>(scale, scale, scale));
-}
-
-// FUNCTION_FACTORY2(ComputeScaleMatrix, CMatrix<4>)
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -67,34 +35,39 @@ CZoomTracker::CZoomTracker(COpenGLView *pView)
 
 CZoomTracker::~CZoomTracker()
 {
-
 }
 
-void CZoomTracker::OnLButtonDown(UINT nFlags, CPoint point)
+void CZoomTracker::OnButtonDown(UINT nFlags, CPoint point)
 {
-	privInitProjMatrix = m_pView->GetCamera().GetModelXform();
+	// store the projection matrix
+	m_initXform = m_pView->GetCamera().GetModelXform();
 
+	// get the client rectangle
 	CRect rect;
 	m_pView->GetClientRect(&rect);
-	privInitY = (double) point.y / (double) rect.Height();
 
-	privCurrY = privInitY;
-
-}
-
-void CZoomTracker::OnLButtonUp(UINT nFlags, CPoint point)
-{
-	m_pView->GetCamera().SetModelXform(privCurrProjMatrix);
+	// compute the relative y position
+	m_initY = (double) point.y / (double) rect.Height();
 }
 
 void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
+	// get the client rectangle
 	CRect rect;
 	m_pView->GetClientRect(&rect);
-	privCurrY = (double) point.y / (double) rect.Height();
 
-	privCurrProjMatrix = privInitProjMatrix 
-		* ComputeScaleMatrix(privInitY, privCurrY);
+	// compute the relative y position
+	double currY = (double) point.y / (double) rect.Height();
+
+	// compute the zoom factor
+	double zoom = exp(4.0 * (m_initY - currY));
+
+	// compute the projection matrix
+	CMatrix<4> currXform = m_initXform
+		* CMatrix<4>(CreateScale(CVector<3>(zoom, zoom, zoom)));
+
+	// set the new model xform
+	m_pView->GetCamera().SetModelXform(currXform);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

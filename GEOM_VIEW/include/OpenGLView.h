@@ -5,16 +5,18 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_OPENGLVIEW_H__0C017CB0_E5B8_11D4_9E2E_00B0D0609AB0__INCLUDED_)
-#define AFX_OPENGLVIEW_H__0C017CB0_E5B8_11D4_9E2E_00B0D0609AB0__INCLUDED_
+#if !defined(OPENGLVIEW_H)
+#define OPENGLVIEW_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+// matrix include file
 #include <Matrix.h>
 
-#include "OpenGLRenderer.h"
+// helper classes
+#include "OpenGLRenderable.h"
 #include "OpenGLCamera.h"
 #include "OpenGLLight.h"
 #include "OpenGLTracker.h"
@@ -27,6 +29,7 @@
 class COpenGLView : public CWnd
 {
 public:
+	// constructor/destructor
 	COpenGLView();           // protected constructor used by dynamic creation
 	virtual ~COpenGLView();
 
@@ -45,8 +48,8 @@ public:
 
 	// collection of renderers
 	int GetRendererCount() const;
-	COpenGLRenderer *GetRendererAt(int nAt);
-	int AddRenderer(COpenGLRenderer *pRenderer);
+	COpenGLRenderable *GetRenderableAt(int nAt);
+	int AddRenderable(COpenGLRenderable *pRenderer);
 
 	// collection of lights for the view
 	int GetLightCount() const;
@@ -89,7 +92,7 @@ protected:
 	void MakeCurrentGLRC();
 
 	// friend classes can access the OpenGL rendering context
-	friend class COpenGLRenderer;
+	friend class COpenGLRenderable;
 	friend class COpenGLTexture;
 
 #ifdef _DEBUG
@@ -148,4 +151,4 @@ private:
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
-#endif // !defined(AFX_OPENGLVIEW_H__0C017CB0_E5B8_11D4_9E2E_00B0D0609AB0__INCLUDED_)
+#endif // !defined(OPENGLVIEW_H)

@@ -9,29 +9,35 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+// matrix/vector include files
 #include <Vector.h>
 #include <Matrix.h>
 
+// base class
 #include "OpenGLTracker.h"
 
+//////////////////////////////////////////////////////////////////////
+// class CZoomTracker
+//
+// tracker for zooming the view
+//////////////////////////////////////////////////////////////////////
 class CZoomTracker : public COpenGLTracker  
 {
 public:
+	// constructor/destructor
 	CZoomTracker(COpenGLView *pView);
 	virtual ~CZoomTracker();
 
-	virtual void OnLButtonDown(UINT nFlags, CPoint point);
-	virtual void OnLButtonUp(UINT nFlags, CPoint point);
+	// over-rides for handling button down and drag
+	virtual void OnButtonDown(UINT nFlags, CPoint point);
 	virtual void OnMouseDrag(UINT nFlags, CPoint point);
 
 private:
-	double privInitY;
+	// stores the initial projection matrix
+	CMatrix<4> m_initXform;
 
-	CMatrix<4> privInitProjMatrix;
-
-	double privCurrY;
-
-	CMatrix<4> privCurrProjMatrix;
+	// stores the initial y position
+	double m_initY;
 };
 
 #endif // !defined(ZOOMTRACKER_H)

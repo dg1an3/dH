@@ -2,16 +2,18 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_OPENGLCAMERA_H__94F5EA60_85D6_11D5_ABA8_00B0D0AB90D6__INCLUDED_)
-#define AFX_OPENGLCAMERA_H__94F5EA60_85D6_11D5_ABA8_00B0D0AB90D6__INCLUDED_
+#if !defined(OPENGLCAMERA_H)
+#define OPENGLCAMERA_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+// vector and matrix include file
 #include <Vector.h>
 #include <Matrix.h>
 
+// event management
 #include <Observer.h>
 
 //////////////////////////////////////////////////////////////////////
@@ -130,4 +132,4 @@ inline CObservableEvent& COpenGLCamera::GetChangeEvent()
 	return m_eventChange;
 }
 
-#endif // !defined(AFX_OPENGLCAMERA_H__94F5EA60_85D6_11D5_ABA8_00B0D0AB90D6__INCLUDED_)
+#endif // !defined(OPENGLCAMERA_H)

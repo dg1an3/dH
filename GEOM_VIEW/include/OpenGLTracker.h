@@ -2,32 +2,42 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_OPENGLTRACKER_H__1369AB31_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_)
-#define AFX_OPENGLTRACKER_H__1369AB31_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_
+#if !defined(OPENGLTRACKER_H)
+#define OPENGLTRACKER_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Observer.h>
-
+// forward declaration of the view class
 class COpenGLView;
 
-class COpenGLTracker : public CObservableObject
+//////////////////////////////////////////////////////////////////////
+// class COpenGLTracker
+//
+// responds to mouse events on the view
+//////////////////////////////////////////////////////////////////////
+class COpenGLTracker : public CObject
 {
 public:
+	// constructor/destructor
 	COpenGLTracker(COpenGLView *pView);
 	virtual ~COpenGLTracker();
 
-	virtual BOOL IsInside(CPoint point) { return TRUE; }
+	// test for inside
+	virtual BOOL IsInside(CPoint point);
 
-	virtual void OnLButtonDown(UINT nFlags, CPoint point) { }
-	virtual void OnLButtonUp(UINT nFlags, CPoint point)   { }
-	virtual void OnMouseMove(UINT nFlags, CPoint point)   { }
-	virtual void OnMouseDrag(UINT nFlags, CPoint point)   { }
+	// handlers for button click events
+	virtual void OnButtonDown(UINT nFlags, CPoint point);	
+	virtual void OnButtonUp(UINT nFlags, CPoint point);
+
+	// handlers for mouse move events
+	virtual void OnMouseMove(UINT nFlags, CPoint point);
+	virtual void OnMouseDrag(UINT nFlags, CPoint point);
 
 protected:
+	// pointer to the view
 	COpenGLView *m_pView;
 };
 
-#endif // !defined(AFX_OPENGLTRACKER_H__1369AB31_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_)
+#endif // !defined(OPENGLTRACKER_H)
