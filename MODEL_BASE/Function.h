@@ -263,6 +263,15 @@ CValue< TYPE >& FUNCTION(CValue< ARG_TYPE >& val)							\
 	return (*pFunc);														\
 } 
 
+#define FUNCTION_FACTORY1_ARG(FUNCTION, TYPE, ARG_TYPE) \
+CValue< TYPE >& FUNCTION(CValue< ARG_TYPE >& val)							\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction1< TYPE, ARG_TYPE >(FUNCTION, &val);					\
+	val.AddDerivedObject((CObject *)pFunc);									\
+	return (*pFunc);														\
+} 
+
 
 //////////////////////////////////////////////////////////////////////
 // macro FUNCTION_FACTORY2
@@ -297,6 +306,38 @@ CValue< TYPE >& FUNCTION(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)	\
 {																			\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION, lConst, &rVal);\
+	rVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+} 
+
+#define FUNCTION_FACTORY2_ARG(FUNCTION, TYPE, ARG1_TYPE, ARG2_TYPE)	\
+inline \
+CValue< TYPE >& FUNCTION(CValue< ARG1_TYPE >& lVal,							\
+		CValue< ARG2_TYPE >& rVal)											\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >(FUNCTION,				\
+			&lVal, &rVal);													\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+inline \
+CValue< TYPE >& FUNCTION(CValue< ARG1_TYPE >& lVal, const ARG2_TYPE& rConst)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >						\
+			(FUNCTION, &lVal, rConst);										\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+inline \
+CValue< TYPE >& FUNCTION(const ARG1_TYPE& lConst, CValue< ARG2_TYPE >& rVal)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >						\
+			(FUNCTION, lConst, &rVal);										\
 	rVal.AddDerivedObject((CObject *)pFunc);								\
 	return (*pFunc);														\
 } 
@@ -342,5 +383,36 @@ CValue< TYPE >& FUNCTION1(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)\
 	rVal.AddDerivedObject((CObject *)pFunc);								\
 	return (*pFunc);														\
 } 
+
+#define FUNCTION_FACTORY2_RENAME_ARG(FUNCTION1, FUNCTION2, TYPE, ARG1_TYPE, ARG2_TYPE)	\
+inline \
+CValue< TYPE >& FUNCTION1(CValue< ARG1_TYPE >& lVal,						\
+		CValue< ARG2_TYPE >& rVal)											\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >(FUNCTION2,				\
+			&lVal, &rVal);													\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+inline \
+CValue< TYPE >& FUNCTION1(CValue< ARG1_TYPE >& lVal, const ARG2_TYPE& rConst)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION2, &lVal, rConst);\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+inline \
+CValue< TYPE >& FUNCTION1(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION2, lConst, &rVal);\
+	rVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+} 
+
 
 #endif // !defined(AFX_FUNCTION_H__9ADD8ED4_FC5D_11D4_9E43_00B0D0609AB0__INCLUDED_)
