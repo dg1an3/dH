@@ -32,6 +32,9 @@ using namespace std;
 #include "TreatmentMachine.h"
 
 
+const int MAX_SCALES = 3;
+
+
 //////////////////////////////////////////////////////////////////////
 // class CBeam
 //
@@ -94,7 +97,7 @@ public:
 	void SetDoseValid(BOOL bValid = TRUE);
 
 	// the computed dose for this beam (NULL if no dose exists)
-	CVolume<double> *GetDoseMatrix();
+	CVolume<double> *GetDoseMatrix(int nScale = 0);
 
 	// beam serialization
 	void Serialize(CArchive &ar);
@@ -141,8 +144,11 @@ private:
 	// flag to indicate whether the plan's dose is valid
 	BOOL m_bDoseValid;
 
-	// the computed dose for this beam (NULL if no dose exists)
-	CVolume<double> m_dose;
-};
+protected:
+	mutable CVolume<double> m_arrDose[MAX_SCALES];
+	mutable BOOL m_arrRecalcDose[MAX_SCALES];
+
+};	// class CBeam
+
 
 #endif // !defined(AFX_BEAM_H__C7A6AA30_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)

@@ -28,11 +28,11 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // CBeam::CBeam
 // 
 // constructs a new CBeam object
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 CBeam::CBeam()
 	: m_collimAngle(0.0),
 		m_gantryAngle(PI),
@@ -46,7 +46,7 @@ CBeam::CBeam()
 
 		m_weight(1.0)
 {
-}
+}	// CBeam::CBeam
 
 //////////////////////////////////////////////////////////////////////
 // CBeam serialization
@@ -73,7 +73,9 @@ CBeam::~CBeam()
 	{
 		delete m_arrBlocks[nAt];
 	}
-}
+
+}	// CBeam::~CBeam
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetTreatmentMachine
@@ -83,7 +85,9 @@ CBeam::~CBeam()
 CTreatmentMachine *CBeam::GetTreatmentMachine()
 {
 	return &m_Machine;
-}
+
+}	// CBeam::GetTreatmentMachine
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetCollimAngle
@@ -224,12 +228,12 @@ const CMatrixD<4>& CBeam::GetBeamToFixedXform() const
 	m_beamToFixedXform = 
 
 		// gantry rotation
-		CMatrixD<4>(CreateRotate(PI - m_gantryAngle,	
-			CVectorD<3>(0.0, -1.0, 0.0)))
+		CMatrixD<4>( CreateRotate( ((REAL) (PI - m_gantryAngle)),	
+			CVectorD<3>(0.0, -1.0, 0.0)) )
 
 		// collimator rotation
-		* CMatrixD<4>(CreateRotate(m_collimAngle,		
-			CVectorD<3>(0.0, 0.0, -1.0)))
+		* CMatrixD<4>( CreateRotate( ((REAL) m_collimAngle),		
+			CVectorD<3>(0.0, 0.0, -1.0)) )
 
 		// SAD translation
 		* CreateTranslate(m_Machine.GetSAD(),		
@@ -252,7 +256,7 @@ const CMatrixD<4>& CBeam::GetBeamToPatientXform() const
 		CreateTranslate(m_vTableOffset)
 
 		// couch rotation
-		* CMatrixD<4>(CreateRotate(m_couchAngle,	
+		* CMatrixD<4>(CreateRotate( ((REAL) m_couchAngle),	
 			CVectorD<3>(0.0, 0.0, -1.0)))
 
 		// beam to IEC fixed xform
@@ -403,9 +407,9 @@ void CBeam::SetDoseValid(BOOL bValid)
 // 
 // the computed dose for this beam (NULL if no dose exists)
 //////////////////////////////////////////////////////////////////////
-CVolume<double> *CBeam::GetDoseMatrix()
+CVolume<double> *CBeam::GetDoseMatrix(int nScale)
 {
-	return &m_dose;
+	return &m_arrDose[nScale];
 }
 
 
@@ -489,11 +493,11 @@ void CBeam::Serialize(CArchive &ar)
 		// empty the dose matrix if it is not valid
 		if (ar.IsStoring() && !m_bDoseValid)
 		{
-			m_dose.SetDimensions(0, 0, 0);
+			m_arrDose[0].SetDimensions(0, 0, 0);
 		}
 
 		// serialize the dose matrix
-		m_dose.Serialize(ar);
+		m_arrDose[0].Serialize(ar);
 	}
 
 	// serialize the beam weight
