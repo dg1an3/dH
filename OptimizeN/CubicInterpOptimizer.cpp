@@ -7,6 +7,9 @@
 
 #include <MatrixD.h>
 
+// include implementation of matrix base class
+#include <MatrixBase.inl>
+
 // holds the initial value for the brent optimization
 const CVectorN<> CCubicInterpOptimizer::m_vInit(1);
 
