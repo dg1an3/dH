@@ -513,7 +513,7 @@ inline CVectorD<3, TYPE> Cross(const CVectorD<3, TYPE>& vLeft,
 //		vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVectorD<DIM + 1, TYPE> ToHomogeneous(const CVectorD<DIM, TYPE>& v) 
+inline CVectorD<DIM + 1, TYPE> ToHG(const CVectorD<DIM, TYPE>& v) 
 {
 	// create the homogeneous vector
 	CVectorD<DIM + 1, TYPE> vh;
@@ -531,6 +531,7 @@ inline CVectorD<DIM + 1, TYPE> ToHomogeneous(const CVectorD<DIM, TYPE>& v)
 
 }	// ToHomogeneous(const CVectorD&)
 
+#define ToHomogeneous ToHG
 
 //////////////////////////////////////////////////////////////////////
 // FromHomogeneous(const CVectorD&)
@@ -539,7 +540,7 @@ inline CVectorD<DIM + 1, TYPE> ToHomogeneous(const CVectorD<DIM, TYPE>& v)
 //		vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVectorD<DIM, TYPE> FromHomogeneous(const CVectorD<DIM + 1, TYPE>& vh) 
+inline CVectorD<DIM, TYPE> FromHG(const CVectorD<DIM + 1, TYPE>& vh) 
 {
 	// create the non-homogeneous vector
 	CVectorD<DIM, TYPE> v;
@@ -554,6 +555,7 @@ inline CVectorD<DIM, TYPE> FromHomogeneous(const CVectorD<DIM + 1, TYPE>& vh)
 
 }	// FromHomogeneous(const CVectorD&)
 
+#define FromHomogeneous FromHG
 
 #ifdef __AFX_H__
 //////////////////////////////////////////////////////////////////////
@@ -591,58 +593,5 @@ CArchive& operator>>(CArchive &ar, CVectorD<DIM, TYPE>& v)
 
 }	// operator>>(CArchive &ar, CVectorD)
 #endif
-
-
-//////////////////////////////////////////////////////////////////////
-// class CPackedVector<DIM, TYPE>
-//
-// helper class for a packed static vector
-//////////////////////////////////////////////////////////////////////
-template<int DIM = 4, class TYPE = double>
-class CPackedVectorD
-{
-public:
-	//////////////////////////////////////////////////////////////////
-	// default constructor
-	//////////////////////////////////////////////////////////////////
-	CPackedVectorD()
-	{
-		for (int nAt = 0; nAt < DIM; nAt++)
-			m_arrElements[nAt] = 0.0;
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// copy constructor
-	//////////////////////////////////////////////////////////////////
-	CPackedVectorD(const CVectorD<DIM, TYPE>& vFrom)
-	{
-		for (int nAt = 0; nAt < DIM; nAt++)
-			m_arrElements[nAt] = vFrom[nAt];
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// cast to CVectorD
-	//////////////////////////////////////////////////////////////////
-	operator CVectorD<DIM, TYPE>() const
-	{
-		CVectorD<DIM, TYPE> vConv;
-		for (int nAt = 0; nAt < DIM; nAt++)
-			vConv[nAt] = m_arrElements[nAt];
-
-		return vConv;
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// cast to TYPE*
-	//////////////////////////////////////////////////////////////////
-	operator TYPE*()
-	{
-		return &m_arrElements[0];
-	}
-
-protected:
-	// the vector's elements
-	TYPE m_arrElements[DIM];
-};
 
 #endif	// !defined(VECTOR_H)
