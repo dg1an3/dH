@@ -61,6 +61,10 @@ public:
 	// direct accessor for the voxels
 	VOXEL_TYPE ***GetVoxels();
 	const VOXEL_TYPE * const * const *GetVoxels() const;
+	void VoxelsChanged() {
+		m_bRecomputeSum = TRUE;
+		m_bRecomputeThresh = TRUE;
+	}
 
 	// sets the raw voxel pointer
 	void SetVoxels(VOXEL_TYPE *pVoxels, int nWidth, int nHeight, int nDepth);
@@ -681,6 +685,7 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 	}    
 
 	// TODO: how to set flags?
+	pRes->VoxelsChanged();
 	pRes->GetChangeEvent().Fire();
 
 }	// Convolve
@@ -716,6 +721,7 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 	}
 
 	// TODO: how to set flags?
+	pVol->VoxelsChanged();
 	pVol->GetChangeEvent().Fire();
 
 }	// CalcBinomialFilter
@@ -733,7 +739,11 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 	int nBaseDec = nBase / 2;
 
 	pRes->SetDimensions(nBaseDec * 2 +1, nBaseDec * 2 + 1, 1);
-	
+
+	CMatrixD<4> mBasis = pVol->GetBasis();
+	mBasis[3][0] = -nBaseDec;
+	mBasis[3][1] = -nBaseDec;
+	pRes->SetBasis(mBasis);
 	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
 	VOXEL_TYPE ***pppRes = pRes->GetVoxels();
 	for (int nAtRow = -nBaseDec; nAtRow <= nBaseDec; nAtRow++)
@@ -746,6 +756,7 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 	}
 
 	// TODO: how to set flags?
+	pRes->VoxelsChanged();
 	pRes->GetChangeEvent().Fire();
 
 }	// Decimate
@@ -797,6 +808,7 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 	}
 
 	// TODO: how to set flags?
+	pNew->VoxelsChanged();
 	pNew->GetChangeEvent().Fire();
 
 }	// Rotate
@@ -815,6 +827,14 @@ inline void ClipRaster(int nDim,
 {
 	if (IsApproxEqual(vOffset[nDim], (REAL) 0))
 	{
+		// see if we're between the start & end
+		if (vStart[nDim] < nSrcStart || vStart[nDim] > nSrcEnd)
+		{
+			int nTemp = (*pnDstStart);
+			(*pnDstStart) = (*pnDstEnd);
+			(*pnDstEnd) = nTemp;
+		}
+
 		return;
 	}
 
@@ -867,8 +887,8 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 		// now clip
 		int nStart = 0;
 		int nEnd = pNew->GetWidth();
-		ClipRaster(0, 0, pOrig->GetWidth(), vOX, vX, &nStart, &nEnd);
-		ClipRaster(1, 0, pOrig->GetHeight(), vOX, vX, &nStart, &nEnd);
+		ClipRaster(0, 2, pOrig->GetWidth()-2, vOX, vX, &nStart, &nEnd);
+		ClipRaster(1, 2, pOrig->GetHeight()-2, vOX, vX, &nStart, &nEnd);
 		ASSERT(nStart >= 0);
 		ASSERT(nEnd <= pNew->GetWidth());
 
@@ -916,6 +936,10 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 
 		vOY += vY;
 	}
+
+	// TODO: how to set flags?
+	pNew->VoxelsChanged();
+	pNew->GetChangeEvent().Fire();
 
 }	// Resample
 
