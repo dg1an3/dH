@@ -39,7 +39,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		REAL GBinSigma = (REAL) 0.20;
 		int nAtSigma[] = {4, 2, 1};
 		REAL tol[] = // {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
-			{(REAL) 1e-4, (REAL) 1e-4, (REAL) 1e-4};
+			{(REAL) 1e-3, (REAL) 1e-3, (REAL) 1e-3};
 			// {(REAL) 1e-5, (REAL) 1e-5, (REAL) 1e-5};
 		CPrescription *pPresc = this;
 		pPresc->SetGBinSigma(GBinSigma / nAtSigma[0]);
@@ -126,7 +126,7 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 		static CVolume<REAL> volGroupMain;
 		volGroupMain.ConformTo(pVolume);
 		volGroupMain.ClearVoxels();
-		Resample(&volGroup, &volGroupMain, // FALSE); // 
+		Resample(&volGroup, &volGroupMain, // FALSE); 
 			TRUE);
 
 		// and accumulate

@@ -111,6 +111,16 @@ private:
 	// flag to indicate bins should be recomputed
 	mutable BOOL m_bRecomputeBins;
 
+#if defined(USE_IPP)
+	mutable CVolume<REAL> *m_pVolume_BinScaled;
+
+	mutable BOOL m_bRecomputeBinScaledVolume;
+
+	mutable CVolume<short> *m_pVolume_BinLowInt;
+	mutable CVolume<REAL> *m_pVolume_Frac;
+	mutable CVolume<REAL> *m_pVolume_FracLow;
+#endif
+
 	// cumulative bins
 	mutable CVectorN<> m_arrCumBins;
 
