@@ -136,16 +136,40 @@ CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator=(const CMatrixBase<TYPE>& fromMatri
 template<class TYPE>
 void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows)
 {
-	if (GetRows() == nRows && GetCols() == nCols)
+	if (GetRows() == nRows 
+		&& GetCols() == nCols)
 	{
 		return;
 	}
 
-	// allocate and set the new elements
-	SetElements(nCols, nRows, new TYPE[nCols * nRows], TRUE);
+	// preserve existing elements
+	int nOldRows = GetRows();
+	int nOldCols = GetCols();
+	TYPE *pOldElements = m_pElements;
+
+	// allocate and set the new elements, but do not free the old
+	TYPE *pNewElements = new TYPE[nCols * nRows];
+	memset(pNewElements, 0, sizeof(TYPE) * nCols * nRows);
+	SetElements(nCols, nRows, pNewElements, FALSE);
+
+	if (pOldElements)
+	{
+		// create a temporary matrix to hold the old elements
+		CMatrixNxM<> mTemp;
+		mTemp.SetElements(nOldCols, nOldRows, pOldElements, TRUE);
+
+		// and assign
+		for (int nAtCol = 0; nAtCol < __min(GetCols(), mTemp.GetCols()); nAtCol++)
+		{
+			for (int nAtRow = 0; nAtRow < __min(GetRows(), mTemp.GetRows()); nAtRow++)
+			{
+				(*this)[nAtCol][nAtRow] = mTemp[nAtCol][nAtRow];
+			}
+		}
+	}
 
 	// populate as an identity matrix
-	SetIdentity();
+	// SetIdentity();
 }
 
 
@@ -394,11 +418,9 @@ CArchive& operator<<(CArchive &ar, CMatrixNxM<TYPE> m)
 	ar << m.GetCols();
 	ar << m.GetRows();
 
-	// serialize the individual row vectors
-	for (int nAt = 0; nAt < m.GetCols(); nAt++)
-	{
-		ar << m[nAt];
-	}
+	// serialize the individual elements
+	ar.Write((TYPE *) m, m.GetCols() * m.GetRows() * sizeof(TYPE));
+
 
 	// return the archive object
 	return ar;
@@ -417,11 +439,8 @@ CArchive& operator>>(CArchive &ar, CMatrixNxM<TYPE>& m)
 	ar >> nCols >> nRows;
 	m.Reshape(nCols, nRows);
 
-	// serialize the individual row vectors
-	for (int nAt = 0; nAt < m.GetCols(); nAt++)
-	{
-		ar >> m[nAt];
-	}
+	// serialize the individual elements
+	ar.Read((TYPE *) m, nCols * nRows * sizeof(TYPE));
 
 	// return the archive object
 	return ar;
