@@ -1,0 +1,75 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "GEOM_BASE"="..\GEOM_BASE\GEOM_BASE.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "GUI_BASE"="..\GUI_BASE\GUI_BASE.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "MODEL_BASE"="..\MODEL_BASE\MODEL_BASE.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "PenBeamEdit"=".\PenBeamEdit.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name GEOM_BASE
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name GUI_BASE
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name MODEL_BASE
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+    {3A2B370C-BA0A-11D1-B137-0000F8753F5D}
+}}}
+
+###############################################################################
+
