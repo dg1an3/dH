@@ -119,6 +119,20 @@ public:
 	}
 
 	//////////////////////////////////////////////////////////////////
+	// forms the max of the volume voxel values
+	//////////////////////////////////////////////////////////////////
+	VOXEL_TYPE GetMax()
+	{
+		VOXEL_TYPE nMaxValue = 0; // numeric_limits<VOXEL_TYPE>::min();
+		for (int nAtZ = 0; nAtZ < depth.Get(); nAtZ++)
+			for (int nAtY = 0; nAtY < height.Get(); nAtY++)
+				for (int nAtX = 0; nAtX < width.Get(); nAtX++)
+					nMaxValue = max(nMaxValue, GetVoxels()[nAtZ][nAtY][nAtX]);
+
+		return nMaxValue;
+	}
+
+	//////////////////////////////////////////////////////////////////
 	// serializes the volume
 	//////////////////////////////////////////////////////////////////
 	virtual void Serialize(CArchive& ar)

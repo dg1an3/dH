@@ -63,8 +63,8 @@ LIB32=link.exe -lib
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ  /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ   /c
+# ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -101,12 +101,24 @@ SOURCE=.\Polygon.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\PseudocolorFilter.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Resampler.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
 # End Source File
 # Begin Source File
 
 SOURCE=.\Surface.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\WinLevFilter.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -150,6 +162,14 @@ SOURCE=.\include\Polygon.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\include\PseudocolorFilter.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\Resampler.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\ScalarFunction.h
 # End Source File
 # Begin Source File
@@ -175,6 +195,10 @@ SOURCE=.\include\VectorN.h
 # Begin Source File
 
 SOURCE=.\include\Volumep.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\WinLevFilter.h
 # End Source File
 # End Group
 # Begin Source File
