@@ -99,7 +99,9 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 		CVolume<REAL> *p_dVolume = pHisto->Get_dVolume(nAt_dVolume);
 		ASSERT(p_dVolume->GetWidth() == pVolume->GetWidth());
 
-		pVolume->Accumulate(p_dVolume, Sigmoid(vInput[nAt_dVolume], m_inputScale));
+		pVolume->Accumulate(p_dVolume, 
+			Sigmoid(vInput[nAt_dVolume], m_inputScale), TRUE);
+		LOG_EXPR(pVolume->GetMax());
 	}
 
 }	// CPrescription::CalcSumSigmoid
@@ -275,7 +277,9 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, CCallbackFunc func)
 
 	for (int nAt = 0; nAt < vInit.GetDim(); nAt++)
 	{
+		ASSERT(_finite(vInit[nAt]));
 		vInit[nAt] = InvSigmoid(vInit[nAt], m_inputScale);
+		ASSERT(_finite(vInit[nAt]));
 	}
 
 	m_pOptimizer->SetTolerance(m_tolerance);
@@ -334,6 +338,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 	CVolume<REAL> *pDose 
 		= m_pPlan->GetBeamAt(0)->GetBeamlet(0, m_nLevel);
 	m_sumVolume.SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
+	m_sumVolume.SetBasis(pDose->GetBasis());
 
 #ifdef INIT_VOLUME_IN_PRESC
 	CVolume<REAL> *pRegion = pStruct->GetRegion(0);
@@ -357,7 +362,9 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		int nBeamlet;
 		GetBeamletFromSVElem(nAtElem, m_nLevel, &nBeam, &nBeamlet);
 
-		pHisto->Add_dVolume(m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel));
+		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
+		pBeamlet->SetThreshold((REAL) 1e-1); // pow(10, -(m_nLevel+1)));
+		pHisto->Add_dVolume(pBeamlet);
 	}
 
 	// add to the current prescription
