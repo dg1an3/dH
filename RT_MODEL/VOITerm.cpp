@@ -40,6 +40,14 @@ CVOITerm::~CVOITerm()
 
 IMPLEMENT_SERIAL(CVOITerm, CModelObject, 1);
 
+
+CVOITerm& CVOITerm::operator=(const CVOITerm& otherTerm)
+{
+	SetWeight(otherTerm.GetWeight());
+
+	return (*this);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // CVOITerm::Subcopy
 // 
@@ -82,3 +90,15 @@ CVOITerm *CVOITerm::GetLevel(int nLevel, BOOL bCreate)
 	return NULL;
 
 }	// CVOITerm::GetSubcopy
+
+void CVOITerm::SetWeight(REAL weight)
+{
+	m_weight = weight;
+	if (m_pNextScale)
+		m_pNextScale->SetWeight(weight);
+}
+
+REAL CVOITerm::GetWeight() const
+{
+	return m_weight;
+}

@@ -26,6 +26,8 @@ public:
 
 	DECLARE_SERIAL(CVOITerm);
 
+	virtual CVOITerm& operator=(const CVOITerm& otherTerm);
+
 	void SetStructure(CStructure *pStructure);
 
 	// returns the specified subcopy 
@@ -51,6 +53,9 @@ protected:
 	// the histogram for the term
 	CHistogram m_histogram;
 
+public:
+	REAL GetWeight() const;
+	void SetWeight(REAL weight);
 	// the weight
 	REAL m_weight;
 
