@@ -30,7 +30,6 @@ COpenGLView::COpenGLView()
 		m_bDragging(FALSE),
 		m_bMiddleDragging(FALSE)
 {
-	camera.modelXform.AddObserver(this, (ChangeFunction) OnChangeLight);
 }
 
 COpenGLView::~COpenGLView()
@@ -423,21 +422,4 @@ void COpenGLView::OnMouseMove(UINT nFlags, CPoint point)
 void COpenGLView::MakeCurrentGLRC()
 {
 	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
-}
-
-void COpenGLView::OnChangeLight(CObservableObject *pSource, void *pOldValue)
-{
-	MakeCurrentGLRC();
-
-/*	CVector<4> vLightPosition(-500.0, 500.0, -250.0, 1.0);
-	CMatrix<4> mInvProj = Invert(camera.modelXform.Get()); // camera.projectionMatrix.Get());
-	vLightPosition = mInvProj * vLightPosition;
-
-	GLfloat position [] = { // 1.0, 1.0, 100.0, 0.0 };
-		(float) vLightPosition[0], 
-		(float) vLightPosition[1], 
-		(float) vLightPosition[2], 1.0 };
-
-	glLightfv(GL_LIGHT0, GL_POSITION, position);
-*/
 }

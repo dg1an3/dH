@@ -73,9 +73,6 @@ protected:
 	friend class COpenGLRenderer;
 	friend class COpenGLTexture;
 
-	// callback to shift the light when the camera shifts
-	void OnChangeLight(CObservableObject *pSource, void *pOldValue);
-
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
