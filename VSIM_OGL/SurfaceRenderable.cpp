@@ -21,40 +21,6 @@ static char THIS_FILE[]=__FILE__;
 
 #define PEN_THICKNESS (TEX_RESOLUTION / 100)
 
-// CVector<3> CSurfaceRenderable::m_vXlate;
-
-//////////////////////////////////////////////////////////////////////
-// function CreateScale
-//
-// creates a rotation matrix given an angle and an axis of rotation
-//////////////////////////////////////////////////////////////////////
-static CMatrix<4> CreateScaleHG(const CVector<3>& vScale)
-{
-	// start with an identity matrix
-	CMatrix<3> mScale = CreateScale(vScale);
-
-	CMatrix<4> mScaleHG(mScale);
-
-	return mScaleHG;
-}
-
-//////////////////////////////////////////////////////////////////////
-// function CreateRotate
-//
-// creates a rotation matrix given an angle and an axis of rotation
-//////////////////////////////////////////////////////////////////////
-static CMatrix<4> CreateRotateHG(const double& theta, 
-							   const CVector<3>& vAxis)
-{
-	// start with an identity matrix
-	CMatrix<3> mRotate = CreateRotate(theta, vAxis);
-
-	CMatrix<4> mRotateHG(mRotate);
-
-	return mRotateHG;
-}
-
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -70,11 +36,6 @@ CSurfaceRenderable::CSurfaceRenderable(CSceneView *pView)
 		m_bShowBoundsSurface(FALSE)
 {
 	SetColor(RGB(192, 192, 192));
-	// isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
-	// isColorWash.AddObserver(this, (ChangeFunction) OnChange);
-
-	// couchAngle.AddObserver(this, (ChangeFunction) OnPositionChange);
-	// tableOffset.AddObserver(this, (ChangeFunction) OnPositionChange);
 }
 
 CSurfaceRenderable::~CSurfaceRenderable()
@@ -93,23 +54,25 @@ CSurface * CSurfaceRenderable::GetSurface()
 
 void CSurfaceRenderable::SetSurface(CSurface *pSurface)
 {
-	if (m_pSurface != NULL)
+	if (NULL != m_pSurface)
 	{
 		// remove this as an observer of surface changes
 		::RemoveObserver<CSurfaceRenderable>(&m_pSurface->GetChangeEvent(),
-			this, OnChange);
+			this, Invalidate);
 	}
 
+	// assign the pointer
 	m_pSurface = pSurface;
 
-	if (m_pSurface != NULL)
+	if (NULL != m_pSurface)
 	{
 		// add this as an observer of surface changes
 		::AddObserver<CSurfaceRenderable>(&m_pSurface->GetChangeEvent(),
-			this, OnChange);
+			this, Invalidate);
 
 		// set the renderables centroid to the center of the bounding box
-		SetCentroid(0.5 * (m_pSurface->GetBoundsMin() + m_pSurface->GetBoundsMax()));
+		SetCentroid(0.5 * (m_pSurface->GetBoundsMin() 
+			+ m_pSurface->GetBoundsMax()));
 	}
 
 	// trigger re-rendering
@@ -123,15 +86,25 @@ CBeam * CSurfaceRenderable::GetLightFieldBeam()
 
 void CSurfaceRenderable::SetLightFieldBeam(CBeam *pBeam)
 {
-	if (m_pBeam != NULL)
-		m_pBeam->GetChangeEvent().RemoveObserver(this, (ChangeFunction) OnChange);
+	if (NULL != m_pBeam)
+	{
+		// remove this as an observer of surface changes
+		::RemoveObserver<CSurfaceRenderable>(&m_pBeam->GetChangeEvent(),
+			this, OnBeamChanged);
+	}
 
+	// assign the pointer
 	m_pBeam = pBeam;
 
-	if (m_pBeam != NULL)
-		m_pBeam->GetChangeEvent().AddObserver(this, (ChangeFunction) OnChange);
+	if (NULL != m_pBeam)
+	{
+		// add this as an observer of surface changes
+		::AddObserver<CSurfaceRenderable>(&m_pBeam->GetChangeEvent(),
+			this, OnBeamChanged);
+	}
 
-	Invalidate();
+	// re-render
+	OnBeamChanged(&m_pBeam->GetChangeEvent(), NULL);
 }
 
 void CSurfaceRenderable::DescribeOpaque()
@@ -346,30 +319,6 @@ void CSurfaceRenderable::DescribeOpaque()
 	}
 }
 
-void CSurfaceRenderable::OnChange(CObservableObject *pFromObject, void *pOldValue)
-{
-	if (pFromObject->GetParent() == GetLightFieldBeam())
-	{
-		if (m_pLightfieldTexture != NULL)
-		{
-			// trigger re-generation of the lightfield texture
-			delete m_pLightfieldTexture;
-			m_pLightfieldTexture = NULL;
-		}
-	}
-
-	CRenderable::Invalidate();
-}
-
-void CSurfaceRenderable::OnPositionChange(CObservableObject *pFromObject, void *pOldValue)
-{
-	// update the modelview matrix
-	SetModelviewMatrix(
-		CreateRotateHG(m_couchAngle, CVector<3>(0.0, 0.0, 1.0)) 
-		* CreateTranslate(-1.0 * m_vTableOffset)
-	);
-}
-
 CTexture * CSurfaceRenderable::GetLightfieldTexture()
 {
 	if (m_pLightfieldTexture == NULL)
@@ -436,4 +385,18 @@ CTexture * CSurfaceRenderable::GetLightfieldTexture()
 	}
 
 	return m_pLightfieldTexture;
+}
+
+void CSurfaceRenderable::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
+{
+	// beam has changed; if there is a lightfield texture,
+	if (m_pLightfieldTexture != NULL)
+	{
+		// trigger re-generation of the lightfield texture
+		delete m_pLightfieldTexture;
+		m_pLightfieldTexture = NULL;
+	}
+
+	// invalidate
+	CRenderable::Invalidate();
 }

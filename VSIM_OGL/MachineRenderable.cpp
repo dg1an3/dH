@@ -1,12 +1,19 @@
-// MachineRenderable.cpp: implementation of the CMachineRenderable class.
+//////////////////////////////////////////////////////////////////////
+// MachineRenderable.cpp: implementation of the CMachineRenderable 
+//		class.
 //
+// Copyright (C) 2000-2002
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
+// pre-compiled headers
 #include "stdafx.h"
-#include "vsim_ogl.h"
-#include "MachineRenderable.h"
 
+// OpenGL includes
 #include <glMatrixVector.h>
+
+// class declaration
+#include "MachineRenderable.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -14,60 +21,77 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-//////////////////////////////////////////////////////////////////////
-// function CreateRotate
-//
-// creates a rotation matrix given an angle and an axis of rotation
-//////////////////////////////////////////////////////////////////////
-static CMatrix<4> CreateRotateHG(const double& theta, 
-							   const CVector<3>& vAxis)
-{
-	// start with an identity matrix
-	CMatrix<3> mRotate = CreateRotate(theta, vAxis);
-
-	CMatrix<4> mRotateHG(mRotate);
-
-	return mRotateHG;
-}
-
-
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::CMachineRenderable
+// 
+// a depiction of the treatment machine
+//////////////////////////////////////////////////////////////////////
 CMachineRenderable::CMachineRenderable(CSceneView *pView)
 	: CRenderable(pView),
 		m_bWireFrame(FALSE)
 {
-	// forBeam.AddObserver(this, (ChangeFunction) OnChange);
-	// isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
-
-	// set up the modelview matrix for the beam
-	// CValue< CMatrix<4> >& privModelviewMatrix =
-	//	  CreateRotate(privGantryAngle, CVector<3>(0.0, 1.0, 0.0));
-	// modelviewMatrix.SyncTo(&privModelviewMatrix);
 }
 
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::~CMachineRenderable
+// 
+// destroys the renderable
+//////////////////////////////////////////////////////////////////////
 CMachineRenderable::~CMachineRenderable()
 {
 }
 
-BOOL bNoRenderWireframe = FALSE;
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::GetBeam
+// 
+// returns the beam from which treatment parameters are taken
+//////////////////////////////////////////////////////////////////////
+CBeam *CMachineRenderable::GetBeam()
+{
+	return m_pBeam;
+}
 
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::SetBeam
+// 
+// sets the beam from which treatment parameters are taken
+//////////////////////////////////////////////////////////////////////
+void CMachineRenderable::SetBeam(CBeam *pBeam)
+{
+	// remove this as an observer on the old beam
+	if (NULL != m_pBeam)
+	{
+		::RemoveObserver<CMachineRenderable>(&pBeam->GetChangeEvent(),
+			this, Invalidate);
+	}
+
+	// set the beam pointer
+	m_pBeam = pBeam;
+
+	// add this as an observer on the new beam
+	if (NULL != m_pBeam)
+	{
+		::AddObserver<CMachineRenderable>(&pBeam->GetChangeEvent(),
+			this, Invalidate);
+	}
+
+	// re-render
+	Invalidate();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::DescribeOpaque
+// 
+// describes the treatment machine
+//////////////////////////////////////////////////////////////////////
 void CMachineRenderable::DescribeOpaque()
 {
-/*	if (!bNoRenderWireframe)
-	{
-		bNoRenderWireframe = TRUE;
-		
-		isWireFrame.Set(TRUE);
-		OnRenderScene();
-		isWireFrame.Set(FALSE);
-
-		bNoRenderWireframe = FALSE;
-	}
-*/
+	// set up the rendering parameters
 	if (m_bWireFrame)
 	{
 		glColor(RGB(255, 255, 255));
@@ -80,10 +104,10 @@ void CMachineRenderable::DescribeOpaque()
 	}
 	else
 	{
-		glColor(GetColor());
 		// set the color for the machine rendering
-		glColor(RGB(128, 128, 255));
+		glColor(GetColor());
 
+		// set the material properties
 		GLfloat specular [] = { 0.0, 0.0, 0.0, 1.0 };
 		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 		GLfloat shininess [] = { 0.0 };
@@ -98,8 +122,40 @@ void CMachineRenderable::DescribeOpaque()
 		glEnable(GL_LIGHTING);
 	}
 
-	// render the table
+	// describe the table
+	DescribeTable();
 
+	// compute the axis-to-collimator distance
+	double SAD = m_pBeam->GetTreatmentMachine()->m_SAD;
+	double SCD = m_pBeam->GetTreatmentMachine()->m_SCD;
+	double axisToCollim = SAD - SCD;
+
+	// rotate for the gantry
+	glRotated(m_pBeam->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
+
+	// describe the gantry itself
+	DescribeGantry(axisToCollim);
+
+	// describe the collimator
+	DescribeCollimator(axisToCollim);
+
+	// turn off wire frame mode
+	if (m_bWireFrame)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		glEnable(GL_LIGHTING);
+	}
+
+}
+
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::DescribeTable
+// 
+// describes the treatment machine table
+//////////////////////////////////////////////////////////////////////
+void CMachineRenderable::DescribeTable()
+{
 	glPushMatrix();
 
 	glTranslate(-1.0 * m_pBeam->GetTableOffset());
@@ -154,36 +210,16 @@ void CMachineRenderable::DescribeOpaque()
 	glEnd();
 
 	glPopMatrix();
+}
 
-	// compute the axis-to-collimator distance
-	double SAD = m_pBeam->GetTreatmentMachine()->m_SAD;
-	double SCD = m_pBeam->GetTreatmentMachine()->m_SCD;
-	double axisToCollim = SAD - SCD;
-
-	// rotate for the gantry
-	glRotated(m_pBeam->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
-
-	// render the collimator
-	glBegin(GL_QUAD_STRIP);
-
-		CVector<4> vCollimEdgeLower(0.0, 100.0, axisToCollim, 1.0);
-		CVector<4> vCollimEdgeUpper(0.0, 100.0, axisToCollim + 100.0, 1.0);
-		double STEPS = 32.0;
-		for (double angle = 0.0; angle < 2 * PI; angle += (2 * PI) / STEPS)
-		{
-
-			CMatrix<4> mRot = CreateRotateHG(angle, CVector<3>(0.0, 0.0, 1.0));
-			glVertex(mRot * vCollimEdgeLower);
-			glVertex(mRot * vCollimEdgeUpper);
-			glNormal(mRot * CVector<4>(0.0, 1.0, 0.0, 1.0));
-		}
-
-		glVertex(vCollimEdgeLower);
-		glVertex(vCollimEdgeUpper);
-		glNormal(CVector<4>(0.0, 1.0, 0.0, 1.0));
-
-	glEnd();
-
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::DescribeGantry
+// 
+// describes the treatment machine gantry; assumes the rotation has
+//		already been set
+//////////////////////////////////////////////////////////////////////
+void CMachineRenderable::DescribeGantry(double axisToCollim)
+{
 	// render the gantry sides
 	glBegin(GL_POLYGON);
 
@@ -276,26 +312,45 @@ void CMachineRenderable::DescribeOpaque()
 		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
 
 	glEnd();
-
-	if (m_bWireFrame)
-	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		glEnable(GL_LIGHTING);
-	}
-
 }
 
-void CMachineRenderable::OnChange(CObservableObject *pSource, void *pOldValue)
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::DescribeCollimator
+// 
+// describes the treatment machine collimator; assumes the rotation 
+//		has already been set
+//////////////////////////////////////////////////////////////////////
+void CMachineRenderable::DescribeCollimator(double axisToCollim)
 {
-	// if (pSource == &m_pBeam)
-	{
-		// privGantryAngle.SyncTo(&forBeam->gantryAngle);
-		// forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
-		// forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
-		// forBeam->tableOffset.AddObserver(this, (ChangeFunction) OnChange);
-	}
+	// render the collimator
+	glBegin(GL_QUAD_STRIP);
 
-	CRenderable::Invalidate();
+		// compute the upper and lower edges
+		CVector<4> vCollimEdgeLower(0.0, 100.0, axisToCollim, 1.0);
+		CVector<4> vCollimEdgeUpper(0.0, 100.0, axisToCollim + 100.0, 1.0);
+
+		// number of steps around the circle
+		const double STEPS = 32.0;
+		for (double angle = 0.0; angle < 2 * PI; angle += (2 * PI) / STEPS)
+		{
+			// rotate about the central axis,
+			CMatrix<4> mRot = 
+				CMatrix<4>(CreateRotate(angle, CVector<3>(0.0, 0.0, 1.0)));
+
+			// draw a quad for each step
+			glVertex(mRot * vCollimEdgeLower);
+			glVertex(mRot * vCollimEdgeUpper);
+
+			// normal points outwards
+			glNormal(mRot * CVector<4>(0.0, 1.0, 0.0, 1.0));
+		}
+
+		// finish off the collimator
+		glVertex(vCollimEdgeLower);
+		glVertex(vCollimEdgeUpper);
+
+		// and set the normal
+		glNormal(CVector<4>(0.0, 1.0, 0.0, 1.0));
+
+	glEnd();
 }
-

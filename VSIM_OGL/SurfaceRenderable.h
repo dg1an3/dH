@@ -1,6 +1,10 @@
-// SurfaceRenderable.h: interface for the CSurfaceRenderable class.
-//
 //////////////////////////////////////////////////////////////////////
+// SurfaceRenderable.h: declaration of the CSurfaceRenderable class
+//
+// Copyright (C) 2000-2002
+// $Id$
+//////////////////////////////////////////////////////////////////////
+
 
 #if !defined(SURFACERENDERABLE_H)
 #define SURFACERENDERABLE_H
@@ -9,11 +13,22 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Renderable.h"
-#include "Surface.h"
-#include "Beam.h"
-#include "Texture.h"	// Added by ClassView
+// rendered objects
+#include <Surface.h>
+#include <Beam.h>
 
+// texture for light patch
+#include <Texture.h>
+
+// base class
+#include <Renderable.h>
+
+
+//////////////////////////////////////////////////////////////////////
+// class CSurfaceRenderable
+//
+// describes the surface in a CSceneView
+//////////////////////////////////////////////////////////////////////
 class CSurfaceRenderable : public CRenderable
 {
 public:
@@ -29,29 +44,11 @@ public:
 	CBeam * GetLightFieldBeam();
 	void SetLightFieldBeam(CBeam *pBeam);
 
-	// Flag to indicate wire frame mode (project contours, not mesh)
-	BOOL m_bWireFrame;
-
-	// Flag to indicate wire frame mode (project contours, not mesh)
-	BOOL m_bColorWash;
-
-	// Flag to indicate the bounding surfaces are to be rendered
-	BOOL m_bShowBoundsSurface;
-
-	// Couch rotation angle
-	double m_couchAngle;
-
-	// Translation vector 
-	CVector<3> m_vTableOffset;
-
 	// Rendering routines
 	virtual void DescribeOpaque();
 
-	// Capture changes from the surface and/or lightfield beam
-	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
-
-	// Capture changes from the couch angle or table offset
-	void OnPositionChange(CObservableObject *pFromObject, void *pOldValue);
+	// event handler for beam changes
+	void OnBeamChanged(CObservableEvent *pEvent, void *pOldValue);
 
 protected:
 	// Re-generates the lightfield texture, if necessary
@@ -69,6 +66,15 @@ private:
 
 	// stores the texture for the end of the mesh
 	CTexture *m_pEndTexture;
+
+	// Flag to indicate wire frame mode (project contours, not mesh)
+	BOOL m_bWireFrame;
+
+	// Flag to indicate wire frame mode (project contours, not mesh)
+	BOOL m_bColorWash;
+
+	// Flag to indicate the bounding surfaces are to be rendered
+	BOOL m_bShowBoundsSurface;
 };
 
 #endif // !defined(SURFACERENDERABLE_H)

@@ -1,6 +1,10 @@
-// MachineRenderable.h: interface for the CMachineRenderable class.
-//
 //////////////////////////////////////////////////////////////////////
+// MachineRenderable.h: declaration of the CMachineRenderable class
+//
+// Copyright (C) 2000-2002
+// $Id$
+//////////////////////////////////////////////////////////////////////
+
 
 #if !defined(MACHINERENDERABLE_H)
 #define MACHINERENDERABLE_H
@@ -9,13 +13,18 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-// #include <Value.h>
-
+// the beam class
 #include <Beam.h>
-#include <TreatmentMachine.h>
 
+// base class
 #include <Renderable.h>
 
+
+//////////////////////////////////////////////////////////////////////
+// class CMachineRenderable
+//
+// describes the treatment machine in a CSceneView
+//////////////////////////////////////////////////////////////////////
 class CMachineRenderable : public CRenderable 
 {
 public:
@@ -23,20 +32,24 @@ public:
 	CMachineRenderable(CSceneView *pView);
 	virtual ~CMachineRenderable();
 
-	// association to the beam for treatment machine parameters
-	CBeam *m_pBeam;
-
-	// flag to indicate that the machine is to be rendered as a wireframe
-	BOOL m_bWireFrame;
+	// beam for treatment machine parameters
+	CBeam *GetBeam();
+	void SetBeam(CBeam *pBeam);
 
 	// rendering routine
 	virtual void DescribeOpaque();
 
-	// re-loads the gantry angle
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
+	// rendering the parts of the machine
+	void DescribeTable();
+	void DescribeGantry(double axisToCollim);
+	void DescribeCollimator(double axisToCollim);
 
 private:
-	double privGantryAngle;
+	// beam for treatment machine parameters
+	CBeam *m_pBeam;
+
+	// flag to indicate that the machine is to be rendered as a wireframe
+	BOOL m_bWireFrame;
 };
 
 #endif // !defined(MACHINERENDERABLE_H)
