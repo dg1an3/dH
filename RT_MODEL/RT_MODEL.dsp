@@ -107,10 +107,6 @@ SOURCE=.\Plan.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\PlanIMRT.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\Prescription.cpp
 # End Source File
 # Begin Source File
@@ -157,10 +153,6 @@ SOURCE=.\include\HistogramMatcher.h
 # Begin Source File
 
 SOURCE=.\include\Plan.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\PlanIMRT.h
 # End Source File
 # Begin Source File
 
