@@ -75,6 +75,10 @@ public:
 	CArray<CPackedVector<3>, CPackedVector<3>&>& 
 		GetNormalArray() { return m_arrNormal; }
 
+	// function to ensure the orientation of the triangles are consistent with
+	//		the normals
+	void OrientFaces();
+
 	// accessor for the "region" -- volume with a 1.0 everywhere
 	//		that is in the structure
 	CVolume<int> *m_pRegion;

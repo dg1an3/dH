@@ -182,6 +182,72 @@ double CSurface::GetMaxSize()
 		/ sqrt(2.0); 
 }
 
+
+void CSurface::OrientFaces()
+{
+/*
+	// check to see if coincident vertices have the same normal
+	for (int nAt = 0; nAt < m_arrVertex.GetSize(); nAt++)
+	{
+		for (int nAtNext = nAt+1; nAtNext < m_arrVertex.GetSize(); nAtNext++)
+		{
+			if (CVector<3>(m_arrVertex[nAt]).IsApproxEqual(CVector<3>(m_arrVertex[nAtNext])))
+			{
+				TRACE("Match found\n");
+				ASSERT(CVector<3>(m_arrNormal[nAt]).IsApproxEqual(CVector<3>(m_arrNormal[nAtNext])));
+			}
+		}
+	}
+
+	for (int nAt = 0; nAt < m_arrVertIndex.GetSize()-3; nAt += 3)
+	{
+		// references to the normals
+		CVector<3> n0 = m_arrNormal[m_arrVertIndex[nAt+0]];
+		CVector<3> n1 = m_arrNormal[m_arrVertIndex[nAt+1]];
+		CVector<3> n2 = m_arrNormal[m_arrVertIndex[nAt+2]];
+
+		// ensure the three normals are facing the same direction
+		if (n0 * n1 < 0.0)
+		{
+			m_arrNormal[m_arrVertIndex[nAt+1]] = -1.0 * n1;
+		}
+
+		if (n0 * n2 < 0.0)
+		{
+			m_arrNormal[m_arrVertIndex[nAt+2]] = -1.0 * n2;
+		}
+
+		// ASSERT(n0 * n2 >= 0.0);
+		// ASSERT(n1 * n2 >= 0.0);
+
+		// compute the cross product
+		CVector<3> v0 = m_arrVertex[m_arrVertIndex[nAt+0]];
+		CVector<3> v1 = m_arrVertex[m_arrVertIndex[nAt+1]];
+		CVector<3> v2 = m_arrVertex[m_arrVertIndex[nAt+2]];
+
+		CVector<3> vCross = Cross(v1 - v0, v2 - v0);
+
+		if (vCross * n0 >= 0.0)
+		{
+			// m_arrNormal[m_arrVertIndex[nAt+0]] = -1.0 * n0;
+			// m_arrNormal[m_arrVertIndex[nAt+1]] = -1.0 * n1;
+			// m_arrNormal[m_arrVertIndex[nAt+2]] = -1.0 * n2;
+
+			int nTemp = m_arrVertIndex[nAt+1];
+			m_arrVertIndex[nAt+1] = m_arrVertIndex[nAt+2];
+			m_arrVertIndex[nAt+2] = nTemp;
+		}
+
+/*		v0 = m_arrVertex[m_arrVertIndex[nAt+0]];
+		v1 = m_arrVertex[m_arrVertIndex[nAt+1]];
+		v2 = m_arrVertex[m_arrVertIndex[nAt+2]];
+
+		vCross = Cross(v1 - v0, v2 - v0); * /
+
+		// ASSERT(vCross * n0 >= 0.0);
+	} */
+}
+
 //////////////////////////////////////////////////////////////////////
 // CSurface::Serialize
 // 
@@ -225,6 +291,11 @@ void CSurface::Serialize(CArchive &ar)
 			m_pRegion = new CVolume<int>();
 		}
 		m_pRegion->Serialize(ar);
+	}
+
+	if (ar.IsLoading())
+	{
+		OrientFaces();
 	}
 }
 
