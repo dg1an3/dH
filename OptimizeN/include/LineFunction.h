@@ -49,6 +49,9 @@ private:
 	// stores the direction of the line
 	CVectorN<> m_vDirection;
 
+	// temporary store of evaluation point
+	CVectorN<> m_vEvalPoint;
+
 	// stores the gradient at the last evaluated point
 	CVectorN<> m_vGrad;
 };
