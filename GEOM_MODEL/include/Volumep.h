@@ -77,6 +77,10 @@ public:
 	VOXEL_TYPE GetMax();
 	VOXEL_TYPE GetMin();
 
+	// threshold bounds
+	void SetThreshold(VOXEL_TYPE thresh);
+	const CRect& GetThresholdBounds();
+
 	// basis for volume
 	const CMatrixD<4, REAL>& GetBasis();
 	void SetBasis(const CMatrixD<4, REAL>& mBasis);
@@ -109,6 +113,11 @@ private:
 	// flag to recompute the volume's sum
 	BOOL m_bRecomputeSum;
 	VOXEL_TYPE m_sum;
+
+	// caches threshold and threshold bounds
+	BOOL m_bRecomputeThresh;
+	VOXEL_TYPE m_thresh;
+	CRect m_rectThresh;
 
 };	// class CVolume
 
@@ -319,6 +328,7 @@ inline void CVolume<VOXEL_TYPE>::SetVoxels(VOXEL_TYPE *pVoxels,
 	m_nDepth = nDepth;
 
 	m_bRecomputeSum = TRUE;
+	m_bRecomputeThresh = TRUE;
 
 }	// CVolume<VOXEL_TYPE>::SetVoxels
 
@@ -334,6 +344,9 @@ inline void CVolume<VOXEL_TYPE>::ClearVoxels()
 	// clear the memory
 	memset(m_arrVoxels.GetData(), 0, 
 			GetVoxelCount() * sizeof(VOXEL_TYPE));
+
+	m_bRecomputeSum = TRUE;
+	m_bRecomputeThresh = TRUE;
 
 	GetChangeEvent().Fire();
 
@@ -362,7 +375,8 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 		pDst[nAt] += weight * pSrc[nAt];
 	}
 
-/*	for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+#ifdef ACCUMULATE_XYZ_LOOP
+	for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
 	{
 		for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
 		{
@@ -372,7 +386,11 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 					pVolume->GetVoxels()[nAtZ][nAtY][nAtX];
 			}
 		}
-	} */
+	}
+#endif
+
+	m_bRecomputeSum = TRUE;
+	m_bRecomputeThresh = TRUE;
 
 	GetChangeEvent().Fire();
 
@@ -446,6 +464,60 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMin()
 
 }	// CVolume<VOXEL_TYPE>::GetMin
 
+
+///////////////////////////////////////////////////////////////////////////////
+// SetThreshold
+// 
+// sets the threshold for the bounding box
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline void CVolume<VOXEL_TYPE>::SetThreshold(VOXEL_TYPE thresh)
+{
+	m_thresh = thresh;
+	m_bRecomputeThresh = TRUE;
+
+}	// GetThresholdBounds
+
+
+///////////////////////////////////////////////////////////////////////////////
+// GetThresholdBounds
+// 
+// returns the bounding box for the given threshold value
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds()
+{
+	if (m_bRecomputeThresh)
+	{
+		m_rectThresh.left = GetWidth();
+		m_rectThresh.right = 0;
+		m_rectThresh.top = GetHeight();
+		m_rectThresh.bottom = 0;
+		
+		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+		{
+			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+			{
+				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+				{
+					if (GetVoxels()[nAtZ][nAtY][nAtX] > thresh)
+					{
+						m_rectThresh.left = __min(m_rectThresh.left, nAtX);
+						m_rectThresh.top = __min(m_rectThresh.top, nAtY);
+
+						m_rectThresh.right = __max(m_rectThresh.right, nAtX);
+						m_rectThresh.bottom = __max(m_rectThresh.bottom, nAtY);
+					}
+				}
+			}
+		}
+
+		m_bRecomputeThresh = FALSE;
+	}
+
+	return m_rectThresh;
+
+}	// GetThresholdBounds
 
 //////////////////////////////////////////////////////////////////////
 // CVolume<VOXEL_TYPE>::Serialize
@@ -549,6 +621,9 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 		}
 	}    
 
+	// TODO: how to set flags?
+	pRes->GetChangeEvent().Fire();
+
 }	// Convolve
 
 
@@ -580,6 +655,10 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 				/ norm;
 		}
 	}
+
+	// TODO: how to set flags?
+	pVol->GetChangeEvent().Fire();
+
 }	// CalcBinomialFilter
 
 
@@ -606,6 +685,9 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 				pppVoxels[0][nAtRow*2 + nBase][nAtCol*2 + nBase];
 		}
 	}
+
+	// TODO: how to set flags?
+	pRes->GetChangeEvent().Fire();
 
 }	// Decimate
 
@@ -654,6 +736,9 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 #endif
 		}
 	}
+
+	// TODO: how to set flags?
+	pRes->GetChangeEvent().Fire();
 
 }	// Rotate
 
@@ -731,6 +816,9 @@ void CreateRegion(CPolygon arrPoly[], int nPolyCount,
 
 	// done with bitmap
 	bitmap.DeleteObject();
+
+	// TODO: how to set flags?
+	pRegion->GetChangeEvent().Fire();
 
 }	// CreateRegion
 
