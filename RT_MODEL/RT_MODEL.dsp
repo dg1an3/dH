@@ -91,15 +91,11 @@ SOURCE=.\Beam.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\BeamIMRT.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\Histogram.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\HistogramMatcher.cpp
+SOURCE=.\KLDivTerm.cpp
 # End Source File
 # Begin Source File
 
@@ -124,11 +120,11 @@ SOURCE=.\Structure.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\TCP_NTCP_Optimizer.cpp
+SOURCE=.\TreatmentMachine.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\TreatmentMachine.cpp
+SOURCE=.\VOITerm.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -140,15 +136,11 @@ SOURCE=.\include\Beam.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\BeamIMRT.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\include\Histogram.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\HistogramMatcher.h
+SOURCE=.\include\KLDivTerm.h
 # End Source File
 # Begin Source File
 
@@ -172,11 +164,11 @@ SOURCE=.\include\Structure.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\TCP_NTCP_Optimizer.h
+SOURCE=.\include\TreatmentMachine.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\TreatmentMachine.h
+SOURCE=.\include\VOITerm.h
 # End Source File
 # End Group
 # Begin Source File
