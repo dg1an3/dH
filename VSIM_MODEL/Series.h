@@ -1,0 +1,73 @@
+// Series.h : header file
+//
+/////////////////////////////////////////////////////////////////////////////
+
+#if !defined(AFX_SERIES_H__731877C4_EE46_11D4_9E36_00B0D0609AB0__INCLUDED_)
+#define AFX_SERIES_H__731877C4_EE46_11D4_9E36_00B0D0609AB0__INCLUDED_
+
+#if _MSC_VER > 1000
+#pragma once
+#endif // _MSC_VER > 1000
+
+#include "Surface.h"
+#include <Collection.h>
+
+/////////////////////////////////////////////////////////////////////////////
+// CSeries document
+
+class CSeries : public CDocument
+{
+protected:
+	CSeries();           // protected constructor used by dynamic creation
+	DECLARE_DYNCREATE(CSeries)
+
+// Attributes
+public:
+	CCollection<CSurface> structures;
+
+//	int GetStructureCount() const;
+//	CSurface& GetStructure(int nIndex);
+//	int AddStructure(CSurface& newStructure);
+
+// Operations
+public:
+
+// Overrides
+	// ClassWizard generated virtual function overrides
+	//{{AFX_VIRTUAL(CSeries)
+	public:
+	virtual void Serialize(CArchive& ar);   // overridden for document i/o
+	//virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
+	//}}AFX_VIRTUAL
+
+// Implementation
+public:
+	CString GetFileRoot();
+	CString GetFileName();
+	BOOL OnNewDocument();
+	virtual ~CSeries();
+
+#ifdef _DEBUG
+	virtual void AssertValid() const;
+	virtual void Dump(CDumpContext& dc) const;
+#endif
+
+	// Generated message map functions
+protected:
+	//{{AFX_MSG(CSeries)
+		// NOTE - the ClassWizard will add and remove member functions here.
+	//}}AFX_MSG
+	DECLARE_MESSAGE_MAP()
+
+private:
+	// Volume data for the series
+	// CVolume m_Volume;
+
+	// Array of structures for the series
+//	CObArray m_arrStructures;
+};
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_SERIES_H__731877C4_EE46_11D4_9E36_00B0D0609AB0__INCLUDED_)
