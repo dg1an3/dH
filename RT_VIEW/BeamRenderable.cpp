@@ -1,0 +1,417 @@
+//////////////////////////////////////////////////////////////////////
+// BeamRenderable.cpp: implementation of the CBeamRenderable 
+//		class.
+//
+// Copyright (C) 2000-2002
+// $Id$
+//////////////////////////////////////////////////////////////////////
+
+// pre-compiled headers
+#include "stdafx.h"
+
+// OpenGL includes
+#include <glMatrixVector.h>
+
+// class declaration
+#include "BeamRenderable.h"
+
+#ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
+#define new DEBUG_NEW
+#endif
+
+//////////////////////////////////////////////////////////////////////
+// DrawProjectedVertex
+// 
+// helper function to render the beam
+//////////////////////////////////////////////////////////////////////
+inline void DrawProjectedVertex(const CVector<2>& v)
+{
+	glVertex3d(v[0], v[1], -1.0);
+	glVertex3d(v[0], v[1], 1.0);
+}
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::CBeamRenderable
+// 
+// a depiction of the treatment beam
+//////////////////////////////////////////////////////////////////////
+CBeamRenderable::CBeamRenderable(CSceneView *pView)
+	: CRenderable(pView),
+		m_bCentralAxisEnabled(TRUE),
+		m_bGraticuleEnabled(FALSE),
+		m_bFieldDivergenceSurfacesEnabled(FALSE),
+		m_bBlockDivergenceSurfacesEnabled(TRUE)
+{
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::~CBeamRenderable
+// 
+// destroys the renderable
+//////////////////////////////////////////////////////////////////////
+CBeamRenderable::~CBeamRenderable()
+{
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::GetBeam
+// 
+// returns the beam being rendered
+//////////////////////////////////////////////////////////////////////
+CBeam *CBeamRenderable::GetBeam()
+{
+	return m_pBeam;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::SetBeam
+// 
+// sets the beam being rendered
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::SetBeam(CBeam *pBeam)
+{
+	// remove this as an observer on the old beam
+	if (NULL != m_pBeam)
+	{
+		::RemoveObserver<CBeamRenderable>(&pBeam->GetChangeEvent(),
+			this, OnBeamChanged);
+	}
+
+	// set the beam pointer
+	m_pBeam = pBeam;
+
+	// add this as an observer on the new beam
+	if (NULL != m_pBeam)
+	{
+		::AddObserver<CBeamRenderable>(&pBeam->GetChangeEvent(),
+			this, OnBeamChanged);
+
+		// fire a change event to update
+		OnBeamChanged(&pBeam->GetChangeEvent(), NULL);
+	}
+	else
+	{
+		// otherwise, just invalidate
+		Invalidate();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeOpaque
+// 
+// describes the beam itself
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeOpaque()
+{
+	glDisable(GL_LIGHTING);
+
+	glEnable(GL_LINE_SMOOTH);
+	glLineWidth(1.0f);
+
+	// set up the four corners of the collimator rectangle
+	m_vMin = m_pBeam->GetCollimMin();
+	m_vMax = m_pBeam->GetCollimMax();
+	m_vMinXMaxY[0] = m_vMin[0];
+	m_vMinXMaxY[1] = m_vMax[1];
+	m_vMaxXMinY[0] = m_vMax[0];
+	m_vMaxXMinY[1] = m_vMin[1];
+
+	// set the color for the beam rendering
+	glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+
+	// first describe items on the collimator plane
+	glPushMatrix();
+
+		// translate to draw at SCD (-1.0 under the inverse projection)
+		glTranslate(CVector<3>(0.0, 0.0, -1.0));
+
+		// describe the graticule
+		DescribeGraticule();
+
+		// the field
+		DescribeField();
+
+		// and the blocks
+		DescribeBlocks();
+
+	glPopMatrix();
+
+	// describe the central axis
+	DescribeCentralAxis();
+
+	// describe field divergence as lines
+	DescribeFieldDivergenceLines();
+
+	// set up for surface rendering
+
+	// Create a Directional Light Source
+	glDisable(GL_LIGHTING);
+	glDisable(GL_LIGHT0);
+
+	// make the depth mask read-only
+	glDepthMask(GL_FALSE);
+
+	// glEnable(GL_BLEND);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glShadeModel(GL_FLAT);
+
+	glColor4f(0.0f, 1.0f, 0.0f, 0.25f);
+
+	// describe the field divergence surfaces
+	DescribeFieldDivergenceSurfaces();
+
+	// describe the block divergence surfaces
+	DescribeBlockDivergenceSurfaces();
+
+	glEnable(GL_COLOR_MATERIAL);
+	glEnable(GL_DEPTH_TEST);
+
+	// Set the shading model
+	glShadeModel(GL_SMOOTH);
+
+	// Set the polygon mode to fill
+
+	// Create a Directional Light Source
+	glEnable(GL_LIGHT0);
+	glDisable(GL_BLEND);
+
+	// make the depth mask read-only
+	glDepthMask(GL_TRUE);
+
+	glEnable(GL_LIGHTING);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::OnBeamChanged
+// 
+// handles changes on the beam parameters
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
+{
+	// check to make sure this is the right event
+	if (pEvent == &GetBeam()->GetChangeEvent())
+	{
+		CMatrix<4> mProjInv(m_pBeam->GetTreatmentMachine()->m_projection);
+		mProjInv.Invert();
+
+		// set up the renderable's modelview matrix
+ 		SetModelviewMatrix(m_pBeam->GetBeamToFixedXform()
+ 			* CMatrix<4>(CreateScale(CVector<3>(1.0, 1.0, -1.0)))
+ 			* mProjInv);
+
+		// and re-render
+		Invalidate();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeGraticule
+// 
+// describes the graticule at the collimator plane
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeGraticule(double size)
+{
+	if (m_bGraticuleEnabled)
+	{
+		// now draw the graticule
+		CVector<2> vPos;
+
+		glBegin(GL_LINES);
+
+			vPos = CVector<2>(0.0, 0.0);			
+			glVertex(vPos);
+			while (vPos[0] > m_vMin[0])
+			{
+				vPos -= CVector<2>(1.0, 0.0);
+				glVertex(vPos);
+				glVertex(vPos + CVector<2>(0.0, 0.5));
+				glVertex(vPos - CVector<2>(0.0, 0.5));
+				glVertex(vPos);
+			}
+
+		glEnd();
+
+		glBegin(GL_LINES);
+
+			vPos = CVector<2>(0.0, 0.0);
+			glVertex(vPos);
+			while (vPos[0] < m_vMax[0])
+			{
+				vPos += CVector<2>(1.0, 0.0);
+				glVertex(vPos);
+				glVertex(vPos + CVector<2>(0.0, 0.5));
+				glVertex(vPos - CVector<2>(0.0, 0.5));
+				glVertex(vPos);
+			}
+
+		glEnd();
+
+		glBegin(GL_LINES);
+
+			vPos = CVector<2>(0.0, 0.0);
+			glVertex(vPos);
+			while (vPos[1] > m_vMin[1])
+			{
+				vPos -= CVector<2>(0.0, 1.0);
+				glVertex(vPos);
+				glVertex(vPos + CVector<2>(0.5, 0.0));
+				glVertex(vPos - CVector<2>(0.5, 0.0));
+				glVertex(vPos);
+			}
+
+		glEnd();
+
+		glBegin(GL_LINES);
+
+			vPos = CVector<2>(0.0, 0.0);
+			glVertex(vPos);
+			while (vPos[1] < m_vMax[1])
+			{
+				vPos += CVector<2>(0.0, 1.0);
+				glVertex(vPos);
+				glVertex(vPos + CVector<2>(0.5, 0.0));
+				glVertex(vPos - CVector<2>(0.5, 0.0));
+				glVertex(vPos);
+			}
+
+		glEnd();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeField
+// 
+// describes the field on the collimator plane
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeField()
+{
+	glBegin(GL_LINE_LOOP);
+
+		glVertex(m_vMin     ); 
+		glVertex(m_vMinXMaxY); 
+		glVertex(m_vMax     ); 
+		glVertex(m_vMaxXMinY);
+
+	glEnd();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeBlocks
+// 
+// describes the blocks on the collimator plane
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeBlocks()
+{
+	for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
+	{
+		CPolygon *pBlock = m_pBeam->GetBlockAt(nAt);
+
+		glBegin(GL_LINE_LOOP);
+
+			for (int nAtVert = 0; nAtVert < pBlock->GetVertexCount(); 
+					nAtVert++)
+			{
+				// draw divergence lines
+				glVertex(pBlock->GetVertex(nAtVert));
+			}
+
+		glEnd();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeCentralAxis
+// 
+// describes the central axis of the beam
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeCentralAxis()
+{
+	if (m_bCentralAxisEnabled)
+	{
+		glColor3f(0.0f, 1.0f, 0.0f);
+
+		// draw central axis
+		glBegin(GL_LINES);
+
+			// draw central axis
+			glVertex3d(0.0, 0.0, -1.0);
+			glVertex3d(0.0, 0.0,  1.0);
+
+		glEnd();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeFieldDivergenceLines
+// 
+// describes the divergence lines at the four corners of the field
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeFieldDivergenceLines()
+{
+	glBegin(GL_LINES);
+
+		// draw divergence lines
+		DrawProjectedVertex(m_vMin     );
+		DrawProjectedVertex(m_vMinXMaxY);
+		DrawProjectedVertex(m_vMax     );
+		DrawProjectedVertex(m_vMaxXMinY);
+
+	glEnd();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeFieldDivergenceSurfaces
+// 
+// describes the divergence surfaces for the field
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeFieldDivergenceSurfaces()
+{
+	if (m_bFieldDivergenceSurfacesEnabled)
+	{
+		glBegin(GL_QUAD_STRIP);
+		
+			// draw 
+			DrawProjectedVertex(m_vMin     );
+			DrawProjectedVertex(m_vMinXMaxY);
+			DrawProjectedVertex(m_vMax     );
+			DrawProjectedVertex(m_vMaxXMinY);
+			DrawProjectedVertex(m_vMin     );
+
+		glEnd();
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeBlockDivergenceSurfaces
+// 
+// describes the divergence surfaces for the block
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeBlockDivergenceSurfaces()
+{
+	if (m_bBlockDivergenceSurfacesEnabled)
+	{
+		// draw the divergence surfaces
+		glBegin(GL_QUAD_STRIP);
+		
+			for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
+			{
+				CPolygon& polygon = *m_pBeam->GetBlockAt(nAt);
+
+				for (int nAtVert = 0; nAtVert < polygon.GetVertexCount(); 
+						nAtVert++)
+				{
+					// draw divergence lines
+					DrawProjectedVertex(polygon.GetVertex(nAtVert)); 
+				}
+			}
+
+		glEnd();
+	}
+}
