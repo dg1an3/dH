@@ -11,6 +11,22 @@
 #include "Optimizer.h"
 #include "BrentOptimizer.h"
 
+#define SHFT(a,b,c,d) (a)=(b); (b)=(c); (c)=(d);
+#define MOV3(a, b, c, d, e, f) (a)=(d); (b)=(e); (c)=(f);
+#define GOLD ((TYPE) 1.618034)        // used in function BracketMinimum 
+#define SIGN(a,b) ((b) >= (TYPE) 0.0 ? (TYPE) fabs(a) : (TYPE) -fabs(a))  
+	// SIGN returns the argument a with the sign of the argument b 
+#define TINY      ((TYPE)1.0e-20)    // used in function BracketMinimum 
+#define GLIMIT ((TYPE) 100.0)         // parameter needed by function BracketMinimum  
+
+#define ITMAX 1500
+#define CGOLD (TYPE) 0.3819660      // golden section ratio; parameter used by 
+				// functions BracketMinimum 
+#define ZEPS 1.0e-1 /* 1.0e-10 */ // z-epsilon -- small number to protect against 
+				// fractional accuracy for a minimum that
+				// happens to be exactly zero;  used in
+			    //    function FindMinimum
+
 template<int DIM, class TYPE>
 class CConjGradOptimizer : public COptimizer<DIM, TYPE>
 {
