@@ -17,13 +17,6 @@ public:
 	{
 		finalValue.SyncTo(&m_optimizeBrent.finalValue);
 		tolerance.SyncTo(&m_optimizeBrent.tolerance);
-
-		CVector<DIM, TYPE> vInit;
-		vInit[0] = 10.0;
-		vInit[1] = 20.0;
-		vInit[2] = -3.6;
-		vInit[3] = 11.0;
-		CVector<DIM, TYPE> vFinal = Optimize(vInit);		
 	}
 
 	CValue< CMatrix<DIM, TYPE> > directionSet;
@@ -46,7 +39,7 @@ public:
 				iteration.Set(iteration.Get()+1))
 		{
 			// set up the direction for the line minimization
-			m_lineFunction.direction = xi;
+			m_lineFunction.direction.Set(xi);
 
 			// now launch a Brent optimization
 			TYPE lambda = m_optimizeBrent.Optimize(0.0)[0];
@@ -66,7 +59,7 @@ public:
 			// compute the gradient at the current parameter value
 			xi = pGradFunc->Grad(finalParam.Get());
 
-			TYPE gg = g.GetLength();
+			TYPE gg = g * g;
 
 			// use this for Polak-Ribiere
 			TYPE dgg = (xi + g) * xi;
@@ -82,7 +75,7 @@ public:
 			TYPE gam = dgg / gg;
 
 			g = -1.0 * xi;
-			xi = g * gam * h;
+			xi = g + gam * h;
 			h = xi;
 		}
 
@@ -93,10 +86,10 @@ public:
 
 private:
 	// line function that projects the objective function along a given line
-	CLineFunction<DIM, TYPE> m_lineFunction;
+	CGradLineFunction<DIM, TYPE> m_lineFunction;
 
 	// brent optimizer along the line function
-	CBrentOptimizer<TYPE> m_optimizeBrent;
+	CGradBrentOptimizer<TYPE> m_optimizeBrent;
 };
 
 #endif

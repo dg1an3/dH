@@ -4,6 +4,7 @@
 #include "Optimizer.h"
 
 #define SHFT(a,b,c,d) (a)=(b); (b)=(c); (c)=(d);
+#define MOV3(a, b, c, d, e, f) (a)=(d); (b)=(e); (c)=(f);
 #define GOLD ((TYPE) 1.618034)        // used in function BracketMinimum 
 #define SIGN(a,b) ((b) >= (TYPE) 0.0 ? (TYPE) fabs(a) : (TYPE) -fabs(a))  
 	// SIGN returns the argument a with the sign of the argument b 
@@ -26,7 +27,6 @@ public:
 		: COptimizer<1, TYPE>(pFunc),
 			bracket(5.0)
 	{
-//		Optimize(10.0);
 	}
 
 	CValue< TYPE > bracket;
@@ -266,9 +266,9 @@ class CGradBrentOptimizer : public COptimizer<1, TYPE>
 public:
 	CGradBrentOptimizer(CGradObjectiveFunction<1, TYPE> *pFunc)
 		: COptimizer<1, TYPE>(pFunc),
+			m_pGradFunc(pFunc),
 			bracket(5.0)
 	{
-//		Optimize(10.0);
 	}
 
 	CValue< TYPE > bracket;
@@ -282,7 +282,7 @@ public:
 		BracketMinimum(ax, bx, cx);
 
 		// find the actual minimum
-		TYPE finalx = FindMinimumGrad(ax, bx, cx);
+		TYPE finalx = FindMinimum(ax, bx, cx);
 
 		// set the member variable that holds the final value
 		finalParam.Set(finalx);
@@ -407,17 +407,17 @@ public:
 	TYPE FindMinimum (TYPE ax, TYPE bx, TYPE cx)
 	{
 		// a and b must be in ascending order, but input abscissas need not be.
-		a=(ax < cx ? ax : cx);
-		b=(ax > cx ? ax : cx);
+		TYPE a=(ax < cx ? ax : cx);
+		TYPE b=(ax > cx ? ax : cx);
 
-		TYPE x,w,v;
+		TYPE x,w,v,u;
 		x=w=v=bx;
 
-		TYPE fx,fw,fv;
-		fw=fv=fx=(*m_pFunc)(x);
+		TYPE fx,fw,fv,fu;
+		fw=fv=fx=(*m_pGradFunc)(x);
 
-		TYPE dx,dw,dv;
-		dw=dv=dx=m_pFunc->Grad(x);
+		TYPE dx,dw,dv, du;
+		dw=dv=dx=m_pGradFunc->Grad(x)[0];
 
 		
 		TYPE d = 0.0;			// holds a temporary value for e
@@ -431,14 +431,14 @@ public:
 			TYPE xm = 0.5 * (a + b);
 
 			// computing bounding tolerances
-			TYPE tol1 = tol * fabs(x) + ZEPS;
+			TYPE tol1 = tolerance.Get() * fabs(x) + ZEPS;
 			TYPE tol2 = 2.0 * tol1;
 
 			// test for convergence
 			if (fabs(x - xm) <= (tol2 - 0.5 * (b-a)))
 			{
-				*xmin = x;
-				return fx;
+				finalValue.Set(fx);
+				return x;
 			}
 
 			if (fabs(e) > tol1)
@@ -470,7 +470,7 @@ public:
 				if (bOK1 || bOK2)
 				{
 					if (bOK1 && bOK2)
-						d = (fabs(da) < fabs(d2) ? d1 : d2);
+						d = (fabs(d1) < fabs(d2) ? d1 : d2);
 					else if (bOK1)
 						d = d1;
 					else
@@ -479,7 +479,7 @@ public:
 					if (fabs(d) <= fabs(0.5*olde))
 					{
 						u = x + d;
-						if (u - z < tol2 || b - u < tol2)
+						if (u - a < tol2 || b - u < tol2)
 							d = SIGN(tol1, xm - x);
 					}
 					else
@@ -503,20 +503,20 @@ public:
 			if (fabs(d) >= tol1)
 			{
 				u = x + d;
-				fu = (*f)(u);
+				fu = (*m_pGradFunc)(u);
 			}
 			else
 			{
 				u = x + SIGN(tol1, d);
-				fu = (*f)(u);
+				fu = (*m_pGradFunc)(u);
 				if (fu > fx)
 				{
-					*xmin = x;
-					return fx;
+					finalValue.Set(fx);
+					return x;
 				}
 			}
 
-			du = (*df)(u);
+			du = m_pGradFunc->Grad(u)[0];
 			if (fu <= fx)
 			{
 				if (u >= x) 
@@ -549,6 +549,8 @@ public:
 		return 0.0;
 	}
 
+private:
+	CGradObjectiveFunction<1, TYPE> *m_pGradFunc;
 };
 
 #endif
