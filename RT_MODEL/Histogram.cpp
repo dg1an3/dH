@@ -87,7 +87,6 @@ void CHistogram::Conv_dGauss(const CVectorBase<>& buffer_in,
 CHistogram::CHistogram(CVolume<REAL> *pVolume, CVolume<REAL> *pRegion)
 	: m_bRecomputeBins(TRUE),
 		m_bRecomputeCumBins(TRUE),
-		// m_bRecomputeBinVolume(TRUE),
 		m_pVolume(pVolume),
 		m_pRegion(pRegion),
 		m_binKernelSigma(0.0)
@@ -197,17 +196,6 @@ void CHistogram::SetRegion(CVolume<REAL> *pRegion)
 
 }	// CHistogram::SetRegion
 
-
-//////////////////////////////////////////////////////////////////////
-// CHistogram::GetBinForValue
-// 
-// computes the bin for a particular intensity value
-//////////////////////////////////////////////////////////////////////
-int CHistogram::GetBinForValue(REAL value) const
-{
-	return (int) floor((value - m_minValue) / m_binWidth + 0.5);
-
-}	// CHistogram::GetBinForValue
 
 
 //////////////////////////////////////////////////////////////////////
@@ -600,7 +588,8 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 				Get_dVolume(nAt)->GetHeight(),
 				Get_dVolume(nAt)->GetDepth());
 			volRotate.ClearVoxels();
-			Resample(m_pVolume, &volRotate, TRUE);
+			Resample(m_pVolume, &volRotate, // FALSE); // 
+				TRUE);
 
 			// get the main volume voxels
 			REAL *pVoxels = &volRotate.GetVoxels()[0][0][0];

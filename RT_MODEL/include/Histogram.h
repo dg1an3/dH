@@ -149,4 +149,16 @@ private:
 };	// class CHistogram
 
 
+//////////////////////////////////////////////////////////////////////
+// CHistogram::GetBinForValue
+// 
+// computes the bin for a particular intensity value
+//////////////////////////////////////////////////////////////////////
+inline int CHistogram::GetBinForValue(REAL value) const
+{
+	return (int) floor((value - m_minValue) / m_binWidth + 0.5);
+
+}	// CHistogram::GetBinForValue
+
+
 #endif // !defined(HISTOGRAM_H)
