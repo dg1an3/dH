@@ -28,11 +28,11 @@ CObjectTreeItem::CObjectTreeItem()
 		selectedImageResourceID(IDB_FOLDER_OPENED),
 		isChecked(TRUE)
 {
-	forObject.AddObserver(this, (ChangeFunction) OnForObjectChanged);
+	::AddObserver<CObjectTreeItem>(&forObject, this, (ChangeFunction) OnForObjectChanged);
 	// forObject.SetAutoObserver(this, (ChangeFunction) OnChange);
-	label.AddObserver(this, (ChangeFunction) OnLabelChanged);
-	parent.AddObserver(this, (ChangeFunction) OnParentChanged);
-	children.AddObserver(this, (ChangeFunction) OnChildrenChanged);
+	::AddObserver<CObjectTreeItem>(&label, this, (ChangeFunction) OnLabelChanged);
+	::AddObserver<CObjectTreeItem>(&parent, this, (ChangeFunction) OnParentChanged);
+	::AddObserver<CObjectTreeItem>(&children, this, (ChangeFunction) OnChildrenChanged);
 }
 
 CObjectTreeItem::~CObjectTreeItem()
