@@ -239,9 +239,16 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 		calcGPDF[nAtBin] /= calcSum;
 		targetGPDF[nAtBin] /= targetSum;
 
+#define CROSS_ENTROPY
+#ifdef CROSS_ENTROPY
+		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] + EPS);	
+		sum -= calcGPDF[nAtBin] * log(targetGPDF[nAtBin] + EPS);
+#else
 		// form sum of relative entropy termA
 		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin]
 			/ (targetGPDF[nAtBin] + EPS) + EPS);
+#endif
+
 
 #ifdef SWAP
 		sum += targetGPDF[nAtBin] * log(targetGPDF[nAtBin]
@@ -256,13 +263,24 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 				// normalize this bin
 				arrCalc_dGPDF[nAt_dVol][nAtBin] /= calcSum;
 
+#ifdef CROSS_ENTROPY
+				(*pvGrad)[nAt_dVol] += m_weight 
+					* (log(calcGPDF[nAtBin] + EPS) 
+							+ calcGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS))
+						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 
+				(*pvGrad)[nAt_dVol] -= m_weight 
+					* log(targetGPDF[nAtBin] + EPS)
+						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 
+#else
 				// add to the proper gradient element
 				(*pvGrad)[nAt_dVol] += m_weight
 					* (log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS) + 1.0)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 
+						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 			
 						// * d_vInput[nAt_dVol];
 						// * dSigmoid(vInput[nAt_dVol]);
 						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
+#endif
+
 #ifdef SWAP		
 				(*pvGrad)[nAt_dVol] += 
 					- targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS)
