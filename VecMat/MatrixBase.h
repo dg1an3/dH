@@ -23,10 +23,33 @@ using namespace std;
 //////////////////////////////////////////////////////////////////////
 #define MAX_TO_PIVOT (1.0)
 
+
+//////////////////////////////////////////////////////////////////////
+// forward definition of trace function
+//////////////////////////////////////////////////////////////////////
+template<class TYPE = double>
+class CMatrixBase;
+
+template<class TYPE>
+void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m);
+
+//////////////////////////////////////////////////////////////////////
+// macro TRACE_MATRIX
+//
+// macro to trace matrix -- only compiles in debug version
+//////////////////////////////////////////////////////////////////////
+#ifdef _DEBUG
+#define TRACE_MATRIX(strMessage, m) \
+	TraceMatrix(strMessage, m);	
+#else
+#define TRACE_MATRIX(strMessage, m)
+#endif
+
+
 //////////////////////////////////////////////////////////////////////
 // class CMatrixBase<TYPE>
 //
-// represents a square matrix with GetDim()ension and type given.
+// represents a square matrix with dimension and type given.
 //////////////////////////////////////////////////////////////////////
 template<class TYPE = double>
 class CMatrixBase
@@ -36,19 +59,43 @@ public:
 	// default constructor -- initializes to 0x0 matrix
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase()
-		: m_ppRows(NULL)
+		: m_arrColumns(NULL),
+			m_pElements(NULL),
+			m_bFreeElements(TRUE)
 	{
+		m_nCols = 0;
+		m_nRows = 0;
+
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase(const CMatrixBase& fromMatrix)
-		: m_ppRows(NULL)
+		: m_arrColumns(NULL),
+			m_pElements(NULL),
+			m_bFreeElements(TRUE)
 	{
-		SetDim(fromMatrix.GetDim());
+		m_nCols = 0;
+		m_nRows = 0;
+
+		Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
 
 		(*this) = fromMatrix;
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// copy constructor
+	//////////////////////////////////////////////////////////////////
+	CMatrixBase(int nCols, int nRows)
+		: m_arrColumns(NULL),
+			m_pElements(NULL),
+			m_bFreeElements(TRUE)
+	{
+		m_nCols = 0;
+		m_nRows = 0;
+
+		Reshape(nCols, nRows);
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -56,10 +103,14 @@ public:
 	//////////////////////////////////////////////////////////////////
 	~CMatrixBase()
 	{
-		if (NULL != m_ppRows)
+		if (m_bFreeElements && NULL != m_pElements)
 		{
-			delete [] m_ppRows[0];
-			delete [] m_ppRows;
+			delete [] m_pElements;
+		}
+
+		if (NULL != m_arrColumns)
+		{
+			delete [] m_arrColumns;
 		}
 	}
 
@@ -68,9 +119,11 @@ public:
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase& operator=(const CMatrixBase& fromMatrix)
 	{
-		ASSERT(GetDim() == fromMatrix.GetDim());
+		ASSERT(GetRows() == fromMatrix.GetRows());
+		ASSERT(GetCols() == fromMatrix.GetCols());
 
-		for (int nAt = 0; nAt < GetDim(); nAt++)
+		// assign successive column vectors
+		for (int nAt = 0; nAt < GetCols(); nAt++)
 		{
 			(*this)[nAt] = fromMatrix[nAt];
 		}
@@ -79,72 +132,73 @@ public:
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// operator[] -- retrieves a reference to a row vector
+	// operator[] -- retrieves a reference to a column vector
 	//////////////////////////////////////////////////////////////////
-	CVectorBase<TYPE>& operator[](int nAtRow)
+	CVectorBase<TYPE>& operator[](int nAtCol)
 	{
 		// bounds check on the index
-		ASSERT(nAtRow >= 0 && nAtRow < m_ppRows[0]->GetDim());
+		ASSERT(nAtCol >= 0 && nAtCol < GetCols());
 
-		// return a reference to the row vector
-		return (*m_ppRows[nAtRow]);
+		// return a reference to the column vector
+		return m_arrColumns[nAtCol];
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// operator[] const -- retrieves a const reference to a row 
+	// operator[] const -- retrieves a const reference to a column 
 	//		vector
 	//////////////////////////////////////////////////////////////////
-	const CVectorBase<TYPE>& operator[](int nAtRow) const
+	const CVectorBase<TYPE>& operator[](int nAtCol) const
 	{
 		// bounds check on the index
-		ASSERT(nAtRow >= 0 && nAtRow < m_ppRows[0]->GetDim());
+		ASSERT(nAtCol >= 0 && nAtCol < GetCols());
 
-		// return a reference to the row vector
-		return (*m_ppRows[nAtRow]);
+		// return a reference to the column vector
+		return m_arrColumns[nAtCol];
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// GetDim -- returns the dimension of the matrix
+	// GetCols -- returns the number of columns of the matrix
 	//////////////////////////////////////////////////////////////////
-	int GetDim() const
+	int GetCols() const
 	{
-		if (NULL != m_ppRows)
-		{
-			return (*this)[0].GetDim();
-		}
-		else
-		{
-			return 0;
-		}
+		return m_nCols;
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// GetColumn -- constructs and returns a column vector
+	// GetRows -- returns the number of rows of the matrix
 	//////////////////////////////////////////////////////////////////
-	CVectorN<TYPE> GetColumn(int nAtCol) const
+	int GetRows() const
 	{
-		// make the column vector
-		CVectorN<TYPE> vCol(GetDim());
+		return m_nRows;
+	}
 
-		// populate the column vector
-		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+	//////////////////////////////////////////////////////////////////
+	// GetColumn -- constructs and returns a row vector
+	//////////////////////////////////////////////////////////////////
+	void GetRow(int nAtRow, CVectorN<TYPE>& vRow) const
+	{
+		// make the row vector the same size
+		vRow.SetDim(GetCols());
+
+		// populate the row vector
+		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
 		{
-			vCol[nAtRow] = (*this)[nAtRow][nAtCol];
+			vRow[nAtCol] = (*this)[nAtCol][nAtRow];
 		}
-
-		// return the constructed column
-		return vCol;
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// SetColumn -- constructs and returns a column vector
 	//////////////////////////////////////////////////////////////////
-	void SetColumn(int nAtCol, const CVectorN<TYPE>& vCol)
+	void SetRow(int nAtRow, const CVectorN<TYPE>& vRow)
 	{
-		// populate the column vector
-		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+		if (vRow.GetDim() == GetCols())
 		{
-			(*this)[nAtRow][nAtCol] = vCol[nAtRow];
+			// de-populate the row vector
+			for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
+			{
+				(*this)[nAtCol][nAtRow] = vRow[nAtCol];
+			}
 		}
 	}
 
@@ -154,11 +208,11 @@ public:
 	//////////////////////////////////////////////////////////////////
 	BOOL IsApproxEqual(const CMatrixBase& m, TYPE epsilon = EPS) const
 	{
-		ASSERT(GetDim() == m.GetDim());
+		ASSERT(GetCols() == m.GetCols());
 
-		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
 		{
-			if (!(*this)[nAtRow].IsApproxEqual(m[nAtRow], epsilon))
+			if (!(*this)[nAtCol].IsApproxEqual(m[nAtCol], epsilon))
 			{
 				return FALSE;
 			}
@@ -173,14 +227,15 @@ public:
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase& operator+=(const CMatrixBase& mRight)
 	{
-		ASSERT(GetDim() == mRight.GetDim());
+		ASSERT(GetCols() == mRight.GetCols());
+		ASSERT(GetRows() == mRight.GetRows());
 
 		// element-by-element sum of the matrix
-		for (int nRow = 0; nRow < GetDim(); nRow++)
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			for (int nCol = 0; nCol < GetDim(); nCol++)
+			for (int nRow = 0; nRow < GetRows(); nRow++)
 			{
-				(*this)[nRow][nCol] += mRight[nRow][nCol];
+				(*this)[nCol][nRow] += mRight[nCol][nRow];
 			}
 		}
 
@@ -194,14 +249,15 @@ public:
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase& operator-=(const CMatrixBase& mRight)
 	{
-		ASSERT(GetDim() == mRight.GetDim());
+		ASSERT(GetCols() == mRight.GetCols());
+		ASSERT(GetRows() == mRight.GetRows());
 
 		// element-by-element difference of the matrix
-		for (int nRow = 0; nRow < GetDim(); nRow++)
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			for (int nCol = 0; nCol < GetDim(); nCol++)
+			for (int nRow = 0; nRow < GetRows(); nRow++)
 			{
-				(*this)[nRow][nCol] -= mRight[nRow][nCol];
+				(*this)[nCol][nRow] -= mRight[nCol][nRow];
 			}
 		}
 
@@ -215,11 +271,11 @@ public:
 	CMatrixBase& operator*=(double scale)
 	{
 		// element-by-element difference of the matrix
-		for (int nRow = 0; nRow < DIM; nRow++)
+		for (int nRow = 0; nRow < GetRows(); nRow++)
 		{
-			for (int nCol = 0; nCol < DIM; nCol++)
+			for (int nCol = 0; nCol < GetCols(); nCol++)
 			{
-				(*this)[nRow][nMid] *= scale;
+				(*this)[nCol][nRow] *= scale;
 			}
 		}
 
@@ -248,11 +304,19 @@ public:
 	//////////////////////////////////////////////////////////////////
 	void ToArray(double *pArray) const
 	{
-		for (int nRow = 0; nRow < GetDim(); nRow++)
+		// element position in the array
+		long nAtElement = 0;
+
+		// for each element in the matrix,
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			for (int nCol = 0; nCol < GetDim(); nCol++)
+			for (int nRow = 0; nRow < GetRows(); nRow++)
 			{
-				pArray[nCol * GetDim() + nRow] = (*this)[nRow][nCol];
+				// assign the element
+				pArray[nAtElement] = (*this)[nCol][nRow];
+				
+				// increment the element position
+				nAtElement++;
 			}
 		}
 	}
@@ -263,11 +327,19 @@ public:
 	//////////////////////////////////////////////////////////////////
 	void FromArray(const double *pArray)
 	{
-		for (int nRow = 0; nRow < GetDim(); nRow++)
+		// element position in the array
+		long nAtElement = 0;
+
+		// for each element in the matrix,
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			for (int nCol = 0; nCol < GetDim(); nCol++)
+			for (int nRow = 0; nRow < GetRows(); nRow++)
 			{
-				(*this)[nRow][nCol] = pArray[nCol * GetDim() + nRow];
+				// assign the element
+				(*this)[nCol][nRow] = pArray[nAtElement];
+				
+				// increment the element position
+				nAtElement++;
 			}
 		}
 	}
@@ -277,11 +349,12 @@ public:
 	//////////////////////////////////////////////////////////////////
 	void SetIdentity()
 	{
-		for (int nRow = 0; nRow < GetDim(); nRow++)
+		// for each element in the matrix,
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			for (int nCol = 0; nCol < GetDim(); nCol++)
+			for (int nRow = 0; nRow < GetRows(); nRow++)
 			{
-				(*this)[nRow][nCol] = 
+				(*this)[nCol][nRow] = 
 					(TYPE)((nRow == nCol) ? 1.0 : 0.0);
 			}
 		}
@@ -303,33 +376,46 @@ public:
 
 protected:
 	//////////////////////////////////////////////////////////////////
-	// SetDim -- sets the dimension of the matrix
+	// Reshape -- sets the rows and columns of the matrix
 	//////////////////////////////////////////////////////////////////
-	void SetDim(int nDim)
+	void Reshape(int nCols, int nRows)
 	{
-		if (GetDim() == nDim)
+		if (GetRows() == nRows && GetCols() == nCols)
 		{
 			return;
 		}
 
 		// delete previous data
-		if (NULL != m_ppRows)
+		if (m_bFreeElements && NULL != m_pElements)
 		{
-			delete [] m_ppRows[0];
-			delete [] m_ppRows;
-			m_ppRows = NULL;
+			delete [] m_pElements;
+			m_pElements = NULL;
 		}
 
-		// set up the row vectors
-		if (0 != nDim)
+		if (NULL != m_arrColumns)
 		{
-			// allocate new data
-			m_ppRows = new CVectorBase<TYPE>*[nDim];
-			CVectorN<TYPE> *pRows = new CVectorN<TYPE>[nDim];
-			for (int nAt = 0; nAt < nDim; nAt++)
+			delete [] m_arrColumns;
+			m_arrColumns = NULL;
+		}
+
+		// assign the dimensions
+		m_nRows = nRows;
+		m_nCols = nCols;
+
+		// set up the column vectors
+		if (0 != m_nCols)
+		{
+			// allocate elements
+			m_pElements = new TYPE[GetCols() * GetRows()];
+
+			// allocate column vectors
+			m_arrColumns = new CVectorBase<TYPE>[GetCols()];
+
+			// initialize the column vectors and the pointers
+			for (int nAt = 0; nAt < GetCols(); nAt++)
 			{
-				pRows[nAt].SetDim(nDim);
-				m_ppRows[nAt] = &pRows[nAt];
+				// initialize the column vector
+				m_arrColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
 			}
 		}
 
@@ -353,8 +439,18 @@ protected:
 	void FindPivotElem(int nDiag, int *nRow, int *nCol);
 
 protected:
+	// the matrix shape
+	int m_nRows;
+	int m_nCols;
+
 	// the row vectors of the matrix
-	CVectorBase<TYPE> **m_ppRows;
+	CVectorBase<TYPE> *m_arrColumns;
+
+	// the elements of the matrix
+	TYPE *m_pElements;
+
+	// flag to indicate whether elements should be freed
+	BOOL m_bFreeElements;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -365,15 +461,18 @@ protected:
 template<class TYPE>
 void CMatrixBase<TYPE>::Transpose()
 {
-	for (int nCol = 0; nCol < GetDim(); nCol++)
+	CMatrixBase<TYPE> copy;
+	copy.Reshape(GetRows(), GetCols());
+	
+	for (int nCol = 0; nCol < GetCols(); nCol++)
 	{
-		for (int nRow = 0; nRow < nCol; nRow++)
+		for (int nRow = 0; nRow < GetRows(); nRow++)
 		{
-			TYPE temp = (*this)[nRow][nCol];
-			(*this)[nRow][nCol] = (*this)[nCol][nRow];
-			(*this)[nCol][nRow] = temp;
+			copy[nRows][nCols] = (*this)[nCols][nRows];
 		}
 	}
+
+	(*this) = copy;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -385,14 +484,12 @@ template<class TYPE>
 BOOL CMatrixBase<TYPE>::IsOrthogonal() const
 {
 	// test for orthogonality
-	for (int nAtCol = 0; nAtCol < GetDim(); nAtCol++)
+	for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
 	{
-		CVectorN<TYPE> vCol = GetColumn(nAtCol);
-		for (int nAtOrthoCol = nAtCol + 1; nAtOrthoCol < GetDim(); 
+		for (int nAtOrthoCol = nAtCol + 1; nAtOrthoCol < GetCols(); 
 				nAtOrthoCol++)
 		{
-			CVectorN<TYPE> vOrthoCol = GetColumn(nAtOrthoCol);
-			if (vCol * vOrthoCol > EPS)
+			if ((*this)[nAtCol] * (*this)[nAtOrthoCol] > EPS)
 			{
 				return FALSE;
 			}
@@ -414,15 +511,11 @@ void CMatrixBase<TYPE>::Orthogonalize()
 	// make a working copy of the matrix
 	CMatrixBase<TYPE> mOrtho(*this);
 
-	// transpose because we will normalize the column vectors, not
-	//		the row vectors
-	mOrtho.Transpose();
-
 	// normalize the first column vector
 	mOrtho[0].Normalize();
 
 	// apply to each row vector after the zero-th
-	for (int nAtCol = 1; nAtCol < GetDim(); nAtCol++)
+	for (int nAtCol = 1; nAtCol < GetCols(); nAtCol++)
 	{
 		// normalize the next column vector
 		mOrtho[nAtCol].Normalize();
@@ -436,23 +529,16 @@ void CMatrixBase<TYPE>::Orthogonalize()
 				/ (mOrtho[nAtOrthoCol] * mOrtho[nAtOrthoCol]);
 
 			mOrtho[nAtCol] -= scalar * mOrtho[nAtOrthoCol];
+
+			// make sure we are now orthogonal to this
+			ASSERT(mOrtho[nAtCol] * mOrtho[nAtOrthoCol] < EPS);
 		}
-
-		// and normalize
-		mOrtho[nAtCol].Normalize();
 	}
-
-	// convert row vectors to column vectors
-	mOrtho.Transpose();
-
-	// test to ensure we are orthogonal
-	ASSERT(IsOrthogonal());
 
 	// assign the result
 	(*this) = mOrtho;
 }
 
-//////////////////////////////////////////////////////////////////////
 // function CMatrixBase<TYPE>::Invert
 //
 // swaps two rows of the matrix
@@ -460,15 +546,22 @@ void CMatrixBase<TYPE>::Orthogonalize()
 template<class TYPE>
 void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
 {
+	// only invert square matrices
+	ASSERT(GetCols() == GetRows());
+
 	// Gauss-Jordan elimination
 	CMatrixBase<TYPE> mCopy(*this);		// the copy of this matrix
 	CMatrixBase<TYPE> mInv(*this);		// stores the built inverse
 	mInv.SetIdentity();
 
 	// stores the sequence of column swaps for a full pivot
-	valarray<int> arrColumnSwaps(GetDim());
+	valarray<int> arrColumnSwaps(GetCols());
 
-	for (int nCol = 0; nCol < GetDim(); nCol++)
+	// helper vectors to hold rows
+	CVectorN<TYPE> vRow;
+	CVectorN<TYPE> vOtherRow;
+		
+	for (int nCol = 0; nCol < GetCols(); nCol++)
 	{
 		if (bFullPivot)
 		{
@@ -500,18 +593,41 @@ void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
 		//		(the pivot ensures that copy[nCol][nCol] is not zero)
 		// make sure we are numerically stable
 		ASSERT(fabs(mCopy[nCol][nCol]) > 1e-8);
-    	double scale = 1.0 / mCopy[nCol][nCol];	// computed scale factor
-    	mCopy[nCol] *= scale;
-		mInv[nCol] *= scale;
+
+		// scale factor to be applied
+    	double scale = 1.0 / mCopy[nCol][nCol];	
+
+		// scale the copy to get a 1.0 in the diagonal
+		mCopy.GetRow(nCol, vRow);
+		vRow *= scale;
+		mCopy.SetRow(nCol, vRow);
+
+		// scale the inverse by the same amount
+		mInv.GetRow(nCol, vRow);
+		vRow *= scale;
+		mInv.SetRow(nCol, vRow);
 
 		// obtain zeros in the off-diagonal elements
 		int nRow;	// for index
-	  	for (nRow = 0; nRow < GetDim(); nRow++) 
+	  	for (nRow = 0; nRow < GetRows(); nRow++) 
 		{
-    		if (nRow != nCol) {
-    			scale = -mCopy[nRow][nCol];
-				mCopy[nRow] += mCopy[nCol] * scale;
-    			mInv[nRow] += mInv[nCol] * scale;
+    		if (nRow != nCol) 
+			{
+				// get the scale factor to be applied
+    			scale = -mCopy[nCol][nRow];
+
+				// add a scaled version of the diagonal row
+				//		to obtain a zero at this row and column
+				mCopy.GetRow(nCol, vRow);
+				mCopy.GetRow(nRow, vOtherRow);
+				vOtherRow += vRow * scale;
+				mCopy.SetRow(nRow, vOtherRow);
+
+				// same operation on the inverse
+				mInv.GetRow(nCol, vRow);
+				mInv.GetRow(nRow, vOtherRow);
+				vOtherRow += vRow * scale;
+				mInv.SetRow(nRow, vOtherRow);
     		}
     	}
 	}
@@ -519,7 +635,7 @@ void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
 	if (bFullPivot)
 	{
 		// restores the sequence of columns
-		for (int nAtCol = GetDim()-1; nAtCol >= 0; nAtCol--)
+		for (int nAtCol = GetCols()-1; nAtCol >= 0; nAtCol--)
 		{
 			mInv.InterchangeCols(nAtCol, arrColumnSwaps[nAtCol]);
 		}
@@ -540,12 +656,12 @@ void CMatrixBase<TYPE>::InterchangeRows(int nRow1, int nRow2)
 	// check that the rows are not the same
 	if (nRow1 != nRow2)
 	{
-		// temporary vector storage
-		CVectorN<TYPE> vTemp = (*this)[nRow1];	
-
-		// and swap the two rows
-		(*this)[nRow1] = (*this)[nRow2];
-		(*this)[nRow2] = vTemp;
+		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
+		{
+			TYPE temp = (*this)[nAtCol][nRow1];
+			(*this)[nAtCol][nRow1] = (*this)[nAtCol][nRow2];
+			(*this)[nAtCol][nRow2] = temp;
+		}
 	}
 }
     
@@ -560,12 +676,12 @@ void CMatrixBase<TYPE>::InterchangeCols(int nCol1, int nCol2)
 	// check that the cols are not the same
 	if (nCol1 != nCol2)
 	{
-		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
-		{
-			TYPE temp = (*this)[nAtRow][nCol1];
-			(*this)[nAtRow][nCol1] = (*this)[nAtRow][nCol2];
-			(*this)[nAtRow][nCol2] = temp;
-		}
+		// temporary vector storage
+		CVectorN<TYPE> vTemp = (*this)[nCol1];	
+
+		// and swap the two rows
+		(*this)[nCol1] = (*this)[nCol2];
+		(*this)[nCol2] = vTemp;
 	}
 }
     
@@ -583,9 +699,9 @@ int CMatrixBase<TYPE>::FindPivotRow(int nDiag)
 	if (fabs((*this)[nDiag][nDiag]) < MAX_TO_PIVOT) 
 	{
 		int nRow;	// for index
-    	for (nRow = nDiag + 1; nRow < GetDim(); nRow++)
+    	for (nRow = nDiag + 1; nRow < GetRows(); nRow++)
 		{
-			if (fabs((*this)[nRow][nDiag]) > fabs((*this)[nBestRow][nDiag]))
+			if (fabs((*this)[nDiag][nRow]) > fabs((*this)[nDiag][nBestRow]))
 			{
     			nBestRow = nRow;
 			}
@@ -604,20 +720,20 @@ template<class TYPE>
 void CMatrixBase<TYPE>::FindPivotElem(int nDiag, 
 		int *pBestRow, int *pBestCol)
 {
-	(*pBestRow) = nDiag;
 	(*pBestCol) = nDiag;
+	(*pBestRow) = nDiag;
 
 	if (fabs((*this)[nDiag][nDiag]) < MAX_TO_PIVOT) 
 	{
-    	for (int nRow = nDiag; nRow < GetDim(); nRow++)
+		for (int nCol = nDiag; nCol < GetCols(); nCol++)
 		{
-			for (int nCol = nDiag; nCol < GetDim(); nCol++)
+    		for (int nRow = nDiag; nRow < GetRows(); nRow++)
 			{
-				if (fabs((*this)[nRow][nCol]) 
-					> fabs((*this)[*pBestRow][*pBestCol]))
+				if (fabs((*this)[nCol][nRow]) 
+					> fabs((*this)[*pBestCol][*pBestRow]))
 				{
-					(*pBestRow) = nRow;
 					(*pBestCol) = nCol;
+					(*pBestRow) = nRow;
 				}
 			}
 		}
@@ -635,11 +751,11 @@ inline bool operator==(const CMatrixBase<TYPE>& mLeft,
 					   const CMatrixBase<TYPE>& mRight)
 {
 	// element-by-element comparison
-	for (int nRow = 0; nRow < mLeft.GetDim(); nRow++)
+	for (int nCol = 0; nCol < mLeft.GetCols(); nCol++)
 	{
-		for (int nCol = 0; nCol < mLeft.GetDim(); nCol++)
+		for (int nRow = 0; nRow < mLeft.GetRows(); nRow++)
 		{
-			if (mLeft[nRow][nCol] != mRight[nRow][nCol])
+			if (mLeft[nCol][nRow] != mRight[nCol][nRow])
 			{
 				return false;
 			}
@@ -749,17 +865,20 @@ template<class TYPE>
 inline CVectorBase<TYPE> operator*(const CMatrixBase<TYPE>& mat,
 									const CVectorBase<TYPE>& v)
 {
+	ASSERT(mat.GetRows() == v.GetDim());
+
 	// stored the product
 	CVectorN<TYPE> vProduct(v.GetDim());
 
-	// step through the rows
-	for (int nRow = 0; nRow < mat.GetDim(); nRow++)
+	// step through the rows of the matrix
+	for (int nRow = 0; nRow < mat.GetRows(); nRow++)
 	{
 		ASSERT(vProduct[nRow] == 0.0);
 
-		for (int nMid = 0; nMid < mat.GetDim(); nMid++)
+		// step through the columns of the matrix
+		for (int nCol = 0; nCol < mat.GetCols(); nCol++)
 		{
-			vProduct[nRow] += mat[nRow][nMid] * v[nMid];
+			vProduct[nRow] += mat[nCol][nRow] * v[nCol];
 		}
 	}
 
@@ -777,11 +896,25 @@ template<class TYPE>
 inline CMatrixBase<TYPE> operator*(const CMatrixBase<TYPE>& mLeft, 
 									const CMatrixBase<TYPE>& mRight)
 {
-	// create the product
-	CMatrixBase<TYPE> mProduct(mLeft);
+	ASSERT(mLeft.GetCols() == mRight.GetRows());
 
-	// use in-place multiplication
-	mProduct *= mRight;
+	// create the product
+	CMatrixBase<TYPE> mProduct(mRight.GetCols(), mLeft.GetRows());
+
+	// compute the matrix product
+	for (int nRow = 0; nRow < mProduct.GetRows(); nRow++)
+	{
+		for (int nCol = 0; nCol < mProduct.GetCols(); nCol++)
+		{
+			mProduct[nCol][nRow] = 0.0;
+
+			for (int nMid = 0; nMid < mLeft.GetCols(); nMid++)
+			{
+				mProduct[nCol][nRow] +=
+					mLeft[nMid][nRow] * mRight[nCol][nMid];
+			}
+		}
+	}
 
 	// return the product
 	return mProduct;
@@ -797,12 +930,12 @@ ostream& operator<<(ostream& os, CMatrixBase<TYPE> v)
 {
 	cout << strMessage << " = \n";
 
-	for (int nAtRow = 0; nAtRow < m.GetDim(); nAtRow++)
+	for (int nAtRow = 0; nAtRow < m.GetRows(); nAtRow++)
 	{
 		cout << "\t<";
-		for (int nAtCol = 0; nAtCol < m.GetDim(); nAtCol++)
+		for (int nAtCol = 0; nAtCol < m.GetCols(); nAtCol++)
 		{
-			cout << (double) m[nAtRow][nAtCol] << "\t";
+			cout << (double) m[nAtCol][nAtRow] << "\t";
 		}
 		cout << ">\n";
 	} 
@@ -824,14 +957,14 @@ void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m)
 	// MATLAB output
 	TRACE("\t[");
 
-	for (int nAtRow = 0; nAtRow < m.GetDim(); nAtRow++)
+	for (int nAtRow = 0; nAtRow < m.GetRows(); nAtRow++)
 	{
-		for (int nAtCol = 0; nAtCol < m.GetDim(); nAtCol++)
+		for (int nAtCol = 0; nAtCol < m.GetCols(); nAtCol++)
 		{
-			TRACE("%10.4lf\t", (double) m[nAtRow][nAtCol]);
+			TRACE("%10.4lf\t", (double) m[nAtCol][nAtRow]);
 		}
 
-		if (nAtRow < m.GetDim()-1)
+		if (nAtRow < m.GetRows()-1)
 		{
 			// MATLAB output
 			TRACE(";\n\t");
@@ -842,21 +975,6 @@ void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m)
 	TRACE("]\n");
 }
 
-
-//////////////////////////////////////////////////////////////////////
-// macro TRACE_MATRIX
-//
-// macro to trace matrix -- only compiles in debug version
-//////////////////////////////////////////////////////////////////////
-#ifdef _DEBUG
-#define TRACE_MATRIX(strMessage, m) \
-	TraceMatrix(strMessage, m);	
-#else
-#define TRACE_MATRIX(strMessage, m)
-#endif
-
-
-
 #ifdef _DEBUG
 //////////////////////////////////////////////////////////////////////
 // function MatrixValid
@@ -866,7 +984,7 @@ void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m)
 template<class TYPE>
 void MatrixValid(const CMatrixBase<TYPE>& m)
 {
-	for (int nAt = 0; nAt < m.GetDim(); nAt++)
+	for (int nAt = 0; nAt < m.GetCols(); nAt++)
 	{
 		VectorValid(m[nAt]);
 	}
