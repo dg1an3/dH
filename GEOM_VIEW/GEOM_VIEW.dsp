@@ -93,10 +93,6 @@ SOURCE=.\DibView.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\DRRRenderable.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\Graph.cpp
 # End Source File
 # Begin Source File
@@ -108,10 +104,6 @@ SOURCE=.\GUI_BASE.rc
 # Begin Source File
 
 SOURCE=.\Light.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\MPRRenderable.cpp
 # End Source File
 # Begin Source File
 
@@ -176,10 +168,6 @@ SOURCE=.\include\DibView.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\DRRRenderable.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\include\Graph.h
 # End Source File
 # Begin Source File
@@ -189,10 +177,6 @@ SOURCE=.\include\GUI_BASE_resource.h
 # Begin Source File
 
 SOURCE=.\include\Light.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\MPRRenderable.h
 # End Source File
 # Begin Source File
 

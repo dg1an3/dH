@@ -258,6 +258,28 @@ CRenderable *CObjectTreeItem::CreateRenderableForObject(CSceneView *pSceneView)
 		// and add to the scene view
 		pSceneView->AddRenderable(m_pRenderable);
 	}
+	else
+	{
+		// see if a base class is present
+		POSITION pos = m_mapClasses.GetStartPosition();
+		while (NULL != pos)
+		{
+			CRuntimeClass *pRTC = NULL;
+			m_mapClasses.GetNextAssoc(pos, 
+				(void *&) pRTC, (void *&) pRenderableClass);
+			if (GetObject()->IsKindOf(pRTC))
+			{
+				// create the renderable
+				m_pRenderable = (CRenderable *) pRenderableClass->CreateObject();
+
+				// set up the renderable for this object
+				m_pRenderable->SetObject(GetObject());
+
+				// and add to the scene view
+				pSceneView->AddRenderable(m_pRenderable);
+			}
+		}
+	}
 
 	return m_pRenderable;
 }

@@ -17,6 +17,7 @@
 // class declaration
 #include "SurfaceRenderable.h"
 
+#include "Results.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -36,7 +37,10 @@ static char THIS_FILE[]=__FILE__;
 CSurfaceRenderable::CSurfaceRenderable()
 	: m_pTexture(NULL),
 		m_bWireFrame(FALSE),
-		m_bShowBoundsSurface(FALSE)
+		m_bShowBoundsSurface(FALSE),
+		m_pMesh(NULL),
+		m_pVertexBuffer(NULL),
+		m_pIndexBuffer(NULL)
 {
 	SetColor(RGB(192, 192, 192));
 	SetAlpha(0.5);
@@ -54,6 +58,11 @@ CSurfaceRenderable::~CSurfaceRenderable()
 		delete m_pTexture;
 		m_pTexture = NULL;
 	}	
+
+	if (m_pMesh)
+	{
+		m_pMesh->Release();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -68,9 +77,9 @@ IMPLEMENT_DYNCREATE(CSurfaceRenderable, CRenderable);
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-CSurface * CSurfaceRenderable::GetSurface()
+CMesh * CSurfaceRenderable::GetSurface()
 {
-	return (CSurface *)GetObject();
+	return (CMesh *)GetObject();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -78,7 +87,7 @@ CSurface * CSurfaceRenderable::GetSurface()
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::SetSurface(CSurface *pSurface)
+void CSurfaceRenderable::SetSurface(CMesh *pSurface)
 {
 	SetObject(pSurface);
 }
@@ -221,9 +230,9 @@ double CSurfaceRenderable::GetFurthestDistance(const CVectorD<3>& vPoint)
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DrawOpaque(CRenderContext *pRC)
+void CSurfaceRenderable::DrawOpaque(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
-	DrawWireframe(pRC);
+	DrawWireframe(pd3dDev); // pRC);
 }
 
 
@@ -232,11 +241,11 @@ void CSurfaceRenderable::DrawOpaque(CRenderContext *pRC)
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DrawTransparent(CRenderContext *pRC)
+void CSurfaceRenderable::DrawTransparent(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
 	// DrawBoundsSurface();
 
-	DrawSurface(pRC);
+	DrawSurface(pd3dDev); // pRC);
 }
 
 
@@ -245,9 +254,10 @@ void CSurfaceRenderable::DrawTransparent(CRenderContext *pRC)
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DrawWireframe(CRenderContext *pRC)
+void CSurfaceRenderable::DrawWireframe(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
-	if (m_bWireFrame)
+	return;
+/*	if (m_bWireFrame)
 	{
 		// setup line rendering
 		pRC->SetupLines();
@@ -275,6 +285,7 @@ void CSurfaceRenderable::DrawWireframe(CRenderContext *pRC)
 			pRC->PopMatrix();
 		}
 	}
+	*/
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -282,20 +293,61 @@ void CSurfaceRenderable::DrawWireframe(CRenderContext *pRC)
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DrawSurface(CRenderContext *pRC)
+void CSurfaceRenderable::DrawSurface(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
-	if (NULL != GetTexture())
+/*	if (NULL != GetTexture())
 	{
 		pRC->Bind(GetTexture());
 	}
+*/
+/*	if (NULL == m_pVertexBuffer)
+	{
+		ASSERT_HRESULT( CreateVertFromSurface(GetSurface(), 
+			&m_pVertexBuffer, &m_pIndexBuffer) );
+	}
+
+	if (NULL != m_pVertexBuffer)
+	{
+        ASSERT_HRESULT( pd3dDev->SetStreamSource(0, 
+			m_pVertexBuffer, sizeof(CUSTOMVERTEX_POS_NORM)) );
+
+        // ASSERT_HRESULT( pd3dDev->SetFVF( D3DFVF_CUSTOMVERTEX_POS_NORM ) );
+		ASSERT_HRESULT( pd3dDev->SetVertexShader( 
+			D3DFVF_CUSTOMVERTEX_POS_NORM ) );
+
+		ASSERT_HRESULT( pd3dDev->SetIndices(m_pIndexBuffer, 
+			0						// base 
+		) );
+
+		ASSERT_HRESULT( pd3dDev->DrawIndexedPrimitive(
+			D3DPT_TRIANGLESTRIP,	// D3DPRIMITIVETYPE Type
+			0,						// UINT MinIndex,
+			GetSurface()->GetVertexArray().GetSize(),						
+									// UINT NumVertices,
+			0,						// UINT StartIndex,
+			GetSurface()->GetIndexArray().GetSize() / 3
+									// UINT PrimitiveCount
+		) );
+	}
+*/
+	if (NULL == m_pMesh)
+	{
+		m_pMesh = CreateMeshFromSurface(GetSurface());
+	}
+
+	if (NULL != m_pMesh)
+	{
+		// Set Material
+		HRESULT hr = m_pMesh->DrawSubset(0);
+	}
 
 	// draw the surface
-	pRC->TrianglesFromSurface(*GetSurface());
+	// pRC->TrianglesFromSurface(*GetSurface());
 
-	if (NULL != GetTexture())
+/*	if (NULL != GetTexture())
 	{
 		pRC->Unbind();
-	}
+	} */
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -303,8 +355,9 @@ void CSurfaceRenderable::DrawSurface(CRenderContext *pRC)
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DrawBoundsSurface(CRenderContext *pRC)
+void CSurfaceRenderable::DrawBoundsSurface(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
+	/*
 	if (m_bShowBoundsSurface)
 	{
 		// draw the boundary surfaces
@@ -338,5 +391,5 @@ void CSurfaceRenderable::DrawBoundsSurface(CRenderContext *pRC)
 				pRC->End();
 			}
 		}
-	}
+	} */
 }

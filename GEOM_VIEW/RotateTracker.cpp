@@ -45,7 +45,6 @@ CRotateTracker::~CRotateTracker()
 {
 }
 
-
 //////////////////////////////////////////////////////////////////////
 // CRotateTracker::OnButtonDown
 // 
@@ -58,8 +57,12 @@ void CRotateTracker::OnButtonDown(UINT nFlags, CPoint point)
 	m_pView->GetCamera().AssertValid();
 #endif
 
-	// store the current mouse position in 3-d
+	// local reference to the view's camera
+	CCamera& camera = m_pView->GetCamera();
+
+	// store the current mouse position transformed to model space
 	m_vPrevPoint = m_pView->ModelPtFromWndPt(point);
+	m_vPrevPoint -= camera.GetTarget();
 }
 
 
@@ -75,19 +78,25 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 	m_pView->GetCamera().AssertValid();
 #endif
 
+	// local reference to the view's camera
+	CCamera& camera = m_pView->GetCamera();
+
 	// compute the final point
 	CVectorD<3> vCurrPoint = m_pView->ModelPtFromWndPt(point);
+	vCurrPoint -= camera.GetTarget();
 
 	// compute the rotation matrix
-	CMatrixD<4> mRotate = 
-		CMatrixD<4>(CreateRotate(m_vPrevPoint, vCurrPoint, 3.0));
+	CMatrixD<3> mRotate = CreateRotate(m_vPrevPoint, vCurrPoint, 4.0);
 
-	// set the new model xform to the initial composed with the rotation
-	CMatrixD<4> mXform = m_pView->GetCamera().GetXform();
-	m_pView->GetCamera().SetXform(mXform * mRotate);
+	// rotate the camera's direction
+	CVectorD<3> vNewDir = mRotate * camera.GetDirection();
 
-	// set the new initial point
+	// set the new direction
+	camera.SetDirection(vNewDir);
+
+	// compute the new previous point
 	m_vPrevPoint = m_pView->ModelPtFromWndPt(point);
+	m_vPrevPoint -= camera.GetTarget();
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

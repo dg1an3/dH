@@ -32,32 +32,29 @@ public:
 	virtual ~CCamera();
 
 public:
+	// camera direction vector
+	const CVectorD<3>& GetTarget() const;
+	void SetTarget(const CVectorD<3>& vDir);
+
+	// camera direction vector
+	const CVectorD<3>& GetDirection() const;
+	void SetDirection(const CVectorD<3>& vDir);
+
 	// the distance along the optical axis from the camera's focal point
 	//		to the target point
 	double GetDistance() const;
 	void SetDistance(double dist);
 
-	// the direction from the camera to the the target point
-	double GetTheta() const;
-	void SetTheta(double theta);
-
-	double GetPhi() const;
-	void SetPhi(double phi);
-
-	// the camera rotation about its optical axis
-	double GetRollAngle() const;
-	void SetRollAngle(double rollAngle);
-
-	// the current zoom setting
-	double GetZoom() const;
-	void SetZoom(double zoom);
+	// sets the "up" direction for the camera
+	const CVectorD<3>& GetUpDirection() const;
+	void SetUpDirection(const CVectorD<3>& vDir);
 
 	// matrix representing the transform from the model space to the
 	//		camera space
 	const CMatrixD<4>& GetXform() const;
-	void SetXform(const CMatrixD<4>& m);
 
-	// the viewing angle for the camera (0 for orthographic camera)
+	// the viewing angle for the camera in radians
+	//		(0 for orthographic camera)
 	double GetViewingAngle() const;
 	void SetViewingAngle(double angle);
 
@@ -75,17 +72,17 @@ public:
 	void SetFieldOfView(double maxObjectSize);
 
 	// matrix representing the camera projection
-	const CMatrixD<4>& GetPerspective() const;
+	const CMatrixD<4>& GetProjection() const;
 
 	// the total matrix for the projection and transform
-	const CMatrixD<4>& GetProjection() const;
+	// const CMatrixD<4>& GetProjection() const;
 
 	// returns a reference to the change event for the camera
 	CObservableEvent& GetChangeEvent();
 
 protected:
 	// call-back to compute the object-to-camera transform
-	void RecalcXform() const;
+	void RecalcCameraToModel() const;
 
 	// call-back to compute the camera projection
 	void RecalcProjection() const;
@@ -100,18 +97,14 @@ private:
 	// the point being looked at
 	CVectorD<3> m_vTargetPoint;
 
+	// direction
+	CVectorD<3> m_vDirection;
+
 	// viewing distance
 	double m_distance;
 
-	// theta, phi
-	double m_theta;
-	double m_phi;
-
-	// the roll angle for the camera
-	double m_rollAngle;
-
-	// the current zoom factor
-	double m_zoom;
+	// direction
+	CVectorD<3> m_vUpDirection;
 
 	// the model transform
 	mutable CMatrixD<4> m_mXform;
@@ -129,9 +122,6 @@ private:
 	double m_farPlane;
 
 	// perspective matrix
-	mutable CMatrixD<4> m_mPerspective;
-
-	// projection matrix
 	mutable CMatrixD<4> m_mProjection;
 
 	// the change event for this object

@@ -11,17 +11,10 @@
 // OpenGL includes
 #include <gl/gl.h>
 
+#include <d3dx8.h>
+
 // class declaration
 #include "Light.h"
-
-//////////////////////////////////////////////////////////////////////
-// array to store identifiers for allowed lights
-//////////////////////////////////////////////////////////////////////
-static GLenum arrLightID[] =
-{
-	GL_LIGHT0, GL_LIGHT1, GL_LIGHT2, GL_LIGHT3,
-	GL_LIGHT4, GL_LIGHT5, GL_LIGHT6, GL_LIGHT7,
-};
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -33,8 +26,12 @@ static GLenum arrLightID[] =
 // constructs a light object
 //////////////////////////////////////////////////////////////////////
 CLight::CLight()
-	: m_diffuseColor(RGB(160, 160, 160))
 {
+	// clear the base structure
+    ZeroMemory( (D3DLIGHT8 *) this, sizeof(D3DLIGHT8) );
+
+	// set to a directional light
+	Type = D3DLIGHT_DIRECTIONAL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -51,9 +48,9 @@ CLight::~CLight()
 // 
 // returns the position of the light
 //////////////////////////////////////////////////////////////////////
-const CVectorD<3>& CLight::GetPosition() const
+CVectorD<3> CLight::GetPosition() const
 {
-	return m_vPosition;
+	return CVectorD<3>(Direction.x, Direction.y, Direction.z);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -63,7 +60,9 @@ const CVectorD<3>& CLight::GetPosition() const
 //////////////////////////////////////////////////////////////////////
 void CLight::SetPosition(const CVectorD<3>& vPos)
 {
-	m_vPosition = vPos;
+	Direction.x = vPos[0];
+	Direction.y = vPos[1];
+	Direction.z = vPos[2];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -73,7 +72,8 @@ void CLight::SetPosition(const CVectorD<3>& vPos)
 //////////////////////////////////////////////////////////////////////
 COLORREF CLight::GetDiffuseColor() const
 {
-	return m_diffuseColor;
+	return RGB(255.0f * Diffuse.r, 255.0f * Diffuse.g, 
+		255.0f * Diffuse.b);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -83,37 +83,7 @@ COLORREF CLight::GetDiffuseColor() const
 //////////////////////////////////////////////////////////////////////
 void CLight::SetDiffuseColor(COLORREF color)
 {
-	m_diffuseColor = color;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CLight::TurnOn
-// 
-// turns on the light for the current OpenGL context
-//////////////////////////////////////////////////////////////////////
-void CLight::TurnOn(int nLightNum)
-{
-	// enable lighting
-	glEnable(GL_LIGHTING);
-
-	// set the light's direction
-	GLfloat dir[4];
-	dir[0] = (float) GetPosition()[0];
-	dir[1] = (float) GetPosition()[1];
-	dir[2] = (float) GetPosition()[2];
-	dir[3] = 0.0f;
-
-	// call the light position
-	glLightfv(arrLightID[nLightNum], GL_POSITION, dir);
-
-	// set the light's diffuse color
-	GLfloat diffuse[4];
-	diffuse[0] = (float) GetRValue(GetDiffuseColor()) / 255.0f;
-	diffuse[1] = (float) GetGValue(GetDiffuseColor()) / 255.0f;
-	diffuse[2] = (float) GetBValue(GetDiffuseColor()) / 255.0f;
-	diffuse[3] = 1.0f;
-	glLightfv(arrLightID[nLightNum], GL_DIFFUSE, diffuse);
-
-	// enable this light
-	glEnable(arrLightID[nLightNum]);
+    Diffuse.r  = (float) GetRValue(color) / 255.0f; 
+    Diffuse.g  = (float) GetGValue(color) / 255.0f; 
+    Diffuse.b  = (float) GetBValue(color) / 255.0f;
 }

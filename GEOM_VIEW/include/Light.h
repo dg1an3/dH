@@ -13,6 +13,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <d3d8.h>
+
 // vector include file
 #include <VectorD.h>
 
@@ -21,7 +23,7 @@
 // 
 // represents a light illuminating a CSceneView
 //////////////////////////////////////////////////////////////////////
-class CLight : public CObject  
+class CLight : public CObject, public D3DLIGHT8
 {
 public:
 	// constructor/destructor
@@ -29,22 +31,12 @@ public:
 	virtual ~CLight();
 
 	// accessors for the position of the light
-	const CVectorD<3>& GetPosition() const;
+	CVectorD<3> GetPosition() const;
 	void SetPosition(const CVectorD<3>& vPos);
 
 	// diffuse color for the light
 	COLORREF GetDiffuseColor() const;
 	void SetDiffuseColor(COLORREF color);
-
-	// call to set up the light in the current OpenGL rendering context
-	void TurnOn(int nLightNum = 0);
-
-private:
-	// stores the position of the light
-	CVectorD<3> m_vPosition;
-
-	// diffuse color for the light
-	COLORREF m_diffuseColor;
 };
 
 #endif // !defined(LIGHT_H)

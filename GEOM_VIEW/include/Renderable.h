@@ -13,17 +13,32 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <d3d8.h>
+#include <d3dx8.h>
+
 // matrix include file
 #include <MatrixD.h>
 
 // observable events
 #include <Observer.h>
 
+// mesh 
+#include <Mesh.h>
+
+// A structure for our custom vertex type. We added a normal, and omitted the
+// color (which is provided by the material)
+struct CUSTOMVERTEX_POS_NORM
+{
+    D3DXVECTOR3 position; // The 3D position for the vertex
+    D3DXVECTOR3 normal;   // The surface normal for the vertex
+};
+
+// Our custom FVF, which describes our custom vertex structure
+#define D3DFVF_CUSTOMVERTEX_POS_NORM (D3DFVF_XYZ|D3DFVF_NORMAL)
+
+
 // forward declaration of the CSceneView class 
 class CSceneView;
-
-// forward declaration of the rendering context
-class CRenderContext;
 
 //////////////////////////////////////////////////////////////////////
 // class CRenderable
@@ -43,6 +58,11 @@ public:
 	// sets the object being rendered
 	CObject *GetObject();
 	virtual void SetObject(CObject *pObject);
+
+	LPD3DXMESH CreateMeshFromSurface(CMesh *pSurface);
+	HRESULT CreateVertFromSurface(CMesh *pSurface, 
+		LPDIRECT3DVERTEXBUFFER8 *pVertexBuffer,
+		LPDIRECT3DINDEXBUFFER8 *pIndexBuffer);
 
 	// color for the renderer (use depends on objects being rendered)
 	COLORREF GetColor() const;
@@ -77,6 +97,9 @@ public:
 	//		member function (ListenerFunction)
 	void Invalidate(CObservableEvent *pEvent = NULL, void *pValue = NULL);
 
+	// temporary distance variable, for sorting purposes
+	double m_tempDistance;
+
 protected:
 	// view class is a friend
 	friend CSceneView;
@@ -85,17 +108,23 @@ protected:
 	CSceneView *m_pView;
 
 	// helper function to set up the rendering context
-	void SetupRenderingContext(CRenderContext *pRC);
+	void SetupRenderingContext(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// describes the opaque part of the object
-	virtual void DrawOpaque(CRenderContext *pRC);
+	virtual void DrawOpaque(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// describes the part controlled by the alpha parameter
-	virtual void DrawTransparent(CRenderContext *pRC);
+	virtual void DrawTransparent(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// draw list management functions
-	void DrawOpaqueList(CRenderContext *pRC);
-	void DrawTransparentList(CRenderContext *pRC);
+	void DrawOpaqueList(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
+	void DrawTransparentList(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
+
+	// triggers renderable to destroy any buffers it may have allocated
+	//		from the render context
+	void DestroyBuffers();
+
+	LPDIRECT3DVERTEXBUFFER8 m_pVertexBuffer;
 
 private:
 	// the object being described

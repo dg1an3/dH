@@ -20,8 +20,9 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CRenderContext::CRenderContext(CSceneView *pSceneView)
-: m_pSceneView(pSceneView),
+CRenderContext::CRenderContext(LPDIRECT3DDEVICE8 pd3dDevice)
+: // m_pSceneView(pSceneView),
+	m_pd3dDevice(pd3dDevice),
 	m_pTexture(NULL)
 {
 
@@ -30,6 +31,16 @@ CRenderContext::CRenderContext(CSceneView *pSceneView)
 CRenderContext::~CRenderContext()
 {
 
+}
+
+LPDIRECT3DVERTEXBUFFER8 CRenderContext::CreateVertexBuffer(UINT nLength, DWORD dwFVF)
+{
+	LPDIRECT3DVERTEXBUFFER8 lpVertexBuffer;
+
+	m_pd3dDevice->CreateVertexBuffer(nLength, 0, dwFVF, 
+		D3DPOOL_DEFAULT, &lpVertexBuffer);
+
+	return lpVertexBuffer;
 }
 
 void CRenderContext::BeginLines()
@@ -92,27 +103,29 @@ void CRenderContext::Normal(const CVectorD<4>& n)
 	Normal(FromHomogeneous<3, double>(n));
 }
 
-void CRenderContext::LineLoopFromPolygon(CPolygon& poly)
+/* void CRenderContext::LineLoopFromPolygon(CPolygon& poly)
 {
+	CMatrixNxM<>& mVertex = poly.LockVertexMatrix();
 	// use the polygon's vertex data as the data array
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_DOUBLE, 0, poly.GetVertexArray().GetData());
+	glVertexPointer(2, GL_DOUBLE, 0, (REAL *) mVertex);
 
 	// and draw the loop
 	glDrawArrays(GL_LINE_LOOP, 0, poly.GetVertexCount());
 
 	glDisableClientState(GL_VERTEX_ARRAY);
+	poly.UnlockVertexMatrix();
 }
-
-void CRenderContext::TrianglesFromSurface(CSurface& surf)
+*/
+void CRenderContext::TrianglesFromSurface(CMesh& surf)
 {
 	// set the array for vertices
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_DOUBLE, 0, surf.GetVertexArray().GetData()-1);
+//	glVertexPointer(3, GL_DOUBLE, 0, surf.GetVertexArray().GetData()-1);
 
 	// set the array for normals
 	glEnableClientState(GL_NORMAL_ARRAY);
-	glNormalPointer(GL_DOUBLE, 0, surf.GetNormalArray().GetData()-1);
+//	glNormalPointer(GL_DOUBLE, 0, surf.GetNormalArray().GetData()-1);
 
 	// if there is a texture bound,
 	if (NULL != m_pTexture)
@@ -127,7 +140,7 @@ void CRenderContext::TrianglesFromSurface(CSurface& surf)
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 		// set the texture coordinate pointer
-		glTexCoordPointer(3, GL_DOUBLE, 0, surf.GetVertexArray().GetData()-1);
+//		glTexCoordPointer(3, GL_DOUBLE, 0, surf.GetVertexArray().GetData()-1);
 
 		// switch back to modelview matrix
 		glMatrixMode(GL_MODELVIEW);
@@ -137,8 +150,8 @@ void CRenderContext::TrianglesFromSurface(CSurface& surf)
 	}
 
 	// now draw the surface from the arrays of data
-	glDrawElements(GL_TRIANGLES, surf.GetTriangleCount() * 3, 
-		GL_UNSIGNED_INT, (void *) surf.GetIndexArray().GetData());
+//	glDrawElements(GL_TRIANGLES, surf.GetTriangleCount() * 3, 
+//		GL_UNSIGNED_INT, (void *) surf.GetIndexArray().GetData());
 
 	// disable the use of arrays
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -244,7 +257,7 @@ void CRenderContext::Rotate(double angle,  const CVectorD<3> vAxis)
 void CRenderContext::Bind(CTexture *pTexture)
 {
 	m_pTexture = pTexture;
-	m_pTexture->Bind(m_pSceneView);
+	// m_pTexture->Bind(m_pSceneView);
 }
 
 void CRenderContext::Unbind()

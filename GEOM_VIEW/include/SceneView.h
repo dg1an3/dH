@@ -12,6 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <d3dx8.h>
+#include <mmsystem.h>
+
 // matrix include file
 #include <MatrixD.h>
 
@@ -66,9 +69,6 @@ public:
 	CTracker *GetMiddleTrackerAt(int nAt);
 	int AddMiddleTracker(CTracker *pRenderer);
 
-	// change handler for camera changes
-	void OnCameraChanged(CObservableEvent *, void *);
-
 // Operations
 public:
 	// compute the model point from a window coordinate
@@ -77,6 +77,11 @@ public:
 	// compute the model point from a window coordinate, using a different
 	//		projection matrix
 	CVectorD<3> ModelPtFromWndPt(CPoint wndPt, const CMatrixD<4>& mProj);
+
+	// create vertex buffers and meshed
+	LPDIRECT3DVERTEXBUFFER8 CreateVertexBuffer(UINT nLength, DWORD dwFVF);
+	LPDIRECT3DINDEXBUFFER8 CreateIndexBuffer(UINT nLength);
+	LPD3DXMESH CreateMesh(UINT nFaces, UINT nVertices, DWORD dwFVF);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -87,21 +92,16 @@ public:
 
 // Implementation
 protected:
-	// helper function to set up the OpenGL pixel format
-	BOOL SetupPixelFormat(void);
-
-	// call to make this view's HGLRC the current one (so that future OpenGL calls
-	//		will affect its rendering state
-	void MakeCurrentGLRC();
+	// function to initialize / re-initialize the D3D device
+	HRESULT SetupD3D();
 
 	// sorts the renderables from furthest to nearest, based on current camera
 	//		position
 	void SortRenderables(CObArray *pArray, 
 		double (CRenderable::*DistFunc)(const CVectorD<3>& vPoint));
 
-	// friend classes can access the OpenGL rendering context
-	friend class CRenderable;
-	friend class CTexture;
+	// change handler for camera changes
+	void OnCameraChanged(CObservableEvent *, void *);
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -121,16 +121,11 @@ protected:
 	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnTimer(UINT nIDEvent);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 private:
-	// holds the device context for OpenGL rendering
-	CClientDC *m_pDC;
-
-	// holds the OpenGL rendering context
-	HGLRC m_hrc;
-
 	// the background color for the view
 	COLORREF m_backgroundColor;
 
@@ -157,6 +152,13 @@ private:
 	// flag to indicate that the dragging is occurring
 	BOOL m_bLeftDragging;
 	BOOL m_bMiddleDragging;
+
+	// class global Direct3D object and D3D device count 
+	static LPDIRECT3D8 g_pD3D;
+	static UINT g_nDeviceCount;
+
+	// D3D device
+	LPDIRECT3DDEVICE8 m_pd3dDevice; // Our rendering device
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -180,7 +180,7 @@ void CTexture::Bind(CSceneView *pView)
 	m_pView = pView;
 
 	// now bind the texture
-	m_pView->MakeCurrentGLRC();
+//	m_pView->MakeCurrentGLRC();
 
 	ASSERT(m_nHandle == -1);
 	glGenTextures(1, (unsigned int *)&m_nHandle);
@@ -223,7 +223,7 @@ void CTexture::Unbind()
 {
 	ASSERT(m_pView != NULL);
 
-	m_pView->MakeCurrentGLRC();
+//	m_pView->MakeCurrentGLRC();
 
 	glDisable (GL_TEXTURE_2D); // disable texture mapping 
 

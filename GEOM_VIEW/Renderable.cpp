@@ -252,7 +252,7 @@ void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 	}
 
 	// set the current HGLRC
-	m_pView->MakeCurrentGLRC();
+//	m_pView->MakeCurrentGLRC();
 
 	// if the draw list exists,
 	if (-1 != m_nDrawListOpaque)
@@ -283,9 +283,9 @@ void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 // 
 // sets up the rendering context
 //////////////////////////////////////////////////////////////////////
-void CRenderable::SetupRenderingContext(CRenderContext *pRC)
+void CRenderable::SetupRenderingContext(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
-	// load the renderer's modelview matrix
+/*	// load the renderer's modelview matrix
 	pRC->LoadMatrix(GetModelviewMatrix());
 
 	// set the drawing color
@@ -297,7 +297,7 @@ void CRenderable::SetupRenderingContext(CRenderContext *pRC)
 	glShadeModel(GL_SMOOTH);
 
 	// enable lighting
-	// glEnable(GL_LIGHTING);
+	// glEnable(GL_LIGHTING); */
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -305,7 +305,7 @@ void CRenderable::SetupRenderingContext(CRenderContext *pRC)
 // 
 // call to describe the opaque part of the renderable
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DrawOpaque(CRenderContext *pRC)
+void CRenderable::DrawOpaque(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
 }
 
@@ -314,7 +314,7 @@ void CRenderable::DrawOpaque(CRenderContext *pRC)
 // 
 // call to describe the transparent part of the renderable
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DrawTransparent(CRenderContext *pRC)
+void CRenderable::DrawTransparent(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
 }
 
@@ -323,7 +323,7 @@ void CRenderable::DrawTransparent(CRenderContext *pRC)
 // 
 // forms a call list for the opaque parts, and then calls it
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DrawOpaqueList(CRenderContext *pRC)
+void CRenderable::DrawOpaqueList(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
 	// only draw if enabled
 	if (!IsEnabled())
@@ -341,10 +341,10 @@ void CRenderable::DrawOpaqueList(CRenderContext *pRC)
 		glNewList(m_nDrawListOpaque, GL_COMPILE);
 
 		// set up the rendering context
-		SetupRenderingContext(pRC);
+		SetupRenderingContext(pd3dDev); // pRC);
 
 		// now populate the draw list
-		DrawOpaque(pRC);
+		DrawOpaque(pd3dDev); // pRC);
 
 		// finish up the list
 		glEndList();
@@ -363,7 +363,7 @@ void CRenderable::DrawOpaqueList(CRenderContext *pRC)
 // 
 // forms a call list for the alpha parts, and then calls it
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DrawTransparentList(CRenderContext *pRC)
+void CRenderable::DrawTransparentList(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC)
 {
 	// only draw if enabled
 	if (!IsEnabled())
@@ -381,10 +381,10 @@ void CRenderable::DrawTransparentList(CRenderContext *pRC)
 		glNewList(m_nDrawListTransparent, GL_COMPILE);
 
 		// set up the rendering context
-		SetupRenderingContext(pRC);
+		SetupRenderingContext(pd3dDev); // pRC);
 
 		// now populate the draw list
-		DrawTransparent(pRC);
+		DrawTransparent(pd3dDev); // pRC);
 
 		// finish up the list
 		glEndList();
@@ -396,4 +396,103 @@ void CRenderable::DrawTransparentList(CRenderContext *pRC)
 	// make sure nothing bad happened
 	GLenum glerror = glGetError();
 	ASSERT(glerror == GL_NO_ERROR);
+}
+
+
+void CRenderable::DestroyBuffers()
+{
+	m_pVertexBuffer->Release();
+}
+
+LPD3DXMESH CRenderable::CreateMeshFromSurface(CMesh *pSurface)
+{
+	const vector< CTriIndex<int> >& arrSrcIndices = 
+		pSurface->LockIndexArray();
+
+	const CMatrixNxM<>& mSrcVertices = 
+		pSurface->LockVertexMatrix();
+	const CMatrixNxM<>& mSrcNormals = 
+		pSurface->LockNormalMatrix();
+
+	LPD3DXMESH pMesh = m_pView->CreateMesh(
+		arrSrcIndices.size(),
+		mSrcVertices.GetCols(), 
+		D3DFVF_CUSTOMVERTEX_POS_NORM );
+
+	unsigned short *pDstIndices = NULL;
+	HRESULT hr = pMesh->LockIndexBuffer(0 /*D3DLOCK_DISCARD */, (BYTE **) &pDstIndices); 
+	
+	// populate the mesh indices
+	for (int nAt = 0; nAt < arrSrcIndices.size(); nAt++)
+	{
+		pDstIndices[nAt*3+0] = arrSrcIndices[nAt][0]-1;
+		pDstIndices[nAt*3+1] = arrSrcIndices[nAt][1]-1;
+		pDstIndices[nAt*3+2] = arrSrcIndices[nAt][2]-1;
+	}
+	hr = pMesh->UnlockIndexBuffer();
+
+	CUSTOMVERTEX_POS_NORM *pDstVertices = NULL;
+	hr = pMesh->LockVertexBuffer(0, (BYTE **) &pDstVertices);
+
+	// populate the mesh indices
+	for (nAt = 0; nAt < mSrcVertices.GetCols(); nAt++)
+	{
+		pDstVertices[nAt].position.x = mSrcVertices[nAt][0];
+		pDstVertices[nAt].position.y = mSrcVertices[nAt][1];
+		pDstVertices[nAt].position.z = mSrcVertices[nAt][2];
+		pDstVertices[nAt].normal.x = mSrcNormals[nAt][0];
+		pDstVertices[nAt].normal.y = mSrcNormals[nAt][1];
+		pDstVertices[nAt].normal.z = mSrcNormals[nAt][2];
+	}
+	hr = pMesh->UnlockVertexBuffer();
+
+	return pMesh;
+}
+
+HRESULT CRenderable::CreateVertFromSurface(CMesh *pSurface, 
+		LPDIRECT3DVERTEXBUFFER8 *pVertexBuffer,
+		LPDIRECT3DINDEXBUFFER8 *pIndexBuffer)
+{
+	ASSERT(FALSE);
+
+/*	(*pVertexBuffer) = m_pView->CreateVertexBuffer(
+		pSurface->GetVertexArray().GetSize() 
+			* sizeof(CUSTOMVERTEX_POS_NORM),
+		D3DFVF_CUSTOMVERTEX_POS_NORM );
+	(*pIndexBuffer) = m_pView->CreateIndexBuffer(
+		pSurface->GetIndexArray().GetSize());
+
+	const CArray<int, int>& arrSrcIndices = pSurface->GetIndexArray();
+
+	unsigned short *pDstIndices = NULL;
+	HRESULT hr = (*pIndexBuffer)->Lock(0, 0, (BYTE **) &pDstIndices, 0); 
+	
+	// populate the mesh indices
+	for (int nAt = 0; nAt < arrSrcIndices.GetSize(); nAt++)
+	{
+		pDstIndices[nAt] = arrSrcIndices[nAt]-1;
+	}
+	hr = (*pIndexBuffer)->Unlock();
+
+	const CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& arrSrcVertices = 
+		pSurface->GetVertexArray();
+	const CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& arrSrcNormals = 
+		pSurface->GetNormalArray();
+
+	CUSTOMVERTEX_POS_NORM *pDstVertices = NULL;
+	hr = (*pVertexBuffer)->Lock(0, 0, (BYTE **) &pDstVertices, 0);
+
+	// populate the mesh indices
+	for (nAt = 0; nAt < arrSrcVertices.GetSize(); nAt++)
+	{
+		pDstVertices[nAt].position.x = arrSrcVertices[nAt][0];
+		pDstVertices[nAt].position.y = arrSrcVertices[nAt][1];
+		pDstVertices[nAt].position.z = arrSrcVertices[nAt][2];
+		pDstVertices[nAt].normal.x = arrSrcNormals[nAt][0];
+		pDstVertices[nAt].normal.y = arrSrcNormals[nAt][1];
+		pDstVertices[nAt].normal.z = arrSrcNormals[nAt][2];
+	}
+	hr = (*pVertexBuffer)->Unlock();
+*/
+	return S_OK;
 }

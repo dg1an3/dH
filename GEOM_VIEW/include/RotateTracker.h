@@ -36,7 +36,7 @@ public:
 	virtual void OnMouseDrag(UINT nFlags, CPoint point);
 
 private:
-	// stores the initial point (in 3-d)
+	// stores the initial point in model coordinates
 	CVectorD<3> m_vPrevPoint;
 };
 

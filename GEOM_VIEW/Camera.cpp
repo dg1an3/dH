@@ -33,12 +33,9 @@ CCamera::CCamera()
 #pragma warning(disable: 4355)
 	: m_eventChange(this),
 #pragma warning(default: 4355)
-		m_vTargetPoint(CVectorD<3>(0.0, 0.0, 0.0)),
+		m_vDirection(CVectorD<3>(0.0, 0.0, -1.0)),
 		m_distance(100.0),
-		m_theta(0.0),
-		m_phi(0.0),
-		m_rollAngle(0.0),
-		m_zoom(1.0),
+		m_vUpDirection(CVectorD<3>(0.0, 1.0, 0.0)),
 		m_viewingAngle(45.0),
 		m_aspectRatio(1.0),
 		m_nearPlane(50.0),
@@ -48,7 +45,7 @@ CCamera::CCamera()
 	RecalcProjection();
 
 	// and model xform matrices
-	RecalcXform();
+	RecalcCameraToModel();
 }
 
 
@@ -60,6 +57,42 @@ CCamera::CCamera()
 CCamera::~CCamera()
 {
 }
+
+// camera direction vector
+const CVectorD<3>& CCamera::GetTarget() const
+{
+	return m_vTargetPoint;
+}
+
+void CCamera::SetTarget(const CVectorD<3>& vTarget)
+{
+	m_vTargetPoint = vTarget;
+
+	// recalculate the model transform
+	RecalcCameraToModel();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
+}
+
+// camera direction vector
+const CVectorD<3>& CCamera::GetDirection() const
+{
+	return m_vDirection;
+}
+
+void CCamera::SetDirection(const CVectorD<3>& vDir)
+{
+	m_vDirection = vDir;
+	m_vDirection.Normalize();
+
+	// recalculate the model transform
+	RecalcCameraToModel();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // CCamera::GetDistance
@@ -84,120 +117,31 @@ void CCamera::SetDistance(double dist)
 	m_distance = dist;
 
 	// recalculate the model transform
-	RecalcXform();
+	RecalcCameraToModel();
 
 	// notify listeners that the camera has changed
 	GetChangeEvent().Fire();
 }
 
-//////////////////////////////////////////////////////////////////////
-// CCamera::GetTheta
-// 
-// returns the theta angle for the camera
-//////////////////////////////////////////////////////////////////////
-double CCamera::GetTheta() const 
-{ 
-	return m_theta;
+// sets the "up" direction for the camera
+const CVectorD<3>& CCamera::GetUpDirection() const
+{
+	return m_vUpDirection;
 }
 
-//////////////////////////////////////////////////////////////////////
-// CCamera::SetTheta
-// 
-// sets the theta angle for the camera
-//////////////////////////////////////////////////////////////////////
-void CCamera::SetTheta(double theta) 
-{ 
-	// set theta
-	m_theta = theta;
+void CCamera::SetUpDirection(const CVectorD<3>& vDir)
+{
+	// set the distance from the camera to the target point
+	m_vUpDirection = vDir;
+	m_vUpDirection.Normalize();
 
-	// and recalculate the model xform
-	RecalcXform();
+	// recalculate the model transform
+	RecalcCameraToModel();
 
 	// notify listeners that the camera has changed
 	GetChangeEvent().Fire();
 }
 
-//////////////////////////////////////////////////////////////////////
-// CCamera::GetPhi
-// 
-// returns the phi angle (pitch)
-//////////////////////////////////////////////////////////////////////
-double CCamera::GetPhi() const 
-{ 
-	return m_phi;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CCamera::SetPhi
-// 
-// sets the phi angle (pitch)
-//////////////////////////////////////////////////////////////////////
-void CCamera::SetPhi(double phi) 
-{ 
-	// set phi
-	m_phi = phi;
-
-	// and recalculate the model xform
-	RecalcXform();
-
-	// notify listeners that the camera has changed
-	GetChangeEvent().Fire();
-}
-
-//////////////////////////////////////////////////////////////////////
-// CCamera::GetZoom
-// 
-// returns the camera zoom
-//////////////////////////////////////////////////////////////////////
-double CCamera::GetZoom() const 
-{ 
-	return m_zoom;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CCamera::SetZoom
-// 
-// sets the camera zoom
-//////////////////////////////////////////////////////////////////////
-void CCamera::SetZoom(double zoom) 
-{ 
-	// set phi
-	m_zoom = zoom;
-
-	// and recalculate the model xform
-	RecalcXform();
-
-	// notify listeners that the camera has changed
-	GetChangeEvent().Fire();
-}
-
-
-
-//////////////////////////////////////////////////////////////////////
-// CCamera::GetRollAngle
-// 
-// returns the camera rotation about its optical axis
-//////////////////////////////////////////////////////////////////////
-double CCamera::GetRollAngle() const 
-{ 
-	return m_rollAngle;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CCamera::SetRollAngle
-// 
-// sets the camera rotation about its optical axis
-//////////////////////////////////////////////////////////////////////
-void CCamera::SetRollAngle(double rollAngle) 
-{ 
-	m_rollAngle = rollAngle;
-
-	// and recalculate the model xform
-	RecalcXform();
-
-	// notify listeners that the camera has changed
-	GetChangeEvent().Fire();
-}
 
 //////////////////////////////////////////////////////////////////////
 // CCamera::GetXform
@@ -210,72 +154,12 @@ const CMatrixD<4>& CCamera::GetXform() const
 	return m_mXform;
 }
 
-//////////////////////////////////////////////////////////////////////
-// CCamera::SetXform
-// 
-// sets the matrix representing the transform from the model space to 
-//		the camera space
-//////////////////////////////////////////////////////////////////////
-void CCamera::SetXform(const CMatrixD<4>& m) 
-{ 
-	// assign the matrix
-	m_mXform = m;
-
-	// compute the total projection
-	m_mProjection = GetPerspective() * m_mXform;
-
-	// create an orthogonal (rotation) matrix
-	CMatrixD<3> mOrtho = CMatrixD<3>(m);
-	mOrtho.Orthogonalize();
-
-	// compute the scale factor
-	CMatrixD<3> mOrthoInv(mOrtho);
-	mOrthoInv.Invert();
-	CMatrixD<3> mScale = mOrthoInv * CMatrixD<3>(m);
-
-	// ensure that there is no warp in the xform
-	ASSERT(IsApproxEqual(mScale[0][0], mScale[1][1]));
-	ASSERT(IsApproxEqual(mScale[0][0], mScale[2][2]));
-
-	// set the scale factor
-	m_zoom = mScale[0][0];
-
-	// form the rotation angles for the camera direction
-	m_phi = acos(mOrtho[2][2]);
-
-	// set the theta and roll angles to zero initially
-	m_theta = 0.0;
-	m_rollAngle = 0.0;
-
-	// the sine of phi is used to compute the other angles
-	double sin_phi = sin(m_phi);
-	if (sin_phi > DEFAULT_EPSILON)
-	{
-		// compute theta
-		if (mOrtho[0][2] != 0.0 && mOrtho[1][2] != 0.0)
-		{
-			m_theta = AngleFromSinCos(
-				mOrtho[0][2] / sin_phi,
-				mOrtho[1][2] / sin_phi);
-		}
-
-		// compute phi
-		if (mOrtho[2][0] != 0.0 && mOrtho[2][1] != 0.0)
-		{
-			m_rollAngle = AngleFromSinCos(
-				mOrtho[2][0] / sin_phi,
-				-mOrtho[2][1] / sin_phi);
-		}
-	}
-
-	// notify listeners that the camera has changed
-	GetChangeEvent().Fire();
-}
 
 //////////////////////////////////////////////////////////////////////
 // CCamera::GetViewingAngle
 // 
-// the viewing angle for the camera (0 for orthographic camera)
+// the viewing angle for the camera in radians 
+//		(0 for orthographic camera)
 //////////////////////////////////////////////////////////////////////
 double CCamera::GetViewingAngle() const 
 { 
@@ -285,7 +169,8 @@ double CCamera::GetViewingAngle() const
 //////////////////////////////////////////////////////////////////////
 // CCamera::SetViewingAngle
 // 
-// the viewing angle for the camera (0 for orthographic camera)
+// the viewing angle for the camera in radians 
+//		(0 for orthographic camera)
 //////////////////////////////////////////////////////////////////////
 void CCamera::SetViewingAngle(double angle) 
 { 
@@ -382,16 +267,6 @@ void CCamera::SetFieldOfView(double maxObjectSize)
 // 
 // returns the matrix representing the camera perspective projection
 //////////////////////////////////////////////////////////////////////
-const CMatrixD<4>& CCamera::GetPerspective() const
-{
-	return m_mPerspective;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CCamera::GetProjection
-// 
-// the total matrix for the projection and transform
-//////////////////////////////////////////////////////////////////////
 const CMatrixD<4>& CCamera::GetProjection() const
 {
 	return m_mProjection;
@@ -402,36 +277,29 @@ const CMatrixD<4>& CCamera::GetProjection() const
 // 
 // recalculates the model transform
 //////////////////////////////////////////////////////////////////////
-void CCamera::RecalcXform() const
+void CCamera::RecalcCameraToModel() const
 {
-	// form the rotation matrix for the camera direction
-	CMatrixD<3> mRotateDir = 
-		CreateRotate(GetPhi(), CVectorD<3>(1.0, 0.0, 0.0))
-		* CreateRotate(GetTheta(), CVectorD<3>(0.0, 0.0, 1.0));
+	// form the camera coordinate system basis
+	CMatrixD<3> mCameraBasis;
+	mCameraBasis[2] = GetTarget() - GetDistance() * GetDirection();
+	mCameraBasis[2].Normalize();
 
-	// form the camera roll rotation matrix
-	CMatrixD<3> mRotateRoll = CreateRotate(GetRollAngle(), 
-		CVectorD<3>(0.0, 0.0, 1.0));
+	mCameraBasis[0] = Cross(mCameraBasis[2], GetUpDirection());
+	mCameraBasis[0].Normalize();
 
-	// form the translation from the target point to the focal point
-	CMatrixD<4> mTranslate = CreateTranslate(GetDistance(), 
-		CVectorD<3>(0.0, 0.0, -1.0));
+	mCameraBasis[1] = Cross(mCameraBasis[0], mCameraBasis[2]);
+	mCameraBasis[1].Normalize();
 
-	// form the scale matrix
-	CMatrixD<3> mScale = 
-		CreateScale(CVectorD<3>(m_zoom, m_zoom, m_zoom));
+	mCameraBasis.Transpose();
 
-	// and set the total camera transformation to all three matrices
-	m_mXform = mTranslate 
-		* CMatrixD<4>(mRotateRoll) 
-		* CMatrixD<4>(mRotateDir)
-		* CMatrixD<4>(mScale);
+	CVectorD<3> vTranslate = 
+		-1.0 * mCameraBasis * (GetDistance() * GetDirection());
 
-	// trace out the matrix
-	TRACE_MATRIX("m_mXform", m_mXform);
-
-	// compute the total projection
-	m_mProjection = GetPerspective() * GetXform();
+	m_mXform = CMatrixD<4>(mCameraBasis);
+	m_mXform[3][0] = vTranslate[0];
+	m_mXform[3][1] = vTranslate[1];
+	m_mXform[3][2] = vTranslate[2];
+	m_mXform[3][3] = 1.0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -441,29 +309,21 @@ void CCamera::RecalcXform() const
 //////////////////////////////////////////////////////////////////////
 void CCamera::RecalcProjection() const
 {
-	// compute the top edge of the viewing frustum from the nearPlane 
-	//		and viewingAngle
-	double top = GetNearPlane() * tan(GetViewingAngle() * PI / 360.0);
+	m_mProjection.SetIdentity();
 
-	// compute the right edge from the top edge and the aspect ratio
-	double right = top * GetAspectRatio();
+	double h = 1.0 / tan(GetViewingAngle() / 2.0);
+	double w = h / GetAspectRatio();
 
-	// now populate the perspective projection matrix
-	CMatrixD<4> mPersp;
-	mPersp[0][0] = 2.0 * GetNearPlane() / (2.0 * right);
-	mPersp[1][1] = 2.0 * GetNearPlane() / (2.0 * top);
-	mPersp[2][2] = -(GetFarPlane() + GetNearPlane()) 
+	m_mProjection[0][0] = w;
+	m_mProjection[1][1] = h;
+
+	m_mProjection[2][2] = GetFarPlane()
 		/ (GetFarPlane() - GetNearPlane());
-	mPersp[3][2] = -2.0 * GetFarPlane() * GetNearPlane()
+	m_mProjection[3][2] = - GetFarPlane() * GetNearPlane()
 		/ (GetFarPlane() - GetNearPlane());
-	mPersp[2][3] = -1.0;
-	mPersp[3][3] = 0.0;
 
-	// and set the projection
-	m_mPerspective = mPersp;
-
-	// compute the total projection
-	m_mProjection = GetPerspective() * GetXform();
+	m_mProjection[2][3] = 1.0;
+	m_mProjection[3][3] = 0.0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -480,18 +340,8 @@ void CCamera::AssertValid() const
 {
 	CObject::AssertValid();
 
-	// ensure that the current projection matrix is valid
-	MatrixValid<REAL>(GetProjection());
-
-	// compare the model xform to the recalculated one
-	CMatrixD<4> mXformPre = GetXform();
-	RecalcXform();
-	ASSERT(mXformPre.IsApproxEqual(GetXform(), 1e-1));
-
-	// compare the projection to the recalculated one
-	CMatrixD<4> mPerspectivePre = GetPerspective();
-	RecalcProjection();
-	ASSERT(mPerspectivePre.IsApproxEqual(GetPerspective(), 1e-1));
+	// ensure camera-to-model xform is valid
+	MatrixValid<REAL>(GetXform());
 
 	// ensure that the current projection matrix is valid
 	MatrixValid<REAL>(GetProjection());

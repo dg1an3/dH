@@ -11,18 +11,24 @@
 
 #include <VectorD.h>
 
-#include <Polygon.h>
-#include <Surface.h>
+#include <d3d8.h>
+
+// #include <Polygon.h>
+#include <Mesh.h>
 
 #include "Texture.h"
 
-class CSceneView;
+// class CSceneView;
 
 class CRenderContext  
 {
 public:
-	CRenderContext(CSceneView *pSceneView);
+	CRenderContext(LPDIRECT3DDEVICE8 pd3dDevice); // CSceneView *pSceneView);
+
+public:
 	virtual ~CRenderContext();
+
+	LPDIRECT3DVERTEXBUFFER8 CreateVertexBuffer(UINT nLength, DWORD dwFVF);
 
 	// begin describing geometrics
 	void BeginLines();
@@ -46,9 +52,10 @@ public:
 	void Normal(const CVectorD<4>& n);
 	void NormalArray();
 
+	// TODO: move these functions to the Renderable base class
 	// higher-level descriptions
-	void LineLoopFromPolygon(CPolygon& poly);
-	void TrianglesFromSurface(CSurface& surf);
+	// void LineLoopFromPolygon(CPolygon& poly);
+	void TrianglesFromSurface(CMesh& surf);
 
 	// color and alpha 
 	void Color(COLORREF color);
@@ -80,7 +87,9 @@ public:
 
 private:
 	// scene view for this context
-	CSceneView *m_pSceneView;
+	// CSceneView *m_pSceneView;
+
+	LPDIRECT3DDEVICE8 m_pd3dDevice;
 
 	COLORREF m_color;
 	double m_alpha;

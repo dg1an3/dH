@@ -14,7 +14,7 @@
 #endif // _MSC_VER > 1000
 
 // rendered objects
-#include <Surface.h>
+#include <Mesh.h>
 
 // texture for light patch
 #include <Texture.h>
@@ -39,8 +39,8 @@ public:
 	DECLARE_DYNCREATE(CSurfaceRenderable)
 
 	// Accessors for the surface to be rendered
-	CSurface * GetSurface();
-	void SetSurface(CSurface *m_pSurface);
+	CMesh * GetSurface();
+	void SetSurface(CMesh *m_pSurface);
 
 	// accessors for the surface texture
 	CTexture *GetTexture();
@@ -55,17 +55,17 @@ public:
 	virtual double GetFurthestDistance(const CVectorD<3>& vPoint);
 
 	// opaque rendering routines
-	virtual void DrawOpaque(CRenderContext *pRC);
+	virtual void DrawOpaque(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// opaque rendering helper functions
-	void DrawWireframe(CRenderContext *pRC);
+	void DrawWireframe(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// alpha-blended rendering
-	virtual void DrawTransparent(CRenderContext *pRC);
+	virtual void DrawTransparent(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// alpha-blended helper functions
-	void DrawSurface(CRenderContext *pRC);
-	void DrawBoundsSurface(CRenderContext *pRC);
+	void DrawSurface(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
+	void DrawBoundsSurface(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 private:
 	// stores the texture for the surface
@@ -76,6 +76,11 @@ private:
 
 	// Flag to indicate the bounding surfaces are to be rendered
 	BOOL m_bShowBoundsSurface;
+
+	LPD3DXMESH m_pMesh;
+
+	LPDIRECT3DVERTEXBUFFER8 m_pVertexBuffer;
+	LPDIRECT3DINDEXBUFFER8 m_pIndexBuffer;
 };
 
 #endif // !defined(SURFACERENDERABLE_H)
