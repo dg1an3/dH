@@ -13,6 +13,12 @@
 
 #include <OpenGLView.h>
 
+#define RAY_TRACE_RESOLUTION 256
+#define RAY_TRACE_RES_LOG2   8
+
+#define POST_PROCESS
+#define COMPUTE_MINMAX
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -21,8 +27,8 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 : COpenGLRenderer(pView),
 	forVolume(NULL),
 	m_bRecomputeDRR(TRUE),
-	m_nSteps(128),
-	m_nShift(7),
+	m_nSteps(RAY_TRACE_RESOLUTION),
+	m_nShift(RAY_TRACE_RES_LOG2),
 	m_scale(1.0f),
 	m_bias(0.0f)
 {
@@ -217,6 +223,26 @@ bool ClipRaster(int& nDestLength,
 	return true;
 }
 
+void GetRasterStart()
+{
+	// render the front planes of the image
+//	glBegin(GL_QUAD);
+//
+//		glVertex(vULT);
+//		glVertex(vURT);
+//		glVertex(vLRT);
+//		glVertex(vLLT);
+//
+//	glEnd();
+
+	// now retrieve the depth buffer
+//	int nDepthBits;
+//	glGetIntegerv(GL_DEPTH_BITS, &nDepthBits);
+//
+//	glReadBuffer(GL_DEPTH);
+//	ASSERT(glGetError() == GL_NO_ERROR);
+}
+
 void CDRRRenderer::ComputeDRR()
 {
 	int nWidth = forVolume->width.Get();
@@ -226,6 +252,10 @@ void CDRRRenderer::ComputeDRR()
 	CRect rect;
 	m_pView->GetClientRect(&rect);
 	m_arrPixels.SetSize(rect.Width() * rect.Height());
+
+	// unsigned short *m_arrRasterStart = 
+		GetRasterStart();
+//	return;
 
 	// retrieve the model and projection matrices
 	GLdouble modelMatrix[16];
@@ -318,11 +348,34 @@ void CDRRRenderer::ComputeDRR()
 //	vEnd += CVector<3>(0.5, 0.5, 0.5);
 	CREATE_INT_VECTOR(vEnd, viEnd);
 
-	int nMax = 0;
-	int nMin = INT_MAX;
-	
 	int nImageHeight = rect.Height();
 	int nImageWidth = rect.Width();
+
+	__int64 mult_mask = nWidth << 1L;	// WATCH THIS: we need to shift by
+										//		the log2(nHeight) also
+	mult_mask <<= 32;
+	mult_mask |= (nWidth << 17L) | (1 << 1L);
+
+#define USE_TANDEM_RAYS
+#ifdef USE_TANDEM_RAYS
+	__int64 mult_mask2 = nWidth << 1L;	// WATCH THIS: we need to shift by
+										//		the log2(nHeight) also
+	mult_mask2 <<= 48;
+	mult_mask2 |= (nWidth << 17L) | (1 << 1L);
+#endif
+
+#ifdef COMPUTE_MINMAX
+	int nMax = 0;
+	int nMin = INT_MAX;
+#else
+	int nMax = 65000 / 64 * m_nSteps; // 0;
+	int nMin = 15000 / 64 * m_nSteps; // INT_MAX;
+#endif
+
+#ifdef POST_PROCESS
+	int level_offset = -nMin;
+	int window_div = (nMax - nMin) / 256;
+#endif
 
 	for (int nY = 0; nY < nImageHeight; nY++)
 	{
@@ -331,7 +384,6 @@ void CDRRRenderer::ComputeDRR()
 
 		int nPixelAt = nY * nImageWidth;
 
-// #define USE_TANDEM_RAYS
 #ifdef USE_TANDEM_RAYS
 		for (int nX = 0; nX < nImageWidth; nX += 2, nPixelAt += 2)
 		{
@@ -405,18 +457,6 @@ void CDRRRenderer::ComputeDRR()
 
 				char *pVoxels = (char *)&pppVoxels[0][0][0];
 				int *pCurrentPixel = (int *)&m_arrPixels[nPixelAt];
-
-				__int64 mult_mask = nWidth << 1L;	// WATCH THIS: we need to shift by
-													//		the log2(nHeight) also
-				mult_mask <<= 32;
-				mult_mask |= (nWidth << 17L) | (1 << 1L);
-
-#ifdef USE_TANDEM_RAYS
-				__int64 mult_mask2 = nWidth << 1L;	// WATCH THIS: we need to shift by
-													//		the log2(nHeight) also
-				mult_mask2 <<= 48;
-				mult_mask2 |= (nWidth << 17L) | (1 << 1L);
-#endif
 
 				__asm
 				{
@@ -524,12 +564,48 @@ LOOP1:
 					mov ecx, edi
 #endif
 
+#ifndef POST_PROCESS
+					add eax, level_offset
+					mov edx, 0
+					div window_div
+					and eax, 0x000000ff
+
+					mov edx, eax
+					shl edx, 8
+					or eax, edx
+					shl edx, 8
+					or eax, edx
+#endif
+
 					mov edi, pCurrentPixel
 					mov [edi], eax			// store the accumulated value
 
 #ifdef USE_TANDEM_RAYS
+
 					inc edi
+					inc edi
+					inc edi
+					inc edi
+
+#ifndef POST_PROCESS
+					mov eax, ecx
+
+					add eax, level_offset
+					mov edx, 0
+					div window_div
+					and eax, 0x000000ff
+
+					mov edx, eax
+					shl edx, 8
+					or eax, edx
+					shl edx, 8
+					or eax, edx
+
+					mov [edi], eax
+#else
 					mov [edi], ecx
+#endif
+
 #endif
 
 					emms					// clear MMX state 
@@ -560,8 +636,10 @@ LOOP1:
 
 			}
 
+#ifdef COMPUTE_MINMAX
 			nMax = max(m_arrPixels[nPixelAt], nMax);
 			nMin = min(m_arrPixels[nPixelAt], nMin);
+#endif
 
 #ifndef USE_TANDEM_RAYS
 			viStart = viStartOldX + viStartStepX;
@@ -580,12 +658,30 @@ LOOP1:
 	m_bias = (float) -nMin / m_scale;
 #endif
 
+#ifdef POST_PROCESS
+	int nValue;
+	int nWindow = nMax - nMin;
+	unsigned char (*pRGBA)[4];
 	for (int nPixelAt = 0; nPixelAt < nImageWidth * nImageHeight; nPixelAt++)
 	{
-		m_arrPixels[nPixelAt] -= nMin;
-		m_arrPixels[nPixelAt] *= INT_MAX / (nMax - nMin);
-	}
+		nValue = m_arrPixels[nPixelAt];
+		nValue -= nMin;
+		nValue <<= 8;
+		nValue /= nWindow; // (nMax - nMin);
+		nValue = min(255, nValue);
+		nValue = max(0, nValue);
 
+		pRGBA = (unsigned char (*)[4])&m_arrPixels[nPixelAt];
+		(*pRGBA)[0] = nValue;
+		(*pRGBA)[1] = nValue;
+		(*pRGBA)[2] = nValue;
+		(*pRGBA)[3] = 0;
+//		m_arrPixels[nPixelAt] = 255 << 24 | nValue << 16 | nValue << 8 | nValue;
+
+//		m_arrPixels[nPixelAt] -= nMin;
+//		m_arrPixels[nPixelAt] *= INT_MAX / (nMax - nMin);
+	}
+#endif
 
 	m_bRecomputeDRR = FALSE;
 }
@@ -623,8 +719,18 @@ void CDRRRenderer::DrawScene()
 		glPixelTransferf(GL_BLUE_BIAS, m_bias);
 #endif
 
-		glDrawPixels(rect.Width(), rect.Height(), GL_LUMINANCE, GL_INT, m_arrPixels.GetData());
+//		glDrawPixels(rect.Width(), rect.Height(), GL_LUMINANCE, GL_INT, m_arrPixels.GetData());
+		TRACE1("SCISSOR Test = %s\n", glIsEnabled(GL_SCISSOR_TEST) ? "On" : "Off");
+		TRACE1("ALPHA Test = %s\n", glIsEnabled(GL_ALPHA_TEST) ? "On" : "Off");
+		TRACE1("STENCIL Test = %s\n", glIsEnabled(GL_STENCIL_TEST) ? "On" : "Off");
+		TRACE1("DEPTH Test = %s\n", glIsEnabled(GL_DEPTH_TEST) ? "On" : "Off");
+		TRACE1("DITHERING = %s\n", glIsEnabled(GL_DITHER) ? "On" : "Off");
+		TRACE1("LOGIC_OP Test = %s\n", glIsEnabled(GL_COLOR_LOGIC_OP) ? "On" : "Off");
+
+		glDisable(GL_DEPTH_TEST);
+		glDrawPixels(rect.Width(), rect.Height(), GL_RGBA, GL_UNSIGNED_BYTE, m_arrPixels.GetData());
 		ASSERT(glGetError() == GL_NO_ERROR);
+		glEnable(GL_DEPTH_TEST);
 
 		glMatrixMode(GL_PROJECTION);
 		glPopMatrix();
@@ -642,8 +748,8 @@ void CDRRRenderer::OnChange(CObservable *pSource)
 	COpenGLRenderer::OnChange(pSource);
 	if (pSource == &m_pView->myProjectionMatrix)
 	{
-		m_nSteps = 128;
-		m_nShift = 7;
+		m_nSteps = RAY_TRACE_RESOLUTION;
+		m_nShift = RAY_TRACE_RES_LOG2;
 		m_bRecomputeDRR = TRUE;
 	}
 }
