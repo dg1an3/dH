@@ -25,6 +25,8 @@
 // histograms for the plan
 #include <Histogram.h>
 
+class CEnergyDepKernel;
+
 //////////////////////////////////////////////////////////////////////
 // class CPlan
 //
@@ -52,18 +54,12 @@ public:
 	CBeam * GetBeamAt(int nAt);
 	int AddBeam(CBeam *pBeam);
 
+	// helper functions
 	int GetTotalBeamletCount(int nLevel);
 	void SetBeamCount(int nCount);
 
-	int m_nFields;
-
-	// the beam weights, as a vector
-	void GetBeamWeights(CVectorN<>& vWeights);
-	void SetBeamWeights(const CVectorN<>& vWeights);
-
-	// DVH accessors
-	const CMatrixNxM<> *GetTargetDVH(CMesh *pStructure);
-	void SetTargetDVH(CMesh *pStructure, CMatrixNxM<> *pmTarget);
+	// helper to get formatted mass density volume
+	CVolume<REAL> * GetMassDensity();
 
 	// the computed dose for this plan (NULL if no dose exists)
 	CVolume<REAL> *GetDoseMatrix();
@@ -77,6 +73,11 @@ public:
 
 // Implementation
 public:
+
+	// stores the energy dep kernel
+	CEnergyDepKernel * m_pKernel;
+
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
@@ -92,12 +93,15 @@ private:
 	// the series upon which this plan is based
 	CSeries * m_pSeries;
 
-	// the target DVHs
-	CMapStringToPtr m_mapTargetDVHs;
+	// pyramid storing resampled mass density
+	CVolume<REAL> m_massDensity;
+	BOOL m_bCalcMassDensity;
 
+public:
 	// the dose matrix for the plan
 	CVolume<REAL> m_dose;
 
+private:
 	// flag to indicate the total dose is to be recomputed
 	BOOL m_bRecomputeTotalDose;
 
