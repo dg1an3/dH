@@ -197,9 +197,15 @@ CVolume<REAL> *CPlan::GetDoseMatrix()
 		{
 			CVolume<REAL> *pBeamDose = GetBeamAt(0)->GetDoseMatrix();
 
+			// TODO: move this to SetSeries
 			m_dose.SetDimensions(pBeamDose->GetWidth(), 
 				pBeamDose->GetHeight(),
 				pBeamDose->GetDepth());
+
+			CMatrixD<4> mBasis;
+			mBasis[3][0] = -(m_dose.GetWidth() - 1) / 2;
+			mBasis[3][1] = -(m_dose.GetHeight() - 1) / 2;
+			m_dose.SetBasis(mBasis);
 
 			// clear the dose matrix
 			m_dose.ClearVoxels();
