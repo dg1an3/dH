@@ -101,14 +101,6 @@ SOURCE=.\Polygon.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\PseudocolorFilter.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\Resampler.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
 # End Source File
@@ -119,10 +111,6 @@ SOURCE=.\Surface.cpp
 # Begin Source File
 
 SOURCE=.\TPSTransform.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\WinLevFilter.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -150,14 +138,6 @@ SOURCE=.\include\Polygon.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\PseudocolorFilter.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\Resampler.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\StdAfx.h
 # End Source File
 # Begin Source File
@@ -175,10 +155,6 @@ SOURCE=.\include\UtilMacros.h
 # Begin Source File
 
 SOURCE=.\include\Volumep.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\WinLevFilter.h
 # End Source File
 # End Group
 # Begin Source File
