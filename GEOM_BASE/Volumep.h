@@ -21,9 +21,9 @@ public:
 			depth(0),
 			m_pVoxels(NULL)
 	{
-		width.AddObserver(this, (ChangeFunction) OnChange);
-		height.AddObserver(this, (ChangeFunction) OnChange);
-		depth.AddObserver(this, (ChangeFunction) OnChange);
+		::AddObserver<CVolume>(&width, this, OnChange);
+		::AddObserver<CVolume>(&height, this, OnChange);
+		::AddObserver<CVolume>(&depth, this, OnChange);
 	}
 
 	virtual ~CVolume()
