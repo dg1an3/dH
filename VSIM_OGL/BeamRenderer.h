@@ -14,7 +14,7 @@
 
 #include "Observer.h"
 #include "Association.h"
-#include "AutoSyncValue.h"
+// #include "AutoSyncValue.h"
 
 class CBeamRenderer : public COpenGLRenderer
 {
