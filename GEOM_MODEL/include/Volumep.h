@@ -15,6 +15,12 @@
 
 #include "ModelObject.h"
 
+#undef max
+#undef min
+
+#include <limits>
+using namespace std;
+
 //////////////////////////////////////////////////////////////////////
 // class CVolume<VOXEL_TYPE>
 //
@@ -194,7 +200,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	VOXEL_TYPE GetMax()
 	{
-		VOXEL_TYPE nMaxValue = 0; // numeric_limits<VOXEL_TYPE>::min();
+		VOXEL_TYPE nMaxValue = -numeric_limits<VOXEL_TYPE>::max();
 		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
 		{
 			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
@@ -208,6 +214,27 @@ public:
 		}
 
 		return nMaxValue;
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// forms the max of the volume voxel values
+	//////////////////////////////////////////////////////////////////
+	VOXEL_TYPE GetMin()
+	{
+		VOXEL_TYPE nMinValue = numeric_limits<VOXEL_TYPE>::max();
+		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+		{
+			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+			{
+				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+				{
+					nMinValue = 
+						__min(nMinValue, GetVoxels()[nAtZ][nAtY][nAtX]);
+				}
+			}
+		}
+
+		return nMinValue;
 	}
 
 	//////////////////////////////////////////////////////////////////
