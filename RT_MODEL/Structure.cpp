@@ -6,7 +6,6 @@
 #include "Structure.h"
 #include <Series.h>
 
-
 CVolume<REAL> CStructure::m_kernel;
 
 
@@ -76,12 +75,14 @@ CVolume<REAL> * CStructure::GetRegion(int nScale)
 	{
 		BEGIN_LOG_SECTION(CStructure::GetRegion);
 
+		// TODO: use CPyramid for this
+
 		CVolume<REAL> *pNewRegion = new CVolume<REAL>();
 		if (nScale == 0)
 		{
 			// set size of region
 			pNewRegion->ConformTo(m_pSeries->m_pDens);
-			// ContoursToRegion(pNewRegion);
+			ContoursToRegion(pNewRegion);
 		}
 		else
 		{
@@ -178,8 +179,19 @@ void CStructure::Serialize(CArchive& ar)
 ///////////////////////////////////////////////////////////////////////////////
 void CStructure::ContoursToRegion(CVolume<REAL> *pRegion)
 {
-	CreateRegion((CPolygon *) m_arrContours.GetData(), 
-		m_arrContours.GetSize(), pRegion);
+	REAL slicePos = pRegion->GetBasis()[3][2];
+
+	CArray<CPolygon *, CPolygon *> arrContours;
+	for (int nAt = 0; nAt < GetContourCount(); nAt++)
+	{
+		REAL zPos = GetContourRefDist(nAt);
+		if (IsApproxEqual(zPos, slicePos))
+		{
+			arrContours.Add(GetContour(nAt));
+		}
+	}
+
+	CreateRegion(arrContours, pRegion);
 
 /*	int nWidth = 0;
 	int nHeight = 0;
@@ -245,7 +257,8 @@ void CStructure::ContoursToRegion(CVolume<REAL> *pRegion)
 
 }	// CStructure::ContoursToRegion
 
-void CStructure::AddContour(CPolygon *pPoly)
+void CStructure::AddContour(CPolygon *pPoly, REAL refDist)
 {
 	m_arrContours.Add(pPoly);
+	m_arrRefDist.Add(refDist);
 }
