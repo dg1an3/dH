@@ -244,3 +244,8 @@ void CStructure::ContoursToRegion(CVolume<REAL> *pRegion)
 	bitmap.DeleteObject(); */
 
 }	// CStructure::ContoursToRegion
+
+void CStructure::AddContour(CPolygon *pPoly)
+{
+	m_arrContours.Add(pPoly);
+}

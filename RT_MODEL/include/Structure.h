@@ -31,6 +31,8 @@ public:
 	CPolygon *GetContour(int nAt);
 	REAL GetContourRefDist(int nIndex) const;
 
+	void AddContour(CPolygon *pPoly);
+
 	CMesh * GetMesh();
 	
 	CVolume<REAL> * GetRegion(int nLevel = 0);
