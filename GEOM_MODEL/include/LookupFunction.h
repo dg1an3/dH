@@ -56,7 +56,7 @@ public:
 			SetIntegralMode(m_bIntegralMode);
 
 			// set up the table to clamp the values
-			SetClampValues();
+			// SetClampValues();
 
 			// now write out the computed table
 			WriteToFile(strCacheFilename, strVersion);
