@@ -105,6 +105,7 @@ BEGIN
     BUTTON      ID_VIEW_BEAM
     BUTTON      ID_VIEW_LIGHTPATCH
     BUTTON      ID_VIEW_WIREFRAME
+    BUTTON      ID_VIEW_COLORWASH
     SEPARATOR
     BUTTON      ID_EDIT_COPY
     BUTTON      ID_EDIT_PASTE
@@ -489,6 +490,8 @@ STRINGTABLE DISCARDABLE
 BEGIN
     ID_VIEW_LIGHTPATCH      "Turn on/off light patch display/nLightpatch"
     ID_VIEW_BEAM            "Turn on/off beam display/nBeam"
+    ID_VIEW_WIREFRAME       "View the structures as wire frames"
+    ID_VIEW_COLORWASH       "View the structures as color wash"
 END
 
 #endif    // English (U.S.) resources
