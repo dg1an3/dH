@@ -227,6 +227,7 @@ void CPenBeamEditApp::OnFileImport()
 	pos = pTemplate->GetFirstDocPosition();
 	CPlan *pPlan = 
 		(CPlan *)pTemplate->GetNextDoc(pos);
+	pPlan->SetPathName("ImportedPlan.pln");
 
 	// set the plan path name
 	pPlan->SetPathName("IMPORT.PLN");
@@ -307,4 +308,5 @@ void CPenBeamEditApp::OnFileImport()
 
 	// update the views
 	pPlan->UpdateAllViews(NULL);
+	m_pMainWnd->RedrawWindow();
 }
