@@ -135,8 +135,12 @@ void InitVolumes()
 	g_pStructTarget = new CStructure("Target");
 	g_pSeries->m_arrStructures.Add(g_pStructTarget);
 
+	CMatrixD<4> mBasis;
+	mBasis[3][0] = -pDose->GetWidth() / 2;
+	mBasis[3][1] = -pDose->GetHeight() / 2;
 	CVolume<REAL> *pRegionTarget = g_pStructTarget->GetRegion(0);
 	pRegionTarget->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), 1);
+	pRegionTarget->SetBasis(mBasis);
 	pRegionTarget->ClearVoxels();
 
 	g_pStructAvoid = new CStructure("Avoid");
@@ -144,6 +148,7 @@ void InitVolumes()
 
 	CVolume<REAL> *pRegionAvoid = g_pStructAvoid->GetRegion(0);
 	pRegionAvoid->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), 1);
+	pRegionAvoid->SetBasis(mBasis);
 	pRegionAvoid->ClearVoxels();
 
 	InitUTarget(pRegionTarget, pRegionAvoid);
