@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "GUI_BASE"=..\GUI_BASE\GUI_BASE.dsp - Package Owner=<4>
+Project: "GEOM_BASE"="..\GEOM_BASE\GEOM_BASE.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "MODEL_BASE"=..\MODEL_BASE\MODEL_BASE.dsp - Package Owner=<4>
+Project: "GUI_BASE"="..\GUI_BASE\GUI_BASE.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "OGL_BASE"=..\OGL_BASE\OGL_BASE.dsp - Package Owner=<4>
+Project: "MODEL_BASE"="..\MODEL_BASE\MODEL_BASE.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +39,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "VSIM_MODEL"=..\VSIM_MODEL\VSIM_MODEL.dsp - Package Owner=<4>
+Project: "OGL_BASE"="..\OGL_BASE\OGL_BASE.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -51,7 +51,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "VSIM_OGL"=.\VSIM_OGL.dsp - Package Owner=<4>
+Project: "VSIM_MODEL"="..\VSIM_MODEL\VSIM_MODEL.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "VSIM_OGL"=".\VSIM_OGL.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -70,6 +82,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name OGL_BASE
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name GEOM_BASE
     End Project Dependency
 }}}
 

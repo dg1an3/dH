@@ -206,7 +206,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CObjectExplorer *pExplorer = &pFrame->m_wndExplorerCtrl.m_ExplorerCtrl;
 
 	CObjectTreeItem *pPatientItem = new CObjectTreeItem();
-	pPatientItem->name.Set("Patient: Doe, John");
+	pPatientItem->label.Set("Patient: Doe, John");
 	pPatientItem->Create(pExplorer);
 	if (GetDocument()->GetSeries() == NULL)
 		return;
@@ -214,9 +214,9 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CSeries *pSeries = GetDocument()->GetSeries();
 
 	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
-	pSeriesItem->SetParent(pPatientItem);
-	pSeriesItem->name.Set("Series: " + pSeries->GetFileRoot());
-	pSeriesItem->Create(pExplorer);
+	pSeriesItem->label.Set("Series: " + pSeries->GetFileRoot());
+
+	pPatientItem->AddChild(pSeriesItem);
 
 	for (int nAtSurf = 0; nAtSurf < pSeries->structures.GetSize(); nAtSurf++)
 	{
@@ -224,12 +224,15 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		// add the surface to the object explorer
 		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-		pNewItem->name.SyncTo(&pSurface->name);
-		pNewItem->SetParent(pSeriesItem);
+
+		pNewItem->forObject.Set(pSurface);
+
 		pNewItem->imageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
 		pNewItem->selectedImageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
-		pNewItem->Create(pExplorer);
+
 		pNewItem->isChecked.Set(TRUE);
+
+		pSeriesItem->AddChild(pNewItem);
 
 		CSurfaceRenderer *pSurfaceRenderer = new CSurfaceRenderer(&m_wndREV);
 		pSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
@@ -272,9 +275,8 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	}
 
 	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
-	pPlanItem->name.Set("Plan: " + GetDocument()->GetFileRoot());
-	pPlanItem->SetParent(pPatientItem);
-	pPlanItem->Create(pExplorer);
+	pPlanItem->label.Set("Plan: " + GetDocument()->GetFileRoot());
+	pPatientItem->AddChild(pPlanItem);
 
 	int nAtBeam;
 	for (nAtBeam = 0; nAtBeam < GetDocument()->beams.GetSize(); nAtBeam++)
@@ -282,11 +284,13 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CBeam *pBeam = GetDocument()->beams.Get(nAtBeam);
 
 		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-		pNewItem->name.SyncTo(&pBeam->name);
-		pNewItem->SetParent(pPlanItem);
+
+		pNewItem->forObject.Set(pBeam);
+
 		pNewItem->imageResourceID.Set(IDB_BEAM_GREEN);
 		pNewItem->selectedImageResourceID.Set(IDB_BEAM_MAGENTA);
-		pNewItem->Create(pExplorer);
+
+		pPlanItem->AddChild(pNewItem);
 
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
 		m_pBeamRenderer->SetBeam(pBeam);
@@ -295,7 +299,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	}
 
 	CObjectTreeItem *pAltPatientItem = new CObjectTreeItem();
-	pAltPatientItem->name.Set("Patient: Sprat, Jack");
+	pAltPatientItem->label.Set("Patient: Sprat, Jack");
 	pAltPatientItem->isChecked.Set(FALSE);
 	pAltPatientItem->Create(pExplorer);
 }
