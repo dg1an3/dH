@@ -12,7 +12,7 @@
 #include "Observer.h"
 
 template<class TYPE>
-class CValue : public CObservableObject //, public CObserver
+class CValue : public CObservableObject
 {
 public:
 	CValue() 
@@ -28,8 +28,8 @@ public:
 
 	virtual ~CValue() 
 	{ 
-		for (int nAt = 0; nAt < m_arrFunctions.GetSize(); nAt++)
-			delete m_arrFunctions[nAt];
+		for (int nAt = 0; nAt < m_arrDerivedObjects.GetSize(); nAt++)
+			delete m_arrDerivedObjects[nAt];
 	}
 
 	TYPE& Get() 
@@ -97,9 +97,9 @@ public:
 	}
 
 	// TODO: rename this
-	void AddFunction(CObject *pFunc)
+	void AddDerivedObject(CObject *pDerivedObjects)
 	{
-		m_arrFunctions.Add(pFunc);
+		m_arrDerivedObjects.Add(pDerivedObjects);
 	}
 
 	virtual void Serialize(CArchive &ar)
@@ -125,7 +125,7 @@ protected:
 
 	// array of derived function objects
 	//		to be deleted
-	CObArray m_arrFunctions;
+	CObArray m_arrDerivedObjects;
 };
 
 #endif // !defined(AFX_VALUE_H__76008147_F6DF_11D4_9E3E_00B0D0609AB0__INCLUDED_)
