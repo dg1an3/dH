@@ -56,6 +56,9 @@ public:
 	{
 		ASSERT(m_pArg != NULL);
 		m_pArg->AddObserver(this);
+
+		// now set the initial value
+		Set((*m_pFunc)(m_pArg->Get()));
 	}
 
 	virtual ~CFunction1()
@@ -96,6 +99,9 @@ public:
 
 		ASSERT(m_pArg2 != NULL);
 		m_pArg2->AddObserver(this);
+
+		// now set the initial value
+		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
 	}
 
 	CFunction2(TYPE (*pFunc)(const ARG1_TYPE&, const ARG2_TYPE&), 
@@ -108,6 +114,9 @@ public:
 	{
 		ASSERT(m_pArg1 != NULL);
 		m_pArg1->AddObserver(this);
+
+		// now set the initial value
+		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
 	}
 
 	CFunction2(TYPE (*pFunc)(const ARG1_TYPE&, const ARG2_TYPE&), 
@@ -170,6 +179,9 @@ public:
 
 		ASSERT(m_pArg3 != NULL);
 		m_pArg3->AddObserver(this);
+
+		// now set the initial value
+		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get(), m_pArg3->Get()));
 	}
 
 	virtual ~CFunction3()
