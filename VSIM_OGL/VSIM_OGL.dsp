@@ -116,10 +116,6 @@ SOURCE=.\MainFrm.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\NodeRenderer.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\simview.cpp
 # End Source File
 # Begin Source File
@@ -172,10 +168,6 @@ SOURCE=.\MachineRenderer.h
 # Begin Source File
 
 SOURCE=.\MainFrm.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\NodeRenderer.h
 # End Source File
 # Begin Source File
 
