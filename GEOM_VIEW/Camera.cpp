@@ -100,7 +100,7 @@ void CCamera::SetDirection(const CVectorD<3>& vDir)
 // returns the distance along the optical axis from the camera's 
 //		focal point to the target point
 //////////////////////////////////////////////////////////////////////
-double CCamera::GetDistance() const 
+REAL CCamera::GetDistance() const 
 { 
 	return m_distance;
 }
@@ -111,7 +111,7 @@ double CCamera::GetDistance() const
 // sets the distance along the optical axis from the camera's 
 //		focal point to the target point
 //////////////////////////////////////////////////////////////////////
-void CCamera::SetDistance(double dist) 
+void CCamera::SetDistance(REAL dist) 
 { 
 	// set the distance from the camera to the target point
 	m_distance = dist;
@@ -281,7 +281,7 @@ void CCamera::RecalcCameraToModel() const
 {
 	// form the camera coordinate system basis
 	CMatrixD<3> mCameraBasis;
-	mCameraBasis[2] = GetTarget() - GetDistance() * GetDirection();
+	mCameraBasis[2] = GetTarget() - (GetDistance() * GetDirection());
 	mCameraBasis[2].Normalize();
 
 	mCameraBasis[0] = Cross(mCameraBasis[2], GetUpDirection());
@@ -293,7 +293,7 @@ void CCamera::RecalcCameraToModel() const
 	mCameraBasis.Transpose();
 
 	CVectorD<3> vTranslate = 
-		-1.0 * mCameraBasis * (GetDistance() * GetDirection());
+		((REAL) -1.0) * mCameraBasis * (GetDistance() * GetDirection());
 
 	m_mXform = CMatrixD<4>(mCameraBasis);
 	m_mXform[3][0] = vTranslate[0];
