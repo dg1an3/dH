@@ -173,7 +173,7 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 		REAL r = (bx - ax) * (fb - fc);
 		REAL q = (bx - cx) * (fb - fa);
 		REAL u = (REAL) (bx - ((bx - cx) * q - (bx - ax) * r)
-			 / (2.0 * SIGN(max(fabs(q - r), TINY),q - r)));
+			 / (2.0 * SIGN(__max(fabs(q - r), TINY),q - r)));
 		REAL fu; // function value at u
 		REAL ulim = bx + (m_GLimit * (cx - bx));
 
