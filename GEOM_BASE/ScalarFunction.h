@@ -60,6 +60,26 @@ inline TYPE Gauss2D(TYPE x, TYPE y, TYPE sx, TYPE sy)
 		/ (TYPE) (sqrt(2.0 * PI * sx * sy));
 }
 
+template<class TYPE>
+inline TYPE dGauss2D_dx(TYPE x, TYPE y, TYPE sx, TYPE sy)
+{
+	// compute the exponent
+	TYPE dx = -((TYPE) 2.0 * x) / ((TYPE) 2.0 * sx * sx);
+
+	// return the exponential
+	return dx * Gauss2D(x, y, sx, sy);
+}
+
+template<class TYPE>
+inline TYPE dGauss2D_dy(TYPE x, TYPE y, TYPE sx, TYPE sy)
+{
+	// compute the exponent
+	TYPE dy = -((TYPE) 2.0 * y) / ((TYPE) 2.0 * sy * sy);
+
+	// return the exponential
+	return dy * Gauss2D(x, y, sx, sy);
+}
+
 inline double AngleFromSinCos(double sin_angle, double cos_angle)
 {
 	double angle = 0.0;
