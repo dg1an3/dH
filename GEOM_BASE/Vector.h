@@ -364,7 +364,7 @@ inline CVector<3, TYPE> Cross(const CVector<3, TYPE>& vLeft,
 // friend function for vector cross product of 2-d vectors
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-inline double Cross(const CVector<2, TYPE>& vLeft, 
+inline TYPE Cross(const CVector<2, TYPE>& vLeft, 
 					const CVector<2, TYPE>& vRight)
 {
 	return vLeft[0] * vRight[1] - vLeft[1] * vRight[0];
