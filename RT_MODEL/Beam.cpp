@@ -24,6 +24,11 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 
+// filter for intensity maps
+CVectorN<> CBeam::m_vWeightFilter;
+CMatrixNxM<> CBeam::m_mFilter[MAX_SCALES - 1];
+
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -42,10 +47,17 @@ CBeam::CBeam()
 
 		m_vCollimMin(CVectorD<2>(-20.0, -20.0)),
 		m_vCollimMax(CVectorD<2>(20.0, 20.0)),
-		m_bDoseValid(FALSE),
 
 		m_weight(1.0)
 {
+	if (m_vWeightFilter.GetDim() == 0)
+	{
+		m_vWeightFilter.SetDim(3);
+		m_vWeightFilter[0] = 0.25;
+		m_vWeightFilter[1] = 0.50;
+		m_vWeightFilter[2] = 0.25;
+	}
+
 }	// CBeam::CBeam
 
 //////////////////////////////////////////////////////////////////////
@@ -53,11 +65,12 @@ CBeam::CBeam()
 // 
 // supports serialization of beam and subordinate objects
 //////////////////////////////////////////////////////////////////////
-#define BEAM_SCHEMA 4
+#define BEAM_SCHEMA 5
 	// Schema 1: geometry description, blocks
 	// Schema 2: + dose matrix
 	// Schema 3: + call to CModelObject base class serialization
 	// Schema 4: + weight
+	// Schema 5: + beamlets
 
 IMPLEMENT_SERIAL(CBeam, CModelObject, VERSIONABLE_SCHEMA | BEAM_SCHEMA)
 
@@ -97,7 +110,8 @@ CTreatmentMachine *CBeam::GetTreatmentMachine()
 double CBeam::GetCollimAngle() const
 {
 	return m_collimAngle;
-}
+
+}	// CBeam::GetCollimAngle
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetCollimAngle
@@ -108,7 +122,8 @@ void CBeam::SetCollimAngle(double collimAngle)
 {
 	m_collimAngle = collimAngle;
 	GetChangeEvent().Fire();
-}
+
+}	// CBeam::SetCollimAngle
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetGantryAngle
@@ -118,7 +133,9 @@ void CBeam::SetCollimAngle(double collimAngle)
 double CBeam::GetGantryAngle() const
 {
 	return m_gantryAngle;
-}
+
+}	// CBeam::GetGantryAngle
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetGantryAngle
@@ -129,7 +146,8 @@ void CBeam::SetGantryAngle(double gantryAngle)
 {
 	m_gantryAngle = gantryAngle;
 	GetChangeEvent().Fire();
-}
+
+}	// CBeam::SetGantryAngle
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetCouchAngle
@@ -139,7 +157,9 @@ void CBeam::SetGantryAngle(double gantryAngle)
 double CBeam::GetCouchAngle() const
 {
 	return m_couchAngle;
-}
+
+}	// CBeam::GetCouchAngle
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetCouchAngle
@@ -150,7 +170,9 @@ void CBeam::SetCouchAngle(double couchAngle)
 {
 	m_couchAngle = couchAngle;
 	GetChangeEvent().Fire();
-}
+
+}	// CBeam::SetCouchAngle
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetTableOffset
@@ -160,7 +182,9 @@ void CBeam::SetCouchAngle(double couchAngle)
 const CVectorD<3>& CBeam::GetTableOffset() const
 {
 	return m_vTableOffset;
-}
+
+}	// CBeam::GetTableOffset
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetTableOffset
@@ -171,7 +195,8 @@ void CBeam::SetTableOffset(const CVectorD<3>& vTableOffset)
 {
 	m_vTableOffset = vTableOffset;
 	GetChangeEvent().Fire();
-}
+
+}	// CBeam::SetTableOffset
 
 
 //////////////////////////////////////////////////////////////////////
@@ -182,7 +207,8 @@ void CBeam::SetTableOffset(const CVectorD<3>& vTableOffset)
 const CVectorD<2>& CBeam::GetCollimMin() const
 {
 	return m_vCollimMin;
-}
+
+}	// CBeam::GetCollimMin
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetCollimMin
@@ -193,8 +219,8 @@ void CBeam::SetCollimMin(const CVectorD<2>& vCollimMin)
 {
 	m_vCollimMin = vCollimMin;
 	GetChangeEvent().Fire();
-}
 
+}	// CBeam::SetCollimMin
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetCollimMax
@@ -204,7 +230,8 @@ void CBeam::SetCollimMin(const CVectorD<2>& vCollimMin)
 const CVectorD<2>& CBeam::GetCollimMax() const
 {
 	return m_vCollimMax;
-}
+
+}	// CBeam::GetCollimMax
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetCollimMax
@@ -215,7 +242,8 @@ void CBeam::SetCollimMax(const CVectorD<2>& vCollimMax)
 {
 	m_vCollimMax = vCollimMax;
 	GetChangeEvent().Fire();
-}
+
+}	// CBeam::SetCollimMax
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetBeamToFixedXform
@@ -240,7 +268,8 @@ const CMatrixD<4>& CBeam::GetBeamToFixedXform() const
 			CVectorD<3>(0.0, 0.0, -1.0));
 
 	return m_beamToFixedXform;
-}
+
+}	// CBeam::GetBeamToFixedXform
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetBeamToPatientXform
@@ -263,7 +292,8 @@ const CMatrixD<4>& CBeam::GetBeamToPatientXform() const
 		* GetBeamToFixedXform();
 
 	return m_beamToPatientXform;
-}
+
+}	// CBeam::GetBeamToPatientXform
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetBeamToPatientXform
@@ -309,7 +339,9 @@ void CBeam::SetBeamToPatientXform(const CMatrixD<4>& m)
 	m_collimAngle = coll;
 
 	GetChangeEvent().Fire();
-}
+
+}	// CBeam::SetBeamToPatientXform
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetHasShieldingBlocks
@@ -320,7 +352,8 @@ void CBeam::SetBeamToPatientXform(const CMatrixD<4>& m)
 BOOL CBeam::GetHasShieldingBlocks() const
 {
 	return m_bHasShieldingBlocks;
-}
+
+}	// CBeam::GetHasShieldingBlocks
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetBlockCount
@@ -330,17 +363,19 @@ BOOL CBeam::GetHasShieldingBlocks() const
 int CBeam::GetBlockCount() const
 {
 	return m_arrBlocks.GetSize();
-}
+
+}	// CBeam::GetBlockCount
 
 //////////////////////////////////////////////////////////////////////
-// CBeam::GetBlockAt
+// CBeam::GetBlock
 // 
 // returns a particular block on this beam
 //////////////////////////////////////////////////////////////////////
 CPolygon *CBeam::GetBlock(int nAt)
 {
-	return (CPolygon *) m_arrBlocks[nAt];
-}
+	return m_arrBlocks[nAt];
+
+}	// CBeam::GetBlock
 
 
 //////////////////////////////////////////////////////////////////////
@@ -358,7 +393,9 @@ int CBeam::AddBlock(CPolygon *pBlock)
 
 	// return the new block's index
 	return nAt;
-}
+
+}	// CBeam::AddBlock
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetWeight
@@ -368,7 +405,8 @@ int CBeam::AddBlock(CPolygon *pBlock)
 double CBeam::GetWeight() const
 {
 	return m_weight;
-}
+
+}	// CBeam::GetWeight
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::SetWeight
@@ -380,38 +418,120 @@ void CBeam::SetWeight(double weight)
 	m_weight = weight;
 
 	GetChangeEvent().Fire();
-}
 
-//////////////////////////////////////////////////////////////////////
-// CBeam::IsDoseValid
-// 
-// flag to indicate whether the plan's dose is valid
-//////////////////////////////////////////////////////////////////////
-BOOL CBeam::IsDoseValid() const
-{
-	return m_bDoseValid;
-}
+}	// CBeam::SetWeight
 
-//////////////////////////////////////////////////////////////////////
-// CBeam::SetDoseValid
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetBeamletCount
 // 
-// flag to indicate whether the plan's dose is valid
-//////////////////////////////////////////////////////////////////////
-void CBeam::SetDoseValid(BOOL bValid)
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+int CBeam::GetBeamletCount(int nLevel)
 {
-	m_bDoseValid = bValid;
-}
+	return m_arrBeamlets[nLevel].GetSize();
+
+}	// CBeam::GetBeamletCount
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetBeamlet
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVolume<REAL> * CBeam::GetBeamlet(int nShift, int nLevel)
+{
+	return (CVolume<REAL> *) m_arrBeamlets[nLevel]
+		[nShift + GetBeamletCount(nLevel) / 2];
+
+}	// CBeam::GetBeamlet
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetIntensityMap
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+const CVectorN<>& CBeam::GetIntensityMap() const
+{
+	return m_vBeamletWeights;
+
+}	// CBeam::GetIntensityMap
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::SetIntensityMap
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CBeam::SetIntensityMap(const CVectorN<>& vWeights)
+{
+	ASSERT(m_arrBeamlets[0].GetSize() == vWeights.GetDim());
+
+	m_vBeamletWeights = vWeights;
+	m_bRecalcDose = TRUE;
+
+}	// CBeam::SetIntensityMap
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::InvFiltIntensityMap
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CBeam::InvFiltIntensityMap(int nLevel, const CVectorBase<>& vWeights,
+								CVectorBase<>& vFiltWeights)
+{
+	BEGIN_LOG_SECTION(CBeam::InvFiltIntensityMap);
+	LOG_EXPR(nLevel);
+	LOG_EXPR_EXT(vWeights);
+
+	CVectorN<> vFilterOut;
+	vFilterOut.SetDim(vWeights.GetDim() * 2 + 1);
+	vFilterOut.SetZero();
+
+	for (int nAt = 0; nAt < vWeights.GetDim(); nAt++)
+	{
+		vFilterOut[nAt * 2 + 1] = vWeights[nAt];
+	}
+
+	vFiltWeights = GetFilterMat(nLevel-1) * vFilterOut;
+	vFiltWeights *= 2.0;
+
+	END_LOG_SECTION();
+
+}	// CBeam::InvFiltIntensityMap
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::GetDoseMatrix
 // 
 // the computed dose for this beam (NULL if no dose exists)
 //////////////////////////////////////////////////////////////////////
-CVolume<double> *CBeam::GetDoseMatrix(int nScale)
+CVolume<REAL> *CBeam::GetDoseMatrix()
 {
-	return &m_arrDose[nScale];
-}
+	if (m_bRecalcDose)
+	{ 
+		// check dose matrix size
+		CVolume<REAL> *pBeamlet = m_arrBeamlets[0][0];
+		if (m_dose.GetWidth() != pBeamlet->GetWidth())
+		{
+			m_dose.SetDimensions(pBeamlet->GetWidth(), 
+				pBeamlet->GetHeight(), pBeamlet->GetDepth());
+		}
 
+		// clear voxels for accumulation
+		m_dose.ClearVoxels();
+
+		for (int nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
+		{
+			CVolume<REAL> *pBeamlet = m_arrBeamlets[0][nAt];
+			m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
+		}
+
+		m_bRecalcDose = FALSE;
+	}  
+
+	return &m_dose;
+
+}	// CBeam::GetDoseMatrix
 
 //////////////////////////////////////////////////////////////////////
 // CBeam::Serialize
@@ -488,16 +608,12 @@ void CBeam::Serialize(CArchive &ar)
 	//		we are storing or if we are loading with schema >= 2
 	if (nSchema >= 2)
 	{
-		SERIALIZE_VALUE(ar, m_bDoseValid);
-
-		// empty the dose matrix if it is not valid
-		if (ar.IsStoring() && !m_bDoseValid)
-		{
-			m_arrDose[0].SetDimensions(0, 0, 0);
-		}
+		// WAS m_bDoseValid flag (deprecated)
+		BOOL bDoseValid = TRUE;
+		SERIALIZE_VALUE(ar, bDoseValid);
 
 		// serialize the dose matrix
-		m_arrDose[0].Serialize(ar);
+		m_dose.Serialize(ar);
 	}
 
 	// serialize the beam weight
@@ -505,7 +621,77 @@ void CBeam::Serialize(CArchive &ar)
 	{
 		SERIALIZE_VALUE(ar, m_weight);
 	}
-}
+
+	// serialize the beamlets
+	if (nSchema >= 5)
+	{
+		int nLevels = MAX_SCALES;
+		SERIALIZE_VALUE(ar, nLevels);
+		ASSERT(nLevels <= MAX_SCALES);
+
+		for (int nAtLevel = 0; nAtLevel < nLevels; nAtLevel++)
+		{
+			int nBeamlets = m_arrBeamlets[nAtLevel].GetSize();
+			SERIALIZE_VALUE(ar, nBeamlets);
+
+			// TODO: delete old beamlets
+			if (ar.IsLoading())
+			{
+				m_arrBeamlets[nAtLevel].RemoveAll();
+			}
+
+			for (int nAtBeamlet = 0; nAtBeamlet < nBeamlets; nAtBeamlet++)
+			{
+				if (ar.IsLoading())
+				{
+					m_arrBeamlets[nAtLevel].Add(new CVolume<REAL>());
+				}
+				m_arrBeamlets[nAtLevel][nAtBeamlet]->Serialize(ar);
+			}
+		}
+		
+		// serialize the weights as well
+		SERIALIZE_VALUE(ar, m_vBeamletWeights);
+	}
+
+}	// CBeam::Serialize
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetFilterMat
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+const CMatrixNxM<>& CBeam::GetFilterMat(int nLevel)
+{
+	if (m_mFilter[nLevel].GetCols() != GetBeamletCount(nLevel))
+	{
+		// set up the filter matrix
+		m_mFilter[nLevel].Reshape(GetBeamletCount(nLevel), 
+			GetBeamletCount(nLevel));
+		ZeroMemory(m_mFilter[nLevel], 
+			m_mFilter[nLevel].GetRows() * m_mFilter[nLevel].GetCols() * sizeof(REAL));
+
+		for (int nAt = 0; nAt < m_mFilter[nLevel].GetRows(); nAt++)
+		{
+			if (nAt > 0)
+			{
+				m_mFilter[nLevel][nAt - 1][nAt] = m_vWeightFilter[0];
+			}
+
+			m_mFilter[nLevel][nAt][nAt] = m_vWeightFilter[1];
+
+			if (nAt < m_mFilter[nLevel].GetRows()-1)
+			{
+				m_mFilter[nLevel][nAt + 1][nAt] = m_vWeightFilter[2];
+			}
+		}
+		LOG_EXPR_EXT(m_mFilter[nLevel]);
+	}
+
+	return m_mFilter[nLevel];
+
+}	// CBeam::GetFilterMat
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CBeam diagnostics

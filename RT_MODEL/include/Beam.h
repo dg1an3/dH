@@ -34,7 +34,6 @@ using namespace std;
 
 const int MAX_SCALES = 3;
 
-
 //////////////////////////////////////////////////////////////////////
 // class CBeam
 //
@@ -92,15 +91,30 @@ public:
 	double GetWeight() const;
 	void SetWeight(double weight);
 
-	// flag to indicate whether the plan's dose is valid
-	BOOL IsDoseValid() const;
-	void SetDoseValid(BOOL bValid = TRUE);
+	// beamlet accessors
+	int GetBeamletCount(int nLevel = 0);
+	CVolume<REAL> *GetBeamlet(int nShift, int nLevel = 0);
+
+	// intensity map accessors
+	const CVectorN<>& GetIntensityMap() const;
+	void SetIntensityMap(const CVectorN<>& vWeights);
+
+	// helper function to transfer intensity maps from one level
+	//		to next
+	void InvFiltIntensityMap(int nLevel, const CVectorBase<>& vWeights, 
+		CVectorBase<>& vFiltWeights);
 
 	// the computed dose for this beam (NULL if no dose exists)
-	CVolume<double> *GetDoseMatrix(int nScale = 0);
+	virtual CVolume<REAL> *GetDoseMatrix();
 
 	// beam serialization
 	void Serialize(CArchive &ar);
+
+protected:
+	friend void GenBeamlets(CBeam *pBeam);
+
+	// helper function to set up filter matrix
+	const CMatrixNxM<>& GetFilterMat(int nLevel);
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -136,17 +150,28 @@ private:
 	BOOL m_bHasShieldingBlocks;
 
 	// collection of blocks
-	CObArray m_arrBlocks;
+	CTypedPtrArray<CObArray, CPolygon* > m_arrBlocks;
 
 	// the weight for this beam (from 0.0 to 1.0)
 	double m_weight;
 
 	// flag to indicate whether the plan's dose is valid
-	BOOL m_bDoseValid;
+//	BOOL m_bDoseValid;
 
-protected:
-	mutable CVolume<double> m_arrDose[MAX_SCALES];
-	mutable BOOL m_arrRecalcDose[MAX_SCALES];
+	mutable CVolume<REAL> m_dose;
+	mutable BOOL m_bRecalcDose;
+
+	// the beamlets for the beam
+	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arrBeamlets[MAX_SCALES];
+
+	// the intensity map
+	CVectorN<> m_vBeamletWeights;
+
+	// filter for intensity maps
+	static CVectorN<> m_vWeightFilter;
+
+	// corresponding filter matrix 
+	static CMatrixNxM<> m_mFilter[MAX_SCALES - 1];
 
 };	// class CBeam
 
