@@ -42,14 +42,14 @@ public:
 	void End();
 
 	// vertex description
-	void Vertex(const CVectorD<2>& v);
-	void Vertex(const CVectorD<3>& v);
-	void Vertex(const CVectorD<4>& v);
+	void Vertex(const CVectorD<2, double>& v);
+	void Vertex(const CVectorD<3, double>& v);
+	void Vertex(const CVectorD<4, double>& v);
 	void VertexArray();
 
 	// normal description
-	void Normal(const CVectorD<3>& n);
-	void Normal(const CVectorD<4>& n);
+	void Normal(const CVectorD<3, double>& n);
+	void Normal(const CVectorD<4, double>& n);
 	void NormalArray();
 
 	// TODO: move these functions to the Renderable base class

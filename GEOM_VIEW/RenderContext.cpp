@@ -78,27 +78,27 @@ void CRenderContext::End()
 	glEnd();
 }
 
-void CRenderContext::Vertex(const CVectorD<2>& v)
+void CRenderContext::Vertex(const CVectorD<2, double>& v)
 {
 	glVertex2dv(v);
 }
 
-void CRenderContext::Vertex(const CVectorD<3>& v)
+void CRenderContext::Vertex(const CVectorD<3, double>& v)
 {
 	glVertex3dv(v);
 }
 
-void CRenderContext::Vertex(const CVectorD<4>& v)
+void CRenderContext::Vertex(const CVectorD<4, double>& v)
 {
 	glVertex4dv(v);
 }
 
-void CRenderContext::Normal(const CVectorD<3>& n)
+void CRenderContext::Normal(const CVectorD<3, double>& n)
 {
 	glNormal3dv(n);
 }
 
-void CRenderContext::Normal(const CVectorD<4>& n)
+void CRenderContext::Normal(const CVectorD<4, double>& n)
 {
 	Normal(FromHomogeneous<3, double>(n));
 }
@@ -134,7 +134,7 @@ void CRenderContext::TrianglesFromSurface(CMesh& surf)
 		glMatrixMode(GL_TEXTURE);
 
 		// load the texture adjustment onto the matrix stack
-		LoadMatrix(m_pTexture->GetProjection());
+		// LoadMatrix(m_pTexture->GetProjection());
 
 		// enable texture coordinate mode
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
