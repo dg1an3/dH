@@ -10,6 +10,7 @@
 
 #include "Function.h"
 
+#include "ScalarFunction.h"
 #include "VectorFunction.h"
 #include "MatrixFunction.h"
 
