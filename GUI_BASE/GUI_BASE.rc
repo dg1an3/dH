@@ -8,7 +8,7 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "afxres.h"
-#include "..\VSIM_OGL\resource.h"
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -35,7 +35,7 @@ END
 2 TEXTINCLUDE DISCARDABLE 
 BEGIN
     "#include ""afxres.h""\r\n"
-    "#include ""..\\VSIM_OGL\\resource.h""\0"
+    "\0"
 END
 
 3 TEXTINCLUDE DISCARDABLE 
@@ -45,6 +45,29 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_FOLDER_OPENED       BITMAP  DISCARDABLE     "res\\folder_opened.bmp"
+IDB_FOLDER_CLOSED       BITMAP  DISCARDABLE     "res\\folder_closed.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_ITEM_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "Item Menu"
+    BEGIN
+        MENUITEM "&Rename",                     ID_ITEM_RENAME
+        MENUITEM "&Delete",                     ID_ITEM_DELETE
+    END
+END
 
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -152,6 +152,34 @@ SOURCE=TabControlBar.h
 # End Group
 # Begin Source File
 
+SOURCE=.\res\bitmap1.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\bitmap2.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\bmp00001.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\bmp00002.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\cursor1.cur
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\folder_closed.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\folder_opened.bmp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Readme.txt
 # End Source File
 # End Target

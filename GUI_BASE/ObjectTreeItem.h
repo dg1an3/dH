@@ -5,35 +5,26 @@
 #if !defined(AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_)
 #define AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_
 
-#include "Value.h"
+#include <Value.h>
+#include <ModelObject.h>
 
 class CObjectExplorer;
 
-class CObjectTreeItem : public CCmdTarget  
+class CObjectTreeItem : public CCmdTarget, public CObserver
 {
 public:
-
-	static CStatic *m_pStatic;
-	static CBitmap m_bitmapContour;
-	static CBitmap m_bitmapBeam;
-
-	static CWnd *m_pWndContourControl;
-	static CWnd *m_pWndBeamControl;
-
-	CString m_strName;
-
-	CValue< BOOL > isChecked;
-
-	void SetChecked(BOOL bChecked = TRUE);
-	BOOL IsChecked();
-
-	CObjectTreeItem * CopyItem(CObjectTreeItem *pParent = NULL);
 	// constructors/destructore
 	CObjectTreeItem();
 	virtual ~CObjectTreeItem();
 
 	// conversion to an HTREEITEM handle
 	operator HTREEITEM() const;
+    
+	CValue< CString > name;
+
+	CValue< BOOL > isChecked; 
+	void SetChecked(BOOL bChecked = TRUE);
+	BOOL IsChecked();
 
 	// access to the model object represented by this item
 	void SetObject(CObject *pObject);
@@ -50,6 +41,8 @@ public:
 
 	BOOL IsChildOf(CObjectTreeItem *pSuspectedParent);
 
+	CObjectTreeItem * CopyItem(CObjectTreeItem *pParent = NULL);
+
 	// returns the string that is the label for the object; override to
 	//		provide custom label processing
 	virtual CString GetLabel();
@@ -57,9 +50,6 @@ public:
 
 	CValue<UINT> imageResourceID;
 	CValue<UINT> selectedImageResourceID;
-
-//	virtual UINT GetImageResourceID();
-//	virtual UINT GetSelectedImageResourceID();
 
 	virtual CMenu * GetPopupMenu();
 
@@ -71,33 +61,35 @@ public:
 
 	DECLARE_DYNCREATE(CObjectTreeItem)
 
+	virtual void OnChange(CObservable *pSource);
+
 	virtual void OnSelected();
-	// virtual void OnSetVisible(BOOL bVisible = TRUE);
 	virtual BOOL OnDrop(CObjectTreeItem *pDroppedItem);
-
+    
 protected:
+    
+    //{{AFX_MSG(CObjectTreeItem)
+    afx_msg void OnRenameItem();
+    afx_msg void OnDeleteItem();
+    //}}AFX_MSG
 
-	//{{AFX_MSG(CObjectTreeItem)
-	afx_msg void OnRenameItem();
-	//}}AFX_MSG
+    DECLARE_MESSAGE_MAP()
 
-	DECLARE_MESSAGE_MAP()
-
-	// a pointer to the MFC tree control object that contains this item
-	CObjectExplorer * m_pObjectExplorer;
+    // a pointer to the MFC tree control object that contains this item
+    CObjectExplorer * m_pObjectExplorer;
 
 private:
-	// the handle to the Windows tree item in the tree control
-	HTREEITEM m_hTreeItem;
+    // the handle to the Windows tree item in the tree control
+    HTREEITEM m_hTreeItem;
 
-	// the parent tree item of this tree item
-	CObjectTreeItem * m_pParent;
+    // the parent tree item of this tree item
+    CObjectTreeItem * m_pParent;
 
-	// the array of children of this tree item
-	CArray<CObjectTreeItem *, CObjectTreeItem *> m_arrChildren;
+    // the array of children of this tree item
+    CArray<CObjectTreeItem *, CObjectTreeItem *> m_arrChildren;
 
-	// a pointer to the object that this item manages
+    // a pointer to the object that this item manages
 	CObject * m_pObject;
 };
-
+    
 #endif // !defined(AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_)
