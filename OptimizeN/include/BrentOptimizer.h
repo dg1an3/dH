@@ -21,6 +21,7 @@
 class CBrentOptimizer : public COptimizer
 {
 public:
+	void SetParams(REAL Bracket, REAL GLimit);
 	// construct a new Brent Optimizer
 	CBrentOptimizer(CObjectiveFunction *pFunc);
 
@@ -48,6 +49,10 @@ private:
 
 	// holds the gradient
 	CVectorN<> m_vGrad;
+
+	// parameters for optimization 
+	REAL m_Bracket;	// initial bracket size
+	REAL m_GLimit;	// parameter needed by function BracketMinimum  
 
 	// starting value for the brent optimizer
 	//		initialized to 
