@@ -36,15 +36,12 @@ public:
 	// children accessors
 	void AddChild(CObjectTreeItem *pChildItem);
 
-	// value to indicate that the item should be checked
-	BOOL m_bChecked; 
+	// sets the images for the item
+	void SetImages(UINT nImageID, UINT nSelectedImageID);
 
-	// flag to indicate that the children of this item should be auto-created
-	BOOL m_bAutoCreateChildren;
-
-	// resource identifiers for the icons to be used
-	UINT m_nImageResourceID;
-	UINT m_nSelectedImageResourceID;
+	// sets the check state for the item
+	BOOL IsChecked() const;
+	void SetChecked(BOOL bChecked = TRUE);
 
 	// returns the current popup menu for this item
 	virtual CMenu * GetPopupMenu();
@@ -69,8 +66,22 @@ protected:
 
     DECLARE_MESSAGE_MAP()
 
+protected:
+	// the parent explorer is a friend
+	friend CObjectExplorer;
+
     // a pointer to the MFC tree control object that contains this item
     CObjectExplorer * m_pObjectExplorer;
+
+	// value to indicate that the item should be checked
+	BOOL m_bChecked; 
+
+	// flag to indicate that the children of this item should be auto-created
+	BOOL m_bAutoCreateChildren;
+
+	// resource identifiers for the icons to be used
+	UINT m_nImageResourceID;
+	UINT m_nSelectedImageResourceID;
 
 private:
     // the handle to the Windows tree item in the tree control

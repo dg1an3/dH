@@ -5,8 +5,6 @@
 #include "VSIM_OGL.h"
 
 #include "MainFrm.h"
-//#include "VSIM_OGLDoc.h"
-//#include "VSIM_OGLView.h"
 
 #include <Plan.h>
 #include "simview.h"
@@ -211,45 +209,16 @@ void CVSIM_OGLApp::OnFileOpen()
 
 CDocument* CVSIM_OGLApp::OpenDocumentFile(LPCTSTR lpszFileName) 
 {
+	// open the plan file
 	CPlan *pPlan = (CPlan *)CWinApp::OpenDocumentFile(lpszFileName);
 
+	// check the type of the returned object
 	ASSERT(pPlan->IsKindOf(RUNTIME_CLASS(CPlan)));
 
-//////////////////////////////////////
-//	Initialize the explorer control bar
-	// get a pointer to the main frame
-//	CMainFrame *pMainFrame = (CMainFrame *)AfxGetMainWnd();
-//
-//	CSeries *pSeries = pPlan->GetSeries();
-//
-//	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
-//	pSeriesItem->m_strName = pSeries->GetFileName();
-//	pSeriesItem->Create(&pMainFrame->m_wndExplorerCtrl.m_ExplorerCtrl);
-//
-//
-//	for (int nAt = 0; nAt < pSeries->structures.GetSize(); nAt++)
-//	{
-//		CSurface *pStructure = pSeries->structures.Get(nAt);
-//		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-//		pNewItem->m_strName = pStructure->name.Get();
-//		pNewItem->SetParent(pSeriesItem);
-//		pNewItem->Create(&pMainFrame->m_wndExplorerCtrl.m_ExplorerCtrl);
-//	}
-//
-//	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
-//	pPlanItem->m_strName = pPlan->GetPathName();
-//	pPlanItem->Create(&pMainFrame->m_wndExplorerCtrl.m_ExplorerCtrl);
-//
-//	for (nAt = 0; nAt < pPlan->beams.GetSize(); nAt++)
-//	{
-//		CBeam *pBeam = pPlan->beams.Get(nAt);
-//		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-//		pNewItem->m_strName = pBeam->name.Get();
-//		pNewItem->SetParent(pPlanItem);
-//		pNewItem->Create(&pMainFrame->m_wndExplorerCtrl.m_ExplorerCtrl);
-//	}
+	// create a temporary sphere object
+	pPlan->GetSeries()->CreateSphereStructure("Sphere");
 
-////////////////////////////////////////
+	// return the plan file
 	return pPlan;
 }
 
@@ -261,17 +230,5 @@ BOOL CVSIM_OGLApp::OnIdle(LONG lCount)
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
 	CSimView *pView = (CSimView *)pFrame->GetActiveView();
 
-/*	if (pView != NULL && pView->m_pDRRRenderer != NULL)
-	{
-		if (pView->m_pDRRRenderer->m_nSteps < 256)
-		{
-			pView->m_pDRRRenderer->m_nSteps = 256;
-			pView->m_pDRRRenderer->m_nShift = 8;
-			pView->m_pDRRRenderer->m_bRecomputeDRR = TRUE;
-			pView->m_pDRRRenderer->Invalidate();
-			pView->m_wndBEV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-		}
-	}
-*/	
 	return TRUE; // CWinApp::OnIdle(lCount);
 }

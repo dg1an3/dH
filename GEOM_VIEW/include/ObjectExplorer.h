@@ -52,14 +52,17 @@ protected:
 
     DECLARE_MESSAGE_MAP()
 
-private:
-CImageList m_imageList;
+protected:
     // the map of handles to CObjectTreeItem objects
     CMap<HTREEITEM, HTREEITEM, CObjectTreeItem *, CObjectTreeItem *>
     	m_mapItemHandles;
 
+private:
     // target for right-click menu commands
     CCmdTarget * m_pCommandTarget;
+
+	// the image list
+	CImageList m_imageList;
 
     // member variables for managing drag-drop
     BOOL m_bDragging;
