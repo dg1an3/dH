@@ -6,7 +6,7 @@
 // #include "TestHisto.h"
 #include <PlanIMRT.h>
 
-#include <InvFilterEM.h>
+// #include <InvFilterEM.h>
 
 #include <PowellOptimizer.h>
 
@@ -166,36 +166,19 @@ int CPlanIMRT::GetTotalBeamletCount(int nScale)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-int CPlanIMRT::AddRegion(CVolume<double> *pRegion)
+int CPlanIMRT::AddStructure(CStructure *pStruct)
 {
-	BEGIN_LOG_SECTION(CPlanIMRT::AddRegion);
+	BEGIN_LOG_SECTION(CPlanIMRT::AddStructure);
 
-	ASSERT(pRegion->GetWidth() == GetDoseMatrix(0)->GetWidth());
-
-	double filtElem[] = { 1.0, 4.0, 6.0, 4.0, 1.0 };
-
-	CVolume<double> filtGauss5x5;
-	filtGauss5x5.SetDimensions(5, 5, 1);
-	double sum = 0.0;
-	for (int nAtRow = 0; nAtRow < 5; nAtRow++)
-	{
-		for (int nAtCol = 0; nAtCol < 5; nAtCol++)
-		{
-			// double value = Gauss2D<double>(((double) nAtRow - 3.0) / 2.0, 
-			//		((double) nAtCol - 3.0) / 2.0, 1.0, 1.0);
-			double value = filtElem[nAtRow] * filtElem[nAtCol] / 256.0;
-			filtGauss5x5.GetVoxels()[0][nAtRow][nAtCol] = value;
-			sum += value;
-		}
-	}
+	ASSERT(pStruct->GetRegion(0)->GetWidth() == GetDoseMatrix(0)->GetWidth());
 
 	for (int nAtScale = 0; nAtScale < MAX_SCALES; nAtScale++)
 	{
-		LOG_OBJECT((*pRegion));
+		LOG_OBJECT((*pStruct->GetRegion(nAtScale))); 
 
 		CHistogram *pHisto = new CHistogram();
 		pHisto->SetVolume(GetDoseMatrix(nAtScale));
-		pHisto->SetRegion(pRegion);
+		pHisto->SetRegion(pStruct->GetRegion(nAtScale));
 
 		for (int nAtElem = 0; nAtElem < GetTotalBeamletCount(nAtScale); nAtElem++)
 		{
@@ -207,46 +190,13 @@ int CPlanIMRT::AddRegion(CVolume<double> *pRegion)
 		}
 
 		m_arrHistograms[nAtScale].Add(pHisto);
-
-		if (nAtScale < MAX_SCALES-1)
-		{
-			CVolume<double> convRegion;
-			Convolve(pRegion, &filtGauss5x5, &convRegion);
-
-			CVolume<double> *pDecRegion = new CVolume<double>();
-			Decimate(&convRegion, pDecRegion);
-
-			pRegion = pDecRegion;
-		}
 	}
 
 	END_LOG_SECTION();
 
 	return m_arrHistograms[0].GetSize();
 
-}	// CPlanIMRT::AddRegion
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlanIMRT::GetRegionCount
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-int CPlanIMRT::GetRegionCount()
-{
-	return m_arrHistograms[0].GetSize();
-
-}	// CPlanIMRT::GetRegionCount
-
-///////////////////////////////////////////////////////////////////////////////
-// CPlanIMRT::GetRegion
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-CVolume<double> * CPlanIMRT::GetRegion(int nAt, int nScale)
-{
-	return GetRegionHisto(nAt, nScale)->GetRegion();
-
-}	// CPlanIMRT::GetRegion
+}	// CPlanIMRT::AddStructure
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPlanIMRT::GetRegionHisto
@@ -272,18 +222,20 @@ void CPlanIMRT::InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN
 	StateVectorToBeamletWeights(nScale, vIn, mBeamletWeights);
 	LOG_EXPR_EXT(mBeamletWeights);
 
-	CInvFilterEM em_obj;
 	CMatrixNxM<> mFiltBeamletWeights(mBeamletWeights.GetCols(),
 		GetBeam(0)->GetBeamletCount(nScale-1));
 
-	CVectorN<> vInit;
-	CVectorN<> vRes;
-	CVectorN<> vSubOutput;
 	for (int nAtBeam = 0; nAtBeam < GetBeamCount(); nAtBeam++)
 	{
+		GetBeam(nAtBeam)->InvFiltIntensityMap( 
+			nScale,
+			mBeamletWeights[nAtBeam],
+			mFiltBeamletWeights[nAtBeam]);
+
+/*		CInvFilterEM em_obj;
 		em_obj.SetFilterOutput(mBeamletWeights[nAtBeam]);
 		mFiltBeamletWeights[nAtBeam] = em_obj.m_mFilter * em_obj.m_vFilterOut;
-		mFiltBeamletWeights[nAtBeam] *= 2.0;
+		mFiltBeamletWeights[nAtBeam] *= 2.0; */
 
 	} 
 	LOG_EXPR_EXT(mFiltBeamletWeights);
