@@ -130,10 +130,12 @@ private:
 };
 
 template<class VOXEL_TYPE>
-CArchive& operator>>(CArchive& ar, CVolume<VOXEL_TYPE>* &pOb) 
+CArchive& operator>>(CArchive& ar, CVolume<VOXEL_TYPE>*&pOb) 
 { 
-	pOb->Serialize(ar);
+	if (pOb == NULL)
+		pOb = new CVolume<VOXEL_TYPE>; 
 //	pOb = (class_name*) ar.ReadObject();
+	pOb->Serialize(ar);
 	return ar; 
 } 
 
