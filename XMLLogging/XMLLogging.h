@@ -124,7 +124,7 @@
 #define BEGIN_LOG_SECTION_(name) {
 #define BEGIN_LOG_ONLY(name) if (0) {
 #define EXIT_LOG_SECTION() 
-#define END_LOG_SECTION() }
+#define END_LOG_SECTION() (void) 0; }
 #define FLUSH_LOG()
 #define LOG 1 ? (void) 0 : ::AfxTrace
 #define LOG_EXPR(expr)
