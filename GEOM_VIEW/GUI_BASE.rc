@@ -61,6 +61,17 @@ BEGIN
     END
 END
 
+IDR_ITEM_DISP_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "100%",                        ID_ITEM_100
+        MENUITEM "75%",                         ID_ITEM_75
+        MENUITEM "50%",                         ID_ITEM_50
+        MENUITEM "25%",                         ID_ITEM_25
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
