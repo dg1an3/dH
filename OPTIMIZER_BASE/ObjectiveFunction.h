@@ -1,7 +1,11 @@
-////////////////////////////////////
-// Copyright (C) 1996-2000 DG Lane
+//////////////////////////////////////////////////////////////////////
+// ObjectiveFunction.h: interface for the CObjectiveFunction
+//		template base class
+//
+// Copyright (C) 1996-2001
+// $Id$
 // U.S. Patent Pending
-////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 
 #if !defined(OBJECTIVEFUNCTION_H)
 #define OBJECTIVEFUNCTION_H
@@ -9,66 +13,43 @@
 #include <Vector.h>
 #include <Value.h>
 
+//////////////////////////////////////////////////////////////////////
+// template<class TYPE>
+// class CObjectiveFunction
+// 
+// base class template for all objective functions.  allows the 
+//		objective function to define a gradient, but a flag is provided
+//		in the case that no gradient is available
+//////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 class CObjectiveFunction
 {
 public:
+	// constructs an objective function; gets flag to indicate
+	//		whether gradient information is available
+	CObjectiveFunction(BOOL bHasGradientInfo)
+		: m_bHasGradientInfo(bHasGradientInfo)
+	{
+	}
+
+	// evaluates the objective function
 	virtual TYPE operator()(const CVector<DIM, TYPE>& vInput) = 0;
-};
 
-template<int DIM, class TYPE>
-class CLineFunction : public CObjectiveFunction<1, TYPE>
-{
-public:
-	CLineFunction(CObjectiveFunction<DIM, TYPE> *pProjFunc)
-		: m_pProjFunc(pProjFunc)
+	// whether gradient information is available
+	BOOL HasGradientInfo()
 	{
+		return m_bHasGradientInfo;
 	}
 
-	CValue< CVector<DIM, TYPE> > point;
-	CValue< CVector<DIM, TYPE> > direction;
-
-	virtual TYPE operator()(const CVector<1, TYPE>& vInput)
+	// evaluates the gradient of the objective function
+	virtual CVector<DIM, TYPE> Grad(const CVector<DIM, TYPE>& vInput)
 	{
-		return (*m_pProjFunc)(point.Get() + vInput[0] * direction.Get());
+		return CVector<DIM, TYPE>();
 	}
 
 private:
-	CObjectiveFunction<DIM, TYPE> *m_pProjFunc;
-};
-
-template<int DIM, class TYPE>
-class CGradObjectiveFunction : public CObjectiveFunction<DIM, TYPE>
-{
-public:
-	virtual CVector<DIM, TYPE> Grad(const CVector<DIM, TYPE>& vInput) = 0;
-};
-
-template<int DIM, class TYPE>
-class CGradLineFunction : public CGradObjectiveFunction<1, TYPE>
-{
-public:
-	CGradLineFunction(CGradObjectiveFunction<DIM, TYPE> *pProjFunc)
-		: m_pProjFunc(pProjFunc)
-	{
-	}
-
-	CValue< CVector<DIM, TYPE> > point;
-	CValue< CVector<DIM, TYPE> > direction;
-
-	virtual TYPE operator()(const CVector<1, TYPE>& vInput)
-	{
-		return (*m_pProjFunc)(point.Get() + vInput[0] * direction.Get());
-	}
-
-	virtual CVector<1, TYPE> Grad(const CVector<1, TYPE>& vInput)
-	{
-		return m_pProjFunc->Grad(point.Get() + vInput[0] * direction.Get())
-			* direction.Get();
-	}
-
-private:
-	CGradObjectiveFunction<DIM, TYPE> *m_pProjFunc;
+	// flag to indicate that gradient information is available
+	BOOL m_bHasGradientInfo;
 };
 
 #endif
