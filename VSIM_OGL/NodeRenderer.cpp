@@ -11,7 +11,7 @@
 #include <glMatrixVector.h>
 
 
-const int NUM_STEPS = 100;
+const int NUM_STEPS = 20;
 const double RADIUS = 5.0;
 
 class CMolding 
@@ -30,7 +30,7 @@ CMolding CMolding::g_masterMolding;
 CMolding::CMolding()
 {
 	int nAt = 0;
-	const double step = (PI / 2) / (3 * NUM_STEPS / 4);
+	const double step = (PI / 2) / (NUM_STEPS - 1);
 	for (double angle = 0; angle <= PI / 2; angle += step)
 	{
 		m_arrVertices[nAt][0] = cos(angle);
@@ -42,16 +42,10 @@ CMolding::CMolding()
 		nAt++;
 	}
 
-	double x = 0.0;
-	for (; nAt < NUM_STEPS + 1; nAt++)
-	{
-		m_arrVertices[nAt][0] = x;
-		m_arrVertices[nAt][2] = 1.0;
+	m_arrVertices[nAt][0] = -2.0;
+	m_arrVertices[nAt][2] = 1.0;
 
-		m_arrNormals[nAt][2] = 1.0;
-
-		x -= 1.0 / (NUM_STEPS / 4);
-	}
+	m_arrNormals[nAt][2] = 1.0;
 }
 
 CMolding::CMolding(double theta, CVector<3> vOffset)
@@ -78,7 +72,7 @@ CMolding::CMolding(double theta, CVector<3> vOffset)
 CNodeRenderer::CNodeRenderer(COpenGLView *pView)
 	: COpenGLRenderer(pView)
 {
-	color.Set(RGB(240, 240, 240));
+	color.Set(RGB(192, 192, 192));
 
 }
 
@@ -182,22 +176,21 @@ CRect CNodeRenderer::GetTopBottomEllipseRect()
 
 CVector<3> EvalShape2D(double theta)
 {
-	double a = 15.0;
-	double b = 30.0;
+	double a = 12.0;
+	double b = 48.0;
 
-	if (theta > PI / 4 && theta < 3 * PI / 4)
+	if ((theta > PI / 4 && theta < 3 * PI / 4) ||
+		 (theta > 5 * PI / 4 && theta < 7 * PI / 4))
 	{
-		a = 30.0;
-		b = 15.0;
+		a = 48.0;
+		b = 12.0;
 	}
 
-	if (theta > 5 * PI / 4 && theta < 7 * PI / 4)
-	{
-		a = 30.0;
-		b = 15.0;
-	}
+	// compute theta_prime for the ellipse
+	double sign = cos(theta) > 0 ? 1.0 : -1.0;
+	double theta_prime = atan2(sign * a * tan(theta), sign * b);
 
-	return CVector<3>(a * cos(theta), b * sin(theta), 0.0);
+	return CVector<3>(a * cos(theta_prime), b * sin(theta_prime), 0.0);
 }
 
 void CNodeRenderer::OnRenderScene()
@@ -215,22 +208,16 @@ void CNodeRenderer::OnRenderScene()
 		glVertex3d( 50.0, 5.0,  50.0);
 		glVertex3d( 50.0, 5.0, -50.0);
 	glEnd();
-
-	glBegin(GL_QUADS);
-		glNormal3d(0.0, -1.0, 0.0);
-		glVertex3d(-50.0, -5.0, -50.0);
-		glVertex3d(-50.0, -5.0,  50.0);
-		glVertex3d( 50.0, -5.0,  50.0);
-		glVertex3d( 50.0, -5.0, -50.0);
-	glEnd();
 */
-	double step = 0.05;
+	double step = PI / 20.0;
 	CMolding *pOldMolding = new CMolding(0.0, EvalShape2D(0.0));
 	for (double theta = 0.0; theta <= (2 * PI + step); theta += step)
 	{
 		// create the molding from the template
 		CVector<3> vShapePt = EvalShape2D(theta);
-		CMolding *pNewMolding = new CMolding(atan2(vShapePt[1], vShapePt[0]), vShapePt);
+
+		// create a new molding object
+		CMolding *pNewMolding = new CMolding(theta, vShapePt);
 
 		for (int nAt = 0; nAt < NUM_STEPS; nAt++)
 		{
@@ -254,94 +241,4 @@ void CNodeRenderer::OnRenderScene()
 		delete pOldMolding;
 		pOldMolding = pNewMolding;
 	}
-
-#ifdef NONE
-	double a_lat = 15.0;
-	double b_lat = 60.0;
-
-	for (double xDir = -1.0; xDir <= 1.0; xDir += 2.0)
-	{
-		for (double z = -50.0; z < 50.0; z += 2.0)
-		{
-			double x = 50.0 + a_lat * sqrt(1.0 - z * z / (b_lat * b_lat));
-
-			glBegin(GL_QUAD_STRIP);
-
-				glNormal(CVector<3>(0.0, -1.0, 0.0));
-
-				glVertex3d(xDir * (x - 0.1), -5.0, z);
-				glVertex3d(xDir * (x - 0.1), -5.0, z + 2.0);
-
-				for (double y = -5.0; y <= 5.0; y += 0.5)
-				{
-					double xOffset = sqrt(5.0 * 5.0 - y * y);
-
-					CVector<3> vNormal(xDir * xOffset, y, 0.0);
-					vNormal.Normalize();
-					glNormal(vNormal);
-
-					glVertex3d(xDir * (x + xOffset), y, z);
-					glVertex3d(xDir * (x + xOffset), y, z + 2.0);
-				}
-
-				glNormal(CVector<3>(0.0, 1.0, 0.0));
-
-				glVertex3d(xDir * (x - 0.1), 5.0, z);
-				glVertex3d(xDir * (x - 0.1), 5.0, z + 2.0);
-
-			glEnd();
-		}
-	}
-
-	for (double zDir = -1.0; zDir <= 1.0; zDir += 2.0)
-	{
-		for (double x = -50.0; x < 50.0; x += 2.0)
-		{
-			double z = 50.0; // + b * sqrt(1.0 - x * x / (a * a));;
-
-			glBegin(GL_QUAD_STRIP);
-
-				glNormal(CVector<3>(0.0, -1.0, 0.0));
-
-				glVertex3d(x,		-5.0, zDir * (z - 0.1));
-				glVertex3d(x + 2.0, -5.0, zDir * (z - 0.1));
-
-				for (double y = -5.0; y <= 5.0; y += 0.5)
-				{
-					double zOffset = sqrt(5.0 * 5.0 - y * y);
-
-					CVector<3> vNormal(0.0, y, zDir * zOffset);
-					vNormal.Normalize();
-					glNormal(vNormal);
-
-					glVertex3d(x,       y, zDir * (z + zOffset));
-					glVertex3d(x + 2.0, y, zDir * (z + zOffset));
-				}
-
-				glNormal(CVector<3>(0.0, 1.0, 0.0));
-
-				glVertex3d(x,		5.0, zDir * (z - 0.1));
-				glVertex3d(x + 2.0, 5.0, zDir * (z - 0.1));
-
-			glEnd();
-		}
-	}
-
-	for (double x = -50.0; x <= 50.0; x += 100.0)
-		for (double z = -50.0; z <= 50.0; z += 100.0)
-		{
-			glPushMatrix();
-
-			glTranslated(x, 0, z);
-
-			// draw a sphere
-			GLUquadricObj *pQuad = gluNewQuadric();
-			gluQuadricNormals(pQuad, GLU_SMOOTH);
-			gluSphere(pQuad, 5.0, 20, 20);
-			gluDeleteQuadric(pQuad);
-
-			glPopMatrix();
-		}
-#endif
-
 }
