@@ -117,6 +117,10 @@ SOURCE=Polygon.cpp
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
 # End Source File
+# Begin Source File
+
+SOURCE=.\Volumep.cpp
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -164,6 +168,10 @@ SOURCE=Value.h
 # Begin Source File
 
 SOURCE=Vector.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Volumep.h
 # End Source File
 # End Group
 # Begin Source File
