@@ -84,7 +84,7 @@ void CGraph::OnPaint()
 		CPen *pOldPen = dc.SelectObject(&pen);
 
 		dc.MoveTo(ToPlotCoord(pSeries->m_arrData[0]));
-		for (int nAtPoint = 1; nAtPoint < pSeries->m_arrData.GetSize(); nAtPoint++)
+		for (int nAtPoint = 1; nAtPoint < pSeries->m_arrData.size(); nAtPoint++)
 		{
 			dc.LineTo(ToPlotCoord(pSeries->m_arrData[nAtPoint]));
 		}
@@ -120,7 +120,7 @@ void CGraph::ComputeMinMax()
 	for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
 	{
 		CDataSeries *pSeries = (CDataSeries *)m_arrDataSeries[nAt];
-		for (int nAtPoint = 0; nAtPoint < pSeries->m_arrData.GetSize(); nAtPoint++)
+		for (int nAtPoint = 0; nAtPoint < pSeries->m_arrData.size(); nAtPoint++)
 		{
 			m_vMin[0] = min(m_vMin[0], pSeries->m_arrData[nAtPoint][0]);
 			m_vMin[1] = min(m_vMin[1], pSeries->m_arrData[nAtPoint][1]);
