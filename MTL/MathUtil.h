@@ -176,15 +176,14 @@ inline REAL Sigmoid(REAL x, REAL scale /* = 1.0 */)
 ///////////////////////////////////////////////////////////////////////////////
 inline REAL dSigmoid(REAL x, REAL scale /* = 1.0 */) 
 {
-	REAL u = exp(scale * x);
-	REAL du = scale * u;
+	REAL exp_val = exp(-scale * x);
+	REAL denom = 1.0 + exp_val;
+	REAL d_denom = -scale * exp_val;
+	REAL res = -d_denom / (denom * denom);
 
-	REAL v = 1.0 + exp(scale * x);
-	REAL dv = 0.0 + du;
-
-	if (_finite(u) && _finite(v))
+	if (_finite(res))
 	{
-		return (du * v - u * dv) / (v * v);
+		return res;
 	}
 
 	return 0.0;
@@ -208,6 +207,7 @@ inline REAL InvSigmoid(REAL y, REAL scale /* = 1.0 */)
 	// compute value
 	REAL value = -log(1.0 / y - 1.0) 
 		/ scale;
+	ASSERT(_finite(value));
 
 	// test result
 	ASSERT(IsApproxEqual(Sigmoid(value, scale), y));
