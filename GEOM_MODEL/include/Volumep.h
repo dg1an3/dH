@@ -13,7 +13,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Value.h"
+#include "ModelObject.h"
 
 //////////////////////////////////////////////////////////////////////
 // class CVolume<VOXEL_TYPE>
@@ -21,21 +21,18 @@
 // template class representing an arbitrary-typed volume.
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-class CVolume : public CObservableObject
+class CVolume : public CModelObject
 {
 public:
 	//////////////////////////////////////////////////////////////////
 	// default constructor
 	//////////////////////////////////////////////////////////////////
 	CVolume()
-		: width(0), 
-			height(0), 
-			depth(0),
+		: m_nWidth(0), 
+			m_nHeight(0), 
+			m_nDepth(0),
 			m_pVoxels(NULL)
 	{
-		::AddObserver<CVolume>(&width, this, OnChange);
-		::AddObserver<CVolume>(&height, this, OnChange);
-		::AddObserver<CVolume>(&depth, this, OnChange);
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -48,9 +45,38 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// dimension attributes
 	//////////////////////////////////////////////////////////////////
-	CValue< int > width;
-	CValue< int > height;
-	CValue< int > depth;
+	int GetWidth() 
+	{ 
+		return m_nWidth; 
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// dimension attributes
+	//////////////////////////////////////////////////////////////////
+	int GetHeight() 
+	{ 
+		return m_nHeight; 
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// dimension attributes
+	//////////////////////////////////////////////////////////////////
+	int GetDepth() 
+	{ 
+		return m_nDepth; 
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// sets the attributes
+	//////////////////////////////////////////////////////////////////
+	void SetDimensions(int nWidth, int nHeight, int nDepth)
+	{
+		m_nWidth = nWidth;
+		m_nHeight = nHeight;
+		m_nDepth = nDepth;
+
+		SetVoxels(m_pVoxels, m_nWidth, m_nHeight, m_nDepth);
+	}
 
 	//////////////////////////////////////////////////////////////////
 	// accessor for the voxels
@@ -84,22 +110,26 @@ public:
 		m_arrppVoxels.SetSize(nDepth);
 
 		if (nDepth > 0 && nHeight > 0 && nWidth > 0)
+		{
 			for (int nAtZ = 0; nAtZ < nDepth; nAtZ++)
 			{
 				// set the elements in the outer indirection array
-				m_arrppVoxels[nAtZ] = &m_arrpVoxels[nAtZ * height.Get()];
+				m_arrppVoxels[nAtZ] = &m_arrpVoxels[nAtZ * m_nHeight];
 
 
 				for (int nAtY = 0; nAtY < nHeight; nAtY++)
+				{
 					// set the elements in the inner indirection array
 					m_arrpVoxels[nAtZ * nHeight + nAtY] =
 						&m_pVoxels[nAtZ * nHeight * nWidth + nAtY * nHeight];
+				}
 			}
+		}
 
 		// now set the dimension member variables
-		width.Set(nWidth);
-		height.Set(nHeight);
-		depth.Set(nDepth);
+		m_nWidth = nWidth;
+		m_nHeight = nHeight;
+		m_nDepth = nDepth;
 
 		m_bRecomputeSum = TRUE;
 	}
@@ -110,10 +140,16 @@ public:
 	VOXEL_TYPE GetSum()
 	{
 		VOXEL_TYPE sum = (VOXEL_TYPE) 0;
-		for (int nAtZ = 0; nAtZ < depth.Get(); nAtZ++)
-			for (int nAtY = 0; nAtY < height.Get(); nAtY++)
-				for (int nAtX = 0; nAtX < width.Get(); nAtX++)
+		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+		{
+			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+			{
+				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+				{
 					sum += GetVoxels()[nAtZ][nAtY][nAtX];
+				}
+			}
+		}
 
 		return sum;
 	}
@@ -124,10 +160,17 @@ public:
 	VOXEL_TYPE GetMax()
 	{
 		VOXEL_TYPE nMaxValue = 0; // numeric_limits<VOXEL_TYPE>::min();
-		for (int nAtZ = 0; nAtZ < depth.Get(); nAtZ++)
-			for (int nAtY = 0; nAtY < height.Get(); nAtY++)
-				for (int nAtX = 0; nAtX < width.Get(); nAtX++)
-					nMaxValue = max(nMaxValue, GetVoxels()[nAtZ][nAtY][nAtX]);
+		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+		{
+			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+			{
+				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+				{
+					nMaxValue = 
+						__max(nMaxValue, GetVoxels()[nAtZ][nAtY][nAtX]);
+				}
+			}
+		}
 
 		return nMaxValue;
 	}
@@ -137,32 +180,35 @@ public:
 	//////////////////////////////////////////////////////////////////
 	virtual void Serialize(CArchive& ar)
 	{
-		// only serialize the dimensions (voxels are serialized separately)
-		width.Serialize(ar);
-		height.Serialize(ar);
-		depth.Serialize(ar);
-
-		UINT nBytes = depth.Get() * height.Get() * width.Get() * sizeof(VOXEL_TYPE);
 		if (ar.IsStoring())
 		{
+			ar << m_nWidth;
+			ar << m_nHeight;
+			ar << m_nDepth;
+
+			UINT nBytes = m_nDepth * m_nHeight * m_nWidth * sizeof(VOXEL_TYPE);
 			ar.Write(m_pVoxels, nBytes);
 		}
 		else
 		{
+			ar >> m_nWidth;
+			ar >> m_nHeight;
+			ar >> m_nDepth;
+
+			SetVoxels(m_pVoxels, m_nWidth, m_nHeight, m_nDepth);
+
+			UINT nBytes = m_nDepth * m_nHeight * m_nWidth * sizeof(VOXEL_TYPE);
 			UINT nActBytes = ar.Read(m_pVoxels, nBytes);
 			ASSERT(nActBytes == nBytes);
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////
-	// fires a change on the volume
-	//////////////////////////////////////////////////////////////////
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue)
-	{
-		SetVoxels(m_pVoxels, width.Get(), height.Get(), depth.Get());
-	}
-
 private:
+	// dimensions
+	int m_nWidth;
+	int m_nHeight;
+	int m_nDepth;
+
 	// pointer to raw voxels
 	VOXEL_TYPE *m_pVoxels;
 
@@ -179,6 +225,7 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////
+// DEPRECATED
 // function operator>>(CArchive &ar, CVolume<VOXEL_TYPE>*&)
 //
 // CArchive de-serialization of a volume
@@ -188,8 +235,10 @@ CArchive& operator>>(CArchive& ar, CVolume<VOXEL_TYPE>*&pOb)
 { 
 	// if no pointer is passed in,
 	if (pOb == NULL)
+	{
 		// allocate a new volume
 		pOb = new CVolume<VOXEL_TYPE>; 
+	}
 
 	// serialize the object
 	pOb->Serialize(ar);
