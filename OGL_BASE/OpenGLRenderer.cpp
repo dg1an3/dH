@@ -36,6 +36,8 @@ COpenGLRenderer::~COpenGLRenderer()
 
 void COpenGLRenderer::Invalidate()
 {
+	m_pView->MakeCurrentGLRC();
+
 	if (m_nDrawList != -1)
 		glDeleteLists(m_nDrawList, 1);
 
@@ -66,6 +68,9 @@ void COpenGLRenderer::DrawScene()
 
 		// check for error in creating the draw list
 		ASSERT(m_nDrawList != 0);
+		ASSERT(glIsList(m_nDrawList) == GL_TRUE);
+		GLenum error = glGetError();
+		ASSERT(error == GL_NO_ERROR);
 
 		// create the list
 		glNewList(m_nDrawList, GL_COMPILE);
@@ -77,7 +82,7 @@ void COpenGLRenderer::DrawScene()
 		glEndList();
 
 		// make sure nothing bad happened
-		GLenum error = glGetError();
+		error = glGetError();
 		ASSERT(error == GL_NO_ERROR);
 	}
 
