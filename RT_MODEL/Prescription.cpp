@@ -39,7 +39,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		REAL GBinSigma = (REAL) 0.20;
 		int nAtSigma[] = {2, 2, 1};
 		REAL tol[] = // {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
-			{(REAL) 1e-1, (REAL) 1e-2, (REAL) 1e-2};
+			{(REAL) 1e-4, (REAL) 1e-4, (REAL) 1e-4};
 
 		CPrescription *pPresc = this;
 		pPresc->SetGBinSigma(GBinSigma / nAtSigma[0]);
@@ -110,42 +110,25 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 				
 				if (bInitVolGroup)
 				{
-					// TODO: check all dimensions
-					if (volGroup.GetWidth() != p_dVolume->GetWidth())
-					{
-						volGroup.SetDimensions(
-							p_dVolume->GetWidth(), 
-							p_dVolume->GetHeight(),
-							p_dVolume->GetDepth());
-					}
-
-					volGroup.SetBasis(p_dVolume->GetBasis());
-
+					volGroup.ConformTo(p_dVolume);
 					volGroup.ClearVoxels();
 
 					bInitVolGroup = FALSE;
 				}
-				// ASSERT(p_dVolume->GetWidth() == pVolume->GetWidth());
 
+				// add to weighted sum
 				volGroup.Accumulate(p_dVolume, 
 					Sigmoid(vInput[nAt_dVolume], m_inputScale), TRUE);
-				// LOG_EXPR(pVolume->GetMax());
 			}
 		}
 
+		// now rotate the groups sum to the main sumVolume basis
 		static CVolume<REAL> volGroupMain;
-		volGroupMain.SetBasis(pVolume->GetBasis());
-		if (volGroupMain.GetWidth() != pVolume->GetWidth())
-		{
-			volGroupMain.SetDimensions(
-				pVolume->GetWidth(), 
-				pVolume->GetHeight(),
-				pVolume->GetDepth());
-		}
+		volGroupMain.ConformTo(pVolume);
 		volGroupMain.ClearVoxels();
+		Resample(&volGroup, &volGroupMain, TRUE);
 
-		Resample(&volGroup, &volGroupMain, // FALSE); // 
-			TRUE);
+		// and accumulate
 		pVolume->Accumulate(&volGroupMain, 1.0, FALSE);
 	}
 
@@ -339,9 +322,7 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, CCallbackFunc func)
 		vInit[nAt] = __max(Sigmoid(vRes[nAt], m_inputScale), 1e-4);
 	}
 
-	//
-	// output logging information
-	// 
+	BEGIN_LOG_ONLY("Optimization level results");
 
 	CHistogram *pHisto = NULL;
 	POSITION pos = m_mapVOITs.GetStartPosition();
@@ -358,9 +339,7 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, CCallbackFunc func)
 
 	LOG_OBJECT(m_sumVolume);
 
-	//
-	// end output logging information
-	//
+	END_LOG_SECTION();	// "Optimization level results"
 
 	END_LOG_SECTION(); // FMT("Optimizing scale %n", nAtLevel)
 
@@ -380,33 +359,20 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 {
 	BEGIN_LOG_SECTION(CPrescription::AddStructure);
 
-/*	CVolume<REAL> *pDose 
-		= m_pPlan->GetBeamAt(0)->GetBeamlet(0, m_nLevel);
-	m_sumVolume.SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
-	m_sumVolume.SetBasis(pDose->GetBasis()); */
-
-#ifdef INIT_VOLUME_IN_PRESC
-	CVolume<REAL> *pRegion = pStruct->GetRegion(0);
-	pRegion->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
-	pRegion->ClearVoxels();
-#endif
-
-//	ASSERT(pVOIT->GetVOI()->GetRegion(m_nLevel)->GetWidth() 
-//		== m_sumVolume.GetWidth());
+	// initialize the sum volume, so as to coincide with the region
 	CVolume<REAL> *pRegion = pVOIT->GetVOI()->GetRegion(m_nLevel);
-	m_sumVolume.SetBasis(pRegion->GetBasis());
-	m_sumVolume.SetDimensions(pRegion->GetWidth(), pRegion->GetHeight(), pRegion->GetDepth());
-	m_sumVolume.SetBasis(pRegion->GetBasis());
+	m_sumVolume.ConformTo(pRegion);
 
+	// set histogram options
 	CHistogram *pHisto = pVOIT->GetHistogram();
 	pHisto->SetGBinSigma(m_GBinSigma);
 	pHisto->SetVolume(&m_sumVolume);
 
 	// need to do this before initialize target bins
-	REAL binWidth = 0.025 // 0.0125 
-		* pow(2, m_nLevel);
+	REAL binWidth = 0.025 * pow(2, m_nLevel);
 	pHisto->SetBinning(0.0, binWidth, 2.0);
 
+	// set up dVolumes
 	for (int nAtElem = 0; nAtElem < m_pPlan->GetTotalBeamletCount(m_nLevel); nAtElem++)
 	{
 		int nBeam;

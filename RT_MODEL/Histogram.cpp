@@ -534,12 +534,7 @@ int CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup)
 	{
 		// rotate region
 		m_arrRegionRotate[nGroup] = new CVolume<REAL>();
-		m_arrRegionRotate[nGroup]->SetBasis(p_dVolume->GetBasis());
-		m_arrRegionRotate[nGroup]->SetDimensions(
-			p_dVolume->GetWidth(),
-			p_dVolume->GetHeight(),
-			p_dVolume->GetDepth());
-
+		m_arrRegionRotate[nGroup]->ConformTo(p_dVolume);
 		m_arrRegionRotate[nGroup]->ClearVoxels();
 		Resample(m_pRegion, m_arrRegionRotate[nGroup], TRUE);
 	}
@@ -549,8 +544,7 @@ int CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup)
 
 	// add new product volume
 	CVolume<REAL> *p_dVolume_x_Region = new CVolume<REAL>();
-	p_dVolume_x_Region->SetDimensions(p_dVolume->GetWidth(),
-		p_dVolume->GetHeight(), p_dVolume->GetDepth());
+	p_dVolume_x_Region->ConformTo(p_dVolume);
 	m_arr_dVolumes_x_Region.Add(p_dVolume_x_Region);
 
 	// flag to recompute 
@@ -578,38 +572,31 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 
 		// get the bin voxels, recompute if needed
 		short *pBinVolumeVoxels = NULL;
+		short ***pppBinVolumeVoxels = NULL;
 		if (m_arrRecomputeBinVolume[nGroup])
 		{
 			// rotate to proper orientation
 			static CVolume<REAL> volRotate;
-			volRotate.SetBasis(Get_dVolume(nAt)->GetBasis());
-			volRotate.SetDimensions(
-				Get_dVolume(nAt)->GetWidth(),
-				Get_dVolume(nAt)->GetHeight(),
-				Get_dVolume(nAt)->GetDepth());
+			volRotate.ConformTo(Get_dVolume(nAt));
 			volRotate.ClearVoxels();
-			Resample(m_pVolume, &volRotate, // FALSE); // 
-				TRUE);
+			Resample(m_pVolume, &volRotate, TRUE);
 
 			// get the main volume voxels
 			REAL *pVoxels = &volRotate.GetVoxels()[0][0][0];
 
-			// m_binVolume
-			m_arrBinVolume[nGroup]->SetDimensions(
-				volRotate.GetWidth(), volRotate.GetHeight(), volRotate.GetDepth());
-			pBinVolumeVoxels = &m_arrBinVolume[nGroup]->GetVoxels()[0][0][0];
-
+			m_arrBinVolume[nGroup]->ConformTo(&volRotate);
+			pBinVolumeVoxels =  &m_arrBinVolume[nGroup]->GetVoxels()[0][0][0];
 			for (int nAtVoxel = 0; nAtVoxel < m_arrBinVolume[nGroup]->GetVoxelCount(); nAtVoxel++)
 			{
 				pBinVolumeVoxels[nAtVoxel] = GetBinForValue(pVoxels[nAtVoxel]);
 			}
 
+			pppBinVolumeVoxels = m_arrBinVolume[nGroup]->GetVoxels();
 			m_arrRecomputeBinVolume[nGroup] = FALSE;
 		}
 		else
 		{
-			pBinVolumeVoxels = & //
-				m_arrBinVolume[nGroup]->GetVoxels()[0][0][0];
+			pppBinVolumeVoxels = m_arrBinVolume[nGroup]->GetVoxels();
 		}
 
 		// set size of dBins & dGBins
@@ -634,7 +621,6 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 				// get the region voxels
 				REAL *pRegionVoxel = m_pRegion ? 
 					&m_arrRegionRotate[nGroup]->GetVoxels()[0][0][0] : NULL;
-					// &m_pRegion->GetVoxels()[0][0][0] : NULL;
 
 				for (int nAtVoxel = 0; nAtVoxel < m_pRegion->GetVoxelCount(); nAtVoxel++)
 				{
@@ -650,7 +636,6 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 				m_arr_dVolumes_x_Region[nAt]->GetVoxels();
 			CRect rectBounds = m_arr_dVolumes_x_Region[nAt]->GetThresholdBounds();
 			LOG_EXPR_EXT(rectBounds);
-			short ***pppBinVolumeVoxels = m_arrBinVolume[nGroup]->GetVoxels();
 			for (int nAtZ = 0; nAtZ < m_arr_dVolumes_x_Region[nAt]->GetDepth(); nAtZ++)
 			{
 				REAL **pp_dVoxels_x_Region = ppp_dVoxels_x_Region[nAtZ];
@@ -666,12 +651,6 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 					}
 				}
 			}
-
-/*			for (int nAtVoxel = 0; nAtVoxel < m_pVolume->GetVoxelCount(); nAtVoxel++)
-			{
-				int nBin = pBinVolumeVoxels[nAtVoxel];
-				arr_dBins[nBin] -= p_dVoxels_x_Region[nAtVoxel];
-			} */
 		}
 		else
 		{
