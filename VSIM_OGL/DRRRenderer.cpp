@@ -13,8 +13,8 @@
 
 #include <OpenGLView.h>
 
-#define RAY_TRACE_RESOLUTION 64			
-#define RAY_TRACE_RES_LOG2   6
+#define RAY_TRACE_RESOLUTION 128
+#define RAY_TRACE_RES_LOG2   7
 
 #define POST_PROCESS
 #define COMPUTE_MINMAX
@@ -30,8 +30,7 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 	m_bRecomputeDRR(TRUE),
 	m_nSteps(RAY_TRACE_RESOLUTION),
 	m_nShift(RAY_TRACE_RES_LOG2),
-	m_scale(1.0f),
-	m_bias(0.0f)
+	m_nResDiv(4)
 {
 	m_pView->projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
@@ -200,39 +199,19 @@ bool ClipRaster(int& nDestLength,
 	return true;
 }
 
-void GetRasterStart()
-{
-	// render the front planes of the image
-//	glBegin(GL_QUAD);
-//
-//		glVertex(vULT);
-//		glVertex(vURT);
-//		glVertex(vLRT);
-//		glVertex(vLLT);
-//
-//	glEnd();
-
-	// now retrieve the depth buffer
-//	int nDepthBits;
-//	glGetIntegerv(GL_DEPTH_BITS, &nDepthBits);
-//
-//	glReadBuffer(GL_DEPTH);
-//	ASSERT(glGetError() == GL_NO_ERROR);
-}
-
 void CDRRRenderer::ComputeDRR()
 {
+	// get copies of the volume dimensions
 	int nWidth = forVolume->width.Get();
 	int nHeight = forVolume->height.Get();
 	int nDepth = forVolume->depth.Get();
 
+	// get the view rectangle
 	CRect rect;
 	m_pView->GetClientRect(&rect);
-	m_arrPixels.SetSize(rect.Width() * rect.Height());
-
-	// unsigned short *m_arrRasterStart = 
-		GetRasterStart();
-//	return;
+	int nImageWidth = rect.Width() / m_nResDiv;
+	int nImageHeight = rect.Height() / m_nResDiv;
+	m_arrPixels.SetSize(nImageWidth * nImageHeight);
 
 	// retrieve the model and projection matrices
 	GLdouble modelMatrix[16];
@@ -286,14 +265,14 @@ void CDRRRenderer::ComputeDRR()
 		&vStart[0], &vStart[1], &vStart[2]);
 
 	CVector<3> vStartNextX;
-	gluUnProject((GLdouble)1, (GLdouble)0, zMin,
+	gluUnProject((GLdouble)m_nResDiv, (GLdouble)0, zMin,
 		modelMatrix, projMatrix, viewport, 
 		&vStartNextX[0], &vStartNextX[1], &vStartNextX[2]);
 	CVector<3> vStartStepX = vStartNextX - vStart;
 	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
 
 	CVector<3> vStartNextY;
-	gluUnProject((GLdouble)0, (GLdouble)1, zMin,
+	gluUnProject((GLdouble)0, (GLdouble)m_nResDiv, zMin,
 		modelMatrix, projMatrix, viewport, 
 		&vStartNextY[0], &vStartNextY[1], &vStartNextY[2]);
 	CVector<3> vStartStepY = vStartNextY - vStart;
@@ -308,23 +287,20 @@ void CDRRRenderer::ComputeDRR()
 		&vEnd[0], &vEnd[1], &vEnd[2]);
 
 	CVector<3> vEndNextX;
-	gluUnProject((GLdouble)1, (GLdouble)0, zMax,
+	gluUnProject((GLdouble)m_nResDiv, (GLdouble)0, zMax,
 		modelMatrix, projMatrix, viewport, 
 		&vEndNextX[0], &vEndNextX[1], &vEndNextX[2]);
 	CVector<3> vEndStepX = vEndNextX - vEnd;
 	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
 
 	CVector<3> vEndNextY;
-	gluUnProject((GLdouble)0, (GLdouble)1, zMax,
+	gluUnProject((GLdouble)0, (GLdouble)m_nResDiv, zMax,
 		modelMatrix, projMatrix, viewport, 
 		&vEndNextY[0], &vEndNextY[1], &vEndNextY[2]);
 	CVector<3> vEndStepY = vEndNextY - vEnd;
 	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
 
 	CREATE_INT_VECTOR(vEnd, viEnd);
-
-	int nImageHeight = rect.Height();
-	int nImageWidth = rect.Width();
 
 	__int64 mult_mask = nWidth << 1L;	// WATCH THIS: we need to shift by
 										//		the log2(nHeight) also
@@ -628,11 +604,6 @@ LOOP1:
 		viEnd = viEndOld + viEndStepY;
 	}
 
-#ifdef USE_SCALE_BIAS
-	m_scale = (float)INT_MAX / (float)(nMax - nMin);
-	m_bias = (float) -nMin / m_scale;
-#endif
-
 #ifdef POST_PROCESS
 	int nValue;
 	int nWindow = nMax - nMin;
@@ -651,10 +622,6 @@ LOOP1:
 		(*pRGBA)[1] = nValue;
 		(*pRGBA)[2] = nValue;
 		(*pRGBA)[3] = 0;
-//		m_arrPixels[nPixelAt] = 255 << 24 | nValue << 16 | nValue << 8 | nValue;
-
-//		m_arrPixels[nPixelAt] -= nMin;
-//		m_arrPixels[nPixelAt] *= INT_MAX / (nMax - nMin);
 	}
 #endif
 
@@ -667,6 +634,8 @@ void CDRRRenderer::DrawScene()
 	{
 		CRect rect;
 		m_pView->GetClientRect(&rect);
+		int nImageWidth = rect.Width() / m_nResDiv;
+		int nImageHeight = rect.Height() / m_nResDiv;
 
 		glMatrixMode(GL_PROJECTION);
 
@@ -685,25 +654,9 @@ void CDRRRenderer::DrawScene()
 
 		glDrawBuffer(GL_BACK);
 
-#ifdef USE_SCALE_BIAS
-		glPixelTransferf(GL_RED_SCALE, m_scale);
-		glPixelTransferf(GL_GREEN_SCALE, m_scale);
-		glPixelTransferf(GL_BLUE_SCALE, m_scale);
-		glPixelTransferf(GL_RED_BIAS, m_bias);
-		glPixelTransferf(GL_GREEN_BIAS, m_bias);
-		glPixelTransferf(GL_BLUE_BIAS, m_bias);
-#endif
-
-//		glDrawPixels(rect.Width(), rect.Height(), GL_LUMINANCE, GL_INT, m_arrPixels.GetData());
-		TRACE1("SCISSOR Test = %s\n", glIsEnabled(GL_SCISSOR_TEST) ? "On" : "Off");
-		TRACE1("ALPHA Test = %s\n", glIsEnabled(GL_ALPHA_TEST) ? "On" : "Off");
-		TRACE1("STENCIL Test = %s\n", glIsEnabled(GL_STENCIL_TEST) ? "On" : "Off");
-		TRACE1("DEPTH Test = %s\n", glIsEnabled(GL_DEPTH_TEST) ? "On" : "Off");
-		TRACE1("DITHERING = %s\n", glIsEnabled(GL_DITHER) ? "On" : "Off");
-		TRACE1("LOGIC_OP Test = %s\n", glIsEnabled(GL_COLOR_LOGIC_OP) ? "On" : "Off");
-
 		glDisable(GL_DEPTH_TEST);
-		glDrawPixels(rect.Width(), rect.Height(), GL_RGBA, GL_UNSIGNED_BYTE, m_arrPixels.GetData());
+		glPixelZoom((float) m_nResDiv, (float) m_nResDiv);
+		glDrawPixels(nImageWidth, nImageHeight, GL_RGBA, GL_UNSIGNED_BYTE, m_arrPixels.GetData());
 		ASSERT(glGetError() == GL_NO_ERROR);
 		glEnable(GL_DEPTH_TEST);
 
