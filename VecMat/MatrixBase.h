@@ -2,7 +2,7 @@
 // MatrixBase.h: declaration and definition of the CMatrixBase 
 //		template class.
 //
-// Copyright (C) 1999-2001
+// Copyright (C) 1999-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
