@@ -7,7 +7,6 @@
 #define IDB_FOLDER_OPENED               607
 #define IDB_FOLDER_CLOSED               608
 #define IDR_ITEM_MENU                   610
-#define IDD_DIALOG1                     611
 #define IDC_TABCTRL                     1010
 #define IDC_CHILDRECT                   1011
 #define IDC_TREECTRLRECT                1019

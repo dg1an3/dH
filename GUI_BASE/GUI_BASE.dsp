@@ -162,26 +162,9 @@ SOURCE=.\StdAfx.h
 SOURCE=TabControlBar.h
 # End Source File
 # End Group
-# Begin Source File
+# Begin Group "Resource Files"
 
-SOURCE=.\res\bitmap1.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\bitmap2.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\bmp00001.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\bmp00002.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\cursor1.cur
-# End Source File
+# PROP Default_Filter ""
 # Begin Source File
 
 SOURCE=.\res\folder_closed.bmp
@@ -190,6 +173,7 @@ SOURCE=.\res\folder_closed.bmp
 
 SOURCE=.\res\folder_opened.bmp
 # End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\Readme.txt
