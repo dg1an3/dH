@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////
 // Polygon.h: declaration of the CPolygon class
 //
-// Copyright (C) 2000-2001
+// Copyright (C) 2000-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
@@ -13,6 +13,7 @@
 #endif // _MSC_VER > 1000
 
 #include <VectorD.h>
+#include <MatrixNxM.h>
 
 #include "ModelObject.h"
 
@@ -25,13 +26,9 @@
 class CPolygon : public CModelObject
 {
 public:
-	// constructor
+	// constructors / destructors
 	CPolygon();
-
-	// copy constructor
 	CPolygon(const CPolygon& fromPoly);
-
-	// destructor
 	virtual ~CPolygon();
 
 	// serialization support for the polygon
@@ -41,19 +38,21 @@ public:
 	CPolygon& operator=(const CPolygon& fromPoly);
 
 	// vertex accessors
-	int GetVertexCount();
-	const CPackedVectorD<2>& GetVertex(int nIndex);
-	int AddVertex(CVectorD<2>& v);
+	int GetVertexCount() const;
+
+	const CVectorD<2>& GetVertexAt(int nIndex) const;
+	void SetVertexAt(int nIndex, const CVectorD<2>& v);
+
+	int AddVertex(const CVectorD<2>& v);
 	void RemoveVertex(int nIndex);
 
-	// direct access to vertex array
-	// WARNING: if you change the vertices through this reference, you
-	//		MUST call CPolygon::FireChange() as soon as possible to
-	//		notify observers of the change
-	CArray<CPackedVectorD<2>, CPackedVectorD<2>&>& GetVertexArray();
+	// direct access to vertex array 
+	// WARNING: Lock calls must be matched by unlock calls
+	CMatrixNxM<>& LockVertexMatrix();
+	void UnlockVertexMatrix(BOOL bChanged = TRUE);
 
 	// computes the signed area of the polygon
-	double GetSignedArea();
+	double GetSignedArea() const;
 
 	// turns this polygon into its own convex hull
 	void MakeConvexHull();
@@ -66,9 +65,9 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-private:
+public:
 	// the polygon's vertex array
-	CArray<CPackedVectorD<2>, CPackedVectorD<2>&> m_arrVertex;
+	CMatrixNxM<REAL> m_mVertex;
 };
 
 #endif // !defined(AFX_POLYGON_H__AAA9A385_F0B7_11D4_9E39_00B0D0609AB0__INCLUDED_)
