@@ -1,10 +1,10 @@
-// MachineRenderer.cpp: implementation of the CMachineRenderer class.
+// MachineRenderable.cpp: implementation of the CMachineRenderable class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 #include "vsim_ogl.h"
-#include "MachineRenderer.h"
+#include "MachineRenderable.h"
 
 #include <glMatrixVector.h>
 
@@ -15,15 +15,33 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 //////////////////////////////////////////////////////////////////////
+// function CreateRotate
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+static CMatrix<4> CreateRotateHG(const double& theta, 
+							   const CVector<3>& vAxis)
+{
+	// start with an identity matrix
+	CMatrix<3> mRotate = CreateRotate(theta, vAxis);
+
+	CMatrix<4> mRotateHG(mRotate);
+
+	return mRotateHG;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CMachineRenderer::CMachineRenderer(COpenGLView *pView)
-	: COpenGLRenderer(pView),
-		isWireFrame(FALSE)
+CMachineRenderable::CMachineRenderable(CSceneView *pView)
+	: CRenderable(pView),
+		m_bWireFrame(FALSE)
 {
-	forBeam.AddObserver(this, (ChangeFunction) OnChange);
-	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
+	// forBeam.AddObserver(this, (ChangeFunction) OnChange);
+	// isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
 
 	// set up the modelview matrix for the beam
 	// CValue< CMatrix<4> >& privModelviewMatrix =
@@ -31,13 +49,13 @@ CMachineRenderer::CMachineRenderer(COpenGLView *pView)
 	// modelviewMatrix.SyncTo(&privModelviewMatrix);
 }
 
-CMachineRenderer::~CMachineRenderer()
+CMachineRenderable::~CMachineRenderable()
 {
 }
 
 BOOL bNoRenderWireframe = FALSE;
 
-void CMachineRenderer::OnRenderScene()
+void CMachineRenderable::DescribeOpaque()
 {
 /*	if (!bNoRenderWireframe)
 	{
@@ -50,7 +68,7 @@ void CMachineRenderer::OnRenderScene()
 		bNoRenderWireframe = FALSE;
 	}
 */
-	if (isWireFrame.Get())
+	if (m_bWireFrame)
 	{
 		glColor(RGB(255, 255, 255));
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -62,7 +80,7 @@ void CMachineRenderer::OnRenderScene()
 	}
 	else
 	{
-		glColor(color.Get());
+		glColor(GetColor());
 		// set the color for the machine rendering
 		glColor(RGB(128, 128, 255));
 
@@ -84,8 +102,8 @@ void CMachineRenderer::OnRenderScene()
 
 	glPushMatrix();
 
-	glTranslate(-1.0 * forBeam->tableOffset.Get());
-	glRotated(forBeam->couchAngle.Get() * 180.0 / PI, 
+	glTranslate(-1.0 * m_pBeam->GetTableOffset());
+	glRotated(m_pBeam->GetCouchAngle() * 180.0 / PI, 
 		0.0, 0.0, 1.0);
 
 	glBegin(GL_QUADS);
@@ -138,12 +156,12 @@ void CMachineRenderer::OnRenderScene()
 	glPopMatrix();
 
 	// compute the axis-to-collimator distance
-	double SAD = forBeam->forMachine->SAD.Get();
-	double SCD = forBeam->forMachine->SCD.Get();
+	double SAD = m_pBeam->GetTreatmentMachine()->m_SAD;
+	double SCD = m_pBeam->GetTreatmentMachine()->m_SCD;
 	double axisToCollim = SAD - SCD;
 
 	// rotate for the gantry
-	glRotated(forBeam->gantryAngle.Get() * 180.0 / PI, 0.0, 1.0, 0.0);
+	glRotated(m_pBeam->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
 
 	// render the collimator
 	glBegin(GL_QUAD_STRIP);
@@ -154,7 +172,7 @@ void CMachineRenderer::OnRenderScene()
 		for (double angle = 0.0; angle < 2 * PI; angle += (2 * PI) / STEPS)
 		{
 
-			CMatrix<4> mRot = CreateRotate(angle, CVector<3>(0.0, 0.0, 1.0));
+			CMatrix<4> mRot = CreateRotateHG(angle, CVector<3>(0.0, 0.0, 1.0));
 			glVertex(mRot * vCollimEdgeLower);
 			glVertex(mRot * vCollimEdgeUpper);
 			glNormal(mRot * CVector<4>(0.0, 1.0, 0.0, 1.0));
@@ -259,7 +277,7 @@ void CMachineRenderer::OnRenderScene()
 
 	glEnd();
 
-	if (isWireFrame.Get())
+	if (m_bWireFrame)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -268,16 +286,16 @@ void CMachineRenderer::OnRenderScene()
 
 }
 
-void CMachineRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
+void CMachineRenderable::OnChange(CObservableObject *pSource, void *pOldValue)
 {
-	if (pSource == &forBeam)
+	// if (pSource == &m_pBeam)
 	{
-		privGantryAngle.SyncTo(&forBeam->gantryAngle);
-		forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
-		forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
-		forBeam->tableOffset.AddObserver(this, (ChangeFunction) OnChange);
+		// privGantryAngle.SyncTo(&forBeam->gantryAngle);
+		// forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
+		// forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
+		// forBeam->tableOffset.AddObserver(this, (ChangeFunction) OnChange);
 	}
 
-	COpenGLRenderer::OnChange(pSource, pOldValue);
+	CRenderable::Invalidate();
 }
 

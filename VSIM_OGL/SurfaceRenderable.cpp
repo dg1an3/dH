@@ -1,9 +1,9 @@
-// SurfaceRenderer.cpp: implementation of the CSurfaceRenderer class.
+// SurfaceRenderable.cpp: implementation of the CSurfaceRenderable class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#include "SurfaceRenderer.h"
+#include "SurfaceRenderable.h"
 
 #include <glMatrixVector.h>
 
@@ -21,31 +21,63 @@ static char THIS_FILE[]=__FILE__;
 
 #define PEN_THICKNESS (TEX_RESOLUTION / 100)
 
-// CVector<3> CSurfaceRenderer::m_vXlate;
+// CVector<3> CSurfaceRenderable::m_vXlate;
+
+//////////////////////////////////////////////////////////////////////
+// function CreateScale
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+static CMatrix<4> CreateScaleHG(const CVector<3>& vScale)
+{
+	// start with an identity matrix
+	CMatrix<3> mScale = CreateScale(vScale);
+
+	CMatrix<4> mScaleHG(mScale);
+
+	return mScaleHG;
+}
+
+//////////////////////////////////////////////////////////////////////
+// function CreateRotate
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+static CMatrix<4> CreateRotateHG(const double& theta, 
+							   const CVector<3>& vAxis)
+{
+	// start with an identity matrix
+	CMatrix<3> mRotate = CreateRotate(theta, vAxis);
+
+	CMatrix<4> mRotateHG(mRotate);
+
+	return mRotateHG;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CSurfaceRenderer::CSurfaceRenderer(COpenGLView *pView)
-	: COpenGLRenderer(pView),
+CSurfaceRenderable::CSurfaceRenderable(CSceneView *pView)
+	: CRenderable(pView),
 		m_pSurface(NULL),
 		m_pBeam(NULL),
 		m_pLightfieldTexture(NULL),
 		m_pEndTexture(NULL),
-		isWireFrame(TRUE),
-		isColorWash(FALSE),
-		showBoundsSurface(FALSE)
+		m_bWireFrame(FALSE),
+		m_bColorWash(FALSE),
+		m_bShowBoundsSurface(FALSE)
 {
-	color.Set(RGB(192, 192, 192));
-	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
-	isColorWash.AddObserver(this, (ChangeFunction) OnChange);
+	SetColor(RGB(192, 192, 192));
+	// isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
+	// isColorWash.AddObserver(this, (ChangeFunction) OnChange);
 
-	couchAngle.AddObserver(this, (ChangeFunction) OnPositionChange);
-	tableOffset.AddObserver(this, (ChangeFunction) OnPositionChange);
+	// couchAngle.AddObserver(this, (ChangeFunction) OnPositionChange);
+	// tableOffset.AddObserver(this, (ChangeFunction) OnPositionChange);
 }
 
-CSurfaceRenderer::~CSurfaceRenderer()
+CSurfaceRenderable::~CSurfaceRenderable()
 {
 	if (m_pLightfieldTexture)
 	{
@@ -54,43 +86,47 @@ CSurfaceRenderer::~CSurfaceRenderer()
 	}	
 }
 
-CSurface * CSurfaceRenderer::GetSurface()
+CSurface * CSurfaceRenderable::GetSurface()
 {
 	return m_pSurface;
 }
 
-void CSurfaceRenderer::SetSurface(CSurface *pSurface)
+void CSurfaceRenderable::SetSurface(CSurface *pSurface)
 {
 	if (m_pSurface != NULL)
-		m_pSurface->RemoveObserver(this, (ChangeFunction) OnChange);
+	{
+		m_pSurface->GetChangeEvent().RemoveObserver(this, (ChangeFunction) OnChange);
+	}
 
 	m_pSurface = pSurface;
 
 	if (m_pSurface != NULL)
-		m_pSurface->AddObserver(this, (ChangeFunction) OnChange);
+	{
+		m_pSurface->GetChangeEvent().AddObserver(this, (ChangeFunction) OnChange);
+	}
 
 	Invalidate();
 }
 
-CBeam * CSurfaceRenderer::GetLightFieldBeam() 
+CBeam * CSurfaceRenderable::GetLightFieldBeam() 
 {
 	return m_pBeam; 
 }
 
-void CSurfaceRenderer::SetLightFieldBeam(CBeam *pBeam)
+void CSurfaceRenderable::SetLightFieldBeam(CBeam *pBeam)
 {
 	if (m_pBeam != NULL)
-		m_pBeam->RemoveObserver(this, (ChangeFunction) OnChange);
+		m_pBeam->GetChangeEvent().RemoveObserver(this, (ChangeFunction) OnChange);
 
 	m_pBeam = pBeam;
 
 	if (m_pBeam != NULL)
-		m_pBeam->AddObserver(this, (ChangeFunction) OnChange);
+		m_pBeam->GetChangeEvent().AddObserver(this, (ChangeFunction) OnChange);
 
 	Invalidate();
 }
 
-void CSurfaceRenderer::OnRenderScene()
+void CSurfaceRenderable::DescribeOpaque()
 {
 	// now translate drawing to that center
 	// glRotated(couchAngle.Get() * 180.0 / PI, 
@@ -115,13 +151,13 @@ void CSurfaceRenderer::OnRenderScene()
 	glEnd(); 
 #endif DRAW_CROSSHAIRS
 
-	if (isWireFrame.Get())
+	if (m_bWireFrame)
 	{
 		glDisable(GL_LIGHTING);
 		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(1.0f);
 
-		glColor(color.Get());
+		glColor(GetColor());
 
 		for (int nAt = 0; nAt < m_pSurface->GetContourCount(); nAt++)
 		{
@@ -137,7 +173,8 @@ void CSurfaceRenderer::OnRenderScene()
 
 			// use the polygon's vertex data as the data array
 			glEnableClientState(GL_VERTEX_ARRAY);
-			glVertexPointer(2, GL_DOUBLE, 0, polygon.GetVertexArray().GetData());
+			glVertexPointer(2, GL_DOUBLE, 0, 
+				polygon.GetVertexArray().GetData());
 
 			// and draw the loop
 			glDrawArrays(GL_LINE_LOOP, 0, polygon.GetVertexCount());
@@ -152,7 +189,7 @@ void CSurfaceRenderer::OnRenderScene()
 		return;
 	}
 
-	if (isColorWash.Get())
+	if (m_bColorWash)
 	{
 		// disable lighting
 		glDisable(GL_LIGHTING);
@@ -164,7 +201,7 @@ void CSurfaceRenderer::OnRenderScene()
 		glAccum(GL_LOAD, 0.75f);
 	}
 
-	if (showBoundsSurface.Get())
+	if (FALSE) // m_bShowBoundsSurface)
 	{
 		// draw the boundary surfaces
 		glColor(RGB(0, 0, 128));
@@ -200,14 +237,36 @@ void CSurfaceRenderer::OnRenderScene()
 
 	// set the array for vertices
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_DOUBLE, 0, m_pSurface->GetVertexArray().GetData()-1);
+	glVertexPointer(3, GL_DOUBLE, 0,
+		m_pSurface->GetVertexArray().GetData()-1);
 
 	// set the array for normals
 	glEnableClientState(GL_NORMAL_ARRAY);
-	glNormalPointer(GL_DOUBLE, 0, m_pSurface->GetNormalArray().GetData()-1);
+	glNormalPointer(GL_DOUBLE, 0, 
+		m_pSurface->GetNormalArray().GetData()-1);
+
+	// make the depth mask read-only
+	glDepthMask(GL_FALSE);
+
+	// enable blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_CULL_FACE);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 0);
+
+	// individual vertices of the faces, etc... 
+	GLfloat specular [] = { 0.5, 0.5, 0.5, 1.0 };
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+	GLfloat shininess [] = { 20.0 };
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+
+	// Set the GL_AMBIENT_AND_DIFFUSE color state variable to be the
+	// one referred to by all following calls to glColor
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
 
 	// set the color of the surface
-	glColor(color.Get());
+	glColor(GetColor()); // , GetAlpha());
 
 	if (m_pBeam != NULL)
 	{
@@ -226,10 +285,10 @@ void CSurfaceRenderer::OnRenderScene()
 		glLoadMatrix(mTex);
 
 		// beam projection
-		glMultMatrix(m_pBeam->forMachine->projection.Get());
+		glMultMatrix(m_pBeam->GetTreatmentMachine()->m_projection);
 
 		// transform from patient -> beam coordinates
-		CMatrix<4> mXform = m_pBeam->beamToPatientXform.Get();
+		CMatrix<4> mXform = m_pBeam->GetBeamToPatientXform();
 		mXform.Invert();
 		glMultMatrix(mXform);
 
@@ -262,7 +321,10 @@ void CSurfaceRenderer::OnRenderScene()
 		GetLightfieldTexture()->Unbind();
 	}
 
-	if (isColorWash.Get())
+	// make the depth mask read-only
+	glDepthMask(GL_TRUE);
+
+	if (m_bColorWash)
 	{
 		// set up the accumulation buffer, using the current transparency
 		glAccum(GL_ACCUM, 0.25f);
@@ -276,9 +338,9 @@ void CSurfaceRenderer::OnRenderScene()
 	}
 }
 
-void CSurfaceRenderer::OnChange(CObservableObject *pFromObject, void *pOldValue)
+void CSurfaceRenderable::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
-	if (pFromObject == GetLightFieldBeam())
+	if (pFromObject->GetParent() == GetLightFieldBeam())
 	{
 		if (m_pLightfieldTexture != NULL)
 		{
@@ -288,23 +350,23 @@ void CSurfaceRenderer::OnChange(CObservableObject *pFromObject, void *pOldValue)
 		}
 	}
 
-	COpenGLRenderer::OnChange(pFromObject, pOldValue);
+	CRenderable::Invalidate();
 }
 
-void CSurfaceRenderer::OnPositionChange(CObservableObject *pFromObject, void *pOldValue)
+void CSurfaceRenderable::OnPositionChange(CObservableObject *pFromObject, void *pOldValue)
 {
 	// update the modelview matrix
-	modelviewMatrix.Set(
-		CreateRotate(couchAngle.Get(), CVector<3>(0.0, 0.0, 1.0)) 
-		* CreateTranslate(-1.0 * tableOffset.Get())
+	SetModelviewMatrix(
+		CreateRotateHG(m_couchAngle, CVector<3>(0.0, 0.0, 1.0)) 
+		* CreateTranslate(-1.0 * m_vTableOffset)
 	);
 }
 
-COpenGLTexture * CSurfaceRenderer::GetLightfieldTexture()
+CTexture * CSurfaceRenderable::GetLightfieldTexture()
 {
 	if (m_pLightfieldTexture == NULL)
 	{
-		m_pLightfieldTexture = new COpenGLTexture();
+		m_pLightfieldTexture = new CTexture();
 		m_pLightfieldTexture->SetWidthHeight(TEX_RESOLUTION, TEX_RESOLUTION);
 
 		CDC *pDC = m_pLightfieldTexture->GetDC();
@@ -316,8 +378,8 @@ COpenGLTexture * CSurfaceRenderer::GetLightfieldTexture()
 		// hollow brush
 		CBrush *pOldBrush = (CBrush *)pDC->SelectStockObject(HOLLOW_BRUSH);
 
-		CVector<2> vMin = m_pBeam->collimMin.Get();
-		CVector<2> vMax = m_pBeam->collimMax.Get();
+		CVector<2> vMin = m_pBeam->GetCollimMin();
+		CVector<2> vMax = m_pBeam->GetCollimMax();
 
 		vMin *= (double)(TEX_RESOLUTION - 5) / TEX_SIZE;
 		vMin += CVector<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
@@ -330,9 +392,9 @@ COpenGLTexture * CSurfaceRenderer::GetLightfieldTexture()
 		CBrush brush(RGB(128, 128, 128));
 		pDC->SelectObject(&brush);
 		pDC->SetPolyFillMode(WINDING);
-		for (int nAt = 0; nAt < m_pBeam->blocks.GetSize(); nAt++)
+		for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
 		{
-			CPolygon& polygon = *m_pBeam->blocks.Get(nAt);
+			CPolygon& polygon = *m_pBeam->GetBlockAt(nAt);
 			CArray<CPoint, CPoint&> arrBlock;
 			arrBlock.SetSize(polygon.GetVertexCount());
 			for (int nAtVert = 0; nAtVert < polygon.GetVertexCount(); nAtVert++)

@@ -1,12 +1,13 @@
-// BeamRenderer.cpp: implementation of the CBeamRenderer class.
+// BeamRenderable.cpp: implementation of the CBeamRenderable class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#include "BeamRenderer.h"
+#include "BeamRenderable.h"
 
 #include <glMatrixVector.h>
 
+// #include <ScalarFunction.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -15,63 +16,117 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 //////////////////////////////////////////////////////////////////////
+// function CreateScale
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+CMatrix<4> CreateScaleHG(const CVector<3>& vScale)
+{
+	// start with an identity matrix
+	CMatrix<3> mScale = CreateScale(vScale);
+
+	CMatrix<4> mScaleHG(mScale);
+
+	return mScaleHG;
+}
+
+//////////////////////////////////////////////////////////////////////
+// function CreateRotate
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+CMatrix<4> CreateRotateHG(const double& theta, 
+							   const CVector<3>& vAxis)
+{
+	// start with an identity matrix
+	CMatrix<3> mRotate = CreateRotate(theta, vAxis);
+
+	CMatrix<4> mRotateHG(mRotate);
+
+	return mRotateHG;
+}
+
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix inversion
+//////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////
+// function Invert
+//
+// stand-alone matrix inversion
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+inline CMatrix<DIM, TYPE> Invert(const CMatrix<DIM, TYPE>& m)
+{
+	CMatrix<DIM, TYPE> inv(m);
+	inv.Invert();
+	return inv;
+}
+
+//////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CBeamRenderer::CBeamRenderer(COpenGLView *pView)
-	: COpenGLRenderer(pView),
-		isCentralAxisEnabled(TRUE),
-		isDivergenceSurfacesEnabled(TRUE),
-		isGraticuleEnabled(FALSE),
-		privBeamToPatientXform(&forBeam, &CBeam::beamToPatientXform),
-		privMachineProjection(&forBeam, 
-			(CValue< CMatrix<4> > CBeam::*) &CBeam::projection)
+CBeamRenderable::CBeamRenderable(CSceneView *pView)
+	: CRenderable(pView),
+		m_bCentralAxisEnabled(TRUE),
+		m_bDivergenceSurfacesEnabled(TRUE),
+		m_bGraticuleEnabled(FALSE)
+		// privBeamToPatientXform(&m_pBeam, &CBeam::beamToPatientXform),
+		// privMachineProjection(&m_pBeam, 
+		// 	(CValue< CMatrix<4> > CBeam::*) &CBeam::projection)
 {
-	forBeam.AddObserver(this, (ChangeFunction) OnChange);
+	// m_pBeam.AddObserver(this, (ChangeFunction) OnChange);
 
 	// set up the modelview matrix for the beam
-	CValue< CMatrix<4> >& privModelviewMatrix =
+/*	CValue< CMatrix<4> >& privModelviewMatrix =
 		  privBeamToPatientXform 
-		* CreateScale(CVector<3>(1.0, 1.0, -1.0))
+		* CreateScaleHG(CVector<3>(1.0, 1.0, -1.0))
 		* Invert(privMachineProjection);
-	modelviewMatrix.SyncTo(&privModelviewMatrix);
+	modelviewMatrix.SyncTo(&privModelviewMatrix); */
 }
 
-CBeamRenderer::~CBeamRenderer()
+CBeamRenderable::~CBeamRenderable()
 {
 
 }
 
-void CBeamRenderer::SetREVBeam()
+void CBeamRenderable::SetREVBeam()
 {
-	modelviewMatrix.SyncTo(&(
-		  CreateRotate(PI - forBeam->gantryAngle,	CVector<3>(0.0, -1.0, 0.0))
-		* CreateRotate(forBeam->collimAngle,		CVector<3>(0.0, 0.0, -1.0))
-		* CreateTranslate(forBeam->SAD,				CVector<3>(0.0, 0.0, -1.0))	
-		* CreateScale(CVector<3>(1.0, 1.0, -1.0))
+/*	modelviewMatrix.SyncTo(&(
+		  CreateRotateHG(PI - m_pBeam->gantryAngle,	CVector<3>(0.0, -1.0, 0.0))
+		* CreateRotateHG(m_pBeam->collimAngle,		CVector<3>(0.0, 0.0, -1.0))
+		* CreateTranslate(m_pBeam->SAD,				CVector<3>(0.0, 0.0, -1.0))	
+		* CreateScaleHG(CVector<3>(1.0, 1.0, -1.0))
 		* Invert(privMachineProjection)
-	));
+	)); */
 }
 
 
-CBeam *CBeamRenderer::GetBeam()
+CBeam *CBeamRenderable::GetBeam()
 {
-	return forBeam.Get();
+	return m_pBeam;
 }
 
-void CBeamRenderer::SetBeam(CBeam *pBeam)
+void CBeamRenderable::SetBeam(CBeam *pBeam)
 {
-	if (forBeam.Get() != NULL)
-		forBeam->RemoveObserver(this, (ChangeFunction) OnChange);
+/*	if (m_pBeam != NULL)
+		m_pBeam->GetChangeEvent().RemoveObserver(this, (ChangeFunction) OnChange);
+*/
+	m_pBeam = pBeam;
 
-	forBeam.Set(pBeam);
-
-	if (forBeam.Get() != NULL)
+	if (NULL != m_pBeam)
 	{
-		forBeam->AddObserver(this, (ChangeFunction) OnChange);
-		CValue< CMatrix<4> > *pProjValue = 
-			(CValue< CMatrix<4> > *)&forBeam->forMachine->projection;
-		privMachineProjection.SyncTo(pProjValue);
+		// set up the modelview matrix for the beam
+		SetModelviewMatrix(
+			m_pBeam->GetBeamToPatientXform()
+			* CreateScaleHG(CVector<3>(1.0, 1.0, -1.0))
+			* Invert(m_pBeam->GetTreatmentMachine()->m_projection));
+		// m_pBeam->AddObserver(this, (ChangeFunction) OnChange);
+
+		// CValue< CMatrix<4> > *pProjValue = 
+		//	(CValue< CMatrix<4> > *)&m_pBeam->forMachine->projection;
+		// privMachineProjection.SyncTo(pProjValue);
 	}
 
 	Invalidate();
@@ -83,14 +138,14 @@ inline void DrawProjectedVertex(const CVector<2>& v)
 	glVertex3d(v[0], v[1], 1.0);
 }
 
-void CBeamRenderer::OnRenderScene()
+void CBeamRenderable::DescribeOpaque()
 {
 	glDisable(GL_LIGHTING);
 
 	glEnable(GL_LINE_SMOOTH);
 	glLineWidth(1.0f);
 
-	if (isCentralAxisEnabled.Get())
+	if (m_bCentralAxisEnabled)
 	{
 		glColor3f(0.0f, 1.0f, 0.0f);
 
@@ -105,8 +160,8 @@ void CBeamRenderer::OnRenderScene()
 	}
 
 	// set up the four corners of the collimator rectangle
-	const CVector<2> vMin = forBeam->collimMin.Get();
-	const CVector<2> vMax = forBeam->collimMax.Get();
+	const CVector<2>& vMin = m_pBeam->GetCollimMin();
+	const CVector<2>& vMax = m_pBeam->GetCollimMax();
 
 	const CVector<2> vMinXMaxY(vMin[0], vMax[1]);
 	const CVector<2> vMaxXMinY(vMax[0], vMin[1]);
@@ -128,7 +183,7 @@ void CBeamRenderer::OnRenderScene()
 
 		glEnd();
 
-		if (isGraticuleEnabled.Get())
+		if (m_bGraticuleEnabled)
 		{
 			// now draw the graticule
 			CVector<2> vPos;
@@ -194,11 +249,11 @@ void CBeamRenderer::OnRenderScene()
 			glEnd();
 		}
 
-		for (int nAt = 0; nAt < forBeam->blocks.GetSize(); nAt++)
+		for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
 		{
 			glBegin(GL_LINE_LOOP);
 
-				CPolygon& polygon = *forBeam->blocks.Get(nAt);
+				CPolygon& polygon = *m_pBeam->GetBlockAt(nAt);
 
 				for (int nAtVert = 0; nAtVert < polygon.GetVertexCount(); 
 						nAtVert++)
@@ -222,7 +277,7 @@ void CBeamRenderer::OnRenderScene()
 
 	glEnd();
 
-	if (isDivergenceSurfacesEnabled.Get())
+	if (m_bDivergenceSurfacesEnabled)
 	{
 		// Create a Directional Light Source
 		glDisable(GL_LIGHTING);
@@ -241,9 +296,9 @@ void CBeamRenderer::OnRenderScene()
 		// draw the divergence surfaces
 		glBegin(GL_QUAD_STRIP);
 		
-			for (int nAt = 0; nAt < forBeam->blocks.GetSize(); nAt++)
+			for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
 			{
-				CPolygon& polygon = *forBeam->blocks.Get(nAt);
+				CPolygon& polygon = *m_pBeam->GetBlockAt(nAt);
 
 				for (int nAtVert = 0; nAtVert < polygon.GetVertexCount(); 
 						nAtVert++)

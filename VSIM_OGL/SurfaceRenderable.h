@@ -1,25 +1,25 @@
-// SurfaceRenderer.h: interface for the CSurfaceRenderer class.
+// SurfaceRenderable.h: interface for the CSurfaceRenderable class.
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_SURFACERENDERER_H__0E2B2435_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_)
-#define AFX_SURFACERENDERER_H__0E2B2435_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_
+#if !defined(SURFACERENDERABLE_H)
+#define SURFACERENDERABLE_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "OpenGLRenderer.h"
+#include "Renderable.h"
 #include "Surface.h"
 #include "Beam.h"
-#include "OpenGLTexture.h"	// Added by ClassView
+#include "Texture.h"	// Added by ClassView
 
-class CSurfaceRenderer : public COpenGLRenderer
+class CSurfaceRenderable : public CRenderable
 {
 public:
 	// Constructors/destructores
-	CSurfaceRenderer(COpenGLView *pView);
-	virtual ~CSurfaceRenderer();
+	CSurfaceRenderable(CSceneView *pView);
+	virtual ~CSurfaceRenderable();
 
 	// Accessors for the surface to be rendered
 	CSurface * GetSurface();
@@ -30,22 +30,22 @@ public:
 	void SetLightFieldBeam(CBeam *pBeam);
 
 	// Flag to indicate wire frame mode (project contours, not mesh)
-	CValue< BOOL > isWireFrame;
+	BOOL m_bWireFrame;
 
 	// Flag to indicate wire frame mode (project contours, not mesh)
-	CValue< BOOL > isColorWash;
+	BOOL m_bColorWash;
 
 	// Flag to indicate the bounding surfaces are to be rendered
-	CValue< BOOL > showBoundsSurface;
+	BOOL m_bShowBoundsSurface;
 
 	// Couch rotation angle
-	CValue< double > couchAngle;
+	double m_couchAngle;
 
 	// Translation vector 
-	CValue< CVector<3> > tableOffset;
+	CVector<3> m_vTableOffset;
 
 	// Rendering routines
-	virtual void OnRenderScene();
+	virtual void DescribeOpaque();
 
 	// Capture changes from the surface and/or lightfield beam
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
@@ -55,7 +55,7 @@ public:
 
 protected:
 	// Re-generates the lightfield texture, if necessary
-	COpenGLTexture * GetLightfieldTexture();
+	CTexture * GetLightfieldTexture();
 
 private:
 	// pointer to the surface data
@@ -65,10 +65,10 @@ private:
 	CBeam * m_pBeam;
 
 	// stores the texture for the lightfield
-	COpenGLTexture *m_pLightfieldTexture;
+	CTexture *m_pLightfieldTexture;
 
 	// stores the texture for the end of the mesh
-	COpenGLTexture *m_pEndTexture;
+	CTexture *m_pEndTexture;
 };
 
-#endif // !defined(AFX_SURFACERENDERER_H__0E2B2435_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_)
+#endif // !defined(SURFACERENDERABLE_H)
