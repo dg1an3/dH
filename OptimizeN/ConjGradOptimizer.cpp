@@ -18,11 +18,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // maximum iterations
-const int ITER_MAX = 100;		
+const int ITER_MAX = 500;		
 
 // z-epsilon -- small number to protect against fractional accuracy for 
 //		a minimum that happens to be exactly zero.
-const REAL ZEPS = 1.0e-10;	
+const REAL ZEPS = (REAL) 1.0e-10;	
 
 ///////////////////////////////////////////////////////////////////////////////
 // CConjGradOptimizer::CConjGradOptimizer
@@ -34,13 +34,28 @@ CConjGradOptimizer::CConjGradOptimizer(CObjectiveFunction *pFunc)
 		m_lineFunction(pFunc),
 		m_pLineOptimizer(&m_optimizeBrent),
 		m_optimizeBrent(&m_lineFunction),
-		m_optimizeCubic(&m_lineFunction)
+		m_optimizeCubic(&m_lineFunction),
+		m_pCallbackFunc(NULL),
+		m_pCallbackParam(NULL)
 {
 	// set the Brent optimizer to use the gradient information
 	m_optimizeBrent.SetUseGradientInfo(FALSE);
 
 	// set the cubic interpolation optimizer to use gradient
 	m_optimizeCubic.SetUseGradientInfo(TRUE);
+}
+
+
+CBrentOptimizer& CConjGradOptimizer::GetBrentOptimizer()
+{
+	return m_optimizeBrent;
+}
+
+// sets the callback function
+void CConjGradOptimizer::SetCallback(OptimizerCallback *pCallback, void *pParam)
+{
+	m_pCallbackFunc = pCallback;
+	m_pCallbackParam = pParam;
 }
 
 
@@ -83,10 +98,19 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	// initialize the H vector
 	m_vH = m_vXi = m_vG;
 
+	m_lineFunction.SetLine(m_vFinalParam, m_vXi);
+	REAL lambda = m_pLineOptimizer->Optimize(CBrentOptimizer::GetInitZero())[0];
+	if (m_pCallbackFunc)
+	{
+		(*m_pCallbackFunc)(lambda, m_vXi, m_pCallbackParam);
+	}
+
 	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
 	{
 		// set up the direction for the line minimization
 		m_lineFunction.SetLine(m_vFinalParam, m_vXi);
+
+		cout << "Line Optimization" << endl;
 
 		// now launch a line optimization
 		REAL lambda = m_pLineOptimizer->Optimize(CBrentOptimizer::GetInitZero())[0];
@@ -98,6 +122,11 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 			lambda = m_optimizeBrent.Optimize(CBrentOptimizer::GetInitZero())[0];
 		}
 
+		if (m_pCallbackFunc)
+		{
+			(*m_pCallbackFunc)(lambda, m_vXi, m_pCallbackParam);
+		}
+
 		// update the final parameter value
 		m_vFinalParam += lambda * m_lineFunction.GetDirection();
 
@@ -105,8 +134,8 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		m_finalValue = m_pLineOptimizer->GetFinalValue();
 
 		// test for convergence
-		if (2.0 * fabs(lambda - fp) <= GetTolerance() * fabs(lambda) 
-				+ fabs(fp) + ZEPS)
+		if (2.0 * fabs(lambda - fp) <= GetTolerance() * (fabs(lambda) 
+				+ fabs(fp) + ZEPS))
 		{
 			return m_vFinalParam;
 		}
@@ -120,6 +149,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		// gg measures the direction
 		REAL gg = m_vG * m_vG;
 
+// #define USE_FLETCHER_REEVES 
 #ifdef USE_FLETCHER_REEVES
 		// use this for Fletcher-Reeves
 		REAL dgg = m_vXi * m_vXi;
