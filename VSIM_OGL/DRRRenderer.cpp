@@ -50,7 +50,7 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 	m_nResDiv(4),
 	m_pThread(NULL)
 {
-	m_pView->camera.projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
+	m_pView->camera.projection.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 CDRRRenderer::~CDRRRenderer()
@@ -240,7 +240,7 @@ void CDRRRenderer::ComputeDRR()
 	volumeTransform.Get().ToArray(modelMatrix);
 
 	GLdouble projMatrix[16];
-	m_pView->camera.projectionMatrix.Get().ToArray(projMatrix);
+	m_pView->camera.projection.Get().ToArray(projMatrix);
 
 	// compute the near and far planes containing the volume
 	CVector<3> vPt;
@@ -502,7 +502,7 @@ void CDRRRenderer::OnRenderScene()
 
 void CDRRRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
 {
-	if (pSource == &m_pView->camera.projectionMatrix)
+	if (pSource == &m_pView->camera.projection)
 	{
 		if (m_pThread != NULL)
 		{
