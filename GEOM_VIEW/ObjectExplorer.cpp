@@ -25,22 +25,14 @@ CObjectExplorer::CObjectExplorer()
 
 CObjectExplorer::~CObjectExplorer()
 {
-	CObArray arrDeleteList;
-
     POSITION pos = m_mapItemHandles.GetStartPosition();
     while (pos != NULL)
     {
-		// The CObjectTreeItems are automatically deleted by their parent, 
-		//		if they have one
     	HTREEITEM hItem;
     	CObjectTreeItem *pItem;
     	m_mapItemHandles.GetNextAssoc(pos, hItem, pItem);
-		if (pItem->m_pParent == NULL)
-			arrDeleteList.Add(pItem);
+		delete pItem;
     }
-
-	for (int nAt = 0; nAt < arrDeleteList.GetSize(); nAt++)
-    	delete arrDeleteList[nAt];
 }
 
 HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
@@ -49,10 +41,10 @@ HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
     HTREEITEM hParentItem = TVI_ROOT;
 
     // only if the parent is not NULL,
-    if (pNewItem->m_pParent != NULL)
+    if (pNewItem->GetParent() != NULL)
     {
     	// get the real handle to the parent
-    	hParentItem = (HTREEITEM)(*pNewItem->m_pParent);
+    	hParentItem = (HTREEITEM)(*pNewItem->GetParent());
     }
 
  	// set up the images for the item
@@ -71,7 +63,7 @@ HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
     // create the tree control
     HTREEITEM hTreeItem = CTreeCtrl::InsertItem(TVIF_IMAGE 
     	| TVIF_SELECTEDIMAGE | TVIF_STATE | TVIF_TEXT,
-    	pNewItem->m_strLabel, 
+    	pNewItem->GetLabel(), 
  		nImageIndex, // pNewItem->GetImageIndex(),
  		nSelImageIndex, // pNewItem->GetSelectedImageIndex(),
     	INDEXTOSTATEIMAGEMASK(pNewItem->m_bChecked ? 2 : 1) 
@@ -393,7 +385,7 @@ void CObjectExplorer::OnEndLabelEdit(LPNMHDR pnmhdr, LRESULT *pLResult)
  		CObjectTreeItem *pObjectTreeItem;
  		if (m_mapItemHandles.Lookup(ptvinfo->item.hItem, pObjectTreeItem))
  		{
- 			CObject *pObject = pObjectTreeItem->m_pObject;
+ 			CObject *pObject = pObjectTreeItem->GetObject();
 			if (pObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
 			{
 				CModelObject *pModelObject = (CModelObject *)pObject;
@@ -428,7 +420,7 @@ void CObjectExplorer::OnSelChanged(NMHDR* pNMHDR, LRESULT* pResult)
     
 	// notify document of selection change
 	if (m_pDoc != NULL)
-		m_pDoc->UpdateAllViews(NULL, (LPARAM)pNewItem->m_pObject, this);
+		m_pDoc->UpdateAllViews(NULL, (LPARAM)pNewItem->GetObject(), this);
 
     *pResult = 0;
 }

@@ -28,21 +28,33 @@ CObjectTreeItem::CObjectTreeItem()
 		m_nSelectedImageResourceID(IDB_FOLDER_OPENED),
 		m_bChecked(TRUE)
 {
-/*	::AddObserver<CObjectTreeItem>(&forObject, this, (ChangeFunction) OnForObjectChanged);
-	// forObject.SetAutoObserver(this, (ChangeFunction) OnChange);
-	::AddObserver<CObjectTreeItem>(&label, this, (ChangeFunction) OnLabelChanged);
-	::AddObserver<CObjectTreeItem>(&parent, this, (ChangeFunction) OnParentChanged);
-	::AddObserver<CObjectTreeItem>(&children, this, (ChangeFunction) OnChildrenChanged); */
 }
 
 CObjectTreeItem::~CObjectTreeItem()
 {
-	// delete children
-	for (int nAt = 0; nAt < m_arrChildren.GetSize(); nAt++)
-	{
-		delete m_arrChildren[nAt];
-	}
+	// don't delete children -- the CObjectExplorer
+	//		deletes all object tree items
 }
+
+    
+// string holding the name (label) for this tree item
+const CString& CObjectTreeItem::GetLabel() const
+{
+	return m_strLabel;
+}
+
+// pointer to the object represented by this item
+CObject *CObjectTreeItem::GetObject()
+{
+	return m_pObject;
+}
+
+// parent accessor
+CObjectTreeItem *CObjectTreeItem::GetParent()
+{
+	return m_pParent;
+}
+
 
 BOOL CObjectTreeItem::Create(CObjectExplorer *pExplorer)
 {
@@ -78,14 +90,16 @@ void CObjectTreeItem::OnDeleteItem()
 	// TODO: delete the item
 }
     
-void CObjectTreeItem::OnForObjectChanged(CObject *pSource, void *pOldValue)
+void CObjectTreeItem::SetObject(CObject *pObject)
 {
+	m_pObject = pObject;
+
 	if (m_pObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
 	{
 		CModelObject *pModel = (CModelObject *)m_pObject;
 
 		// set the label for this item to the name of the model object
-		// label.SyncTo(&pModel->name);
+		m_strLabel = pModel->GetName();
 
 		if (m_bAutoCreateChildren)
 		{
@@ -111,8 +125,10 @@ void CObjectTreeItem::OnForObjectChanged(CObject *pSource, void *pOldValue)
 	}
 }
 
-void CObjectTreeItem::OnLabelChanged(CObject *pSource, void *pOldValue)
+void CObjectTreeItem::SetLabel(const CString& strLabel)
 {
+	m_strLabel = strLabel;
+
 	if (m_pObjectExplorer != NULL)
 	{
 		// if so, change the label for the item
@@ -121,6 +137,7 @@ void CObjectTreeItem::OnLabelChanged(CObject *pSource, void *pOldValue)
 	}
 }
 
+/*
 void CObjectTreeItem::OnParentChanged(CObject *pSource, void *pOldValue)
 {
 	if (pOldValue)
@@ -142,23 +159,17 @@ void CObjectTreeItem::OnParentChanged(CObject *pSource, void *pOldValue)
 	// add this to the new parent
 	m_pParent->m_arrChildren.Add(this);
 }
+*/
 
-void CObjectTreeItem::OnChildrenChanged(CObject *pSource, void *pOldValue)
+void CObjectTreeItem::AddChild(CObjectTreeItem *pChildItem)
 {
-	if (pOldValue)
+	// set the parent parent for the new child
+	pChildItem->m_pParent = this;
+
+	// create the child if this (the parent) has been created
+	if (m_pObjectExplorer)
 	{
-		// check that the old value is a pointer to the parent
-		ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
-
-		// form a pointer to the new child
-		CObjectTreeItem *pNewChild = (CObjectTreeItem *) pOldValue;
-
-		// set the parent parent for the new child
-		pNewChild->m_pParent = this;
-
-		// create the child if this (the parent) has been created
-		if (m_pObjectExplorer)
-    		pNewChild->Create(m_pObjectExplorer);
+    	pChildItem->Create(m_pObjectExplorer);
 	}
 }
   
