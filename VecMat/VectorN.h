@@ -159,6 +159,7 @@ void CVectorN<TYPE>::SetDim(int nDim)
 	}
 
 	// free the elements, if needed
+	// EXTENSION: retain elements in resized vector
 	if (m_pElements != NULL)
 	{
 		delete [] m_pElements;
