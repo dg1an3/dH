@@ -1,0 +1,26 @@
+HKCR
+{
+	FieldCOM.BufferField.1 = s 'BufferField Class'
+	{
+		CLSID = s '{F2A21831-9DDD-408C-B9B8-5928A9E9ABC6}'
+	}
+	FieldCOM.BufferField = s 'BufferField Class'
+	{
+		CLSID = s '{F2A21831-9DDD-408C-B9B8-5928A9E9ABC6}'
+		CurVer = s 'FieldCOM.BufferField.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {F2A21831-9DDD-408C-B9B8-5928A9E9ABC6} = s 'BufferField Class'
+		{
+			ProgID = s 'FieldCOM.BufferField.1'
+			VersionIndependentProgID = s 'FieldCOM.BufferField'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{DC06CE80-4C50-468D-84AF-1D26D21C56CE}'
+		}
+	}
+}

@@ -1,0 +1,562 @@
+// FieldCOM.idl : IDL source for FieldCOM.dll
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (FieldCOM.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+#include "olectl.h"
+
+	///////////////////////////////////////////////////////////////////////////
+	// Collection
+
+	// DISPID for common label property
+	#define DISPID_LABEL					999		
+
+	// DISPIDs for ICollection interface
+	#define DISPID_COLLECTION_COUNT			1
+	#define DISPID_COLLECTION_ADD			2
+	#define DISPID_COLLECTION_REMOVE		3
+	#define DISPID_COLLECTION_ALLOWTYPE		4
+
+	cpp_quote("#define DISPID_LABEL						999")
+	cpp_quote("#define DISPID_COLLECTION_COUNT			1")
+	cpp_quote("#define DISPID_COLLECTION_ADD			2")
+	cpp_quote("#define DISPID_COLLECTION_REMOVE			3")
+	cpp_quote("#define DISPID_COLLECTION_ALLOWTYPE		4")
+
+	[
+		object,
+		uuid(DB3D789C-9912-408A-ACFA-F3DF3DEAB42B),
+		dual,
+		helpstring("ICollection Interface"),
+		pointer_default(unique)
+	]
+	interface ICollection : IDispatch
+	{
+		[propget, id(DISPID_LABEL)] 
+			HRESULT Label([out, retval] VARIANT *pVal);
+		[propput, id(DISPID_LABEL)] 
+			HRESULT Label([in] VARIANT newVal);
+
+		[propget, id(DISPID_NEWENUM), restricted] 
+			HRESULT _NewEnum([out, retval] IUnknown **ppEnum);
+
+		[id(DISPID_VALUE)] 
+			HRESULT Item([in] VARIANT index, [out, retval] IDispatch **ppItem);
+
+		[propget, id(DISPID_COLLECTION_COUNT)] 
+			HRESULT Count([out, retval] long *pVal);
+
+		[id(DISPID_COLLECTION_ADD)] 
+			HRESULT Add([in] IDispatch *ppItem, [out, retval] long *pIndex);
+
+		[id(DISPID_COLLECTION_REMOVE)] 
+			HRESULT Remove([in] VARIANT index);
+	};
+
+
+	// forward-declare IMatrix interface
+	interface IMatrix;
+
+	///////////////////////////////////////////////////////////////////////////
+	// Field
+
+	// DISPIDs for IField interface
+	#define DISPID_FIELD_DIMIN				1
+	#define DISPID_FIELD_DIMOUT				2
+	#define DISPID_FIELD_EVAL				3
+	#define DISPID_FIELD_EVALJAC			4
+
+	cpp_quote("#define DISPID_FIELD_DIMIN				1")
+	cpp_quote("#define DISPID_FIELD_DIMOUT				2")
+	cpp_quote("#define DISPID_FIELD_EVAL				3")
+	cpp_quote("#define DISPID_FIELD_EVALJAC				4")
+
+	[
+		object,
+		uuid(4A88E9FF-E674-4d79-8AD5-A1216FA46239),
+		dual,
+		helpstring("IField Interface: vector field"),
+		pointer_default(unique)
+	]
+	interface IField : IDispatch
+	{
+		[propget, id(DISPID_FIELD_DIMIN), helpstring("property DimIn")] 
+			HRESULT DimIn([out, retval] long *pVal);
+		[propput, id(DISPID_FIELD_DIMIN), helpstring("property DimIn")] 
+			HRESULT DimIn([in] long newVal);
+
+		[propget, id(DISPID_FIELD_DIMOUT), helpstring("property DimOut")] 
+			HRESULT DimOut([out, retval] long *pVal);
+		[propput, id(DISPID_FIELD_DIMOUT), helpstring("property DimOut")] 
+			HRESULT DimOut([in] long newVal);
+
+		[id(DISPID_FIELD_EVAL), helpstring("method Eval")] 
+			HRESULT Eval([in] IMatrix *pIn, [out, retval] IMatrix **pOut);
+
+		[id(DISPID_FIELD_EVALJAC), helpstring("method EvalJac")] 
+			HRESULT EvalJac([in] IMatrix *pIn, [out] IMatrix **pOut, [out, retval] IMatrix **pJac);
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	// Matrix
+
+	// DISPIDs for IMatrix interface
+	#define DISPID_MATRIX_COLS				2
+	#define DISPID_MATRIX_ROWS				3
+	#define DISPID_MATRIX_RESHAPE			4
+	#define DISPID_MATRIX_ELEMENTS			5
+	#define DISPID_MATRIX_COPY				8
+	#define DISPID_MATRIX_IDENTITY			9
+	#define DISPID_MATRIX_ISAPPROXEQUAL		10
+	#define DISPID_MATRIX_DET				11
+	#define DISPID_MATRIX_ISORTHOGONAL		12
+	#define DISPID_MATRIX_ORTHOGONALIZE		13
+	#define DISPID_MATRIX_TRANSPOSE			14
+	#define DISPID_MATRIX_INVERT			15
+	#define DISPID_MATRIX_ADD				16
+	#define DISPID_MATRIX_SUB				17
+	#define DISPID_MATRIX_MULTSCALAR		18
+	#define DISPID_MATRIX_MULT				19
+	#define DISPID_MATRIX_DOT				20
+
+	cpp_quote("#define DISPID_MATRIX_COLS				2")
+	cpp_quote("#define DISPID_MATRIX_ROWS				3")
+	cpp_quote("#define DISPID_MATRIX_RESHAPE			4")
+	cpp_quote("#define DISPID_MATRIX_ELEMENTS			5")
+	cpp_quote("#define DISPID_MATRIX_COPY				8")
+	cpp_quote("#define DISPID_MATRIX_IDENTITY			9")
+	cpp_quote("#define DISPID_MATRIX_ISAPPROXEQUAL		10")
+	cpp_quote("#define DISPID_MATRIX_DET				11")
+	cpp_quote("#define DISPID_MATRIX_ISORTHOGONAL		12")
+	cpp_quote("#define DISPID_MATRIX_ORTHOGONALIZE		13")
+	cpp_quote("#define DISPID_MATRIX_TRANSPOSE			14")
+	cpp_quote("#define DISPID_MATRIX_INVERT				15")
+	cpp_quote("#define DISPID_MATRIX_ADD				16")
+	cpp_quote("#define DISPID_MATRIX_SUB				17")
+	cpp_quote("#define DISPID_MATRIX_MULTSCALAR			18")
+	cpp_quote("#define DISPID_MATRIX_MULT				19")
+	cpp_quote("#define DISPID_MATRIX_DOT				20")
+
+	[
+		object,
+		uuid(598686D0-6567-4131-A137-E49D01B6EE54),
+		dual,
+		helpstring("IMatrix Interface: mathematical matrix"),
+		pointer_default(unique)
+	]
+	interface IMatrix : IDispatch
+	{
+		[propget, id(DISPID_LABEL), bindable, helpstring("property Label")] 
+			HRESULT Label([out, retval] VARIANT *pVal);
+		[propput, id(DISPID_LABEL), bindable, helpstring("property Label")] 
+			HRESULT Label([in] VARIANT newVal);
+
+		[propget, id(DISPID_MATRIX_COLS), bindable, helpstring("property Cols")] 
+			HRESULT Cols([out, retval] long *pVal);
+		[propput, id(DISPID_MATRIX_COLS), bindable, helpstring("property Cols")] 
+			HRESULT Cols([in] long newVal);
+
+		[propget, id(DISPID_MATRIX_ROWS), bindable, helpstring("property Rows")] 
+			HRESULT Rows([out, retval] long *pVal);
+		[propput, id(DISPID_MATRIX_ROWS), bindable, helpstring("property Rows")] 
+			HRESULT Rows([in] long newVal);
+
+		[id(DISPID_MATRIX_RESHAPE), helpstring("method Reshape")] 
+			HRESULT Reshape([in] long nCols, [in] long nRows);
+
+		[propget, id(DISPID_VALUE), bindable, helpstring("property Element")] 
+			HRESULT Element([in] long nCol, [in] long nRow, [out, retval] double *pVal);
+		[propput, id(DISPID_VALUE), bindable, helpstring("property Element")] 
+			HRESULT Element([in] long nCol, [in] long nRow, [in] double newVal);
+
+		[propget, id(DISPID_MATRIX_ELEMENTS)]
+			HRESULT Elements([out, retval] VARIANT *pElements);
+		[propput, id(DISPID_MATRIX_ELEMENTS)]
+			HRESULT Elements([in] VARIANT pElements);
+
+		[id(DISPID_MATRIX_COPY)] 
+			HRESULT Copy(IMatrix *pMatrix);
+
+		[id(DISPID_MATRIX_IDENTITY), helpstring("method Identity")] 
+			HRESULT Identity();
+
+		[id(DISPID_MATRIX_ISAPPROXEQUAL), helpstring("method IsApproxEqual")] 
+			HRESULT IsApproxEqual([in] IMatrix *pMatrix, [in] double epsilon, [out, retval] BOOL *pVal);
+
+		[propget, id(DISPID_MATRIX_DET), bindable, helpstring("property Det")] 
+			HRESULT Det([out, retval] double *pVal);
+
+		[propget, id(DISPID_MATRIX_ISORTHOGONAL), bindable, helpstring("matrix orthogonality")] 
+			HRESULT IsOrthogonal([out, retval] BOOL *pVal);
+
+		[id(DISPID_MATRIX_ORTHOGONALIZE)] 
+			HRESULT Orthogonalize();
+
+		[id(DISPID_MATRIX_TRANSPOSE)] 
+			HRESULT Transpose();
+
+		[id(DISPID_MATRIX_INVERT)] 
+			HRESULT Invert();
+
+		[id(DISPID_MATRIX_ADD)] 
+			HRESULT Add([in] IMatrix *pMatrix);
+
+		[id(DISPID_MATRIX_SUB)] 
+			HRESULT Sub([in] IMatrix *pMatrix);
+
+		[id(DISPID_MATRIX_MULTSCALAR), helpstring("scalar product")] 
+			HRESULT MultScalar(double scalar);
+
+		[id(DISPID_MATRIX_MULT), helpstring("matrix product")] 
+			HRESULT Mult([in] IMatrix *pLeft, [in] IMatrix *pRight);
+
+		[id(DISPID_MATRIX_DOT), helpstring("dot product of two column vectors")] 
+			HRESULT Dot([in] IMatrix *pMatrix, [out, retval] double *pVal);
+	};
+
+	#define DISPID_MATRIX_ACCESSELEMENTS	2
+	#define DISPID_MATRIX_UNACCESSELEMENTS	3
+
+	cpp_quote("#define DISPID_MATRIX_ACCESSELEMENTS		2")
+	cpp_quote("#define DISPID_MATRIX_UNACCESSELEMENTS	3")
+
+	[
+		object,
+		uuid(F6DB003F-3A0C-470e-AFBE-DBDD817A0B41),
+		helpstring("IMatrixAccess Interface: interface for fast access to matrix elements"),
+		pointer_default(unique)
+	]
+	interface IMatrixAccess : IUnknown
+	{
+		[id(DISPID_MATRIX_ACCESSELEMENTS), restricted]
+			HRESULT AccessElements([out, retval] double **pElements);
+
+		[id(DISPID_MATRIX_UNACCESSELEMENTS), restricted]
+			HRESULT UnaccessElements([in] BOOL bChanged);
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	// Polygon / Mesh
+
+	// DISPIDs for IPolygon interface
+	#define DISPID_POLYGON3D_VERTICES		2
+	#define DISPID_POLYGON3D_BASIS			3
+	#define DISPID_POLYGON3D_ADDVERTEX		4
+	#define DISPID_POLYGON3D_SIGNEDAREA		5
+	#define DISPID_POLYGON3D_INTERSECTLINE	6
+
+	cpp_quote("#define DISPID_POLYGON3D_VERTICES		2")
+	cpp_quote("#define DISPID_POLYGON3D_BASIS			3")
+	cpp_quote("#define DISPID_POLYGON3D_ADDVERTEX		4")
+	cpp_quote("#define DISPID_POLYGON3D_SIGNEDAREA		5")
+	cpp_quote("#define DISPID_POLYGON3D_INTERSECTLINE	6")
+
+	[
+		object,
+		uuid(3F4EF88E-69FD-4E35-8442-57F870876983),
+		dual,
+		helpstring("IPolygon3D Interface: polygon with 3D basis"),
+		pointer_default(unique)
+	]
+	interface IPolygon3D : IDispatch
+	{
+		[propget, id(DISPID_LABEL), helpstring("property Label")] 
+			HRESULT Label([out, retval] VARIANT *pVal);
+		[propput, id(DISPID_LABEL), helpstring("property Label")] 
+			HRESULT Label([in] VARIANT newVal);
+
+		[propget, id(DISPID_POLYGON3D_VERTICES), helpstring("property Vertices")] 
+			HRESULT Vertices([out, retval] IMatrix **pVertices);
+		[propput, id(DISPID_POLYGON3D_VERTICES), helpstring("property Vertices")] 
+			HRESULT Vertices([in] IMatrix *pVertices);
+
+		[propget, id(DISPID_POLYGON3D_BASIS), helpstring("property Basis")] 
+			HRESULT Basis([out, retval] IMatrix **pBasis);
+		[propput, id(DISPID_POLYGON3D_BASIS), helpstring("property Vertices")] 
+			HRESULT Basis([in] IMatrix *pBasis);
+
+		[id(DISPID_POLYGON3D_ADDVERTEX), helpstring("method AddVertex")] 
+			HRESULT AddVertex([in] double x, [in] double y);
+
+		[id(DISPID_POLYGON3D_SIGNEDAREA), helpstring("method Signed Area")] 
+			HRESULT SignedArea([out, retval] double *pVal);
+
+		[id(DISPID_POLYGON3D_INTERSECTLINE), helpstring("method Intersect")] 
+			HRESULT IntersectLine([in] IMatrix *pLine, [out, retval] double *pLambda);
+	};
+
+	[
+		object,
+		uuid(258E47F2-BA00-4FF5-A43C-60C104927C6D),
+		dual,
+		helpstring("IPolygonSet3D Interface"),
+		pointer_default(unique)
+	]
+	interface IPolygonSet3D : IDispatch
+	{
+		[propget, id(7), helpstring("property Label")] 
+			HRESULT Label([out, retval] VARIANT *pVal);
+		[propput, id(7), helpstring("property Label")] 
+			HRESULT Label([in] VARIANT newVal);
+
+		[propget, id(DISPID_NEWENUM), restricted] 
+			HRESULT _NewEnum([out, retval] IUnknown **ppEnum);
+
+		[id(DISPID_VALUE)] 
+			HRESULT Item([in] long index, [out, retval] IPolygon3D **ppItem);
+
+		[propget, id(1)] 
+			HRESULT Count([out, retval] long *pVal);
+
+		[propget, id(5), helpstring("property Basis")] 
+			HRESULT Basis([out, retval] IMatrix * *pVal);
+
+		[id(2)] 
+			HRESULT Union([in] IPolygon3D *pPoly);
+
+		[id(3)] 
+			HRESULT Intersect([in] IPolygon3D *pPoly);
+
+		[id(4)] 
+			HRESULT Diff([in] IPolygon3D *pPoly);
+
+		[id(6), helpstring("method IntersectLine")] 
+			HRESULT IntersectLine([in] IMatrix *pLine, [out, retval] double *pLambda);
+	};
+
+	// DISPIDs for IMesh interface
+	#define DISPID_MESH_INDICES				2
+	#define DISPID_MESH_VERTICES			3
+	#define DISPID_MESH_NORMALS				4
+	#define DISPID_MESH_BOUNDINGBOX			5
+	#define DISPID_MESH_INTERSECTLINE		6
+
+	cpp_quote("#define DISPID_MESH_INDICES				2")
+	cpp_quote("#define DISPID_MESH_VERTICES				3")
+	cpp_quote("#define DISPID_MESH_NORMALS				4")
+	cpp_quote("#define DISPID_MESH_BOUNDINGBOX			5")
+	cpp_quote("#define DISPID_MESH_INTERSECTLINE		6")
+
+	[
+		object,
+		uuid(9E7572B4-5E68-4837-B7B1-53F637C723AC),
+		dual,
+		helpstring("IMesh Interface: enclosed surface"),
+		pointer_default(unique)
+	]
+	interface IMesh : IDispatch
+	{
+		[propget, id(DISPID_LABEL), helpstring("property Label")] 
+			HRESULT Label([out, retval] VARIANT *pVal);
+		[propput, id(DISPID_LABEL), helpstring("property Label")] 
+			HRESULT Label([in] VARIANT newVal);
+
+		[propget, id(DISPID_MESH_INDICES), helpstring("property Indices")] 
+			HRESULT Indices([out, retval] VARIANT *pIndices);
+		[propput, id(DISPID_MESH_INDICES), helpstring("property Indices")] 
+			HRESULT Indices([in] VARIANT indices);
+
+		[propget, id(DISPID_MESH_VERTICES), helpstring("property Vertices")] 
+			HRESULT Vertices([out, retval] IMatrix **pVertices);
+		[propput, id(DISPID_MESH_VERTICES), helpstring("property Vertices")] 
+			HRESULT Vertices([in] IMatrix *pVertices);
+
+		[propget, id(DISPID_MESH_NORMALS), helpstring("property Normals")] 
+			HRESULT Normals([out, retval] IMatrix **pNormals);
+		[propput, id(DISPID_MESH_NORMALS), helpstring("property Normals")] 
+			HRESULT Normals([in] IMatrix *pNormals);
+
+		[propget, id(DISPID_MESH_BOUNDINGBOX), helpstring("property BoundingBox")] 
+			HRESULT BoundingBox([out, retval] IMatrix **pBoundingBox);
+
+		[id(DISPID_MESH_INTERSECTLINE), helpstring("method IntersectLine")] 
+			HRESULT IntersectLine([in] IMatrix *pLine, [out, retval] double *pLambda);
+	};
+	[
+		object,
+		uuid(06DE0FCF-E383-49D7-A627-52D217633089),
+		dual,
+		helpstring("IMeshSet Interface"),
+		pointer_default(unique)
+	]
+	interface IMeshSet : IDispatch
+	{
+		[propget, id(6), helpstring("property Label")] 
+			HRESULT Label([out, retval] VARIANT *pVal);
+		[propput, id(6), helpstring("property Label")] 
+			HRESULT Label([in] VARIANT newVal);
+
+		[propget, id(DISPID_NEWENUM), restricted] 
+			HRESULT _NewEnum([out, retval] IUnknown **ppEnum);
+
+		[id(DISPID_VALUE)] 
+			HRESULT Item([in] long index, [out, retval] IDispatch **ppItem);
+
+		[propget, id(1)] 
+			HRESULT Count([out, retval] long *pVal);
+
+		[id(2)] 
+			HRESULT Union([in] IMesh *pMesh);
+
+		[id(3)] 
+			HRESULT Intersect([in] IMesh *pMesh);
+
+		[id(4)] 
+			HRESULT Diff([in] IMesh *pMesh);
+
+		[id(5), helpstring("method IntersectLine")] 
+			HRESULT IntersectLine([in] IMatrix *pLine, [out, retval] double *pLambda);
+	};
+
+
+[
+	uuid(DC06CE80-4C50-468D-84AF-1D26D21C56CE),
+	version(1.0),
+	helpstring("FieldCOM 1.0 Type Library")
+]
+library FieldCOMLib
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+
+	[
+		uuid(71478CE9-566C-424D-B762-FB7F8AC593F6),
+		helpstring("_IObjectsEvents Interface")
+	]
+	dispinterface _IObjectEvents
+	{
+		properties:
+		methods:
+		[id(1), helpstring("method OnChanged")] void OnChanged();
+	};
+
+	[
+		uuid(819DDCE7-ACAD-4ad8-8C77-5FD9FA913A55),
+		helpstring("_ICollectionEvents Interface")
+	]
+	dispinterface _ICollectionEvents
+	{
+		properties:
+		methods:
+		[id(1), helpstring("method OnItemAdded")] 
+			void OnItemAdded([in] IDispatch *pNewItem);
+		[id(2), helpstring("method OnItemRemoved")] 
+			void OnItemRemoved([in] IDispatch *pOldItem);
+	};
+
+	// DISPIDs for IPropertyDispatchSink interface
+	#define DISPID_ONCHANGED				1
+	#define DISPID_ONREQUESTEDIT			2
+
+	cpp_quote("#define DISPID_ONCHANGED				1")
+	cpp_quote("#define DISPID_ONREQUESTEDIT			2")
+
+	[
+		uuid(44622925-F447-42f1-A96F-E680B8DCC617),
+		helpstring("IPropertyDispatchSink Interface"),
+	]
+	dispinterface _IPropertyDispatchSink
+	{
+		properties:
+
+		// no properties
+
+		methods:
+
+		[id(DISPID_ONCHANGED), helpstring("method OnChanged")] 
+			HRESULT OnChanged([in] DISPID dispID);
+
+		[id(DISPID_ONREQUESTEDIT), helpstring("method OnRequestEdit")] 
+			HRESULT OnRequestEdit([in] DISPID dispID);
+	}
+
+
+	[
+		object,
+		uuid(56F8D640-4251-4BFF-9DCE-FBF4986937C6),
+		dual,
+		helpstring("IFileStorage Interface"),
+		pointer_default(unique)
+	]
+	interface IFileStorage : IDispatch
+	{
+		[propget, id(1), helpstring("property Pathname")] 
+			HRESULT Pathname([out, retval] BSTR *pVal);
+		[propput, id(1), helpstring("property Pathname")] 
+			HRESULT Pathname([in] BSTR newVal);
+
+		[id(2), helpstring("method Load")] 
+			HRESULT Load(IDispatch *pMatrix);
+
+		[id(3), helpstring("method Save")] 
+			HRESULT Save(IDispatch *pMatrix);
+	};
+	
+
+	[
+		uuid(02A876C4-A12D-4C12-B7D9-51012FB80F4F),
+		helpstring("Collection Class")
+	]
+	coclass Collection
+	{
+		[default] interface ICollection;
+		[default, source] dispinterface _ICollectionEvents;
+	};
+	[
+		uuid(A2CF7A8D-4034-41A3-8DF5-A2E45F8115BD),
+		helpstring("Matrix Class")
+	]
+	coclass Matrix
+	{
+		[default] interface IMatrix;
+		[default, source] dispinterface IPropertyNotifySink;
+	};
+	[
+		uuid(7AE8C66C-C487-4299-A9BA-408EC3BCAB8E),
+		helpstring("Polygon3D Class")
+	]
+	coclass Polygon3D
+	{
+		[default] interface IPolygon3D;
+		[default, source] dispinterface _IObjectEvents;
+	};
+	[
+		uuid(AC483D51-30D7-4241-953E-114B3ADD4FC3),
+		helpstring("PolygonSet3D Class")
+	]
+	coclass PolygonSet3D
+	{
+		[default] interface IPolygonSet3D;
+		[default, source] dispinterface _IObjectEvents;
+	};
+	[
+		uuid(68A0BCA5-3D63-4087-9B4C-2279F99C00EA),
+		helpstring("Mesh Class")
+	]
+	coclass Mesh
+	{
+		[default] interface IMesh;
+		[default, source] dispinterface _IObjectEvents;
+	};
+	[
+		uuid(3526EAEE-2588-44AE-9CB6-76E786646BB6),
+		helpstring("MeshSet Class")
+	]
+	coclass MeshSet
+	{
+		[default] interface IMeshSet;
+		[default, source] dispinterface _IObjectEvents;
+	};
+	
+	[
+		uuid(829D2C5E-6758-4F92-B179-65C4B661FC95),
+		helpstring("MatrixStorage Class")
+	]
+	coclass FileStorage
+	{
+		[default] interface IFileStorage;
+	};
+};

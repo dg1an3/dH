@@ -1,0 +1,26 @@
+HKCR
+{
+	FieldCOM.PolygonSet3D.1 = s 'PolygonSet3D Class'
+	{
+		CLSID = s '{AC483D51-30D7-4241-953E-114B3ADD4FC3}'
+	}
+	FieldCOM.PolygonSet3D = s 'PolygonSet3D Class'
+	{
+		CLSID = s '{AC483D51-30D7-4241-953E-114B3ADD4FC3}'
+		CurVer = s 'FieldCOM.PolygonSet3D.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {AC483D51-30D7-4241-953E-114B3ADD4FC3} = s 'PolygonSet3D Class'
+		{
+			ProgID = s 'FieldCOM.PolygonSet3D.1'
+			VersionIndependentProgID = s 'FieldCOM.PolygonSet3D'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{DC06CE80-4C50-468D-84AF-1D26D21C56CE}'
+		}
+	}
+}

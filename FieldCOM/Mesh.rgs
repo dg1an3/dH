@@ -1,0 +1,26 @@
+HKCR
+{
+	FieldCOM.Mesh.1 = s 'Mesh Class'
+	{
+		CLSID = s '{68A0BCA5-3D63-4087-9B4C-2279F99C00EA}'
+	}
+	FieldCOM.Mesh = s 'Mesh Class'
+	{
+		CLSID = s '{68A0BCA5-3D63-4087-9B4C-2279F99C00EA}'
+		CurVer = s 'FieldCOM.Mesh.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {68A0BCA5-3D63-4087-9B4C-2279F99C00EA} = s 'Mesh Class'
+		{
+			ProgID = s 'FieldCOM.Mesh.1'
+			VersionIndependentProgID = s 'FieldCOM.Mesh'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{DC06CE80-4C50-468D-84AF-1D26D21C56CE}'
+		}
+	}
+}

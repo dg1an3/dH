@@ -1,0 +1,36 @@
+Type=Exe
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\WINNT\System32\stdole2.tlb#OLE Automation
+Reference=*\G{DC06CE80-4C50-468D-84AF-1D26D21C56CE}#1.0#0#..\ReleaseUMinDependency\FieldCOM.dll#FieldCOM 1.0 Type Library
+Object={A8B3B723-0B5A-101B-B22E-00AA0037B2FC}#1.0#0; Grid32.OCX
+Object={5E9E78A0-531B-11CF-91F6-C2863C385E30}#1.0#0; msflxgrd.ocx
+Form=PolygonDraw.frm
+Object={DC06CE80-4C50-468D-84AF-1D26D21C56CE}#1.0#0; FieldCOM.dll
+Startup="PolygonDrawForm"
+Command32=""
+Name="Project1"
+HelpContextID="0"
+CompatibleMode="0"
+MajorVer=1
+MinorVer=0
+RevisionVer=0
+AutoIncrementVer=0
+ServerSupportFiles=0
+VersionCompanyName="Lane Consulting"
+CompilationType=0
+OptimizationType=0
+FavorPentiumPro(tm)=0
+CodeViewDebugInfo=0
+NoAliasing=0
+BoundsCheck=0
+OverflowCheck=0
+FlPointCheck=0
+FDIVCheck=0
+UnroundedFP=0
+StartMode=0
+Unattended=0
+Retained=0
+ThreadPerObject=0
+MaxNumberOfThreads=1
+
+[MS Transaction Server]
+AutoRefresh=1

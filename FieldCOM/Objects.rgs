@@ -1,0 +1,26 @@
+HKCR
+{
+	FieldCOM.Collection.1 = s 'Collection Class'
+	{
+		CLSID = s '{02A876C4-A12D-4C12-B7D9-51012FB80F4F}'
+	}
+	FieldCOM.Collection = s 'Collection Class'
+	{
+		CLSID = s '{02A876C4-A12D-4C12-B7D9-51012FB80F4F}'
+		CurVer = s 'FieldCOM.Collection.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {02A876C4-A12D-4C12-B7D9-51012FB80F4F} = s 'Collection Class'
+		{
+			ProgID = s 'FieldCOM.Collection.1'
+			VersionIndependentProgID = s 'FieldCOM.Collection'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{DC06CE80-4C50-468D-84AF-1D26D21C56CE}'
+		}
+	}
+}

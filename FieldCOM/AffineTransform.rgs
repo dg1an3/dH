@@ -1,0 +1,26 @@
+HKCR
+{
+	FieldCOM.AffineTransform.1 = s 'AffineTransform Class'
+	{
+		CLSID = s '{F9316717-12D8-4EB6-A416-B8C9B91B17A3}'
+	}
+	FieldCOM.AffineTransform = s 'AffineTransform Class'
+	{
+		CLSID = s '{F9316717-12D8-4EB6-A416-B8C9B91B17A3}'
+		CurVer = s 'FieldCOM.AffineTransform.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {F9316717-12D8-4EB6-A416-B8C9B91B17A3} = s 'AffineTransform Class'
+		{
+			ProgID = s 'FieldCOM.AffineTransform.1'
+			VersionIndependentProgID = s 'FieldCOM.AffineTransform'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{DC06CE80-4C50-468D-84AF-1D26D21C56CE}'
+		}
+	}
+}

@@ -1,0 +1,33 @@
+HKCR
+{
+	FieldCOM.Matrix.1 = s 'Matrix Class'
+	{
+		CLSID = s '{A2CF7A8D-4034-41A3-8DF5-A2E45F8115BD}'
+		'Insertable'
+	}
+	FieldCOM.Matrix = s 'Matrix Class'
+	{
+		CLSID = s '{A2CF7A8D-4034-41A3-8DF5-A2E45F8115BD}'
+		CurVer = s 'FieldCOM.Matrix.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {A2CF7A8D-4034-41A3-8DF5-A2E45F8115BD} = s 'Matrix Class'
+		{
+			ProgID = s 'FieldCOM.Matrix.1'
+			VersionIndependentProgID = s 'FieldCOM.Matrix'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			ForceRemove 'Control'
+			ForceRemove 'ToolboxBitmap32' = s '%MODULE%, 116'
+			'MiscStatus' = s '0'
+			{
+			    '1' = s '132497'
+			}
+			'TypeLib' = s '{DC06CE80-4C50-468D-84AF-1D26D21C56CE}'
+		}
+	}
+}

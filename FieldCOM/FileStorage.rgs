@@ -1,0 +1,23 @@
+HKCR
+{
+	FieldCOM.FileStorage.1 = s 'FileStorage Class'
+	{
+		CLSID = s '{829D2C5E-6758-4F92-B179-65C4B661FC95}'
+	}
+	FieldCOM.FileStorage = s 'FileStorage Class'
+	{
+		CLSID = s '{829D2C5E-6758-4F92-B179-65C4B661FC95}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {829D2C5E-6758-4F92-B179-65C4B661FC95} = s 'FileStorage Class'
+		{
+			ProgID = s 'FieldCOM.FileStorage.1'
+			VersionIndependentProgID = s 'FieldCOM.FileStorage'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'both'
+			}
+		}
+	}
+}
