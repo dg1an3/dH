@@ -16,12 +16,15 @@ using namespace std;
 // math utilities
 #include "MathUtil.h"
 
-// forward-define CMatrixBase as a friend class
+// forward-define CMatrix* as a friend class
 template<class TYPE>
 class CMatrixBase;
 
 template<int DIM, class TYPE>
 class CMatrixD;
+
+template<class TYPE>
+class CMatrixNxM;
 
 //////////////////////////////////////////////////////////////////////
 // class CVectorBase<TYPE>
@@ -44,6 +47,10 @@ protected:
 	friend CMatrixD<2, TYPE>;
 	friend CMatrixD<3, TYPE>;
 	friend CMatrixD<4, TYPE>;
+
+	// global operator* can construct
+	friend CVectorBase<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
+		const CVectorBase<TYPE>& v);
 
 public:
 	// destructor
