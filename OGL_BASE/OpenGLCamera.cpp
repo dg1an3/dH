@@ -33,6 +33,11 @@ COpenGLCamera::COpenGLCamera()
 	aspectRatio.AddObserver(this, (ChangeFunction) OnComputeProjection);
 	nearPlane.AddObserver(this, (ChangeFunction) OnComputeProjection);
 	farPlane.AddObserver(this, (ChangeFunction) OnComputeProjection);
+
+	// set up the total projection matrix
+	projection.SyncTo(&(
+		perspective * modelXform
+	));
 }
 
 COpenGLCamera::~COpenGLCamera()
@@ -70,7 +75,7 @@ void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldVa
 	modelXform.Set(mTranslate * mRotateRoll * mRotateDir);
 
 	// set the total projection matrix
-	projectionMatrix.Set(projection.Get() * modelXform.Get());
+	projection.Set(projection.Get() * modelXform.Get());
 
 	// notify listeners that the camera has changed
 	FireChange();
@@ -99,10 +104,7 @@ void COpenGLCamera::OnComputeProjection(CObservableObject *pSource, void *pOldVa
 	mPersp[3][3] = 0.0;
 
 	// and set the projection
-	projection.Set(mPersp);
-
-	// set the total projection matrix
-	projectionMatrix.Set(projection.Get() * modelXform.Get());
+	perspective.Set(mPersp);
 
 	// notify listeners that the camera has changed
 	FireChange();

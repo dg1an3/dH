@@ -55,10 +55,10 @@ public:
 	void SetFieldOfView(double maxObjectSize);
 
 	// matrix representing the camera projection
-	CValue< CMatrix<4> > projection;
+	CValue< CMatrix<4> > perspective;
 
-	// the total matrix for the projection
-	CValue< CMatrix<4> > projectionMatrix;
+	// the total matrix for the projection and transform
+	CValue< CMatrix<4> > projection;
 
 protected:
 	// call-back to compute the object-to-camera transform
