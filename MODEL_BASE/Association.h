@@ -165,7 +165,7 @@ public:
 		::AddObserver< CAutoSyncValue >(m_pAssoc, this, OnAssocChange);
 
 		// trigger an update
-		OnChange(m_pAssoc, NULL);
+		OnAssocChange(m_pAssoc, NULL);
 	}
 
 	//////////////////////////////////////////////////////////////////
