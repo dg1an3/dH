@@ -53,12 +53,12 @@ void ReadVolumeFile(const char *pszFilename, CVolume<VOXEL_TYPE> *pBeamlet)
 			if (sscanf(pszLine, "%le", &value) == 1)
 			{
 				pBeamlet->GetVoxels()[0][nAtRow][nAtCol] = value;
-				nAtCol++;
+				nAtRow++;
 			}
 			else
 			{
-				nAtRow++;
-				nAtCol = 0;
+				nAtCol++;
+				nAtRow = 0;
 			}
 		}
 
@@ -158,17 +158,12 @@ void GenBeamlets(CBeam *pBeam)
 			// ::Rotate(&beamletOrig, CVectorD<2>(63.0, 63.0), pBeam->GetGantryAngle(),
 			//	pBeamlet, CVectorD<2>(nDim / 2 + 1, nDim / 2 + 1));
 
-			CMatrixD<4> mBasisNew;
-			mBasisNew[3][0] = -(pBeamlet->GetWidth() - 1) / 2;
-			mBasisNew[3][1] = -(pBeamlet->GetHeight() - 1) / 2;
-			pBeamlet->SetBasis(mBasisNew);
-
 			CMatrixD<4> mBasisOrigXlate;
 			mBasisOrigXlate[3][0] = -(beamletOrig.GetWidth() - 1) / 2;
 			mBasisOrigXlate[3][1] = -(beamletOrig.GetHeight() - 1) / 2;
 
 			CMatrixD<2> mRot 
-				= ::CreateRotate(pBeam->GetGantryAngle()); // + PI / 2);
+				= ::CreateRotate(pBeam->GetGantryAngle() + PI / 2);
 
 			CMatrixD<4> mBasisOrigRot;
 			mBasisOrigRot[0][0] = mRot[0][0];
@@ -177,6 +172,13 @@ void GenBeamlets(CBeam *pBeam)
 			mBasisOrigRot[1][1] = mRot[1][1];
 			beamletOrig.SetBasis(mBasisOrigRot * mBasisOrigXlate);
 
+			CMatrixD<4> mBasisNewXlate;
+			mBasisNewXlate[3][0] = -(pBeamlet->GetWidth() - 1) / 2;
+			mBasisNewXlate[3][1] = -(pBeamlet->GetHeight() - 1) / 2;
+			pBeamlet->SetBasis(mBasisOrigRot * 
+				mBasisNewXlate);
+
+			pBeamlet->ClearVoxels();
 			Resample(&beamletOrig, pBeamlet, TRUE);
 		}
 
@@ -229,10 +231,19 @@ void GenBeamlets(CBeam *pBeam)
 			Decimate(pBeamletConv, pBeamletConvDec);
 			delete pBeamletConv;
 
+			CMatrixD<2> mRot 
+				= ::CreateRotate(pBeam->GetGantryAngle() + PI / 2);
+
+			CMatrixD<4> mBasisRot;
+			mBasisRot[0][0] = mRot[0][0];
+			mBasisRot[0][1] = mRot[0][1];
+			mBasisRot[1][0] = mRot[1][0];
+			mBasisRot[1][1] = mRot[1][1];
+
 			CMatrixD<4> mBasis;
 			mBasis[3][0] = -(pBeamletConvDec->GetWidth() - 1) / 2;
 			mBasis[3][1] = -(pBeamletConvDec->GetHeight() - 1) / 2;
-			pBeamletConvDec->SetBasis(mBasis);
+			pBeamletConvDec->SetBasis(mBasisRot * mBasis);
 
 			pBeam->m_arrBeamlets[nAtScale].Add(pBeamletConvDec);
 		}
