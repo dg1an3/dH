@@ -12,6 +12,8 @@
 // include the Powell optimizer
 #include "PowellOptimizer.h"
 
+const int ITER_MAX = 10;		// maximum iteration
+
 //////////////////////////////////////////////////////////////////////
 // CPowellOptimizer::CPowellOptimizer
 // 
@@ -75,7 +77,7 @@ const CVectorN<>& CPowellOptimizer::Optimize(const CVectorN<>& vInit)
 	m_vPt = vInit;	// save the initial point 
 
 	m_finalValue = (*m_pFunc)(vInit);
-	for (m_nIteration = 0; ; m_nIteration++)
+	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
 	{
 		fp = m_finalValue;
 		nBigDir = 0;
@@ -98,7 +100,8 @@ const CVectorN<>& CPowellOptimizer::Optimize(const CVectorN<>& vInit)
 			// m_vFinalParam += lambda * m_lineFunction.GetDirection();
 			// static CVectorN<> m_vScaledDir;
 			m_vScaledDir = m_lineFunction.GetDirection();
-			m_vScaledDir *= (fabs(lambda) > EPS) ? lambda : EPS;
+			m_vScaledDir *= (fabs(lambda) > DEFAULT_EPSILON) 
+				? lambda : DEFAULT_EPSILON;
 			m_vFinalParam += m_vScaledDir;
 
 			if (fabs(fptt - m_finalValue) > del)
@@ -149,7 +152,8 @@ const CVectorN<>& CPowellOptimizer::Optimize(const CVectorN<>& vInit)
 				// update the current point
 				// m_vFinalParam += lambda * m_lineFunction.GetDirection();
 				m_vScaledDir = m_lineFunction.GetDirection();
-				m_vScaledDir *= (fabs(lambda) > EPS) ? lambda : EPS;
+				m_vScaledDir *= (fabs(lambda) > DEFAULT_EPSILON) 
+					? lambda : DEFAULT_EPSILON;
 				m_vFinalParam += m_vScaledDir;
 
 				m_pDirections[nBigDir] = m_pDirections[nDim - 1];
@@ -159,5 +163,7 @@ const CVectorN<>& CPowellOptimizer::Optimize(const CVectorN<>& vInit)
 			}
 		}
 	}
+
+	return m_vFinalParam;
 }
 
