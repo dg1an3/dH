@@ -14,8 +14,12 @@ public:
     virtual ~CObjectExplorer();
 
 public:
+
+	// accessor for the explorer's root item
 	CObjectTreeItem * GetRootItem();
+
     // accessor to create/destroy tree items
+	// NOTE: use CObjectTreeItem::Create() instead of this
     HTREEITEM InsertItem(CObjectTreeItem *pNewItem);
     void DeleteItem(CObjectTreeItem *pItem);
 

@@ -24,14 +24,22 @@ CObjectExplorer::CObjectExplorer()
 
 CObjectExplorer::~CObjectExplorer()
 {
+	CObArray arrDeleteList;
+
     POSITION pos = m_mapItemHandles.GetStartPosition();
     while (pos != NULL)
     {
+		// The CObjectTreeItems are automatically deleted by their parent, 
+		//		if they have one
     	HTREEITEM hItem;
     	CObjectTreeItem *pItem;
     	m_mapItemHandles.GetNextAssoc(pos, hItem, pItem);
-    	delete pItem;
+		if (pItem->parent.Get() == NULL)
+			arrDeleteList.Add(pItem);
     }
+
+	for (int nAt = 0; nAt < arrDeleteList.GetSize(); nAt++)
+    	delete arrDeleteList[nAt];
 }
 
 HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
@@ -40,10 +48,10 @@ HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
     HTREEITEM hParentItem = TVI_ROOT;
 
     // only if the parent is not NULL,
-    if (pNewItem->GetParent() != NULL)
+    if (pNewItem->parent.Get() != NULL)
     {
     	// get the real handle to the parent
-    	hParentItem = (HTREEITEM)(*pNewItem->GetParent());
+    	hParentItem = (HTREEITEM)(*pNewItem->parent.Get());
     }
 
  	// set up the images for the item
@@ -62,7 +70,7 @@ HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
     // create the tree control
     HTREEITEM hTreeItem = CTreeCtrl::InsertItem(TVIF_IMAGE 
     	| TVIF_SELECTEDIMAGE | TVIF_STATE | TVIF_TEXT,
-    	pNewItem->GetLabel(), 
+    	pNewItem->label.Get(), 
  		nImageIndex, // pNewItem->GetImageIndex(),
  		nSelImageIndex, // pNewItem->GetSelectedImageIndex(),
     	INDEXTOSTATEIMAGEMASK(pNewItem->isChecked.Get() ? 2 : 1) 
@@ -384,7 +392,7 @@ void CObjectExplorer::OnEndLabelEdit(LPNMHDR pnmhdr, LRESULT *pLResult)
  		CObjectTreeItem *pObjectTreeItem;
  		if (m_mapItemHandles.Lookup(ptvinfo->item.hItem, pObjectTreeItem))
  		{
- 			CObject *pObject = pObjectTreeItem->GetObject();
+ 			CObject *pObject = pObjectTreeItem->forObject.Get();
 			if (pObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
 			{
 				CModelObject *pModelObject = (CModelObject *)pObject;

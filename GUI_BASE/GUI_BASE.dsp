@@ -123,10 +123,6 @@ SOURCE=TabControlBar.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\glMatrixVector.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\GUI_BASE_resource.h
 # End Source File
 # Begin Source File
