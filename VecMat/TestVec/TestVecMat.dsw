@@ -3,7 +3,22 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "TestVec"=".\TestVec.dsp" - Package Owner=<4>
+Project: "TestVecMat"=".\TestVecMat.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name VecMat
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "VecMat"="..\VecMat.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
