@@ -7,12 +7,10 @@
 // SimView1.h : header file
 //
 
-#include "Plan.h"
-#include "Beam.h"
+#include <Plan.h>
+#include <Beam.h>
 
-#include <DRRRenderable.h>
-
-#include "SceneView.h"	// Added by ClassView
+#include <SceneView.h>	// Added by ClassView
 
 #include "BeamRenderable.h"		// Added by ClassView
 #include "SurfaceRenderable.h"	// Added by ClassView
@@ -28,34 +26,14 @@ protected:
 
 // Attributes
 public:
-	CPlan* GetDocument();
+	// the plan being displayed
+	CPlan *GetDocument();
+
+	// the currently selected beam
+	CBeam *GetCurrentBeam();
 
 // Operations
 public:
-	void SetBEVPerspective(CBeam& beam);
-	CMatrix<4> ComputeProjection(CBeam& beam);
-
-	// association to the currently selected beam
-	CBeam *m_pCurrentBeam;
-
-	BOOL m_bPatientEnabled;
-
-	BOOL m_bWireFrame;
-
-	BOOL m_bColorWash;
-
-	CSceneView m_wndREV;
-	CSceneView m_wndBEV;
-
-	double m_sliderPos;
-
-#ifdef SHOW_ORTHO
-	CSceneView m_wndOrtho[3];
-#endif
-
-	CSurfaceRenderable *m_pSurfaceRenderable;
-	CBeamRenderable *m_pBeamRenderable;
-	CDRRRenderable *m_pDRRRenderable;
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -65,8 +43,6 @@ public:
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
 	//}}AFX_VIRTUAL
 
-	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
-
 // Implementation
 protected:
 	virtual ~CSimView();
@@ -74,6 +50,9 @@ protected:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+
+	// event handler for beam changes
+	void OnBeamChanged(CObservableEvent *pEvent, void *pOldValue);
 
 	// Generated message map functions
 protected:
@@ -91,6 +70,32 @@ protected:
 	afx_msg void OnUpdateViewColorwash(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
+private:
+	// the REV window
+	CSceneView m_wndREV;
+
+	// array of surface renderables
+	CObArray m_arrSurfaceRenderables;
+
+	// pointers to renderables
+	CSurfaceRenderable *m_pSurfaceRenderable;
+	CBeamRenderable *m_pBeamRenderable;
+
+	// association to the currently selected beam
+	CBeam *m_pCurrentBeam;
+
+	// flag to indicate that the patient contour is enabled
+	BOOL m_bPatientEnabled;
+
+	// flag to indicate that wire frame display is enabled
+	BOOL m_bWireFrame;
+
+	// flag to indicate colorwash display
+	BOOL m_bColorWash;
+
+	// position of the slider
+	double m_sliderPos;
 };
 
 
