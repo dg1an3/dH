@@ -105,11 +105,8 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 	// allocate the elements
 	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
 
-	// populate from other matrix
-	for (int nAt = 0; nAt < DIM; nAt++)
-	{
-		(*this)[nAt] = fromMatrix[nAt];
-	}
+	// populate elements from other matrix
+	memcpy(m_arrElements, fromMatrix.m_arrElements, sizeof(m_arrElements));
 
 }	// CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>
 
