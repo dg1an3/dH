@@ -260,10 +260,10 @@ BOOL CVSIM_OGLApp::OnIdle(LONG lCount)
 
 	if (pView != NULL && pView->m_pDRRRenderer != NULL)
 	{
-		if (pView->m_pDRRRenderer->m_nSteps < 128)
+		if (pView->m_pDRRRenderer->m_nSteps < 64)
 		{
-			pView->m_pDRRRenderer->m_nSteps = 128;
-			pView->m_pDRRRenderer->m_nShift = 7;
+			pView->m_pDRRRenderer->m_nSteps = 64;
+			pView->m_pDRRRenderer->m_nShift = 6;
 			pView->m_pDRRRenderer->m_bRecomputeDRR = TRUE;
 			pView->m_pDRRRenderer->Invalidate();
 			pView->m_wndBEV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
