@@ -121,10 +121,6 @@ SOURCE=.\StdAfx.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\StructureCtrl.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\SurfaceRenderable.cpp
 # End Source File
 # Begin Source File
@@ -172,10 +168,6 @@ SOURCE=.\simview.h
 # Begin Source File
 
 SOURCE=.\StdAfx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\StructureCtrl.h
 # End Source File
 # Begin Source File
 
