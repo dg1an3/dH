@@ -233,17 +233,19 @@ void CObjectExplorer::OnRButtonDown(UINT nFlags, CPoint point)
     SelectItem(hSelectedItem);
     
     	// find the tree item
- 	CObjectTreeItem *pItem = NULL;
-    	m_mapItemHandles.Lookup(hSelectedItem, pItem);
- 	if (pItem == NULL)
+ 	m_pItemMenu = NULL;
+    m_mapItemHandles.Lookup(hSelectedItem, m_pItemMenu);
+ 	if (m_pItemMenu == NULL)
+	{
  		return;
+	}
     
     // get the popup menu for the item
-    CMenu *pPopupMenu = pItem->GetPopupMenu();
+    CMenu *pPopupMenu = m_pItemMenu->GetPopupMenu();
     if (pPopupMenu != NULL)
     {
     	// set the menu command target
-    	m_pCommandTarget = pItem;
+    	m_pCommandTarget = NULL; // m_pItemMenu;
 
     	// process the popup menu
     	ClientToScreen(&point);
@@ -252,7 +254,7 @@ void CObjectExplorer::OnRButtonDown(UINT nFlags, CPoint point)
 
     	// destroy the popup menu
     	pPopupMenu->DestroyMenu();
- 	delete pPopupMenu;
+		delete pPopupMenu;
     }
 }
 

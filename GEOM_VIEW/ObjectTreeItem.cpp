@@ -225,7 +225,8 @@ CMenu * CObjectTreeItem::GetPopupMenu()
     // load the popup menu
     BOOL bResult = FALSE;  
     CMenu *pPopupMenu = new CMenu();
-	bResult = pPopupMenu->LoadMenu(MAKEINTRESOURCE(IDR_ITEM_MENU));
+	bResult = 
+		pPopupMenu->LoadMenu(MAKEINTRESOURCE(IDR_ITEM_DISP_MENU));
 
 	if (!bResult)
 	{

@@ -2,7 +2,8 @@
 //
 
 #include "stdafx.h"
-// #nclude "GUI_BASE_resource.h"
+#include "GUI_BASE_resource.h"
+
 #include "RenderableObjectExplorer.h"
 
 #ifdef _DEBUG
@@ -65,6 +66,10 @@ CRenderable *CRenderableObjectExplorer::CreateItemForObject(CObject *pObject,
 BEGIN_MESSAGE_MAP(CRenderableObjectExplorer, CObjectExplorer)
 	//{{AFX_MSG_MAP(CRenderableObjectExplorer)
 	ON_NOTIFY_REFLECT(NM_CLICK, OnCheck)
+	ON_COMMAND(ID_ITEM_25, OnItem25percent)
+	ON_COMMAND(ID_ITEM_50, OnItem50percent)
+	ON_COMMAND(ID_ITEM_75, OnItem75percent)
+	ON_COMMAND(ID_ITEM_100, OnItem100percent)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -104,3 +109,48 @@ void CRenderableObjectExplorer::OnCheck(NMHDR* pNMHDR, LRESULT* pResult)
 
 /////////////////////////////////////////////////////////////////////////////
 // CRenderableObjectExplorer message handlers
+
+void CRenderableObjectExplorer::OnItem25percent() 
+{
+	CRenderable *pRenderable = NULL;
+	if (!m_mapRenderables.Lookup(m_pItemMenu, (void *&)pRenderable))
+	{
+		return;
+	}
+
+	pRenderable->SetAlpha(0.25);
+}
+
+void CRenderableObjectExplorer::OnItem50percent() 
+{
+	CRenderable *pRenderable = NULL;
+	if (!m_mapRenderables.Lookup(m_pItemMenu, (void *&)pRenderable))
+	{
+		return;
+	}
+
+	pRenderable->SetAlpha(0.50);
+}
+
+void CRenderableObjectExplorer::OnItem75percent() 
+{
+	CRenderable *pRenderable = NULL;
+	if (!m_mapRenderables.Lookup(m_pItemMenu, (void *&)pRenderable))
+	{
+		return;
+	}
+
+	pRenderable->SetAlpha(0.75);
+}
+
+void CRenderableObjectExplorer::OnItem100percent() 
+{
+	CRenderable *pRenderable = NULL;
+	if (!m_mapRenderables.Lookup(m_pItemMenu, (void *&)pRenderable))
+	{
+		return;
+	}
+
+	pRenderable->SetAlpha(1.00);
+}
+
