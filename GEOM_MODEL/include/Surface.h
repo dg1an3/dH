@@ -79,6 +79,21 @@ public:
 	//		the normals
 	void OrientFaces();
 
+	CArray<BOOL, BOOL> m_arrIsOriented;
+	int m_nAtTri;
+	int m_nUnorientedCount;
+
+public:
+	void ReverseTriangleOrientation(int nAt);
+	int FindTriangleWithVertices(int nStart, const CVector<3>& v1, 
+								const CVector<3>& v2, BOOL *bOriented,
+								int *pNeighborVertex);
+
+	const CPackedVector<3>& GetTriVert(int nTriangle, int nVertex)
+	{
+		return m_arrVertex[m_arrVertIndex[nTriangle*3 + nVertex]-1];
+	}
+
 	// accessor for the "region" -- volume with a 1.0 everywhere
 	//		that is in the structure
 	CVolume<int> *m_pRegion;

@@ -187,70 +187,150 @@ double CSurface::GetMaxSize()
 		/ sqrt(2.0); 
 }
 
-
-void CSurface::OrientFaces()
+void CSurface::ReverseTriangleOrientation(int nAt)
 {
-/*
-	// check to see if coincident vertices have the same normal
-	for (int nAt = 0; nAt < m_arrVertex.GetSize(); nAt++)
+	int nTemp = m_arrVertIndex[nAt * 3 + 1];
+	m_arrVertIndex[nAt * 3 + 1] = m_arrVertIndex[nAt*3 + 2];
+	m_arrVertIndex[nAt * 3 + 2] = nTemp;
+}
+
+int CSurface::FindTriangleWithVertices(int nSkip, const CVector<3>& v1, 
+								const CVector<3>& v2, BOOL *bOriented, int *pNeighborVertex)
+{
+	// search for the vertices
+	for (int nAt = nSkip-1; nAt >= 0; nAt--)
 	{
-		for (int nAtNext = nAt+1; nAtNext < m_arrVertex.GetSize(); nAtNext++)
+		// see if the first vertex matches any
+		for (int nv1Match = 0; nv1Match < 3
+			&& !v1.IsApproxEqual(GetTriVert(nAt, nv1Match));
+			nv1Match++);
+
+		// see if the second vertex matches any
+		for (int nv2Match = 0; nv2Match < 3
+			&& !v2.IsApproxEqual(GetTriVert(nAt, nv2Match));
+			nv2Match++);
+
+		// if a match was found for both
+		if (nv1Match < 3 && nv2Match < 3)
 		{
-			if (CVector<3>(m_arrVertex[nAt]).IsApproxEqual(CVector<3>(m_arrVertex[nAtNext])))
-			{
-				TRACE("Match found\n");
-				ASSERT(CVector<3>(m_arrNormal[nAt]).IsApproxEqual(CVector<3>(m_arrNormal[nAtNext])));
-			}
+			// set the flag if the order of the two vertices matched the 
+			//		passed order
+			(*bOriented) = ((nv1Match + 1) % 3) == nv2Match;
+
+			// set match to first vertex
+			(*pNeighborVertex) = nv1Match;
+
+			// and return the triangle number
+			return nAt;
 		}
 	}
 
-	for (int nAt = 0; nAt < m_arrVertIndex.GetSize()-3; nAt += 3)
+	// search for the vertices
+	for (nAt = nSkip+1; nAt < GetTriangleCount(); nAt++)
 	{
-		// references to the normals
-		CVector<3> n0 = m_arrNormal[m_arrVertIndex[nAt+0]];
-		CVector<3> n1 = m_arrNormal[m_arrVertIndex[nAt+1]];
-		CVector<3> n2 = m_arrNormal[m_arrVertIndex[nAt+2]];
+		// see if the first vertex matches any
+		for (int nv1Match = 0; nv1Match < 3
+			&& !v1.IsApproxEqual(GetTriVert(nAt, nv1Match));
+			nv1Match++);
 
-		// ensure the three normals are facing the same direction
-		if (n0 * n1 < 0.0)
+		// see if the second vertex matches any
+		for (int nv2Match = 0; nv2Match < 3
+			&& !v2.IsApproxEqual(GetTriVert(nAt, nv2Match));
+			nv2Match++);
+
+		// if a match was found for both
+		if (nv1Match < 3 && nv2Match < 3)
 		{
-			m_arrNormal[m_arrVertIndex[nAt+1]] = -1.0 * n1;
+			// set the flag if the order of the two vertices matched the 
+			//		passed order
+			(*bOriented) = ((nv1Match + 1) % 3) == nv2Match;
+
+			// set match to first vertex
+			(*pNeighborVertex) = nv1Match;
+
+			// and return the triangle number
+			return nAt;
+		}
+	}
+
+	return -1;
+}
+
+void CSurface::OrientFaces()
+{
+	if (m_arrIsOriented.GetSize() < GetTriangleCount())
+	{
+		// array of flags to keep track of which triangles have been oriented
+		m_arrIsOriented.SetSize(GetTriangleCount());
+
+		// set the first triangle flag to oriented by default
+		m_arrIsOriented[0] = TRUE;
+		for (int nAt = 1; nAt < GetTriangleCount(); nAt++)
+		{
+			m_arrIsOriented[nAt] = FALSE;
 		}
 
-		if (n0 * n2 < 0.0)
+		// inside-out
+		ReverseTriangleOrientation(0);
+		m_nAtTri = 1;
+		m_nUnorientedCount = 0;
+	}
+
+	if (m_nAtTri > GetTriangleCount())
+	{
+		if (m_nUnorientedCount > 0)
 		{
-			m_arrNormal[m_arrVertIndex[nAt+2]] = -1.0 * n2;
+			m_nAtTri = 1;
+			m_nUnorientedCount = 0;
 		}
-
-		// ASSERT(n0 * n2 >= 0.0);
-		// ASSERT(n1 * n2 >= 0.0);
-
-		// compute the cross product
-		CVector<3> v0 = m_arrVertex[m_arrVertIndex[nAt+0]];
-		CVector<3> v1 = m_arrVertex[m_arrVertIndex[nAt+1]];
-		CVector<3> v2 = m_arrVertex[m_arrVertIndex[nAt+2]];
-
-		CVector<3> vCross = Cross(v1 - v0, v2 - v0);
-
-		if (vCross * n0 >= 0.0)
+		else
 		{
-			// m_arrNormal[m_arrVertIndex[nAt+0]] = -1.0 * n0;
-			// m_arrNormal[m_arrVertIndex[nAt+1]] = -1.0 * n1;
-			// m_arrNormal[m_arrVertIndex[nAt+2]] = -1.0 * n2;
-
-			int nTemp = m_arrVertIndex[nAt+1];
-			m_arrVertIndex[nAt+1] = m_arrVertIndex[nAt+2];
-			m_arrVertIndex[nAt+2] = nTemp;
+			return;
 		}
+	}
 
-/*		v0 = m_arrVertex[m_arrVertIndex[nAt+0]];
-		v1 = m_arrVertex[m_arrVertIndex[nAt+1]];
-		v2 = m_arrVertex[m_arrVertIndex[nAt+2]];
+	for (int nAtVert = 0; !m_arrIsOriented[m_nAtTri] && nAtVert < 3; nAtVert++)
+	{
+		// flag to indicate that the two vertices are in the same
+		//		orientation as passed
+		BOOL bSameOrientation;
 
-		vCross = Cross(v1 - v0, v2 - v0); * /
+		// search for the triangle with two matching sides
+		int nNeighborVertex;
+		int nAtNeighbor = FindTriangleWithVertices(m_nAtTri, 
+			GetTriVert(m_nAtTri, (nAtVert + 1) % 3),
+			GetTriVert(m_nAtTri, nAtVert), 
+			&bSameOrientation, &nNeighborVertex);
 
-		// ASSERT(vCross * n0 >= 0.0);
-	} */
+		if (nAtNeighbor > -1 && m_arrIsOriented[nAtNeighbor])
+		{
+			// if the triangle is oriented incorrectly
+			if (!bSameOrientation)
+			{
+				// reverse its orientation
+				ReverseTriangleOrientation(m_nAtTri);
+			}
+
+			// and mark as oriented
+			m_arrIsOriented[m_nAtTri] = TRUE;
+		}
+	}
+
+	if (!m_arrIsOriented[m_nAtTri])
+	{
+		// set the flag to false because one unoriented triangle was found
+		m_nUnorientedCount++;
+	}
+
+	if ((m_nAtTri % 100) == 0)
+	{
+		TRACE1("Triangles processed = %i\n", m_nAtTri);
+		
+		// output number of unoriented triangles for this pass
+		TRACE1("Unoriented count = %i\n", m_nUnorientedCount);
+	}
+
+	m_nAtTri++;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -300,7 +380,7 @@ void CSurface::Serialize(CArchive &ar)
 
 	if (ar.IsLoading())
 	{
-		OrientFaces();
+		// OrientFaces();
 	}
 }
 
