@@ -1,37 +1,45 @@
 //////////////////////////////////////////////////////////////////////
-// Matrix.h: declaration and definition of the CMatrix template class.
+// MatrixD.h: declaration and definition of the CMatrixD template class.
 //
 // Copyright (C) 1999-2001
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(MATRIX_H)
-#define MATRIX_H
+#if !defined(MATRIXD_H)
+#define MATRIXD_H
 
 #include <MathUtil.h>
 
 #include "MatrixBase.h"
-#include "Vector.h"
+#include "VectorD.h"
 
 //////////////////////////////////////////////////////////////////////
-// class CMatrix<DIM, TYPE>
+// class CMatrixD<DIM, TYPE>
 //
 // represents a square matrix with dimension and type given.
 //////////////////////////////////////////////////////////////////////
 template<int DIM = 4, class TYPE = double>
-class CMatrix : public CMatrixBase<TYPE>
+class CMatrixD : public CMatrixBase<TYPE>
 {
 public:
 	//////////////////////////////////////////////////////////////////
 	// default constructor -- initializes to an identity matrix
 	//////////////////////////////////////////////////////////////////
-	CMatrix()
+	CMatrixD()
 	{
+		m_nCols = DIM;
+		m_nRows = DIM;
+
+		// initialize the elements
+		m_pElements = new TYPE[DIM * DIM];
+
+		// create the column vectors
+		m_arrColumns = new CVectorBase<TYPE>[DIM];
+
 		// initialize pointers
-		m_ppRows = (CVectorBase<TYPE> **)&m_pRows;
 		for (int nAt = 0; nAt < DIM; nAt++)
 		{
-			m_ppRows[nAt] = &m_arrRows[nAt];
+			m_arrColumns[nAt].SetElements(DIM, &m_pElements[nAt * DIM]);
 		}
 
 		// populate as an identity matrix
@@ -41,54 +49,71 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
-	CMatrix(const CMatrix& fromMatrix)
+	CMatrixD(const CMatrixD& fromMatrix)
 	{
+		m_nCols = DIM;
+		m_nRows = DIM;
+
+		// initialize the elements
+		m_pElements = new TYPE[DIM * DIM];
+
+		// create the column vectors
+		m_arrColumns = new CVectorBase<TYPE>[DIM];
+
 		// initialize pointers
-		m_ppRows = (CVectorBase<TYPE> **)&m_pRows;
 		for (int nAt = 0; nAt < DIM; nAt++)
 		{
-			m_ppRows[nAt] = &m_arrRows[nAt];
+			m_arrColumns[nAt].SetElements(DIM, &m_pElements[nAt * DIM]);
 		}
 
 		// populate from other matrix
-		(*this) = fromMatrix;
+		for (nAt = 0; nAt < DIM; nAt++)
+		{
+			(*this)[nAt] = fromMatrix[nAt];
+		}
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
-	explicit CMatrix(const CMatrixBase<TYPE>& fromMatrix)
+	explicit CMatrixD(const CMatrixBase<TYPE>& fromMatrix)
 	{
+		m_nCols = DIM;
+		m_nRows = DIM;
+
+		// initialize the elements
+		m_pElements = new TYPE[DIM * DIM];
+
+		// create the column vectors
+		m_arrColumns = new CVectorBase<TYPE>[DIM];
+
 		// initialize pointers
-		m_ppRows = (CVectorBase<TYPE> **)&m_pRows;
 		for (int nAt = 0; nAt < DIM; nAt++)
 		{
-			m_ppRows[nAt] = &m_arrRows[nAt];
+			m_arrColumns[nAt].SetElements(DIM, &m_pElements[nAt * DIM]);
 		}
 
 		// set to identity (for partial fills)
 		SetIdentity();
 
 		// populate from other matrix
-		for (nAt = 0; nAt < __min(GetDim(), fromMatrix.GetDim()); nAt++)
+		for (nAt = 0; nAt < __min(GetCols(), fromMatrix.GetCols()); nAt++)
 		{
-			(*this)[nAt] = CVector<DIM, TYPE>(fromMatrix[nAt]);
+			(*this)[nAt] = CVectorD<DIM, TYPE>(fromMatrix[nAt]);
 		}
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// destructor -- frees the row vectors
 	//////////////////////////////////////////////////////////////////
-	~CMatrix()
+	~CMatrixD()
 	{
-		// prevent base class from trying to free
-		m_ppRows = NULL;
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// assignment operator
 	//////////////////////////////////////////////////////////////////
-	CMatrix& operator=(const CMatrix& fromMatrix)
+	CMatrixD& operator=(const CMatrixD& fromMatrix)
 	{
 		for (int nAt = 0; nAt < DIM; nAt++)
 		{
@@ -99,29 +124,29 @@ public:
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// operator[] -- retrieves a reference to a row vector
+	// operator[] -- retrieves a reference to a Column vector
 	//////////////////////////////////////////////////////////////////
-	CVector<DIM, TYPE>& operator[](int nAtRow)
+	CVectorD<DIM, TYPE>& operator[](int nAtCol)
 	{
 		// return a reference to the row vector
-		return m_arrRows[nAtRow];
+		return (CVectorD<DIM, TYPE>&) m_arrColumns[nAtCol];
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// operator[] const -- retrieves a const reference to a row 
+	// operator[] const -- retrieves a const reference to a Column 
 	//		vector
 	//////////////////////////////////////////////////////////////////
-	const CVector<DIM, TYPE>& operator[](int nAtRow) const
+	const CVectorD<DIM, TYPE>& operator[](int nAtCol) const
 	{
 		// return a reference to the row vector
-		return m_arrRows[nAtRow];
+		return (const CVectorD<DIM, TYPE>&) m_arrColumns[nAtCol];
 	}
 
 	//////////////////////////////////////////////////////////////////
 	// IsApproxEqual -- tests for approximate equality using the EPS
 	//		defined at the top of this file
 	//////////////////////////////////////////////////////////////////
-	BOOL IsApproxEqual(const CMatrix& m, TYPE epsilon = EPS) const
+	BOOL IsApproxEqual(const CMatrixD& m, TYPE epsilon = EPS) const
 	{
 		return CMatrixBase<TYPE>::IsApproxEqual(
 			(const CMatrixBase<TYPE>&) m, epsilon);
@@ -131,14 +156,14 @@ public:
 	// operator+= -- in-place matrix addition; returns a reference to 
 	//		this
 	//////////////////////////////////////////////////////////////////
-	CMatrix& operator+=(const CMatrix& mRight)
+	CMatrixD& operator+=(const CMatrixD& mRight)
 	{
 		// element-by-element sum of the matrix
-		for (int nRow = 0; nRow < DIM; nRow++)
+		for (int nCol = 0; nCol < DIM; nCol++)
 		{
-			for (int nCol = 0; nCol < DIM; nCol++)
+			for (int nRow = 0; nRow < DIM; nRow++)
 			{
-				(*this)[nRow][nCol] += mRight[nRow][nCol];
+				(*this)[nCol][nRow] += mRight[nCol][nRow];
 			}
 		}
 
@@ -150,14 +175,14 @@ public:
 	// operator-= -- in-place matrix subtraction; returns a reference to 
 	//		this
 	//////////////////////////////////////////////////////////////////
-	CMatrix& operator-=(const CMatrix& mRight)
+	CMatrixD& operator-=(const CMatrixD& mRight)
 	{
 		// element-by-element difference of the matrix
-		for (int nRow = 0; nRow < DIM; nRow++)
+		for (int nCol = 0; nCol < DIM; nCol++)
 		{
-			for (int nCol = 0; nCol < DIM; nCol++)
+			for (int nRow = 0; nRow < DIM; nRow++)
 			{
-				(*this)[nRow][nCol] -= mRight[nRow][nCol];
+				(*this)[nCol][nRow] -= mRight[nCol][nRow];
 			}
 		}
 
@@ -168,14 +193,14 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// operator*= -- in-place scalar multiplication
 	//////////////////////////////////////////////////////////////////
-	CMatrix& operator*=(double scale)
+	CMatrixD& operator*=(double scale)
 	{
-		// element-by-element difference of the matrix
-		for (int nRow = 0; nRow < DIM; nRow++)
+		// element-by-element scalar multiply of the matrix
+		for (int nCol = 0; nCol < DIM; nCol++)
 		{
-			for (int nCol = 0; nCol < DIM; nCol++)
+			for (int nRow = 0; nRow < DIM; nRow++)
 			{
-				(*this)[nRow][nCol] *= scale;
+				(*this)[nCol][nRow] *= scale;
 			}
 		}
 
@@ -187,7 +212,7 @@ public:
 	// operator*= -- in-place matrix multiplication; returns a reference to 
 	//		this
 	//////////////////////////////////////////////////////////////////
-	CMatrix& operator*=(const CMatrix& mRight)
+	CMatrixD& operator*=(const CMatrixD& mRight)
 	{
 		// assign final product to this
 		(*this) = (*this) * mRight;
@@ -197,22 +222,19 @@ public:
 	}
 
 private:
-	// row pointers
-	CVector<DIM, TYPE> *m_pRows[DIM];
-
 	// rows
-	CVector<DIM, TYPE> m_arrRows[DIM];
+	// CVectorD<DIM, TYPE> m_arrColumns[DIM];
 };
 
 //////////////////////////////////////////////////////////////////////
-// function operator==(const CMatrix<DIM, TYPE>&, 
-//		const CMatrix<DIM, TYPE>&)
+// function operator==(const CMatrixD<DIM, TYPE>&, 
+//		const CMatrixD<DIM, TYPE>&)
 //
 // exact matrix equality
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline bool operator==(const CMatrix<DIM, TYPE>& mLeft, 
-					   const CMatrix<DIM, TYPE>& mRight)
+inline bool operator==(const CMatrixD<DIM, TYPE>& mLeft, 
+					   const CMatrixD<DIM, TYPE>& mRight)
 {
 	// call CMatrixBase version
 	return operator==((const CMatrixBase<TYPE>&) mLeft,
@@ -220,14 +242,14 @@ inline bool operator==(const CMatrix<DIM, TYPE>& mLeft,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator==(const CMatrix<DIM, TYPE>&, 
-//		const CMatrix<DIM, TYPE>&)
+// function operator==(const CMatrixD<DIM, TYPE>&, 
+//		const CMatrixD<DIM, TYPE>&)
 //
 // exact matrix inequality
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline bool operator!=(const CMatrix<DIM, TYPE>& mLeft, 
-					   const CMatrix<DIM, TYPE>& mRight)
+inline bool operator!=(const CMatrixD<DIM, TYPE>& mLeft, 
+					   const CMatrixD<DIM, TYPE>& mRight)
 {
 	// call CMatrixBase version
 	return operator!=((const CMatrixBase<TYPE>&) mLeft,
@@ -235,25 +257,27 @@ inline bool operator!=(const CMatrix<DIM, TYPE>& mLeft,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CMatrix<DIM, TYPE>&, 
-//		const CVector<DIM, TYPE>&)
+// function operator*(const CMatrixD<DIM, TYPE>&, 
+//		const CVectorD<DIM, TYPE>&)
 //
 // matrix-vector multiplication
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mat,
-									const CVector<DIM, TYPE>& v)
+inline CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,
+									const CVectorD<DIM, TYPE>& v)
 {
 	// stored the product
-	CVector<DIM, TYPE> vProduct;
+	CVectorD<DIM, TYPE> vProduct;
 
-	// step through the rows
+	// step through the rows of the product
 	for (int nRow = 0; nRow < DIM; nRow++)
 	{
 		ASSERT(vProduct[nRow] == 0.0);
-		for (int nMid = 0; nMid < DIM; nMid++)
+
+		// step through the columns of the matrix
+		for (int nCol = 0; nCol < DIM; nCol++)
 		{
-			vProduct[nRow] += mat[nRow][nMid] * v[nMid];
+			vProduct[nRow] += mat[nCol][nRow] * v[nCol];
 		}
 	}
 
@@ -262,28 +286,28 @@ inline CVector<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mat,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CMatrix<DIM, TYPE>&, 
-//		const CMatrix<DIM, TYPE>&)
+// function operator*(const CMatrixD<DIM, TYPE>&, 
+//		const CMatrixD<DIM, TYPE>&)
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CMatrix<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mLeft, 
-									const CMatrix<DIM, TYPE>& mRight)
+inline CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft, 
+									const CMatrixD<DIM, TYPE>& mRight)
 {
 	// holds the final product
-	CMatrix<DIM, TYPE> mProduct;
+	CMatrixD<DIM, TYPE> mProduct;
 
 	// compute the matrix product
-	for (int nRow = 0; nRow < DIM; nRow++)
+	for (int nCol = 0; nCol < DIM; nCol++)
 	{
-		for (int nCol = 0; nCol < DIM; nCol++)
+		for (int nRow = 0; nRow < DIM; nRow++)
 		{
-			mProduct[nRow][nCol] = 0.0;
+			mProduct[nCol][nRow] = 0.0;
 			for (int nMid = 0; nMid < DIM; nMid++)
 			{
-				mProduct[nRow][nCol] +=
-					mLeft[nRow][nMid] * mRight[nMid][nCol];
+				mProduct[nCol][nRow] +=
+					mLeft[nMid][nRow] * mRight[nCol][nMid];
 			}
 		}
 	}
@@ -293,17 +317,17 @@ inline CMatrix<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mLeft,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CMatrix<DIM, TYPE>&, 
-//		const CMatrix<DIM, TYPE>&)
+// function operator*(const CMatrixD<DIM, TYPE>&, 
+//		const CMatrixD<DIM, TYPE>&)
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CMatrix<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mLeft, 
+inline CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft, 
 									TYPE scalar)
 {
 	// create the product
-	CMatrix<DIM, TYPE> mProduct(mLeft);
+	CMatrixD<DIM, TYPE> mProduct(mLeft);
 
 	// use in-place multiplication
 	mProduct *= scalar;
@@ -313,17 +337,17 @@ inline CMatrix<DIM, TYPE> operator*(const CMatrix<DIM, TYPE>& mLeft,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CMatrix<DIM, TYPE>&, 
-//		const CMatrix<DIM, TYPE>&)
+// function operator*(const CMatrixD<DIM, TYPE>&, 
+//		const CMatrixD<DIM, TYPE>&)
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CMatrix<DIM, TYPE> operator*(TYPE scalar, 
-									const CMatrix<DIM, TYPE>& mRight)
+inline CMatrixD<DIM, TYPE> operator*(TYPE scalar, 
+									const CMatrixD<DIM, TYPE>& mRight)
 {
 	// create the product
-	CMatrix<DIM, TYPE> mProduct(mLeft);
+	CMatrixD<DIM, TYPE> mProduct(mLeft);
 
 	// use in-place multiplication
 	mProduct *= scalar;
@@ -340,7 +364,7 @@ inline CMatrix<DIM, TYPE> operator*(TYPE scalar,
 // matrix serialization
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-CArchive& operator<<(CArchive &ar, CMatrix<DIM, TYPE> m)
+CArchive& operator<<(CArchive &ar, CMatrixD<DIM, TYPE> m)
 {
 	// serialize the individual row vectors
 	for (int nAt = 0; nAt < DIM; nAt++)
@@ -358,7 +382,7 @@ CArchive& operator<<(CArchive &ar, CMatrix<DIM, TYPE> m)
 // matrix serialization
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-CArchive& operator>>(CArchive &ar, CMatrix<DIM, TYPE>& m)
+CArchive& operator>>(CArchive &ar, CMatrixD<DIM, TYPE>& m)
 {
 	// serialize the individual row vectors
 	for (int nAt = 0; nAt < DIM; nAt++)
@@ -378,14 +402,14 @@ CArchive& operator>>(CArchive &ar, CMatrix<DIM, TYPE>& m)
 // creates a 3x3 homogeneous translation matrix from a vector and 
 //		a scalar for a 2D translation
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<3> CreateTranslate(const double& s, 
-								  const CVector<2>& vAxis)
+inline CMatrixD<3> CreateTranslate(const double& s, 
+								  const CVectorD<2>& vAxis)
 {
 	// start with an identity matrix
-	CMatrix<3> mTranslate;
+	CMatrixD<3> mTranslate;
 
-	mTranslate[0][2] = s * vAxis[0];
-	mTranslate[1][2] = s * vAxis[1];
+	mTranslate[2][0] = s * vAxis[0];
+	mTranslate[2][1] = s * vAxis[1];
 
 	return mTranslate;
 }
@@ -396,15 +420,15 @@ inline CMatrix<3> CreateTranslate(const double& s,
 // creates a 4x4 homogeneous translation matrix from a vector and 
 //		a scalar for a 3D translation
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<4> CreateTranslate(const double& s, 
-								  const CVector<3>& vAxis)
+inline CMatrixD<4> CreateTranslate(const double& s, 
+								  const CVectorD<3>& vAxis)
 {
 	// start with an identity matrix
-	CMatrix<4> mTranslate;
+	CMatrixD<4> mTranslate;
 
-	mTranslate[0][3] = s * vAxis[0];
-	mTranslate[1][3] = s * vAxis[1];
-	mTranslate[2][3] = s * vAxis[2];
+	mTranslate[3][0] = s * vAxis[0];
+	mTranslate[3][1] = s * vAxis[1];
+	mTranslate[3][2] = s * vAxis[2];
 
 	return mTranslate;
 }
@@ -414,7 +438,7 @@ inline CMatrix<4> CreateTranslate(const double& s,
 //
 // creates a translation matrix from an offset vector
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<4> CreateTranslate(const CVector<3>& vAxis)
+inline CMatrixD<4> CreateTranslate(const CVectorD<3>& vAxis)
 {
 	return CreateTranslate(1.0, vAxis);
 }
@@ -424,10 +448,10 @@ inline CMatrix<4> CreateTranslate(const CVector<3>& vAxis)
 //
 // creates a 2D rotation matrix given an angle
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<2> CreateRotate(const double& theta)
+inline CMatrixD<2> CreateRotate(const double& theta)
 {
 	// start with an identity matrix
-	CMatrix<2> mRotate;
+	CMatrixD<2> mRotate;
 
 	// now compute the rotation matrix
 
@@ -436,9 +460,9 @@ inline CMatrix<2> CreateRotate(const double& theta)
 	double ct = cos(theta);
 
 	mRotate[0][0] = ct;
-	mRotate[0][1] = - st;
+	mRotate[1][0] = - st;
 
-	mRotate[1][0] = st;
+	mRotate[0][1] = st;
 	mRotate[1][1] = ct;
 
 	return mRotate;
@@ -449,14 +473,14 @@ inline CMatrix<2> CreateRotate(const double& theta)
 //
 // creates a 3D rotation matrix given an angle and an axis of rotation
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<3> CreateRotate(const double& theta, 
-							   const CVector<3>& vAxis)
+inline CMatrixD<3> CreateRotate(const double& theta, 
+							   const CVectorD<3>& vAxis)
 {
 	// start with an identity matrix
-	CMatrix<3> mRotate;
+	CMatrixD<3> mRotate;
 
 	// normalize the axis
-	CVector<3> vNormAxis = vAxis;
+	CVectorD<3> vNormAxis = vAxis;
 	vNormAxis.Normalize();
 
 	// now compute the rotation matrix
@@ -467,15 +491,15 @@ inline CMatrix<3> CreateRotate(const double& theta,
 	double vt = 1.0 - cos(theta);
 
 	mRotate[0][0] = vNormAxis[0] * vNormAxis[0] * vt + ct;
-	mRotate[0][1] = vNormAxis[0] * vNormAxis[1] * vt - vNormAxis[2] * st;
-	mRotate[0][2] = vNormAxis[0] * vNormAxis[2] * vt + vNormAxis[1] * st;
+	mRotate[1][0] = vNormAxis[0] * vNormAxis[1] * vt - vNormAxis[2] * st;
+	mRotate[2][0] = vNormAxis[0] * vNormAxis[2] * vt + vNormAxis[1] * st;
 
-	mRotate[1][0] = vNormAxis[0] * vNormAxis[1] * vt + vNormAxis[2] * st;
+	mRotate[0][1] = vNormAxis[0] * vNormAxis[1] * vt + vNormAxis[2] * st;
 	mRotate[1][1] = vNormAxis[1] * vNormAxis[1] * vt + ct;
-	mRotate[1][2] = vNormAxis[1] * vNormAxis[2] * vt - vNormAxis[0] * st;
+	mRotate[2][1] = vNormAxis[1] * vNormAxis[2] * vt - vNormAxis[0] * st;
 
-	mRotate[2][0] = vNormAxis[0] * vNormAxis[2] * vt - vNormAxis[1] * st;
-	mRotate[2][1] = vNormAxis[1] * vNormAxis[2] * vt + vNormAxis[0] * st;
+	mRotate[0][2] = vNormAxis[0] * vNormAxis[2] * vt - vNormAxis[1] * st;
+	mRotate[1][2] = vNormAxis[1] * vNormAxis[2] * vt + vNormAxis[0] * st;
 	mRotate[2][2] = vNormAxis[2] * vNormAxis[2] * vt + ct;
 
 	return mRotate;
@@ -488,8 +512,8 @@ inline CMatrix<3> CreateRotate(const double& theta,
 //		position and a post-rotated position. scale is a scale factor
 //		for the resulting rotation.
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<3> CreateRotate(const CVector<3>& vInitPt,
-	const CVector<3>& vFinalPt, double scale)
+inline CMatrixD<3> CreateRotate(const CVectorD<3>& vInitPt,
+	const CVectorD<3>& vFinalPt, double scale)
 {
 	// compute the length of the two legs of the triangle (a & b)
 	double a = vInitPt.GetLength(); 
@@ -509,7 +533,7 @@ inline CMatrix<3> CreateRotate(const CVector<3>& vInitPt,
 
 	// compute the axis of rotation = normalized cross product of 
 	//		initial and current drag points
-	CVector<3> u = Cross(vFinalPt, vInitPt);
+	CVectorD<3> u = Cross(vFinalPt, vInitPt);
 	u.Normalize();
 
 	// now compute the rotation matrix
@@ -523,10 +547,10 @@ inline CMatrix<3> CreateRotate(const CVector<3>& vInitPt,
 // creates a scaling matrix from a vector whose element's lengths 
 //		are scale factors
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<2> CreateScale(const CVector<2>& vScale)
+inline CMatrixD<2> CreateScale(const CVectorD<2>& vScale)
 {
 	// start with an identity matrix
-	CMatrix<2> mScale;
+	CMatrixD<2> mScale;
 
 	mScale[0][0] = vScale[0];
 	mScale[1][1] = vScale[1];
@@ -540,10 +564,10 @@ inline CMatrix<2> CreateScale(const CVector<2>& vScale)
 // creates a scaling matrix from a vector whose element's lengths 
 //		are scale factors
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<3> CreateScale(const CVector<3>& vScale)
+inline CMatrixD<3> CreateScale(const CVectorD<3>& vScale)
 {
 	// start with an identity matrix
-	CMatrix<3> mScale;
+	CMatrixD<3> mScale;
 
 	mScale[0][0] = vScale[0];
 	mScale[1][1] = vScale[1];
@@ -557,9 +581,9 @@ inline CMatrix<3> CreateScale(const CVector<3>& vScale)
 //
 // creates a projection matrix from a near-plane and a far-plane
 //////////////////////////////////////////////////////////////////////
-inline CMatrix<4> CreateProjection(const double& n, const double& f)
+inline CMatrixD<4> CreateProjection(const double& n, const double& f)
 {
-	CMatrix<4> mProj;
+	CMatrixD<4> mProj;
 
 	// set the near plane elements
 	mProj[0][0] = n;
@@ -567,10 +591,10 @@ inline CMatrix<4> CreateProjection(const double& n, const double& f)
 
 	// set the ratio elements
 	mProj[2][2] = -(f + n)	  / (f - n);
-	mProj[2][3] = -2.0 * f * n / (f - n);
+	mProj[3][2] = -2.0 * f * n / (f - n);
 
 	// set the projection elements
-	mProj[3][2] = -1.0;
+	mProj[2][3] = -1.0;
 	mProj[3][3] =  0.0;
 
 	// return the created matrix
@@ -586,8 +610,8 @@ inline CMatrix<4> CreateProjection(const double& n, const double& f)
 // order is either 1 or 2, depending on whether the principle or
 //		remaining eigenvector is wanted
 //////////////////////////////////////////////////////////////////////
-inline REAL Eigen(CMatrix<2> m, int nOrder = 1, 
-				  CVector<2> *pVector = NULL)
+inline REAL Eigen(CMatrixD<2> m, int nOrder = 1, 
+				  CVectorD<2> *pVector = NULL)
 {
 	// compute factors of the characteristic quadratic equation
 	REAL b = -(m[0][0] + m[1][1]);
@@ -609,17 +633,17 @@ inline REAL Eigen(CMatrix<2> m, int nOrder = 1,
 		? r1 : r2;
 
 	// find the larger off-diagonal element
-	if (fabs(m[0][1]) > fabs(m[1][0]))
+	if (fabs(m[1][0]) > fabs(m[0][1]))
 	{
 		// and solve for the vector 
 		(*pVector)[0] = 1.0;
-		(*pVector)[1] = (r - m[0][0]) / m[0][1];
+		(*pVector)[1] = (r - m[0][0]) / m[1][0];
 	}
 	// otherwise use the other element if it is non-zero
-	else if (fabs(m[1][0]) > 0.0)
+	else if (fabs(m[0][1]) > 0.0)
 	{
 		// and solve for the vector 
-		(*pVector)[0] = (r - m[1][1]) / m[1][0];
+		(*pVector)[0] = (r - m[1][1]) / m[0][1];
 		(*pVector)[1] = 1.0;
 	}
 	// otherwise,
@@ -634,8 +658,8 @@ inline REAL Eigen(CMatrix<2> m, int nOrder = 1,
 
 #ifdef _DEBUG
 	// assert that our eigenvector is really an eigenvector
-	CVector<2> vLeft = m * (*pVector);
-	CVector<2> vRight = r * (*pVector);
+	CVectorD<2> vLeft = m * (*pVector);
+	CVectorD<2> vRight = r * (*pVector);
 
 	ASSERT(vLeft.IsApproxEqual(vRight));
 #endif
