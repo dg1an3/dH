@@ -19,10 +19,12 @@
 CVOITerm::CVOITerm(CStructure *pStructure, REAL weight)
 	: m_pVOI(pStructure), 
 		m_nLevel(0),
-		m_histogram(NULL, pStructure->GetRegion(0)),
+		m_histogram(NULL, NULL),
 		m_weight(weight),
 		m_pNextScale(NULL)
 {
+//	pStructure->GetRegion(0);
+
 }	// CVOITerm::CVOITerm
 
 
@@ -58,7 +60,23 @@ CVOITerm *CVOITerm::Subcopy(CVOITerm *pSubcopy)
 	pSubcopy->m_nLevel = m_nLevel + 1;
 	pSubcopy->m_weight = m_weight;
 
-	pSubcopy->m_histogram.SetRegion(m_pVOI->GetRegion(pSubcopy->m_nLevel));
+	ASSERT(m_histogram.GetRegion() != NULL);
+
+	CVolume<REAL> convRegion;
+	convRegion.ConformTo(m_histogram.GetRegion());
+
+	CVolume<REAL> kernel;
+	kernel.SetDimensions(5, 5, 1);
+	::CalcBinomialFilter(&kernel);
+
+	::Convolve(m_histogram.GetRegion(), &kernel, &convRegion);
+
+	CVolume<REAL> *pDecRegion = new CVolume<REAL>();
+	::Decimate(&convRegion, pDecRegion);
+
+	pSubcopy->m_histogram.SetRegion(pDecRegion);
+
+	// pSubcopy->m_histogram.SetRegion(m_pVOI->GetRegion(pSubcopy->m_nLevel));
 
 	m_pNextScale = pSubcopy;
 	
