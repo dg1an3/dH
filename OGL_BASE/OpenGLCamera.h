@@ -24,12 +24,13 @@ public:
 	// the point that the camera is looking at
 	CValue< CVector<3> > targetPoint;
 
-	// the direction from the camera to the the target point
-	CValue< CVector<3> > direction;
-
 	// the distance along the optical axis from the camera's focal point
 	//		to the target point
 	CValue< double > distance;
+
+	// the direction from the camera to the the target point
+	// CValue< CVector<3> > direction;
+	CValue< double > theta, phi;
 
 	// the camera rotation about its optical axis
 	CValue< double > rollAngle;
@@ -58,11 +59,22 @@ public:
 	CValue< CMatrix<4> > perspective;
 
 	// the total matrix for the projection and transform
+private:
+	// CValue< CMatrix<4> > privProjection;
+public:
+	// const CValue< CMatrix<4> >& projection;
 	CValue< CMatrix<4> > projection;
 
 protected:
 	// call-back to compute the object-to-camera transform
 	void OnComputeModelXform(CObservableObject *pSource, 
+		void *pOldValue);
+	void OnComputeModelXformAngles(CObservableObject *pSource, 
+		void *pOldValue);
+
+	// call-back to compute the camera direction and roll from the transform
+	//		matrix
+	void OnComputeCameraDir(CObservableObject *pSource, 
 		void *pOldValue);
 
 	// call-back to compute the camera projection
