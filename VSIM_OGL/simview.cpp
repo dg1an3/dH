@@ -118,23 +118,27 @@ void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 
 		// now factor the B2P matrix into translation and rotation components
 		double gantry = acos(mNewB2P[2][2]);	// gantry in [0..PI]
+
 		double couch = 0.0;
 		double coll = 0.0;
 
 		if (gantry > 0.0)
 		{
 			double cos_couch = mNewB2P[2][0] / sin(gantry);
-			double sin_couch = mNewB2P[2][1] / -sin(gantry);
+			// make sure the couch angle will be in [-PI..PI]
+			if (cos_couch < 0.0)
+			{
+				gantry = 2 * PI - gantry;
+				cos_couch = mNewB2P[2][0] / sin(gantry);
+			}
+
+			double sin_couch = mNewB2P[2][1] / sin(gantry);
 			couch = AngleFromSinCos(sin_couch, cos_couch);
 
 			double cos_coll =  mNewB2P[0][2] / -sin(gantry);
-			double sin_coll =  mNewB2P[1][2] / -sin(gantry);
+			double sin_coll =  mNewB2P[1][2] / sin(gantry);
 			coll = AngleFromSinCos(sin_coll, cos_coll);
 		}
-
-		TRACE1("New gantry = %lf\n", gantry * 180.0 / PI);
-		TRACE1("New couch = %lf\n", couch * 180.0 / PI);
-		TRACE1("New coll = %lf\n", coll * 180.0 / PI);
 
 		currentBeam->couchAngle.Set(couch);
 		currentBeam->gantryAngle.Set(PI - gantry);

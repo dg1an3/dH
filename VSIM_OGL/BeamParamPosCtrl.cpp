@@ -62,8 +62,13 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 
 	if (pDX->m_bSaveAndValidate && forBeam.Get() != NULL)
 	{
+		forBeam->gantryAngle.RemoveObserver(this, (ChangeFunction) OnChange);
 		forBeam->gantryAngle.Set(((double)m_nGantryAngle) * PI / 180.0);
+		forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
+
+		forBeam->couchAngle.RemoveObserver(this, (ChangeFunction) OnChange);
 		forBeam->couchAngle.Set(((double)m_nCouchAngle) * PI / 180.0);
+		forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
 
 		CVector<3> vOffset(m_nTableX, m_nTableY, m_nTableZ);
 		forBeam->tableOffset.Set(vOffset);
