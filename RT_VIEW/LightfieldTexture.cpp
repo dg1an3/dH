@@ -99,19 +99,19 @@ void CLightfieldTexture::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue
 	pDC->SetPolyFillMode(WINDING);
 	for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
 	{
-		CPolygon *pPolygon = GetBeam()->GetBlockAt(nAt);
+/*		CComObject<CPolygon3D> *pPolygon = GetBeam()->get_Block(nAt);
 		CArray<CPoint, CPoint&> arrBlock;
 		arrBlock.SetSize(pPolygon->GetVertexCount());
 		for (int nAtVert = 0; nAtVert < pPolygon->GetVertexCount(); nAtVert++)
 		{
-			CVectorD<2> v = pPolygon->GetVertex(nAtVert);
+			CVectorD<2> v = pPolygon->GetVertexAt(nAtVert);
 			v *= (double)(TEX_RESOLUTION - 5) / TEX_SIZE;
 			v += CVectorD<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
 
 			arrBlock[nAtVert] = v;
 		}
 
-		pDC->Polygon(arrBlock.GetData(), pPolygon->GetVertexCount());
+		pDC->Polygon(arrBlock.GetData(), pPolygon->GetVertexCount()); */
 	}
 
 	// draw the central axis

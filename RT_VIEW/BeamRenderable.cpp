@@ -15,14 +15,20 @@
 // render context
 #include <RenderContext.h>
 
+#include <SceneView.h>
+
 // class declaration
 #include "BeamRenderable.h"
+
+#include "Results.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
+
+typedef WORD SimplexIndex[3];
 
 //////////////////////////////////////////////////////////////////////
 // DrawProjectedVertex
@@ -34,6 +40,48 @@ inline void DrawProjectedVertex(CRenderContext *pRC,
 {
 	pRC->Vertex(CVectorD<3>(v[0], v[1], -1.0));
 	pRC->Vertex(CVectorD<3>(v[0], v[1],  1.0));
+}
+
+void GenerateTriangles(double *pVert2D, 
+			   const CMatrixD<4>& mBeamXform, 
+			   CUSTOMVERTEX_POS_NORM *pVertices, int nAtVert,
+			   SimplexIndex *pIndices)
+{
+	CVectorD<3> vVert3D;
+	vVert3D[0] = pVert2D[0];
+	vVert3D[1] = pVert2D[1];
+	vVert3D[2] = -1.0;
+	CVectorD<3> vVertXform = 
+		FromHG<3, REAL>(mBeamXform * ToHG<3, REAL>(vVert3D));
+
+	pVertices[nAtVert+0].position.x = vVertXform[0];
+	pVertices[nAtVert+0].position.y = vVertXform[1];
+	pVertices[nAtVert+0].position.z = vVertXform[2];
+	pVertices[nAtVert+0].normal.x = 0.0;
+	pVertices[nAtVert+0].normal.y = 0.0;
+	pVertices[nAtVert+0].normal.z = 0.0;
+
+	vVert3D[2] = 1.0;
+	vVertXform = 
+		FromHG<3, REAL>(mBeamXform * ToHG<3, REAL>(vVert3D));
+
+	pVertices[nAtVert+1].position.x = vVertXform[0];
+	pVertices[nAtVert+1].position.y = vVertXform[1];
+	pVertices[nAtVert+1].position.z = vVertXform[2];
+	pVertices[nAtVert+1].normal.x = 0.0;
+	pVertices[nAtVert+1].normal.y = 0.0;
+	pVertices[nAtVert+1].normal.z = 0.0;
+
+	if (NULL != pIndices)
+	{
+		pIndices[0][0] = nAtVert-2;
+		pIndices[0][1] = nAtVert-1;
+		pIndices[0][2] = nAtVert+0;
+
+		pIndices[1][0] = nAtVert+0;
+		pIndices[1][1] = nAtVert-1;
+		pIndices[1][2] = nAtVert+1;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -49,7 +97,8 @@ CBeamRenderable::CBeamRenderable()
 	: m_bCentralAxisEnabled(TRUE),
 		m_bGraticuleEnabled(FALSE),
 		m_bFieldDivergenceSurfacesEnabled(FALSE),
-		m_bBlockDivergenceSurfacesEnabled(TRUE)
+		m_bBlockDivergenceSurfacesEnabled(TRUE),
+		m_pBlockDivSurfMesh(NULL)
 {
 	SetColor(RGB(0, 255, 0));
 	SetAlpha(0.25);
@@ -62,6 +111,10 @@ CBeamRenderable::CBeamRenderable()
 //////////////////////////////////////////////////////////////////////
 CBeamRenderable::~CBeamRenderable()
 {
+	if (m_pBlockDivSurfMesh)
+	{
+		m_pBlockDivSurfMesh->Release();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -134,9 +187,9 @@ void CBeamRenderable::SetObject(CObject *pObject)
 // 
 // Draws the beam itself
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DrawOpaque(CRenderContext *pRC)
+void CBeamRenderable::DrawOpaque(LPDIRECT3DDEVICE8 pd3dDev)
 {
-	// set up for line rendering
+/*	// set up for line rendering
 	pRC->SetupLines();
 
 	// set up the four corners of the collimator rectangle
@@ -185,7 +238,7 @@ void CBeamRenderable::DrawOpaque(CRenderContext *pRC)
 	DrawFieldDivergenceLines(pRC);
 
 	// restore opaque surface drawing.  TODO: fix this
-	pRC->SetupOpaqueSurface();
+	pRC->SetupOpaqueSurface(); */
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -311,7 +364,7 @@ void CBeamRenderable::DrawBlocks(CRenderContext *pRC)
 {
 	for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
 	{
-		CPolygon *pBlock = GetBeam()->GetBlockAt(nAt);
+		CPolygon *pBlock = GetBeam()->GetBlock(nAt);
 
 		pRC->BeginLineLoop();
 
@@ -319,7 +372,7 @@ void CBeamRenderable::DrawBlocks(CRenderContext *pRC)
 					nAtVert++)
 			{
 				// draw divergence lines
-				pRC->Vertex(pBlock->GetVertex(nAtVert));
+				pRC->Vertex(pBlock->GetVertexAt(nAtVert));
 			}
 
 		pRC->End();
@@ -382,21 +435,25 @@ void CBeamRenderable::DrawFieldDivergenceLines(CRenderContext *pRC)
 // 
 // renders the beam surfaces
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DrawTransparent(CRenderContext *pRC)
+void CBeamRenderable::DrawTransparent(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC);
 {
 	// set up for beam surface rendering
-	pRC->SetSmoothShading(FALSE);
-	pRC->SetLighting(FALSE);
+//	pRC->SetSmoothShading(FALSE);
+//	pRC->SetLighting(FALSE);
 
 	// Draw the field divergence surfaces
-	DrawFieldDivergenceSurfaces(pRC);
+//	DrawFieldDivergenceSurfaces(pRC);
+
+	ASSERT_HRESULT(pd3dDev->SetRenderState(D3DRS_SHADEMODE , D3DSHADE_FLAT) );
 
 	// Draw the block divergence surfaces
-	DrawBlockDivergenceSurfaces(pRC);
+	DrawBlockDivergenceSurfaces(pd3dDev); // pRC);
+
+	ASSERT_HRESULT(pd3dDev->SetRenderState(D3DRS_SHADEMODE , D3DSHADE_GOURAUD ) );
 
 	// restore surface rendering settings
-	pRC->SetSmoothShading(TRUE);
-	pRC->SetLighting(TRUE);
+//	pRC->SetSmoothShading(TRUE);
+//	pRC->SetLighting(TRUE);
 }
 
 
@@ -405,11 +462,11 @@ void CBeamRenderable::DrawTransparent(CRenderContext *pRC)
 // 
 // Draws the divergence surfaces for the field
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DrawFieldDivergenceSurfaces(CRenderContext *pRC)
+void CBeamRenderable::DrawFieldDivergenceSurfaces(LPDIRECT3DDEVICE8 pd3dDev) // CRenderContext *pRC);
 {
 	if (m_bFieldDivergenceSurfacesEnabled)
 	{
-		pRC->BeginQuadStrip();
+/*		pRC->BeginQuadStrip();
 		
 			// draw 
 			DrawProjectedVertex(pRC, m_vMin     );
@@ -418,7 +475,7 @@ void CBeamRenderable::DrawFieldDivergenceSurfaces(CRenderContext *pRC)
 			DrawProjectedVertex(pRC, m_vMaxXMinY);
 			DrawProjectedVertex(pRC, m_vMin     );
 
-		pRC->End();
+		pRC->End(); */
 	}
 }
 
@@ -427,25 +484,58 @@ void CBeamRenderable::DrawFieldDivergenceSurfaces(CRenderContext *pRC)
 // 
 // Draws the divergence surfaces for the block
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DrawBlockDivergenceSurfaces(CRenderContext *pRC)
+void CBeamRenderable::DrawBlockDivergenceSurfaces(LPDIRECT3DDEVICE8 pd3dDev) 
 {
 	if (m_bBlockDivergenceSurfacesEnabled)
 	{
-		// draw the divergence surfaces
-		pRC->BeginQuadStrip();
-		
-			for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
+		if (NULL == m_pBlockDivSurfMesh)
+		{
+			CPolygon *pBlock = GetBeam()->GetBlock(0);
+			// IPolygon3D *pIBlock = NULL;
+			// ASSERT_HRESULT(GetBeam()->get_Block(0)->QueryInterface(&pIBlock));
+
+			// CComVariant varVert;
+			// pIBlock->get_Vertices(&varVert);
+			// double *pBlockVert = NULL;
+			//ASSERT_HRESULT(
+			//	::SafeArrayAccessData(*varVert.pparray, (void **) &pBlockVert));
+
+			long nVertCount = pBlock->GetVertexCount();
+			// ASSERT_HRESULT(pIBlock->get_VertexCount(&nVertCount));
+
+			m_pBlockDivSurfMesh = m_pView->CreateMesh(nVertCount * 2, 
+				nVertCount * 2, D3DFVF_CUSTOMVERTEX_POS_NORM);
+
+			SimplexIndex *pIndices = NULL;
+			ASSERT_HRESULT( m_pBlockDivSurfMesh->LockIndexBuffer(0, (BYTE **) &pIndices) ); 
+	
+			CUSTOMVERTEX_POS_NORM *pVertices = NULL;
+			ASSERT_HRESULT( m_pBlockDivSurfMesh->LockVertexBuffer(0, (BYTE **) &pVertices) );
+
+			CMatrixD<4> mProjInv(GetBeam()->GetTreatmentMachine()->GetProjection());
+			mProjInv.Invert();
+
+			// set up the renderable's modelview matrix
+ 			CMatrixD<4> mBeamXform = GetBeam()->GetBeamToFixedXform()
+ 				* CMatrixD<4>(CreateScale(CVectorD<3>(1.0, 1.0, -1.0)))
+ 				* mProjInv;
+
+			GenerateTriangles(&pBlock->LockVertexMatrix()[0][0], mBeamXform,
+				pVertices, 0, NULL); 
+			for (int nAt = 1; nAt < nVertCount; nAt++)
 			{
-				CPolygon *pPolygon = GetBeam()->GetBlockAt(nAt);
-
-				for (int nAtVert = 0; nAtVert < pPolygon->GetVertexCount(); 
-						nAtVert++)
-				{
-					// draw divergence lines
-					DrawProjectedVertex(pRC, pPolygon->GetVertex(nAtVert)); 
-				}
+				GenerateTriangles(&pBlock->LockVertexMatrix()[nAt][0], mBeamXform,
+					pVertices, nAt*2, 
+					&pIndices[nAt*2]);
 			}
+			ASSERT_HRESULT( m_pBlockDivSurfMesh->UnlockIndexBuffer() );
+			ASSERT_HRESULT( m_pBlockDivSurfMesh->UnlockVertexBuffer() );
+	
+			// ASSERT_HRESULT(::SafeArrayUnaccessData(*varVert.pparray));
 
-		pRC->End();
+			// pIBlock->Release();
+		}
+
+		m_pBlockDivSurfMesh->DrawSubset(0);
 	}
 }

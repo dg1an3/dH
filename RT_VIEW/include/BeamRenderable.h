@@ -19,6 +19,7 @@
 // base class
 #include <Renderable.h>
 
+class CRenderContext;
 
 //////////////////////////////////////////////////////////////////////
 // class CBeamRenderable
@@ -43,7 +44,7 @@ public:
 	virtual void SetObject(CObject *pObject);
 
 	// renders the beam with lines
-	virtual void DrawOpaque(CRenderContext *pRC);
+	virtual void DrawOpaque(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// description of items on the collimator plane
 	void DrawGraticule(CRenderContext *pRC, double size = 0.5);
@@ -55,11 +56,12 @@ public:
 	void DrawFieldDivergenceLines(CRenderContext *pRC);
 
 	// renders the beam surfaces
-	virtual void DrawTransparent(CRenderContext *pRC);
+	virtual void DrawTransparent(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// description of divergence surfaces
-	void DrawBlockDivergenceSurfaces(CRenderContext *pRC);
-	void DrawFieldDivergenceSurfaces(CRenderContext *pRC);
+	void DrawBlockDivergenceSurfaces(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
+
+	void DrawFieldDivergenceSurfaces(LPDIRECT3DDEVICE8 pd3dDev); // CRenderContext *pRC);
 
 	// event handler
 	void OnBeamChanged(CObservableEvent *pEvent, void *pOldValue);
@@ -76,6 +78,9 @@ private:
 	BOOL m_bGraticuleEnabled;
 	BOOL m_bFieldDivergenceSurfacesEnabled;
 	BOOL m_bBlockDivergenceSurfacesEnabled;
+
+	// mesh representing the block divergence surface
+	LPD3DXMESH m_pBlockDivSurfMesh;
 };
 
 #endif // !defined(BEAMRENDERABLE_H)
