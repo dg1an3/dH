@@ -118,12 +118,12 @@ SOURCE=PowellOptimizer.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Readme.txt
-# End Source File
-# Begin Source File
-
 SOURCE=.\StdAfx.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\Readme.txt
+# End Source File
 # End Target
 # End Project

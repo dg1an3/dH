@@ -31,3 +31,14 @@ should add to or customize.
 
 
 /////////////////////////////////////////////////////////////////////////////
+TODO
+
+1) Files to be cleaned:
+
+	BrentOptimizer.h
+	ConjGradOptimizer.h
+	ObjectiveFunction.h
+	Optimizer.h
+	PowellOptimizer.h
+	Optimizer.cpp (is this necessary?)
+
