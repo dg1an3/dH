@@ -45,63 +45,57 @@ void CMachineRenderer::OnRenderScene()
 	// set the color for the beam rendering
 	glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
 
+	// compute the axis-to-collimator distance
+	double SAD = forBeam->forMachine->SAD.Get();
+	double SCD = forBeam->forMachine->SCD.Get();
+	double axisToCollim = SAD - SCD;
+
 	// render the gantry sides
 	glBegin(GL_LINE_STRIP );
 
-		glVertex(CVector<3>(-250.0,  -250.0,  250.0));
-		glVertex(CVector<3>(-250.0,  -250.0,  500.0));
-		glVertex(CVector<3>(-250.0,   500.0,  500.0));
-		glVertex(CVector<3>(-250.0,   500.0, -250.0));
-		glVertex(CVector<3>(-250.0,   250.0, -250.0));
-		glVertex(CVector<3>(-250.0,   250.0,  250.0));
-		glVertex(CVector<3>(-250.0,  -250.0,  250.0));
+		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		glVertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		glVertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		glVertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
+		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
 
 	glEnd();
 
 	glBegin(GL_LINE_STRIP );
 
-		glVertex(CVector<3>( 250.0,  -250.0,  250.0));
-		glVertex(CVector<3>( 250.0,  -250.0,  500.0));
-		glVertex(CVector<3>( 250.0,   500.0,  500.0));
-		glVertex(CVector<3>( 250.0,   500.0, -250.0));
-		glVertex(CVector<3>( 250.0,   250.0, -250.0));
-		glVertex(CVector<3>( 250.0,   250.0,  250.0));
-		glVertex(CVector<3>( 250.0,  -250.0,  250.0));
+		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		glVertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		glVertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		glVertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
+		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
 
 	glEnd();
 
 	glBegin(GL_LINES);
 
-		glVertex(CVector<3>( 250.0,  -250.0,  250.0));
-		glVertex(CVector<3>(-250.0,  -250.0,  250.0));
+		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
 
-		glVertex(CVector<3>( 250.0,  -250.0,  500.0));
-		glVertex(CVector<3>(-250.0,  -250.0,  500.0));
+		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
 
-		glVertex(CVector<3>( 250.0,   500.0,  500.0));
-		glVertex(CVector<3>(-250.0,   500.0,  500.0));
+		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
 
-		glVertex(CVector<3>( 250.0,   500.0, -250.0));
-		glVertex(CVector<3>(-250.0,   500.0, -250.0));
+		glVertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		glVertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
 
-		glVertex(CVector<3>( 250.0,   250.0, -250.0));
-		glVertex(CVector<3>(-250.0,   250.0, -250.0));
+		glVertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		glVertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
 
-		glVertex(CVector<3>( 250.0,   250.0,  250.0));
-		glVertex(CVector<3>(-250.0,   250.0,  250.0));
-
-	glEnd();
-
-	// render the gantry sides
-	glBegin(GL_POLYGON);
-	
-	glEnd();
-
-	glBegin(GL_POLYGON);
+		glVertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
+		glVertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
 
 	glEnd();
-	
-	glEnable(GL_LIGHTING);
 }
 
 void CMachineRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
