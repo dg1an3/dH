@@ -19,6 +19,8 @@
 #include <MatrixNxM.h>
 #include <MatrixBase.inl>
 
+#include <ippi.h>
+
 #include "ModelObject.h"
 
 #include "Polygon.h"
@@ -114,6 +116,7 @@ public:
 
 	// logging
 	virtual void Log(CXMLElement *pElem) const;
+	void LogPlane(int nPlane, CXMLElement *pElem) const;
 
 private:
 	// dimensions
@@ -143,6 +146,11 @@ private:
 	VOXEL_TYPE m_thresh;
 	mutable CRect m_rectThresh;
 
+#if defined(USE_IPP)
+	// accumulator helper buffer
+	CVolume<VOXEL_TYPE> *m_pAccumBuffer;
+#endif
+
 };	// class CVolume
 
 
@@ -157,6 +165,9 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
 		m_nHeight(0), 
 		m_nDepth(0),
 		m_pVoxels(NULL)
+#if defined(USE_IPP)
+		, m_pAccumBuffer(NULL)
+#endif
 {
 }	// CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>
 
@@ -168,6 +179,13 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
+	: m_nWidth(0), 
+		m_nHeight(0), 
+		m_nDepth(0),
+		m_pVoxels(NULL)
+#if defined(USE_IPP)
+		, m_pAccumBuffer(NULL)
+#endif
 {
 	SetDimensions(from.GetWidth(), from.GetHeight(), from.GetDepth());
 	ClearVoxels();
@@ -184,6 +202,10 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
 template<class VOXEL_TYPE>
 inline CVolume<VOXEL_TYPE>::~CVolume<VOXEL_TYPE>()
 {
+#if defined(USE_IPP)
+	delete m_pAccumBuffer;
+#endif
+
 }	// CVolume<VOXEL_TYPE>::~CVolume<VOXEL_TYPE>
 
 
@@ -348,7 +370,7 @@ inline void CVolume<VOXEL_TYPE>::SetVoxels(VOXEL_TYPE *pVoxels,
 		for (int nAtZ = 0; nAtZ < nDepth; nAtZ++)
 		{
 			// set the elements in the outer indirection array
-			m_arrppVoxels[nAtZ] = &m_arrpVoxels[nAtZ * m_nHeight];
+			m_arrppVoxels[nAtZ] = &m_arrpVoxels[nAtZ * nHeight];
 
 
 			for (int nAtY = 0; nAtY < nHeight; nAtY++)
@@ -409,8 +431,29 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 		rectBounds = pVolume->GetThresholdBounds();
 	}
 
-// #define ACCUMULATE_FLAT_LOOP
-#ifdef ACCUMULATE_FLAT_LOOP
+#if defined(USE_IPP)
+	if (!m_pAccumBuffer)
+	{
+		m_pAccumBuffer = new CVolume<VOXEL_TYPE>();
+	}
+	m_pAccumBuffer->ConformTo(this);
+	IppiSize roiSize = { rectBounds.Width(), rectBounds.Height() };
+	IppStatus stat = ippiMulC_32f_C1R(
+		&pVolume->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+		pVolume->GetWidth() * sizeof(REAL),
+		(REAL) weight,
+		&m_pAccumBuffer->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+		m_pAccumBuffer->GetWidth() * sizeof(REAL),
+		roiSize);
+
+	stat = ippiAdd_32f_C1IR(
+		&m_pAccumBuffer->GetVoxels()[0][rectBounds.top][rectBounds.left],
+		m_pAccumBuffer->GetWidth() * sizeof(REAL),
+		&GetVoxels()[0][rectBounds.top][rectBounds.left],
+		GetWidth() * sizeof(REAL),
+		roiSize);
+
+#elif defined(ACCUMULATE_FLAT_LOOP)
 	VOXEL_TYPE *pDst = &GetVoxels()[0][0][0];
 	const VOXEL_TYPE *pSrc = &pVolume->GetVoxels()[0][0][0];
 
@@ -656,14 +699,41 @@ inline void CVolume<VOXEL_TYPE>::Log(CXMLElement *pElem) const
 	VOXEL_TYPE ***pppVoxels = ((CVolume<VOXEL_TYPE>&)(*this)).GetVoxels();
 	for (int nAt = 0; nAt < m_nDepth; nAt++)
 	{
-		for (int nAtCol = 0; nAtCol < GetWidth(); nAtCol++)
+		LogPlane(nAt, pElem);
+
+/*		for (int nAtCol = 0; nAtCol < GetWidth(); nAtCol++)
 			for (int nAtRow = 0; nAtRow < GetHeight(); nAtRow++)
 				mPlane[nAtCol][nAtRow] = pppVoxels[nAt][nAtRow][nAtCol];
 		// LogExprExt(mPlane, FMT("mPlane %i", nAt), "");
-		LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nAt));
+		LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nAt)); */
 	}
 
 }	// Log
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::LogPlane
+// 
+// log the volume object
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline void CVolume<VOXEL_TYPE>::LogPlane(int nPlane, CXMLElement *pElem) const
+{
+	CMatrixNxM<VOXEL_TYPE> mPlane(GetWidth(), GetHeight());
+
+	VOXEL_TYPE ***pppVoxels = ((CVolume<VOXEL_TYPE>&)(*this)).GetVoxels();
+
+	for (int nAtCol = 0; nAtCol < GetWidth(); nAtCol++)
+	{
+		for (int nAtRow = 0; nAtRow < GetHeight(); nAtRow++)
+		{
+			mPlane[nAtCol][nAtRow] = pppVoxels[nPlane][nAtRow][nAtCol];
+		}
+	}
+
+	LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nPlane));
+
+}	// LogPlane
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -760,7 +830,7 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 	int nBase = pVol->GetWidth() / 2;
 	int nBaseDec = nBase / 2;
 
-	pRes->SetDimensions(nBaseDec * 2 +1, nBaseDec * 2 + 1, 1);
+	pRes->SetDimensions(nBaseDec * 2 +1, nBaseDec * 2 +1, 1);
 
 	CMatrixD<4> mBasis = pVol->GetBasis();
 	mBasis[3][0] = -nBaseDec;
@@ -869,11 +939,44 @@ inline void ClipRaster(int nDim,
 }	// ClipRaster
 
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // Resample
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
+#ifdef USE_IPP
+inline void Resample(CVolume<REAL> *pOrig, CVolume<REAL> *pNew, 
+					 BOOL bBilinear = FALSE)
+{
+	// form translation basis
+	CMatrixD<4> mXform = pOrig->GetBasis();
+	mXform.Invert();
+	mXform *= pNew->GetBasis();
+
+	double coeffs[2][3];
+	coeffs[0][0] = mXform[0][0];
+	coeffs[0][1] = mXform[1][0];
+	coeffs[0][2] = mXform[3][0];
+	coeffs[1][0] = mXform[0][1];
+	coeffs[1][1] = mXform[1][1];
+	coeffs[1][2] = mXform[3][1];
+
+	IppiSize sz = { pOrig->GetWidth(), pOrig->GetHeight() };
+	IppiRect rectOrig = {0, 0, pOrig->GetWidth(), pOrig->GetHeight() };
+	IppiRect rectNew = {0, 0, pNew->GetWidth(), pNew->GetHeight() };
+	IppStatus stat = ippiWarpAffineBack_32f_C1R(&pOrig->GetVoxels()[0][0][0], sz, 
+		pOrig->GetWidth() * sizeof(REAL), rectOrig,
+		&pNew->GetVoxels()[0][0][0], pNew->GetWidth() * sizeof(REAL), rectNew,
+		coeffs, IPPI_INTER_LINEAR);
+
+	// flag change
+	pNew->VoxelsChanged();
+
+}	// Resample
+
+#else
+
 template<class VOXEL_TYPE>
 inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew, 
 					 BOOL bBilinear = FALSE)
@@ -974,6 +1077,8 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 	pNew->VoxelsChanged();
 
 }	// Resample
+
+#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////
