@@ -85,6 +85,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\OpenGLCamera.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\OpenGLRenderer.cpp
 # End Source File
 # Begin Source File
@@ -119,6 +123,10 @@ SOURCE=.\ZoomTracker.cpp
 # Begin Source File
 
 SOURCE=.\glMatrixVector.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\OpenGLCamera.h
 # End Source File
 # Begin Source File
 
