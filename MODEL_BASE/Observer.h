@@ -17,7 +17,7 @@ public:
 	virtual void OnChange(CObservable *pFromObject) = 0;
 };
 
-class CObservable
+class CObservable : public CObject
 {
 public:
 	void AddObserver(CObserver *pObserver) const;

@@ -13,7 +13,7 @@
 #include "Value.h"
 
 template<class TYPE>
-class CCollection : public CObject, public CObservable
+class CCollection : public CObservable
 {
 public:
 	CCollection() 

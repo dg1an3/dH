@@ -26,7 +26,7 @@
 			return ar; } \
 
 template<class VOXEL_TYPE>
-class CVolume : public CObject, public CObservable, public CObserver
+class CVolume : public CObservable, public CObserver
 {
 public:
 	CVolume()
