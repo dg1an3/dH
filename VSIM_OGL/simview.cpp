@@ -17,7 +17,7 @@
 #include "MachineRenderer.h"
 #include "DRRRenderer.h"
 
-#include "NodeRenderer.h"
+#include "BeamParamPosCtrl.h"
 
 #include "MainFrm.h"
 
@@ -82,10 +82,10 @@ void CSimView::OnDraw(CDC* pDC)
 
 void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
-	if (pFromObject == &m_wndBEV.camera.projectionMatrix)
+	if (pFromObject == &m_wndBEV.camera.projection)
 	{
-		// determine the new beam parameters from the BEV viewing matrix
-		CMatrix<4> mProjMatrix = m_wndBEV.camera.projectionMatrix.Get();
+/*		// determine the new beam parameters from the BEV viewing matrix
+		CMatrix<4> mProjMatrix = m_wndBEV.camera.projection.Get();
 
 		// first, retrieve the projection matrix for the beam
 		CMatrix<4> mPerspProj = ComputeProjection(*currentBeam.Get());
@@ -124,8 +124,9 @@ void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 		actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
 		currentBeam->gantryAngle.Set(actGantry);
 		currentBeam->collimAngle.Set(coll);
-
 		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+		*/
+
 	}
 	else
 	{
@@ -170,6 +171,8 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndREV.camera.nearPlane.Set(1.0);
 	m_wndREV.camera.farPlane.Set(200.0);
 	m_wndREV.camera.SetFieldOfView(20.0f);
+	m_wndREV.camera.phi.Set(PI);
+	m_wndREV.camera.theta.Set(PI / 2.0);
 	m_wndREV.leftTrackers.Add(new CRotateTracker(&m_wndREV));
 	m_wndREV.middleTrackers.Add(new CZoomTracker(&m_wndREV));
 
@@ -269,6 +272,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
 	CObjectExplorer *pExplorer = &pFrame->m_wndExplorerCtrl.m_ExplorerCtrl;
+	CBeamParamPosCtrl *pPosCtrl = &pFrame->m_wndPosCtrl;
 
 	CObjectTreeItem *pPatientItem = new CObjectTreeItem();
 	pPatientItem->label.Set("Patient: Doe, John");
@@ -295,7 +299,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pNewItem->imageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
 		pNewItem->selectedImageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
 
-		pNewItem->isChecked.Set(FALSE); // TRUE);
+		pNewItem->isChecked.Set(TRUE);
 
 		pSeriesItem->children.Add(pNewItem);
 
@@ -307,9 +311,6 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pSurfaceRenderer->tableOffset.SyncTo(&pMainBeam->tableOffset);
 		pSurfaceRenderer->couchAngle.SyncTo(&pMainBeam->couchAngle);
 		m_wndREV.renderers.Add(pSurfaceRenderer);
-
-		CNodeRenderer *pNodeRenderer = new CNodeRenderer(&m_wndREV);
-		m_wndREV.renderers.Add(pNodeRenderer);
 
 		pSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 
@@ -366,7 +367,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		// create and add the machine renderer to the REV
 		CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
 		pMachineRenderer->forBeam.Set(pBeam);
-		// m_wndREV.renderers.Add(pMachineRenderer);
+		m_wndREV.renderers.Add(pMachineRenderer);
 
 		// create and add the beam renderer to the REV
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
@@ -476,9 +477,9 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	mB2P.Invert();
 	mProj *= mB2P;
 
-	m_wndBEV.camera.projectionMatrix.RemoveObserver(this, (ChangeFunction) OnChange);
-	m_wndBEV.camera.projectionMatrix.Set(mProj);
-	m_wndBEV.camera.projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
+	m_wndBEV.camera.projection.RemoveObserver(this, (ChangeFunction) OnChange);
+	m_wndBEV.camera.projection.Set(mProj);
+	m_wndBEV.camera.projection.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 #if defined(USE_FUNCTIONS_FOR_BEV)

@@ -46,6 +46,8 @@ public:
 	COpenGLView m_wndREV;
 	COpenGLView m_wndBEV;
 
+	CValue< double > sliderPos;
+
 #ifdef SHOW_ORTHO
 	COpenGLView m_wndOrtho[3];
 #endif
