@@ -15,6 +15,9 @@
 // subordinate brent optimizer
 #include "BrentOptimizer.h"
 
+// cubic interpolation optimizer
+#include "CubicInterpOptimizer.h"
+
 // the line function for the Brent optimizer
 #include "LineFunction.h"
 
@@ -39,8 +42,14 @@ private:
 	//		a given line
 	CLineFunction m_lineFunction;
 
+	// points to the line optimizer to be used
+	COptimizer *m_pLineOptimizer;
+
 	// brent optimizer along the line function
 	CBrentOptimizer m_optimizeBrent;
+
+	// cubic interpolation optimizer
+	CCubicInterpOptimizer m_optimizeCubic;
 
 	// "statics" for the optimization routine
 	CVectorN<> m_vG;
