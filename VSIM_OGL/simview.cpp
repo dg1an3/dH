@@ -84,40 +84,9 @@ void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
 	if (pFromObject == &m_wndBEV.camera.modelXform)
 	{
-		currentBeam->beamToPatientXform.Set(m_wndBEV.camera.modelXform.Get());
-#ifdef NONE
-		CMatrix<4> mNewB2P = m_wndBEV.camera.modelXform.Get();
-
-		// now factor the B2P matrix into translation and rotation components
-		double gantry = 2.0 * PI - acos(mNewB2P[2][2]);	// gantry in [0..PI]
-
-		double couch = 0.0;
-		double coll = 0.0;
-
-		if (gantry > 0.0)
-		{
-			double cos_couch = mNewB2P[2][0] / sin(gantry);
-			// make sure the couch angle will be in [-PI..PI]
-			if (cos_couch < 0.0)
-			{
-				gantry = 2 * PI - gantry;
-				cos_couch = mNewB2P[2][0] / sin(gantry);
-			}
-
-			double sin_couch = mNewB2P[2][1] / sin(gantry);
-			couch = AngleFromSinCos(sin_couch, cos_couch);
-
-			double cos_coll =  mNewB2P[0][2] / -sin(gantry);
-			double sin_coll =  mNewB2P[1][2] / sin(gantry);
-			coll = AngleFromSinCos(sin_coll, cos_coll);
-		}
-
-		currentBeam->couchAngle.Set(couch);
-		double actGantry = PI - gantry;
-		actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
-		currentBeam->gantryAngle.Set(actGantry);
-		currentBeam->collimAngle.Set(coll);
-#endif
+		CMatrix<4> mBeamToPatientXform = Invert(m_wndBEV.camera.modelXform.Get());
+		currentBeam->SetBeamToPatientXform(mBeamToPatientXform);
+			// beamToPatientXform.Set(mBeamToPatientXform);
 		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 	else if (pFromObject != &m_wndBEV.camera.projection)
