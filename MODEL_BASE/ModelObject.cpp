@@ -27,7 +27,7 @@ CModelObject::~CModelObject()
 
 }
 
-IMPLEMENT_SERIAL(CModelObject, CObject, 1)
+IMPLEMENT_SERIAL(CModelObject, CObservable, 1)
 
 void CModelObject::AddObserverToChildren(CObserver *pObserver, int nLevels)
 {

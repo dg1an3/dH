@@ -20,6 +20,8 @@ public:
 class CObservable : public CObject
 {
 public:
+	DECLARE_DYNAMIC(CObservable);
+
 	void AddObserver(CObserver *pObserver) const;
 	void RemoveObserver(CObserver *pObserver) const;
 

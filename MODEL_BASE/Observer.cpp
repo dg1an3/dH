@@ -9,6 +9,8 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+IMPLEMENT_DYNAMIC(CObservable, CObject)
+
 void CObservable::AddObserver(CObserver *pObserver) const
 {
 	// check to ensure the observer is not already in the list
@@ -19,7 +21,7 @@ void CObservable::AddObserver(CObserver *pObserver) const
 	// add to the list of observers
 	m_arrObservers.Add(pObserver);
 
-#define FIRECHANGE_ON_ADDOBSERVER
+//#define FIRECHANGE_ON_ADDOBSERVER
 #ifdef FIRECHANGE_ON_ADDOBSERVER
 	// notify the new observer of a change to allow it to update 
 	//		itself
