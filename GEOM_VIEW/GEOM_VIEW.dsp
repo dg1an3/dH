@@ -144,6 +144,10 @@ SOURCE=.\StdAfx.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\SurfaceRenderable.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\TabControlBar.cpp
 # End Source File
 # Begin Source File
@@ -221,6 +225,10 @@ SOURCE=.\include\SceneView.h
 # Begin Source File
 
 SOURCE=.\StdAfx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\SurfaceRenderable.h
 # End Source File
 # Begin Source File
 
