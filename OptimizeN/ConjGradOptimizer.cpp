@@ -67,6 +67,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	LOG_EXPR(GetTolerance());
 
 	// store the initial parameter vector
+	m_vFinalParam.SetDim(vInit.GetDim());
 	m_vFinalParam = vInit;
 
 	// set the dimension of the current direction
@@ -87,6 +88,8 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	}
 
 	// set the initial (steepest descent) direction
+	m_vDirPrev.SetDim(m_vGrad.GetDim());
+	m_vDir.SetDim(m_vGrad.GetDim());
 	m_vDirPrev = m_vDir = m_vGrad;
 
 	BOOL bConvergence = FALSE;
@@ -147,6 +150,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		if (!bConvergence)
 		{
 			// store gradient for 
+			m_vGradPrev.SetDim(m_vGrad.GetDim());
 			m_vGradPrev = m_vGrad;
 
 			// compute the gradient at the current parameter value

@@ -54,7 +54,9 @@ void CLineFunction::SetLine(const CVectorN<>& vPoint,
 {
 	ASSERT(vPoint.GetDim() == vDir.GetDim());
 
+	m_vPoint.SetDim(vPoint.GetDim());
 	m_vPoint = vPoint;
+	m_vDirection.SetDim(vDir.GetDim());
 	m_vDirection = vDir;
 }
 
@@ -77,6 +79,7 @@ REAL CLineFunction::operator()(const CVectorN<>& vInput,
 
 	// form the point at which evaluation is to occur
 	// m_vEvalPoint = GetPoint() + vInput[0] * GetDirection();
+	m_vEvalPoint.SetDim(m_vDirection.GetDim());
 	m_vEvalPoint = GetDirection();
 	m_vEvalPoint *= vInput[0];
 	m_vEvalPoint += GetPoint();
