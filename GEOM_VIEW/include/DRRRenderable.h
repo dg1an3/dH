@@ -9,14 +9,14 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <OpenGLRenderable.h>
+#include <Renderable.h>
 
 #include <Volumep.h>
 
-class CDRRRenderable : public COpenGLRenderable 
+class CDRRRenderable : public CRenderable 
 {
 public:
-	CDRRRenderable(COpenGLView *pView);
+	CDRRRenderable(CSceneView *pView);
 	virtual ~CDRRRenderable();
 
 	// association with a CVolume that contains the volumetric data
@@ -27,7 +27,7 @@ public:
 	void ComputeDRR();
 
 	// renders the DRR
-	virtual void RenderOpaque();
+	virtual void DescribeOpaque();
 
 	virtual void Render();
 

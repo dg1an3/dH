@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////
-// OpenGLView.cpp: implementation of the COpenGLView class.
+// SceneView.cpp: implementation of the CSceneView class.
 //
 // Copyright (C) 2000-2001
 // $Id$
@@ -8,14 +8,14 @@
 // pre-compiled headers
 #include "stdafx.h"
 
-#include "OpenGLView.h"
-
 #include <math.h>
 
-#include <Matrix.h>
-
-#include "glMatrixVector.h"
+// OpenGL include files
 #include <gl/glu.h>
+#include "glMatrixVector.h"
+
+// class declaration
+#include "SceneView.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -25,146 +25,253 @@ static char THIS_FILE[] = __FILE__;
 
 /////////////////////////////////////////////////////////////////////////////
 // IMPLEMENT_DYNCREATE -- implements the dynamic creation mechanism for
-//		COpenGLView
+//		CSceneView
 /////////////////////////////////////////////////////////////////////////////
-IMPLEMENT_DYNCREATE(COpenGLView, CWnd)
+IMPLEMENT_DYNCREATE(CSceneView, CWnd)
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::COpenGLView
+// CSceneView::CSceneView
 // 
-// constructs a new COpenGLView.
+// constructs a new CSceneView.
 /////////////////////////////////////////////////////////////////////////////
-COpenGLView::COpenGLView()
+CSceneView::CSceneView()
 	: m_pDC(NULL),
 		m_hrc(NULL),
 		m_backgroundColor(RGB(0, 0, 0)),
-		m_bDragging(FALSE),
+		m_bLeftDragging(FALSE),
 		m_bMiddleDragging(FALSE)
 {
+	// add this as a listener on the camera
+	::AddObserver<CSceneView>(&GetCamera().GetChangeEvent(), 
+		this, OnCameraChanged);
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::~COpenGLView
+// CSceneView::~CSceneView
 // 
-// destroys the COpenGLView
+// destroys the CSceneView
 /////////////////////////////////////////////////////////////////////////////
-COpenGLView::~COpenGLView()
+CSceneView::~CSceneView()
 {
+	// delete the renderables
+	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
+	{
+		delete m_arrRenderables[nAt];
+	}
+
+	// delete the lights
+	for (nAt = 0; nAt < GetLightCount(); nAt++)
+	{
+		delete m_arrLights[nAt];
+	}
+
+	// delete the trackers
+	for (nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
+	{
+		delete m_arrLeftTrackers[nAt];
+	}
+
+	// delete the middle trackers
+	for (nAt = 0; nAt < GetMiddleTrackerCount(); nAt++)
+	{
+		delete m_arrMiddleTrackers[nAt];
+	}
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetBackgroundColor
+// 
 // the background color for the view
-COLORREF COpenGLView::GetBackgroundColor() const
+/////////////////////////////////////////////////////////////////////////////
+COLORREF CSceneView::GetBackgroundColor() const
 {
 	return m_backgroundColor;
 }
 
-void COpenGLView::SetBackgroundColor(COLORREF color)
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::SetBackgroundColor
+// 
+// the background color for the view
+/////////////////////////////////////////////////////////////////////////////
+void CSceneView::SetBackgroundColor(COLORREF color)
 {
 	m_backgroundColor = color;
 }
 
-// the view's GetCamera()
-COpenGLCamera& COpenGLView::GetCamera()
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetCamera
+// 
+// returns a reference to the view's camera
+/////////////////////////////////////////////////////////////////////////////
+CCamera& CSceneView::GetCamera()
 {
 	return m_camera;
 }
 
-// collection of renderers
-int COpenGLView::GetRendererCount() const
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetRenderableCount
+// 
+// collection of renderables
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::GetRenderableCount() const
 {
-	return m_arrRenderers.GetSize();
+	return m_arrRenderables.GetSize();
 }
 
-COpenGLRenderable *COpenGLView::GetRenderableAt(int nAt)
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetRenderableAt
+// 
+// returns the renderable at the given index
+/////////////////////////////////////////////////////////////////////////////
+CRenderable *CSceneView::GetRenderableAt(int nAt)
 {
-	return (COpenGLRenderable *) m_arrRenderers[nAt];
+	return (CRenderable *) m_arrRenderables[nAt];
 }
 
-int COpenGLView::AddRenderable(COpenGLRenderable *pRenderer) 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::AddRenderable
+// 
+// adds a new renderable to the sceneview
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::AddRenderable(CRenderable *pRenderer) 
 { 
-	return m_arrRenderers.Add(pRenderer);
+	return m_arrRenderables.Add(pRenderer);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetLightCount
+// 
 // collection of lights for the view
-int COpenGLView::GetLightCount() const 
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::GetLightCount() const 
 { 
 	return m_arrLights.GetSize();
 }
 
-COpenGLLight *COpenGLView::GetLightAt(int nAt)
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetLightAt
+// 
+// returns the light at the given index
+/////////////////////////////////////////////////////////////////////////////
+CLight *CSceneView::GetLightAt(int nAt)
 { 
-	return (COpenGLLight *) m_arrLights[nAt];
+	return (CLight *) m_arrLights[nAt];
 }
 
-int COpenGLView::AddLight(COpenGLLight *pRenderer) 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::AddLight
+// 
+// adds a light to the sceneview
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::AddLight(CLight *pLight) 
 { 
-	return m_arrLights.Add(pRenderer);
+	return m_arrLights.Add(pLight);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetLeftTrackerCount
+// 
 // collection of trackers for left button
-int COpenGLView::GetLeftTrackerCount() const 
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::GetLeftTrackerCount() const 
 { 
 	return m_arrLeftTrackers.GetSize();
 }
 
-COpenGLTracker *COpenGLView::GetLeftTrackerAt(int nAt) 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetLeftTrackerAt
+// 
+// returns the left tracker at the given index
+/////////////////////////////////////////////////////////////////////////////
+CTracker *CSceneView::GetLeftTrackerAt(int nAt) 
 { 
-	return (COpenGLTracker *) m_arrLeftTrackers[nAt];
+	return (CTracker *) m_arrLeftTrackers[nAt];
 }
 
-int COpenGLView::AddLeftTracker(COpenGLTracker *pRenderer) 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::AddLeftTracker
+// 
+// adds a new left tracker to the sceneview
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::AddLeftTracker(CTracker *pRenderer) 
 { 
 	return m_arrLeftTrackers.Add(pRenderer);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetMiddleTrackerCount
+// 
 // collection of trackers for middle button
-int COpenGLView::GetMiddleTrackerCount() const 
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::GetMiddleTrackerCount() const 
 { 
 	return m_arrMiddleTrackers.GetSize();
 }
 
-COpenGLTracker *COpenGLView::GetMiddleTrackerAt(int nAt) 
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::GetMiddleTrackerAt
+// 
+// returns one of the current middle trackers
+/////////////////////////////////////////////////////////////////////////////
+CTracker *CSceneView::GetMiddleTrackerAt(int nAt) 
 { 
-	return (COpenGLTracker *) m_arrMiddleTrackers[nAt];
+	return (CTracker *) m_arrMiddleTrackers[nAt];
 }
 
-int COpenGLView::AddMiddleTracker(COpenGLTracker *pRenderer)
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::AddMiddleTracker
+// 
+// adds a new middle tracker to the sceneview
+/////////////////////////////////////////////////////////////////////////////
+int CSceneView::AddMiddleTracker(CTracker *pRenderer)
 {
 	return m_arrMiddleTrackers.Add(pRenderer);
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// CSceneView::OnCameraChanged
+// 
+// change handler for camera changes
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView diagnostics
+void CSceneView::OnCameraChanged(CObservableEvent *, void *)
+{
+	// invalidate the window to redraw
+	Invalidate();
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView diagnostics
 /////////////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::AssertValid
+// CSceneView::AssertValid
 // 
-// destroys the COpenGLView
+// destroys the CSceneView
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::AssertValid() const
+void CSceneView::AssertValid() const
 {
 	CWnd::AssertValid();
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::Dump
+// CSceneView::Dump
 // 
-// destroys the COpenGLView
+// destroys the CSceneView
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::Dump(CDumpContext& dc) const
+void CSceneView::Dump(CDumpContext& dc) const
 {
 	CWnd::Dump(dc);
 }
 #endif //_DEBUG
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::SetupPixelFormat
+// CSceneView::SetupPixelFormat
 // 
 // sets up the pixel format for the view class
 /////////////////////////////////////////////////////////////////////////////
-BOOL COpenGLView::SetupPixelFormat()
+BOOL CSceneView::SetupPixelFormat()
 {
 	// pixel format descriptor
 	static PIXELFORMATDESCRIPTOR pfd =
@@ -209,34 +316,33 @@ BOOL COpenGLView::SetupPixelFormat()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::MakeCurrentGLRC
+// CSceneView::MakeCurrentGLRC
 // 
-// handles a middle-button up event by passing to the appropriate
-//		tracker
+// sets the threads current HGLRC
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::MakeCurrentGLRC()
+void CSceneView::MakeCurrentGLRC()
 {
 	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::ModelPtFromWndPt
+// CSceneView::ModelPtFromWndPt
 // 
 // converts a point in viewport coordinates to a 3-d point using the
 //		current projection matrix
 /////////////////////////////////////////////////////////////////////////////
-CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt)
+CVector<3> CSceneView::ModelPtFromWndPt(CPoint wndPt)
 {
 	return ModelPtFromWndPt(wndPt, GetCamera().GetProjection());
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::ModelPtFromWndPt
+// CSceneView::ModelPtFromWndPt
 // 
 // converts a point in viewport coordinates to a 3-d point given 
 //		a projection matrix
 /////////////////////////////////////////////////////////////////////////////
-CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
+CVector<3> CSceneView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 {
 	// retrieve the model and projection matrices
 	CMatrix<4> mModel;
@@ -261,12 +367,12 @@ CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::PreCreateWindow
+// CSceneView::PreCreateWindow
 // 
 // ensures that the necessary window styles are applied to this window 
 //		during creation
 /////////////////////////////////////////////////////////////////////////////
-BOOL COpenGLView::PreCreateWindow(CREATESTRUCT& cs) 
+BOOL CSceneView::PreCreateWindow(CREATESTRUCT& cs) 
 {
 	// An OpenGL window must be created with the following flags and must not
 	// include CS_PARENTDC for the class style. Refer to SetPixelFormat
@@ -277,11 +383,11 @@ BOOL COpenGLView::PreCreateWindow(CREATESTRUCT& cs)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView Message Map
+// CSceneView Message Map
 /////////////////////////////////////////////////////////////////////////////
 
-BEGIN_MESSAGE_MAP(COpenGLView, CWnd)
-	//{{AFX_MSG_MAP(COpenGLView)
+BEGIN_MESSAGE_MAP(CSceneView, CWnd)
+	//{{AFX_MSG_MAP(CSceneView)
 	ON_WM_CREATE()
 	ON_WM_DESTROY()
 	ON_WM_SIZE()
@@ -296,14 +402,14 @@ BEGIN_MESSAGE_MAP(COpenGLView, CWnd)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView message handlers
+// CSceneView message handlers
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnCreate
+// CSceneView::OnCreate
 // 
 // renders the buffer, and swaps back and front buffer
 /////////////////////////////////////////////////////////////////////////////
-int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
+int CSceneView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
@@ -348,17 +454,17 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// create the default lights for the view
 
-	COpenGLLight *pNewLight = new COpenGLLight();
+	CLight *pNewLight = new CLight();
 	pNewLight->SetDiffuseColor(RGB(255, 255, 255));
 	pNewLight->SetPosition(CVector<3>(-5.0, -5.0, 3.0));
 	AddLight(pNewLight);
 
-	pNewLight = new COpenGLLight();
+	pNewLight = new CLight();
 	pNewLight->SetDiffuseColor(RGB(128, 128, 128));
 	pNewLight->SetPosition(CVector<3>(5.0, -5.0, 3.0));
 	AddLight(pNewLight);
 
-	pNewLight = new COpenGLLight();
+	pNewLight = new CLight();
 	pNewLight->SetDiffuseColor(RGB(128, 128, 128));
 	pNewLight->SetPosition(CVector<3>(0.0, 5.0, 3.0));
 	AddLight(pNewLight);
@@ -369,44 +475,48 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnDestroy
+// CSceneView::OnDestroy
 // 
 // removes the rendering context when the window is destroyed
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnDestroy() 
+void CSceneView::OnDestroy() 
 {
 	// select no OpenGL rendering context
 	wglMakeCurrent(NULL,  NULL);
 
 	// delete the OpenGL rendering context
 	if (m_hrc)
+	{
 		::wglDeleteContext(m_hrc);
+	}
 
 	// delete the Window's device context
 	if (m_pDC)
+	{
 		delete m_pDC;
+	}
 
 	// call base class destroy
 	CWnd::OnDestroy();
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnEraseBkgnd
+// CSceneView::OnEraseBkgnd
 // 
 // over-ride to do nothing, because double-buffering pre-empts the need
 /////////////////////////////////////////////////////////////////////////////
-BOOL COpenGLView::OnEraseBkgnd(CDC* pDC) 
+BOOL CSceneView::OnEraseBkgnd(CDC* pDC) 
 {
 	// over-ride default to prevent flicker
 	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnSize
+// CSceneView::OnSize
 // 
 // adjusts the camera aspect ratio for the new size
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnSize(UINT nType, int cx, int cy) 
+void CSceneView::OnSize(UINT nType, int cx, int cy) 
 {
 	// let the base class have a chance
 	CWnd::OnSize(nType, cx, cy);
@@ -427,15 +537,15 @@ void COpenGLView::OnSize(UINT nType, int cx, int cy)
 		GetCamera().SetAspectRatio(1.0);
 	}
 
-	TRACE_MATRIX("COpenGLView::OnSize Projection Matrix", GetCamera().GetProjection());
+	TRACE_MATRIX("CSceneView::OnSize Projection Matrix", GetCamera().GetProjection());
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnPaint
+// CSceneView::OnPaint
 // 
 // renders the buffer, and swaps back and front buffer
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnPaint()
+void CSceneView::OnPaint()
 {
 	// make sure we are using the correct rendering context
 	MakeCurrentGLRC();
@@ -447,7 +557,7 @@ void COpenGLView::OnPaint()
 	// load the projection matrix
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrix(GetCamera().GetProjection());
-	TRACE_MATRIX("COpenGLView::OnPaint Projection Matrix", 
+	TRACE_MATRIX("CSceneView::OnPaint Projection Matrix", 
 		GetCamera().GetProjection());
 
 	// set up the lights
@@ -460,7 +570,7 @@ void COpenGLView::OnPaint()
 	glMatrixMode(GL_MODELVIEW);
 
 	// for each renderer, 
-	for (int nAt = 0; nAt < GetRendererCount(); nAt++)
+	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
 	{
 		// save the current model matrix state
 		glPushMatrix();
@@ -468,14 +578,8 @@ void COpenGLView::OnPaint()
 		// load the renderer's modelview matrix
 		glLoadMatrix(GetRenderableAt(nAt)->GetModelviewMatrix());
 
-		// save the current rendering attributes
-		// glPushAttrib(GL_ALL_ATTRIB_BITS);
-
 		// draw its scene
 		GetRenderableAt(nAt)->Render();
-
-		// restore the rendering attributes
-		// glPopAttrib();
 
 		// restore the model matrix state
 		glMatrixMode(GL_MODELVIEW);
@@ -493,18 +597,18 @@ void COpenGLView::OnPaint()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnLButtonDown
+// CSceneView::OnLButtonDown
 // 
 // handles a left-button down event by passing to the appropriate
 //		tracker
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point) 
+void CSceneView::OnLButtonDown(UINT nFlags, CPoint point) 
 {
 	// handle base class
 	CWnd::OnLButtonDown(nFlags, point);
 
 	// set the dragging flag to TRUE
-	m_bDragging = TRUE;
+	m_bLeftDragging = TRUE;
 
 	// find the tracker which contains the point
 	for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
@@ -522,18 +626,18 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnLButtonUp
+// CSceneView::OnLButtonUp
 // 
 // handles a left-button up event by passing to the appropriate
 //		tracker
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point) 
+void CSceneView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	// handle base class
 	CWnd::OnLButtonUp(nFlags, point);
 
 	// dragging is over -- clear flag
-	m_bDragging = FALSE;	
+	m_bLeftDragging = FALSE;	
 	
 	// find the tracker which contains the point
 	for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
@@ -550,12 +654,12 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnMButtonDown
+// CSceneView::OnMButtonDown
 // 
 // handles a middle-button down event by passing to the appropriate
 //		tracker
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point) 
+void CSceneView::OnMButtonDown(UINT nFlags, CPoint point) 
 {
 	// handle base class
 	CWnd::OnMButtonDown(nFlags, point);
@@ -578,12 +682,12 @@ void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnMButtonUp
+// CSceneView::OnMButtonUp
 // 
 // handles a middle-button up event by passing to the appropriate
 //		tracker
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point) 
+void CSceneView::OnMButtonUp(UINT nFlags, CPoint point) 
 {
 	// handle base class
 	CWnd::OnMButtonUp(nFlags, point);
@@ -606,18 +710,18 @@ void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView::OnMouseMove
+// CSceneView::OnMouseMove
 // 
 // handles a middle-button up event by passing to the appropriate
 //		tracker
 /////////////////////////////////////////////////////////////////////////////
-void COpenGLView::OnMouseMove(UINT nFlags, CPoint point) 
+void CSceneView::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	// process base class move event
 	CWnd::OnMouseMove(nFlags, point);
 
 	// see if we are in a left-drag
-	if (m_bDragging)
+	if (m_bLeftDragging)
 	{
 		for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
 		{

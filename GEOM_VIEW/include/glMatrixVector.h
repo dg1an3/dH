@@ -55,9 +55,10 @@ inline void glMultMatrix(const CMatrix<4, double>& m)
 	glMultMatrixd(mArray);
 }
 
-inline void glColor(COLORREF forColor)
+inline void glColor(COLORREF forColor, double alpha = 0.5)
 {
-	glColor3ub(GetRValue(forColor), GetGValue(forColor), GetBValue(forColor));
+	glColor4ub(GetRValue(forColor), GetGValue(forColor), GetBValue(forColor),
+		(GLubyte) 255.0 * alpha);
 }
 
 inline void glClearColor(COLORREF forColor)

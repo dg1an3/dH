@@ -1,28 +1,28 @@
-// OpenGLTracker.h: interface for the COpenGLTracker class.
+// Tracker.h: interface for the CTracker class.
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(OPENGLTRACKER_H)
-#define OPENGLTRACKER_H
+#if !defined(Tracker_H)
+#define Tracker_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
 // forward declaration of the view class
-class COpenGLView;
+class CSceneView;
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLTracker
+// class CTracker
 //
 // responds to mouse events on the view
 //////////////////////////////////////////////////////////////////////
-class COpenGLTracker : public CObject
+class CTracker : public CObject
 {
 public:
 	// constructor/destructor
-	COpenGLTracker(COpenGLView *pView);
-	virtual ~COpenGLTracker();
+	CTracker(CSceneView *pView);
+	virtual ~CTracker();
 
 	// test for inside
 	virtual BOOL IsInside(CPoint point);
@@ -37,7 +37,7 @@ public:
 
 protected:
 	// pointer to the view
-	COpenGLView *m_pView;
+	CSceneView *m_pView;
 };
 
-#endif // !defined(OPENGLTRACKER_H)
+#endif // !defined(Tracker_H)

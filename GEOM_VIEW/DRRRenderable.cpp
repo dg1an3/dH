@@ -11,7 +11,7 @@
 #include <gl/glu.h>
 #include <glMatrixVector.h>
 
-#include <OpenGLView.h>
+#include <SceneView.h>
 
 #define RAY_TRACE_RESOLUTION 128
 #define RAY_TRACE_RES_LOG2   7
@@ -42,8 +42,8 @@ UINT BackgroundComputeDRR( LPVOID pParam )
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CDRRRenderable::CDRRRenderable(COpenGLView *pView)
-: COpenGLRenderable(pView),
+CDRRRenderable::CDRRRenderable(CSceneView *pView)
+: CRenderable(pView),
 	m_pVolume(NULL),
 	m_bRecomputeDRR(TRUE),
 	m_nSteps(RAY_TRACE_RESOLUTION),
@@ -527,7 +527,7 @@ void CDRRRenderable::Render()
 	}
 }
 
-void CDRRRenderable::RenderOpaque()
+void CDRRRenderable::DescribeOpaque()
 {
 }
 
@@ -544,5 +544,5 @@ void CDRRRenderable::OnChange(CObservableObject *pSource, void *pOldValue)
 
 		m_bRecomputeDRR = TRUE;
 	} */
-	COpenGLRenderable::Invalidate(pSource, pOldValue);
+	CRenderable::Invalidate(pSource, pOldValue);
 }

@@ -14,18 +14,18 @@
 #include <Matrix.h>
 
 // base class
-#include "OpenGLTracker.h"
+#include "Tracker.h"
 
 //////////////////////////////////////////////////////////////////////
 // class CZoomTracker
 //
 // tracker for zooming the view
 //////////////////////////////////////////////////////////////////////
-class CZoomTracker : public COpenGLTracker  
+class CZoomTracker : public CTracker  
 {
 public:
 	// constructor/destructor
-	CZoomTracker(COpenGLView *pView);
+	CZoomTracker(CSceneView *pView);
 	virtual ~CZoomTracker();
 
 	// over-rides for handling button down and drag

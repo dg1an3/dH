@@ -1,28 +1,28 @@
-// OpenGLTexture.h: interface for the COpenGLTexture class.
+// Texture.h: interface for the CTexture class.
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(OPENGLTEXTURE_H)
-#define OPENGLTEXTURE_H
+#if !defined(TEXTURE_H)
+#define TEXTURE_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
 // forward declaration of the view class
-class COpenGLView;
+class CSceneView;
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLTexture
+// class CTexture
 //
 // represents a texture for texture-mapping
 //////////////////////////////////////////////////////////////////////
-class COpenGLTexture : public CObject 
+class CTexture : public CObject 
 {
 public:
 	// constructor/destructor
-	COpenGLTexture();
-	virtual ~COpenGLTexture();
+	CTexture();
+	virtual ~CTexture();
 
 	// width and height of texture image
 	void SetWidthHeight(int nWidth, int nHeight);
@@ -36,7 +36,7 @@ public:
 	BOOL LoadBitmap(UINT nResourceID);
 
 	// binds for rendering
-	void Bind(COpenGLView *pView, BOOL bWrap = FALSE);
+	void Bind(CSceneView *pView, BOOL bWrap = FALSE);
 	void Unbind();
 
 protected:
@@ -45,7 +45,7 @@ protected:
 
 private:
 	// the view for the texture
-	COpenGLView *m_pView;
+	CSceneView *m_pView;
 
 	// the height and width of the texture
 	int m_nWidth;
@@ -67,4 +67,4 @@ private:
 	CArray<COLORREF, COLORREF> m_arrPixels;
 };
 
-#endif // !defined(OPENGLTEXTURE_H)
+#endif // !defined(TEXTURE_H)

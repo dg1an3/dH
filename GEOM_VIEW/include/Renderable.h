@@ -1,13 +1,13 @@
 //////////////////////////////////////////////////////////////////////
-// OpenGLRenderable.h: declaration of the COpenGLRenderable class
+// Renderable.h: declaration of the CRenderable class
 //
 // Copyright (C) 2000-2001
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
 
-#if !defined(OPENGLRENDERABLE_H)
-#define OPENGLRENDERABLE_H
+#if !defined(RENDERABLE_H)
+#define RENDERABLE_H
 
 #if _MSC_VER > 1000
 #pragma once
@@ -19,24 +19,28 @@
 // observable events
 #include <Observer.h>
 
-// forward declaration of the COpenGLView class 
-class COpenGLView;
+// forward declaration of the CSceneView class 
+class CSceneView;
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLRenderable
+// class CRenderable
 //
-// represents a renderer that belongs to a COpenGLView window
+// represents a renderer that belongs to a CSceneView window
 //////////////////////////////////////////////////////////////////////
-class COpenGLRenderable : public CObject
+class CRenderable : public CObject
 {
 public:
 	// constructor/destructor
-	COpenGLRenderable(COpenGLView *pView);
-	virtual ~COpenGLRenderable();
+	CRenderable(CSceneView *pView);
+	virtual ~CRenderable();
 
 	// color for the renderer (use depends on objects being rendered)
 	COLORREF GetColor() const;
 	void SetColor(COLORREF);
+
+	// alpha transparency for the transparent part of the object
+	double GetAlpha() const;
+	void SetAlpha(double alpha);
 
 	// accessors for the renderable's centroid (used for sorting)
 	const CVector<3>& GetCentroid() const;
@@ -60,14 +64,14 @@ public:
 
 protected:
 	// view class is a friend
-	friend COpenGLView;
+	friend CSceneView;
 
 	// the view for this class
-	COpenGLView * m_pView;
+	CSceneView *m_pView;
 
 	// Renders the scene -- called by DrawScene to create the drawlist
-	virtual void RenderOpaque();
-	virtual void RenderTransparent(double scale = 0.5);
+	virtual void DescribeOpaque();
+	virtual void DescribeTransparent(double scale = 0.5);
 
 	// called to draw the scene -- don't over-ride this unless the
 	//		drawlist logic needs to be overridden
@@ -76,6 +80,9 @@ protected:
 private:
 	// the rendering color
 	COLORREF m_color;	
+
+	// the rendering transparency
+	COLORREF m_alpha;	
 
 	// the modelview matrix for the object
 	CMatrix<4> m_mModelview;
@@ -87,4 +94,4 @@ private:
 	int m_nDrawList;
 };
 
-#endif // !defined(OPENGLRENDERABLE_H)
+#endif // !defined(RENDERABLE_H)

@@ -1,12 +1,12 @@
 //////////////////////////////////////////////////////////////////////
-// OpenGLView.h: declaration of the COpenGLView class
+// SceneView.h: declaration of the CSceneView class
 //
 // Copyright (C) 2000-2001
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(OPENGLVIEW_H)
-#define OPENGLVIEW_H
+#if !defined(SCENEVIEW_H)
+#define SCENEVIEW_H
 
 #if _MSC_VER > 1000
 #pragma once
@@ -16,25 +16,25 @@
 #include <Matrix.h>
 
 // helper classes
-#include "OpenGLRenderable.h"
-#include "OpenGLCamera.h"
-#include "OpenGLLight.h"
-#include "OpenGLTracker.h"
+#include "Renderable.h"
+#include "Camera.h"
+#include "Light.h"
+#include "Tracker.h"
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLView
+// class CSceneView
 //
 // represents a window with an OpenGL rendering context.
 //////////////////////////////////////////////////////////////////////
-class COpenGLView : public CWnd
+class CSceneView : public CWnd
 {
 public:
 	// constructor/destructor
-	COpenGLView();           // protected constructor used by dynamic creation
-	virtual ~COpenGLView();
+	CSceneView();           // protected constructor used by dynamic creation
+	virtual ~CSceneView();
 
 	// make sure we can create this window dynamically (for splitter window)
-	DECLARE_DYNCREATE(COpenGLView)
+	DECLARE_DYNCREATE(CSceneView)
 
 // Attributes
 public:
@@ -44,27 +44,30 @@ public:
 	void SetBackgroundColor(COLORREF color);
 
 	// the view's camera
-	COpenGLCamera& GetCamera();
+	CCamera& GetCamera();
 
 	// collection of renderers
-	int GetRendererCount() const;
-	COpenGLRenderable *GetRenderableAt(int nAt);
-	int AddRenderable(COpenGLRenderable *pRenderer);
+	int GetRenderableCount() const;
+	CRenderable *GetRenderableAt(int nAt);
+	int AddRenderable(CRenderable *pRenderer);
 
 	// collection of lights for the view
 	int GetLightCount() const;
-	COpenGLLight *GetLightAt(int nAt);
-	int AddLight(COpenGLLight *pRenderer);
+	CLight *GetLightAt(int nAt);
+	int AddLight(CLight *pRenderer);
 
 	// collection of trackers for left button
 	int GetLeftTrackerCount() const;
-	COpenGLTracker *GetLeftTrackerAt(int nAt);
-	int AddLeftTracker(COpenGLTracker *pRenderer);
+	CTracker *GetLeftTrackerAt(int nAt);
+	int AddLeftTracker(CTracker *pRenderer);
 
 	// collection of trackers for middle button
 	int GetMiddleTrackerCount() const;
-	COpenGLTracker *GetMiddleTrackerAt(int nAt);
-	int AddMiddleTracker(COpenGLTracker *pRenderer);
+	CTracker *GetMiddleTrackerAt(int nAt);
+	int AddMiddleTracker(CTracker *pRenderer);
+
+	// change handler for camera changes
+	void OnCameraChanged(CObservableEvent *, void *);
 
 // Operations
 public:
@@ -77,7 +80,7 @@ public:
 
 // Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(COpenGLView)
+	//{{AFX_VIRTUAL(CSceneView)
 	protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	//}}AFX_VIRTUAL
@@ -92,9 +95,10 @@ protected:
 	void MakeCurrentGLRC();
 
 	// friend classes can access the OpenGL rendering context
-	friend class COpenGLRenderable;
-	friend class COpenGLTexture;
+	friend class CRenderable;
+	friend class CTexture;
 
+public:
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
@@ -102,7 +106,7 @@ protected:
 
 	// Generated message map functions
 protected:
-	//{{AFX_MSG(COpenGLView)
+	//{{AFX_MSG(CSceneView)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
@@ -127,22 +131,22 @@ private:
 	COLORREF m_backgroundColor;
 
 	// the rednerers
-	CObArray m_arrRenderers;		// COpenGLRenderer 
+	CObArray m_arrRenderables;		// CRenderables
 
 	// the view camera
-	COpenGLCamera m_camera;
+	CCamera m_camera;
 
 	// the array of lights
-	CObArray m_arrLights;			// COpenGLLight
+	CObArray m_arrLights;			// CLight
 
 	// the array of left button trackers
-	CObArray m_arrLeftTrackers;		// COpenGLTracker
+	CObArray m_arrLeftTrackers;		// CTracker
 
 	// the array of middle button trackers
-	CObArray m_arrMiddleTrackers;	// COpenGLTracker
+	CObArray m_arrMiddleTrackers;	// CTracker
 
 	// flag to indicate that the dragging is occurring
-	BOOL m_bDragging;
+	BOOL m_bLeftDragging;
 	BOOL m_bMiddleDragging;
 };
 
@@ -151,4 +155,4 @@ private:
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
-#endif // !defined(OPENGLVIEW_H)
+#endif // !defined(SCENEVIEW_H)

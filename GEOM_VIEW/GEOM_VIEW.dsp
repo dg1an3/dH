@@ -85,6 +85,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\Camera.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\DibView.cpp
 # End Source File
 # Begin Source File
@@ -100,6 +104,10 @@ SOURCE=.\Graph.cpp
 SOURCE=.\GUI_BASE.rc
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409 /i "include"
+# End Source File
+# Begin Source File
+
+SOURCE=.\Light.cpp
 # End Source File
 # Begin Source File
 
@@ -119,31 +127,15 @@ SOURCE=.\ObjectTreeItem.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\OpenGLCamera.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\OpenGLLight.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\OpenGLRenderable.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\OpenGLTexture.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\OpenGLTracker.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\OpenGLView.cpp
+SOURCE=.\Renderable.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\RotateTracker.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\SceneView.cpp
 # End Source File
 # Begin Source File
 
@@ -156,12 +148,24 @@ SOURCE=.\TabControlBar.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Texture.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Tracker.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ZoomTracker.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\include\Camera.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\include\DibView.h
@@ -184,6 +188,10 @@ SOURCE=.\include\GUI_BASE_resource.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\include\Light.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\MPRRenderable.h
 # End Source File
 # Begin Source File
@@ -196,31 +204,15 @@ SOURCE=.\include\ObjectTreeItem.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\OpenGLCamera.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\OpenGLLight.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\OpenGLRenderable.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\OpenGLTexture.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\OpenGLTracker.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\OpenGLView.h
+SOURCE=.\include\Renderable.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\include\RotateTracker.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\SceneView.h
 # End Source File
 # Begin Source File
 
@@ -229,6 +221,14 @@ SOURCE=.\StdAfx.h
 # Begin Source File
 
 SOURCE=.\include\TabControlBar.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\Texture.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\Tracker.h
 # End Source File
 # Begin Source File
 

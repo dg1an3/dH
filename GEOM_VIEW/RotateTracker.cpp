@@ -6,7 +6,7 @@
 //#include "vsim_ogl.h"
 #include "RotateTracker.h"
 
-#include "OpenGLView.h"
+#include "SceneView.h"
 
 #include <Matrix.h>
 
@@ -25,8 +25,8 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CRotateTracker::CRotateTracker(COpenGLView *pView)
-	: COpenGLTracker(pView)
+CRotateTracker::CRotateTracker(CSceneView *pView)
+	: CTracker(pView)
 {
 }
 
@@ -37,9 +37,14 @@ CRotateTracker::~CRotateTracker()
 
 void CRotateTracker::OnButtonDown(UINT nFlags, CPoint point)
 {
+#ifdef _DEBUG
+	// check the camera's state
+	m_pView->GetCamera().AssertValid();
+#endif
+
 	// store the initial model transform matrix; subsequent rotations will be applied
 	//		to this matrix directly
-	m_initXform = m_pView->GetCamera().GetModelXform();
+	m_initXform = m_pView->GetCamera().GetXform();
 
 	// store the current projection matrix from the view, for transforming
 	//		subsequent coordinates
@@ -51,6 +56,11 @@ void CRotateTracker::OnButtonDown(UINT nFlags, CPoint point)
 
 void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
+#ifdef _DEBUG
+	// check the camera's state
+	m_pView->GetCamera().AssertValid();
+#endif
+
 	// compute the final point
 	CVector<3> vFinalPoint = 
 		m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
@@ -60,7 +70,7 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 		CMatrix<4>(CreateRotate(m_vInitPoint, vFinalPoint, 3.0));
 
 	// set the new model xform to the initial composed with the rotation
-	m_pView->GetCamera().SetModelXform(m_initXform * mRotate);
+	m_pView->GetCamera().SetXform(m_initXform * mRotate);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

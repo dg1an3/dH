@@ -1,5 +1,8 @@
-// OpenGLCamera.cpp: implementation of the COpenGLCamera class.
+//////////////////////////////////////////////////////////////////////
+// Camera.cpp: implementation of the CCamera class.
 //
+// Copyright (C) 2000-2001
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
 // pre-compiled headers
@@ -12,18 +15,18 @@
 #include <MathUtil.h>
 
 // class interface
-#include "OpenGLCamera.h"
+#include "Camera.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::COpenGLCamera
+// CCamera::CCamera
 // 
 // constructs a camera object
 //////////////////////////////////////////////////////////////////////
-COpenGLCamera::COpenGLCamera()
+CCamera::CCamera()
 #pragma warning(disable: 4355)
 	: m_eventChange(this),
 #pragma warning(default: 4355)
@@ -41,150 +44,159 @@ COpenGLCamera::COpenGLCamera()
 	RecalcProjection();
 
 	// and model xform matrices
-	RecalcModelXform();
+	RecalcXform();
 }
 
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::~COpenGLCamera
+// CCamera::~CCamera
 // 
 // destroys the camera object
 //////////////////////////////////////////////////////////////////////
-COpenGLCamera::~COpenGLCamera()
+CCamera::~CCamera()
 {
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::GetDistance
+// CCamera::GetDistance
 // 
 // returns the distance along the optical axis from the camera's 
 //		focal point to the target point
 //////////////////////////////////////////////////////////////////////
-double COpenGLCamera::GetDistance() const 
+double CCamera::GetDistance() const 
 { 
 	return m_distance;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetDistance
 // 
 // sets the distance along the optical axis from the camera's 
 //		focal point to the target point
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetDistance(double dist) 
+void CCamera::SetDistance(double dist) 
 { 
 	// set the distance from the camera to the target point
 	m_distance = dist;
 
-	// recalculat the model transform
-	RecalcModelXform();
+	// recalculate the model transform
+	RecalcXform();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::GetTheta
+// CCamera::GetTheta
 // 
 // returns the theta angle for the camera
 //////////////////////////////////////////////////////////////////////
-double COpenGLCamera::GetTheta() const 
+double CCamera::GetTheta() const 
 { 
 	return m_theta;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetTheta
+// CCamera::SetTheta
 // 
 // sets the theta angle for the camera
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetTheta(double theta) 
+void CCamera::SetTheta(double theta) 
 { 
 	// set theta
 	m_theta = theta;
 
 	// and recalculate the model xform
-	RecalcModelXform();
+	RecalcXform();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::GetPhi
+// CCamera::GetPhi
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// returns the phi angle (pitch)
 //////////////////////////////////////////////////////////////////////
-double COpenGLCamera::GetPhi() const 
+double CCamera::GetPhi() const 
 { 
 	return m_phi;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetPhi
+// CCamera::SetPhi
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// sets the phi angle (pitch)
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetPhi(double phi) 
+void CCamera::SetPhi(double phi) 
 { 
 	// set phi
 	m_phi = phi;
 
 	// and recalculate the model xform
-	RecalcModelXform();
+	RecalcXform();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetRollAngle
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// returns the camera rotation about its optical axis
 //////////////////////////////////////////////////////////////////////
-// the camera rotation about its optical axis
-double COpenGLCamera::GetRollAngle() const 
+double CCamera::GetRollAngle() const 
 { 
 	return m_rollAngle;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetRollAngle
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// sets the camera rotation about its optical axis
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetRollAngle(double rollAngle) 
+void CCamera::SetRollAngle(double rollAngle) 
 { 
 	m_rollAngle = rollAngle;
 
 	// and recalculate the model xform
-	RecalcModelXform();
+	RecalcXform();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetXform
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// returns matrix representing the transform from the model space to 
+//		the camera space
 //////////////////////////////////////////////////////////////////////
-// matrix representing the transform from the model space to the
-//		camera space
-const CMatrix<4>& COpenGLCamera::GetModelXform() const 
+const CMatrix<4>& CCamera::GetXform() const 
 { 
-	return m_mModelXform;
+	return m_mXform;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetXform
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// sets the matrix representing the transform from the model space to 
+//		the camera space
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetModelXform(const CMatrix<4>& m) 
+void CCamera::SetXform(const CMatrix<4>& m) 
 { 
 	// assign the matrix
-	m_mModelXform = m;
+	m_mXform = m;
 
 	// compute the total projection
-	m_mProjection = GetPerspective() * m_mModelXform;
+	m_mProjection = GetPerspective() * m_mXform;
+
+	// create an orthogonal (rotation) matrix
+	CMatrix<3> mOrtho = CMatrix<3>(m);
+	mOrtho.Orthogonalize();
 
 	// form the rotation angles for the camera direction
-	m_phi = acos(m[2][2]);
+	m_phi = acos(mOrtho[2][2]);
 
 	// set the theta and roll angles to zero initially
 	m_theta = 0.0;
@@ -195,19 +207,19 @@ void COpenGLCamera::SetModelXform(const CMatrix<4>& m)
 	if (sin_phi > EPS)
 	{
 		// compute theta
-		if (m[2][0] != 0.0 && m[2][1] != 0.0)
+		if (mOrtho[2][0] != 0.0 && mOrtho[2][1] != 0.0)
 		{
 			m_theta = AngleFromSinCos(
-				m[2][0] / sin_phi,
-				m[2][1] / sin_phi);
+				mOrtho[2][0] / sin_phi,
+				mOrtho[2][1] / sin_phi);
 		}
 
 		// compute phi
-		if (m[0][2] != 0.0 && m[1][2] != 0.0)
+		if (mOrtho[0][2] != 0.0 && mOrtho[1][2] != 0.0)
 		{
 			m_rollAngle = AngleFromSinCos(
-				m[0][2] / sin_phi,
-				-m[1][2] / sin_phi);
+				mOrtho[0][2] / sin_phi,
+				-mOrtho[1][2] / sin_phi);
 		}
 	}
 
@@ -216,50 +228,47 @@ void COpenGLCamera::SetModelXform(const CMatrix<4>& m)
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetViewingAngle
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
-//////////////////////////////////////////////////////////////////////
 // the viewing angle for the camera (0 for orthographic camera)
-double COpenGLCamera::GetViewingAngle() const 
+//////////////////////////////////////////////////////////////////////
+double CCamera::GetViewingAngle() const 
 { 
 	return m_viewingAngle;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetViewingAngle
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// the viewing angle for the camera (0 for orthographic camera)
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetViewingAngle(double angle) 
+void CCamera::SetViewingAngle(double angle) 
 { 
 	m_viewingAngle = angle;
 
 	// and recalculate the projection
 	RecalcProjection();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetAspectRatio
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
-//////////////////////////////////////////////////////////////////////
 // the aspect ratio is usually set to the aspect ratio of the viewport
-double COpenGLCamera::GetAspectRatio() const 
+//////////////////////////////////////////////////////////////////////
+double CCamera::GetAspectRatio() const 
 { 
 	return m_aspectRatio;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetAspectRatio
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// the aspect ratio is usually set to the aspect ratio of the viewport
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetAspectRatio(double aspectRatio) 
+void CCamera::SetAspectRatio(double aspectRatio) 
 { 
 	// make sure a valid aspect ratio is passed
 	ASSERT(!_isnan(aspectRatio));
@@ -268,53 +277,55 @@ void COpenGLCamera::SetAspectRatio(double aspectRatio)
 
 	// and recalculate the projection
 	RecalcProjection();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetNearPlane
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
-//////////////////////////////////////////////////////////////////////
 // the clipping planes, distance from focal point
-double COpenGLCamera::GetNearPlane() const 
+//////////////////////////////////////////////////////////////////////
+double CCamera::GetNearPlane() const 
 { 
 	return m_nearPlane;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetFarPlane
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// the clipping planes, distance from focal point
 //////////////////////////////////////////////////////////////////////
-double COpenGLCamera::GetFarPlane() const 
+double CCamera::GetFarPlane() const 
 { 
 	return m_farPlane;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetClippingPlanes
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// the clipping planes, distance from focal point
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetClippingPlanes(double nearPlane, double farPlane) 
+void CCamera::SetClippingPlanes(double nearPlane, double farPlane) 
 { 
 	m_nearPlane = nearPlane;
 	m_farPlane = farPlane;
 
 	// and recalculate the projection
 	RecalcProjection();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::SetFieldOfView
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// sets the field of view based on the maximum object size to be 
+//		viewed.
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::SetFieldOfView(double maxObjectSize)
+void CCamera::SetFieldOfView(double maxObjectSize)
 {
 	SetClippingPlanes(GetNearPlane(), 
 			GetNearPlane() + maxObjectSize * 2.5f);
@@ -322,35 +333,31 @@ void COpenGLCamera::SetFieldOfView(double maxObjectSize)
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetPerspective
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
+// returns the matrix representing the camera perspective projection
 //////////////////////////////////////////////////////////////////////
-// matrix representing the camera projection
-const CMatrix<4>& COpenGLCamera::GetPerspective() const
+const CMatrix<4>& CCamera::GetPerspective() const
 {
 	return m_mPerspective;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::SetDistance
+// CCamera::GetProjection
 // 
-// sets the distance along the optical axis from the camera's 
-//		focal point to the target point
-//////////////////////////////////////////////////////////////////////
 // the total matrix for the projection and transform
-const CMatrix<4>& COpenGLCamera::GetProjection() const
+//////////////////////////////////////////////////////////////////////
+const CMatrix<4>& CCamera::GetProjection() const
 {
 	return m_mProjection;
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::RecalcModelXform
+// CCamera::RecalcXform
 // 
 // recalculates the model transform
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::RecalcModelXform()
+void CCamera::RecalcXform() const
 {
 	// form the rotation matrix for the camera direction
 	CMatrix<3> mRotateDir = CreateRotate(GetPhi(), CVector<3>(1.0, 0.0, 0.0))
@@ -365,22 +372,19 @@ void COpenGLCamera::RecalcModelXform()
 		CVector<3>(0.0, 0.0, -1.0));
 
 	// and set the total camera transformation to all three matrices
-	m_mModelXform = 
+	m_mXform = 
 		mTranslate * CMatrix<4>(mRotateRoll) * CMatrix<4>(mRotateDir);
 
 	// compute the total projection
-	m_mProjection = GetPerspective() * GetModelXform();
-
-	// notify listeners that the camera has changed
-	GetChangeEvent().Fire();
+	m_mProjection = GetPerspective() * GetXform();
 }
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::RecalcProjection
+// CCamera::RecalcProjection
 // 
 // recalculates the projection (perspective and xform)
 //////////////////////////////////////////////////////////////////////
-void COpenGLCamera::RecalcProjection()
+void CCamera::RecalcProjection() const
 {
 	// compute the top edge of the viewing frustum from the nearPlane 
 	//		and viewingAngle
@@ -404,8 +408,47 @@ void COpenGLCamera::RecalcProjection()
 	m_mPerspective = mPersp;
 
 	// compute the total projection
-	m_mProjection = GetPerspective() * GetModelXform();
-
-	// notify listeners that the camera has changed
-	GetChangeEvent().Fire();
+	m_mProjection = GetPerspective() * GetXform();
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// CCamera diagnostics
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef _DEBUG
+/////////////////////////////////////////////////////////////////////////////
+// CCamera::AssertValid
+// 
+// destroys the CSceneView
+/////////////////////////////////////////////////////////////////////////////
+void CCamera::AssertValid() const
+{
+	CObject::AssertValid();
+
+	// ensure that the current projection matrix is valid
+	MatrixValid<REAL>(GetProjection());
+
+	// compare the model xform to the recalculated one
+	CMatrix<4> mXformPre = GetXform();
+	// RecalcXform();
+	// ASSERT(mXformPre.IsApproxEqual(GetXform(), 1e-1));
+
+	// compare the projection to the recalculated one
+	CMatrix<4> mPerspectivePre = GetPerspective();
+	// RecalcProjection();
+	// ASSERT(mPerspectivePre.IsApproxEqual(GetPerspective(), 1e-1));
+
+	// ensure that the current projection matrix is valid
+	MatrixValid<REAL>(GetProjection());
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CCamera::Dump
+// 
+// dumps the contents of the CCamera
+/////////////////////////////////////////////////////////////////////////////
+void CCamera::Dump(CDumpContext& dc) const
+{
+}
+#endif //_DEBUG
+

@@ -9,7 +9,7 @@
 
 #include "ZoomTracker.h"
 
-#include "OpenGLView.h"
+#include "SceneView.h"
 
 #include <Matrix.h>
 
@@ -28,8 +28,8 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CZoomTracker::CZoomTracker(COpenGLView *pView)
-	: COpenGLTracker(pView)
+CZoomTracker::CZoomTracker(CSceneView *pView)
+	: CTracker(pView)
 {
 }
 
@@ -39,8 +39,13 @@ CZoomTracker::~CZoomTracker()
 
 void CZoomTracker::OnButtonDown(UINT nFlags, CPoint point)
 {
+#ifdef _DEBUG
+	// check the camera's state
+	m_pView->GetCamera().AssertValid();
+#endif
+
 	// store the projection matrix
-	m_initXform = m_pView->GetCamera().GetModelXform();
+	m_initXform = m_pView->GetCamera().GetXform();
 
 	// get the client rectangle
 	CRect rect;
@@ -52,6 +57,11 @@ void CZoomTracker::OnButtonDown(UINT nFlags, CPoint point)
 
 void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
+#ifdef _DEBUG
+	// check the camera's state
+	m_pView->GetCamera().AssertValid();
+#endif
+
 	// get the client rectangle
 	CRect rect;
 	m_pView->GetClientRect(&rect);
@@ -67,7 +77,7 @@ void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
 		* CMatrix<4>(CreateScale(CVector<3>(zoom, zoom, zoom)));
 
 	// set the new model xform
-	m_pView->GetCamera().SetModelXform(currXform);
+	m_pView->GetCamera().SetXform(currXform);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

@@ -14,18 +14,18 @@
 #include <Matrix.h>
 
 // base class
-#include "OpenGLTracker.h"
+#include "Tracker.h"
 
 //////////////////////////////////////////////////////////////////////
 // class CRotateTracker
 //
 // tracker for rotating the view about a central point
 //////////////////////////////////////////////////////////////////////
-class CRotateTracker : public COpenGLTracker  
+class CRotateTracker : public CTracker  
 {
 public:
 	// constructor/destructor
-	CRotateTracker(COpenGLView *pView);
+	CRotateTracker(CSceneView *pView);
 	virtual ~CRotateTracker();
 
 	// over-rides for handling button down and drag

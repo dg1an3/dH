@@ -1,12 +1,12 @@
-// OpenGLTexture.cpp: implementation of the COpenGLTexture class.
+// Texture.cpp: implementation of the CTexture class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 //#include "vsim_ogl.h"
-#include "OpenGLTexture.h"
+#include "Texture.h"
 
-#include "OpenGLView.h"
+#include "SceneView.h"
 
 #include "gl/gl.h"
 #include "gl/glu.h"
@@ -23,7 +23,7 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-COpenGLTexture::COpenGLTexture()
+CTexture::CTexture()
 :	m_nWidth(0), m_nHeight(0),
 	m_pDC(NULL),
 	m_pBitmap(NULL),
@@ -34,7 +34,7 @@ COpenGLTexture::COpenGLTexture()
 
 }
 
-COpenGLTexture::~COpenGLTexture()
+CTexture::~CTexture()
 {
 	if (m_pDC != NULL)
 		ReleaseDC();
@@ -43,7 +43,7 @@ COpenGLTexture::~COpenGLTexture()
 		Unbind();
 }
 
-void COpenGLTexture::SetWidthHeight(int nWidth, int nHeight)
+void CTexture::SetWidthHeight(int nWidth, int nHeight)
 {
 	ASSERT(m_pDC == NULL);
 	ASSERT(m_pBitmap == NULL);
@@ -55,7 +55,7 @@ void COpenGLTexture::SetWidthHeight(int nWidth, int nHeight)
 	m_arrPixels.SetSize(nWidth * nHeight);
 }
 
-CDC * COpenGLTexture::GetDC()
+CDC * CTexture::GetDC()
 {
 	/////////////////////////////////////////////////////////////////
 
@@ -78,7 +78,7 @@ CDC * COpenGLTexture::GetDC()
 	return m_pDC;
 }
 
-void COpenGLTexture::DrawBorder(int nWidth)
+void CTexture::DrawBorder(int nWidth)
 {
 	ASSERT(m_pDC != NULL);
 
@@ -93,7 +93,7 @@ void COpenGLTexture::DrawBorder(int nWidth)
 	m_pDC->SelectObject(pOldBrush);
 }
 
-void COpenGLTexture::ReleaseDC()
+void CTexture::ReleaseDC()
 {
 	/////////////////////////////////////////////////////////////////
 
@@ -114,7 +114,7 @@ void COpenGLTexture::ReleaseDC()
 }
 
 // ONLY PROCESS TRANSPARENCY ONCE!!!
-void COpenGLTexture::ProcessTransparency()
+void CTexture::ProcessTransparency()
 {
 	COLORREF *pPixels = m_arrPixels.GetData();
 
@@ -136,7 +136,7 @@ void COpenGLTexture::ProcessTransparency()
 	}
 }
 
-BOOL COpenGLTexture::LoadBitmap(UINT nResourceID)
+BOOL CTexture::LoadBitmap(UINT nResourceID)
 {
 	CDib dib;
 	BOOL bResult = dib.Load(GetModuleHandle(NULL), nResourceID);
@@ -163,7 +163,7 @@ BOOL COpenGLTexture::LoadBitmap(UINT nResourceID)
 	return bResult;
 }
 
-void COpenGLTexture::Bind(COpenGLView *pView, BOOL bWrap)
+void CTexture::Bind(CSceneView *pView, BOOL bWrap)
 {
 	m_pView = pView;
 
@@ -207,7 +207,7 @@ void COpenGLTexture::Bind(COpenGLView *pView, BOOL bWrap)
 	ASSERT(glGetError() == GL_NO_ERROR);
 }
 
-void COpenGLTexture::Unbind()
+void CTexture::Unbind()
 {
 	ASSERT(m_pView != NULL);
 

@@ -1,9 +1,9 @@
-// OpenGLCamera.h: interface for the COpenGLCamera class.
+// Camera.h: interface for the CCamera class.
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(OPENGLCAMERA_H)
-#define OPENGLCAMERA_H
+#if !defined(CAMERA_H)
+#define CAMERA_H
 
 #if _MSC_VER > 1000
 #pragma once
@@ -17,16 +17,16 @@
 #include <Observer.h>
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLCamera
+// class CCamera
 // 
-// a camera that represents the viewpoint for a COpenGLView
+// a camera that represents the viewpoint for a CSceneView
 //////////////////////////////////////////////////////////////////////
-class COpenGLCamera : public CObject
+class CCamera : public CObject
 {
 public:
 	// constructor/destructor
-	COpenGLCamera();
-	virtual ~COpenGLCamera();
+	CCamera();
+	virtual ~CCamera();
 
 public:
 	// the distance along the optical axis from the camera's focal point
@@ -47,8 +47,8 @@ public:
 
 	// matrix representing the transform from the model space to the
 	//		camera space
-	const CMatrix<4>& GetModelXform() const;
-	void SetModelXform(const CMatrix<4>& m);
+	const CMatrix<4>& GetXform() const;
+	void SetXform(const CMatrix<4>& m);
 
 	// the viewing angle for the camera (0 for orthographic camera)
 	double GetViewingAngle() const;
@@ -78,10 +78,16 @@ public:
 
 protected:
 	// call-back to compute the object-to-camera transform
-	void RecalcModelXform();
+	void RecalcXform() const;
 
 	// call-back to compute the camera projection
-	void RecalcProjection();
+	void RecalcProjection() const;
+
+public:
+#ifdef _DEBUG
+	virtual void AssertValid() const;
+	virtual void Dump(CDumpContext& dc) const;
+#endif
 
 private:
 	// the point being looked at
@@ -98,7 +104,7 @@ private:
 	double m_rollAngle;
 
 	// the model transform
-	CMatrix<4> m_mModelXform;
+	mutable CMatrix<4> m_mXform;
 
 	// the viewing angle (along Y direction
 	double m_viewingAngle;
@@ -113,23 +119,23 @@ private:
 	double m_farPlane;
 
 	// perspective matrix
-	CMatrix<4> m_mPerspective;
+	mutable CMatrix<4> m_mPerspective;
 
 	// projection matrix
-	CMatrix<4> m_mProjection;
+	mutable CMatrix<4> m_mProjection;
 
 	// the change event for this object
 	CObservableEvent m_eventChange;
 };
 
 //////////////////////////////////////////////////////////////////////
-// COpenGLCamera::GetChangeEvent
+// CCamera::GetChangeEvent
 // 
 // returns a reference to the change event for the camera
 //////////////////////////////////////////////////////////////////////
-inline CObservableEvent& COpenGLCamera::GetChangeEvent()
+inline CObservableEvent& CCamera::GetChangeEvent()
 {
 	return m_eventChange;
 }
 
-#endif // !defined(OPENGLCAMERA_H)
+#endif // !defined(CAMERA_H)

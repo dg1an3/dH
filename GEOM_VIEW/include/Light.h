@@ -1,9 +1,13 @@
-// OpenGLLight.h: interface for the COpenGLLight class.
+//////////////////////////////////////////////////////////////////////
+// Light.h: interface for the CLight class.
 //
+// Copyright (C) 2000-2001
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(OPENGLLIGHT_H)
-#define OPENGLLIGHT_H
+
+#if !defined(LIGHT_H)
+#define LIGHT_H
 
 #if _MSC_VER > 1000
 #pragma once
@@ -13,16 +17,16 @@
 #include <Vector.h>
 
 //////////////////////////////////////////////////////////////////////
-// class COpenGLLight
+// class CLight
 // 
-// a light that lights a scene
+// represents a light illuminating a CSceneView
 //////////////////////////////////////////////////////////////////////
-class COpenGLLight : public CObject  
+class CLight : public CObject  
 {
 public:
 	// constructor/destructor
-	COpenGLLight();
-	virtual ~COpenGLLight();
+	CLight();
+	virtual ~CLight();
 
 	// accessors for the position of the light
 	const CVector<3>& GetPosition() const;
@@ -43,4 +47,4 @@ private:
 	COLORREF m_diffuseColor;
 };
 
-#endif // !defined(OPENGLLIGHT_H)
+#endif // !defined(LIGHT_H)

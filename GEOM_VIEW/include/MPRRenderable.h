@@ -9,12 +9,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "OpenGLRenderable.h"
+#include "Renderable.h"
 
-class CMPRRenderable : public COpenGLRenderable  
+class CMPRRenderable : public CRenderable  
 {
 public:
-	CMPRRenderable(COpenGLView *pView);
+	CMPRRenderable(CSceneView *pView);
 	virtual ~CMPRRenderable();
 
 };
