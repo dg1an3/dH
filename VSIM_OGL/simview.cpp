@@ -85,8 +85,7 @@ void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 	if (pFromObject == &m_wndBEV.camera.modelXform)
 	{
 		CMatrix<4> mBeamToPatientXform = Invert(m_wndBEV.camera.modelXform.Get());
-		currentBeam->SetBeamToPatientXform(mBeamToPatientXform);
-			// beamToPatientXform.Set(mBeamToPatientXform);
+		currentBeam->beamToPatientXform.Set(mBeamToPatientXform);
 		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 	else if (pFromObject != &m_wndBEV.camera.projection)
@@ -121,6 +120,8 @@ CPlan* CSimView::GetDocument() // non-debug version is inline
 /////////////////////////////////////////////////////////////////////////////
 // CSimView message handlers
 
+CRotateTracker *pRotateTracker;
+
 int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
 	if (CView::OnCreate(lpCreateStruct) == -1)
@@ -134,7 +135,8 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndREV.camera.SetFieldOfView(20.0f);
 	m_wndREV.camera.phi.Set(PI);
 	m_wndREV.camera.theta.Set(PI / 2.0);
-	m_wndREV.leftTrackers.Add(new CRotateTracker(&m_wndREV));
+	pRotateTracker = new CRotateTracker(&m_wndREV);
+	m_wndREV.leftTrackers.Add(pRotateTracker);
 	m_wndREV.middleTrackers.Add(new CZoomTracker(&m_wndREV));
 
 	if (!m_wndBEV.Create(NULL, NULL, lpCreateStruct->style, CRect(0, 0, 0, 0), this, 0))
@@ -343,6 +345,13 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	pAltPatientItem->label.Set("Patient: Sprat, Jack");
 	pAltPatientItem->isChecked.Set(FALSE);
 	pAltPatientItem->Create(pExplorer);
+
+	// rotate the view to a standard position
+	pRotateTracker->OnLButtonDown(0, CPoint(111, 45));
+	pRotateTracker->OnMouseDrag(0, CPoint(250, 405));
+
+	pRotateTracker->OnLButtonDown(0, CPoint(75, 109));
+	pRotateTracker->OnMouseDrag(0, CPoint(123, 154));
 }
 
 void CSimView::OnViewBeam() 
@@ -430,8 +439,6 @@ CMatrix<4> CSimView::ComputeProjection(CBeam& beam)
 
 void CSimView::SetBEVPerspective(CBeam& beam)
 {
-#define NEW
-#ifdef NEW
 	// compute the projection
 	CMatrix<4> mProj = ComputeProjection(beam);
 	m_wndBEV.camera.perspective.Set(mProj);
@@ -445,77 +452,7 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 
 	// m_wndBEV.camera.modelXform.Set(beam.beamToPatientXform.Get()); // mProj);
 	m_wndBEV.camera.modelXform.AddObserver(this, (ChangeFunction) OnChange); 
-#else
-	// compute the projection
-	CMatrix<4> mProj = ComputeProjection(beam);
-	
-	// and inverse transform from beam to patient
-	CMatrix<4> mB2P = beam.beamToPatientXform.Get();
-	mB2P.Invert();
-	mProj *= mB2P;
-
-	m_wndBEV.camera.projection.RemoveObserver(this, (ChangeFunction) OnChange);
-	m_wndBEV.camera.projection.Set(mProj);
-	m_wndBEV.camera.projection.AddObserver(this, (ChangeFunction) OnChange);
-#endif
 }
-
-#if defined(USE_FUNCTIONS_FOR_BEV)
-
-CVector<2> ComputeContainingCenteredRect(const CVector<2>& vMin, 
-										 const CVector<2>& vMax)
-{
-	return CVector<2>( max(fabs(vMin[1]), fabs(vMax[1])) + 1.0,
-		max(fabs(vMin[0]), fabs(vMax[0])) + 1.0);
-}
-
-CVector<2> AdjustAspectRatio(const CVector<2>& vRect, double aspect)
-{
-	return CVector<2>( max(vRect[1] / aspect, vRect[0]),
-		max(vRect[0] * aspect, vRect[1]));
-}
-
-void CSimView::SetBEVPerspective(CBeam& beam)
-{
-//	CValue< double >& collimHeight = 
-//		max(fabs(vMin[1]), fabs(vMax[1])) + 1.0;
-//	CValue< double >& collimWidth = 
-//		max(fabs(vMin[0]), fabs(vMax[0])) + 1.0;
-
-	// get the window's client rectangle
-//	CRect rect;
-//	m_wndBEV.GetClientRect(&rect);
-//	float aspect = (float) rect.Width() / (float) rect.Height();
-//
-//	double height = max(collimWidth / aspect, collimHeight);
-//	double width = max(collimHeight * aspect, collimWidth);
-
-//	// scale, including a slight dilation along the z-axis to avoid clipping the collimator plane
-//	mProj *= CreateScale(CVector<3>(1.0 / width, 1.0 / height, 1.0));
-
-	// now rotate by 180 degrees about Y
-//	mProj *= CreateRotate(...
-
-	// and inverse transform from beam to patient
-//	CMatrix<4> mB2P = beam.myBeamToPatientXform.Get();
-//	mB2P.Invert();
-//	mProj *= mB2P;
-
-	CValue< CVector<2> >& vWidthHeight =
-		ComputeCenteredRect(beam.collimMin, beam.collimMax);
-	CValue< CVector<2> >& vAspWidthHeight =
-		AdjustAspect(vWidthHeight, m_wndBEV.myAspect);
-
-	CValue< CMatrix<4> >& mProj =
-		CreateTranslate(0.01, CVector<3>(0.0, 0.0, 1.0))	// constant
-		* beam.forMachine->myProjection;					// value
-		* Invert(CreateScale(vAspWidthHeight))				// value
-		* CreateRotate(PI, CVector<3>(0.0, 1.0, 0.0))		// constant
-		* Invert(beam.myBeamToPatientXform);
-
-	m_wndBEV.myProjectionMatrix.SyncTo(&mProj);
-}
-#endif
 
 void CSimView::OnViewColorwash() 
 {
