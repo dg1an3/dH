@@ -10,8 +10,17 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+// #defines for MFC types
+#define BOOL bool
+#define TRUE true
+#define FALSE false
 
-// TODO: reference additional headers your program requires here
+// TRACE maps to printf
+#define TRACE printf
+
+// ASSERT maps to assert
+#include <assert.h>
+#define ASSERT assert
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
