@@ -85,6 +85,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\Dib.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\GUI_BASE.rc
 
 !IF  "$(CFG)" == "GUI_BASE - Win32 Release"
@@ -121,6 +125,10 @@ SOURCE=TabControlBar.cpp
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\Dib.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\GUI_BASE_resource.h
