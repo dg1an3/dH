@@ -14,6 +14,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -30,6 +31,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		m_pOptimizer(NULL),
 		m_pNextLevel(NULL),
 		m_totalEntropyWeight((REAL) 0.05),
+		m_intensityMapSumWeight((REAL) 0.10),
 		m_inputScale((REAL) 0.5)
 {
 	m_pOptimizer = new CConjGradOptimizer(this);
@@ -155,8 +157,9 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 		int nBeamlet;
 		GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
 
-		vBeamWeights[nBeam] += Sigmoid(vInput[nAt], m_inputScale);
-		sum += Sigmoid(vInput[nAt], m_inputScale);
+		REAL beamWeight = Sigmoid(vInput[nAt], m_inputScale);
+		vBeamWeights[nBeam] += beamWeight;
+		sum += beamWeight;
 	}
 
 	// to accumulate total entropy
@@ -190,12 +193,16 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 					/ (sum * sum);
 
 			// apply chain rule to compute the derivative
-			(*pGrad)[nAt] = -d_p * (1 + log(p));
+			(*pGrad)[nAt] = m_totalEntropyWeight * -d_p * (1 + log(p));
+
+			(*pGrad)[nAt] -= m_intensityMapSumWeight * dSigmoid(vInput[nAt], m_inputScale) 
+				/ (REAL) vBeamWeights.GetDim();
 		}
 	}
 
 	// return total entropy scaled by number of beamlets
-	return totalEntropy;	
+	return m_totalEntropyWeight * totalEntropy 
+		- m_intensityMapSumWeight * sum / (REAL) vBeamWeights.GetDim();;
 
 }	// CPrescription::Eval_TotalEntropy
 
@@ -272,13 +279,13 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 		vPartGrad.SetDim(vInput.GetDim());
 		vPartGrad.SetZero();
 
-		totalSum -=  m_totalEntropyWeight * Eval_TotalEntropy(vInput, &vPartGrad);
+		totalSum -=  Eval_TotalEntropy(vInput, &vPartGrad);
 
 		(*pGrad) -= vPartGrad;
 	}
 	else
 	{
-		totalSum -=  m_totalEntropyWeight * Eval_TotalEntropy(vInput);
+		totalSum -=  Eval_TotalEntropy(vInput);
 	}
 
 	END_LOG_SECTION();	// CPrescription::operator()
@@ -387,14 +394,35 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 {
 	BEGIN_LOG_SECTION(CPrescription::AddStructure);
 
-	// initialize the sum volume, so as to coincide with the region
-	CVolume<REAL> *pRegion = pVOIT->GetVOI()->GetRegion(m_nLevel);
-	m_sumVolume.ConformTo(pRegion);
+	// initialize the sum volume, so as to coincide with the beamlets
+	CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(m_pPlan->GetBeamCount()-1)->GetBeamlet(0, m_nLevel);
+	m_sumVolume.ConformTo(pBeamlet);
+
+	// initialize the histogram region
+	// TODO: fix this memory leak
+	CVolume<REAL> *pResampRegion = new CVolume<REAL>(); // pVOIT->GetVOI()->GetRegion(m_nLevel);
+	pResampRegion->ConformTo(&m_sumVolume);
+
+	int nLevel = -1;
+	CVectorD<3> vSumPixelSpacing = m_sumVolume.GetPixelSpacing();
+	CVectorD<3> vRegionPixelSpacing;
+	do
+	{
+		nLevel++;
+		vRegionPixelSpacing = pVOIT->GetVOI()->GetRegion(nLevel)->GetPixelSpacing();
+	} while (
+		vRegionPixelSpacing[0] * 2.0 < vSumPixelSpacing[0]
+		|| vRegionPixelSpacing[1] * 2.0 < vSumPixelSpacing[1]);
+
+
+	CVolume<REAL> *pVOITRegion = pVOIT->GetVOI()->GetRegion(nLevel);
+	::Resample(pVOIT->GetVOI()->GetRegion(nLevel), pResampRegion, TRUE);
 
 	// set histogram options
 	CHistogram *pHisto = pVOIT->GetHistogram();
 	pHisto->SetGBinSigma(m_GBinSigma);
 	pHisto->SetVolume(&m_sumVolume);
+	pHisto->SetRegion(pResampRegion);
 
 	// need to do this before initialize target bins
 	REAL binWidth = 0.025 * pow(2, m_nLevel);
@@ -408,6 +436,8 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		GetBeamletFromSVElem(nAtElem, m_nLevel, &nBeam, &nBeamlet);
 
 		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
+		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
+
 		pBeamlet->SetThreshold((REAL) 0.01); // pow(10, -(m_nLevel+1)));
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
@@ -516,6 +546,7 @@ void CPrescription::SetStateVectorToPlan(const CVectorN<>& vState)
 	{
 		m_pPlan->GetBeamAt(nAtBeam)->SetIntensityMap(mBeamletWeights[nAtBeam]);
 	}
+	m_pPlan->GetDoseMatrix();
 
 }	// CPrescription::SetStateVectorToPlan
 
