@@ -218,6 +218,8 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CBeam& beam = *GetDocument()->beams.Get(0);
 		pMainBeam = &beam;
 
+		beam.name.Set("AP");
+
 		currentBeam.Set(&beam);
 
 		m_pDRRRenderer = new CDRRRenderer(&m_wndBEV);
@@ -233,22 +235,46 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		beam.AddObserver(this, (ChangeFunction) OnChange);
 	}
 
+// #define ADD_EXTRA_BEAMS
+#ifdef ADD_EXTRA_BEAMS
+	// add some extra beams
+	CBeam *pNewBeam = new CBeam();
+	pNewBeam->name.Set("PA");
+	GetDocument()->beams.Add(pNewBeam);
+
+	pNewBeam = new CBeam();
+	pNewBeam->name.Set("RL");
+	GetDocument()->beams.Add(pNewBeam);
+
+	pNewBeam = new CBeam();
+	pNewBeam->name.Set("LR");
+	GetDocument()->beams.Add(pNewBeam);
+#endif
+
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
 	CObjectExplorer *pExplorer = &pFrame->m_wndExplorerCtrl.m_ExplorerCtrl;
 	CBeamParamPosCtrl *pPosCtrl = &pFrame->m_wndPosCtrl;
 
+#ifdef USE_HIERARCHY
 	CObjectTreeItem *pPatientItem = new CObjectTreeItem();
 	pPatientItem->label.Set("Patient: Doe, John");
 	pPatientItem->Create(pExplorer);
+#endif
+
 	if (GetDocument()->GetSeries() == NULL)
 		return;
 
 	CSeries *pSeries = GetDocument()->GetSeries();
 
 	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
-	pSeriesItem->label.Set("Series: " + pSeries->GetFileRoot());
 
+#ifdef USE_HIERARCHY
+	pSeriesItem->label.Set("Series: " + pSeries->GetFileRoot());
 	pPatientItem->children.Add(pSeriesItem);
+#else
+	pSeriesItem->label.Set("Structures");
+	pSeriesItem->Create(pExplorer);
+#endif
 
 	for (int nAtSurf = 0; nAtSurf < pSeries->structures.GetSize(); nAtSurf++)
 	{
@@ -303,6 +329,32 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		}
 	}
 
+	CObjectTreeItem *pRefPtItem = new CObjectTreeItem();
+
+#ifdef USE_HIERARCHY
+#else
+	pRefPtItem->label.Set("Ref Pts");
+	pRefPtItem->Create(pExplorer);
+#endif
+
+	{
+		CObjectTreeItem *pNewItem = new CObjectTreeItem();
+
+		pNewItem->label.Set("pt1");
+		pNewItem->imageResourceID.Set(IDB_POINT_BLUE);
+		pNewItem->selectedImageResourceID.Set(IDB_POINT_BLUE);
+
+		pRefPtItem->children.Add(pNewItem);
+
+		pNewItem = new CObjectTreeItem();
+
+		pNewItem->label.Set("pt2");
+		pNewItem->imageResourceID.Set(IDB_POINT_YELLOW);
+		pNewItem->selectedImageResourceID.Set(IDB_POINT_YELLOW);
+
+		pRefPtItem->children.Add(pNewItem);
+	}
+
 	if (GetDocument()->beams.GetSize() > 0)
 	{
 		CBeam& beam = *GetDocument()->beams.Get(0);
@@ -310,8 +362,14 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	}
 
 	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
+
+#ifdef USE_HIERARCHY
 	pPlanItem->label.Set("Plan: " + GetDocument()->GetFileRoot());
 	pPatientItem->children.Add(pPlanItem);
+#else
+	pPlanItem->label.Set("Beams");
+	pPlanItem->Create(pExplorer);
+#endif
 
 	int nAtBeam;
 	for (nAtBeam = 0; nAtBeam < GetDocument()->beams.GetSize(); nAtBeam++)
@@ -341,10 +399,12 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_pBeamRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 	}
 
+#ifdef USE_HIERARCHY
 	CObjectTreeItem *pAltPatientItem = new CObjectTreeItem();
 	pAltPatientItem->label.Set("Patient: Sprat, Jack");
 	pAltPatientItem->isChecked.Set(FALSE);
 	pAltPatientItem->Create(pExplorer);
+#endif
 
 	// rotate the view to a standard position
 	pRotateTracker->OnLButtonDown(0, CPoint(111, 45));
