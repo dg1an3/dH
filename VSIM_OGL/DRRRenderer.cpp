@@ -223,8 +223,12 @@ bool ClipRaster(int& nDestLength,
 	return true;
 }
 
+static bool bOverMax = false;
+
 void CDRRRenderer::ComputeDRR()
 {
+	bOverMax = false;
+
 	// get copies of the volume dimensions
 	int nWidth = forVolume->width.Get();
 	int nHeight = forVolume->height.Get();
@@ -301,6 +305,9 @@ void CDRRRenderer::ComputeDRR()
 	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
 
 	CREATE_INT_VECTOR(vStart, viStart);
+	viStart[0] += 32768;
+	viStart[1] += 32768;
+	viStart[2] += 32768;
 
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vEnd;
@@ -323,9 +330,12 @@ void CDRRRenderer::ComputeDRR()
 	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
 
 	CREATE_INT_VECTOR(vEnd, viEnd);
+	viEnd[0] += 32768;
+	viEnd[1] += 32768;
+	viEnd[2] += 32768;
 
 #ifdef COMPUTE_MINMAX
-	int nMax = 0;
+	int nMax = -INT_MAX;
 	int nMin = INT_MAX;
 #else
 	int nMax = 65000 / 64 * m_nSteps; // 0;
@@ -336,6 +346,9 @@ void CDRRRenderer::ComputeDRR()
 	int level_offset = -nMin;
 	int window_div = (nMax - nMin) / 256;
 #endif
+
+	short nMaxVoxel = forVolume->GetMax();
+	TRACE1("Max voxel value = %i\n", nMaxVoxel);
 
 	for (int nY = 0; nY < m_nImageHeight; nY++)
 	{
@@ -373,13 +386,18 @@ void CDRRRenderer::ComputeDRR()
 						&& nVoxelY >= 0 && nVoxelY < nHeight
 						&& nVoxelZ >= 0 && nVoxelZ < nDepth);
 
-					nPixelValue += pppVoxels[nVoxelZ][nVoxelY][nVoxelX];
+					nPixelValue += (int) pppVoxels[nVoxelZ][nVoxelY][nVoxelX];
 #else	// ifdef _DEBUG
-					nPixelValue += pppVoxels[viStart[2] >> 16][viStart[1] >> 16][viStart[0] >> 16];
+					nPixelValue += (int) pppVoxels[viStart[2] >> 16][viStart[1] >> 16][viStart[0] >> 16];
 #endif	// ifdef _DEBUG
 
 					viStart += viStep;
 				}
+				if (nPixelValue >  m_nSteps * (int)(nMaxVoxel) / 2)
+				{
+					bOverMax = true;
+				}
+
 				m_arrPixels[nPixelAt] = nPixelValue;
 
 			}
@@ -400,12 +418,16 @@ void CDRRRenderer::ComputeDRR()
 #ifdef POST_PROCESS
 	int nValue;
 	int nWindow = nMax - nMin;
+	TRACE2("Min %i max %i\n", nMin, nMax);
+
 	unsigned char (*pRGBA)[4];
 	for (int nPixelAt = 0; nPixelAt < m_nImageWidth * m_nImageHeight; nPixelAt++)
 	{
 		nValue = m_arrPixels[nPixelAt];
+		ASSERT(nValue >= nMin);
+		ASSERT(nValue <= nMax);
 		nValue -= nMin;
-		nValue <<= 8;
+		nValue *= 256; // <<= 8;
 		nValue /= nWindow; // (nMax - nMin);
 		nValue = min(255, nValue);
 		nValue = max(0, nValue);
@@ -452,6 +474,11 @@ void CDRRRenderer::DrawScene()
 			glGetIntegerv(GL_VIEWPORT, m_viewport);
 
 			ComputeDRR();
+
+			if (bOverMax)
+			{
+				::AfxMessageBox(_T("Problem with DRR pixel value"));
+			}
 		}
 
 		glMatrixMode(GL_PROJECTION);
@@ -471,7 +498,10 @@ void CDRRRenderer::DrawScene()
 		glDisable(GL_DEPTH_TEST);
 		glPixelZoom((float) m_nResDiv, (float) m_nResDiv);
 		ASSERT(m_arrPixels.GetSize() == m_nImageWidth * m_nImageHeight);
-		glDrawPixels(m_nImageWidth, m_nImageHeight, GL_RGBA, GL_UNSIGNED_BYTE, m_arrPixels.GetData());
+		static CArray<int, int> arrDrawPixels;
+		arrDrawPixels.Copy(m_arrPixels);
+
+		glDrawPixels(m_nImageWidth, m_nImageHeight, GL_RGBA, GL_UNSIGNED_BYTE, arrDrawPixels.GetData()); // m_arrPixels.GetData());
 		ASSERT(glGetError() == GL_NO_ERROR);
 		glEnable(GL_DEPTH_TEST);
 
@@ -492,7 +522,7 @@ void CDRRRenderer::DrawScene()
 			// retrieve the viewport
 			glGetIntegerv(GL_VIEWPORT, m_viewport);
 
-			m_pThread = ::AfxBeginThread(BackgroundComputeDRR, (void *)this, THREAD_PRIORITY_HIGHEST);
+			// m_pThread = ::AfxBeginThread(BackgroundComputeDRR, (void *)this, THREAD_PRIORITY_HIGHEST);
 		}
 	}
 }
