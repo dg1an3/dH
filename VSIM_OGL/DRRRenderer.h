@@ -38,6 +38,8 @@ public:
 	CArray<int, int> m_arrPixels;
 
 	BOOL m_bRecomputeDRR;
+	float m_scale;
+	float m_bias;
 };
 
 #endif // !defined(AFX_DRRRENDERER_H__88FB0320_0C35_11D5_9E4E_00B0D0609AB0__INCLUDED_)

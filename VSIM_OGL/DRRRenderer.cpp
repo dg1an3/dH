@@ -22,7 +22,9 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 	forVolume(NULL),
 	m_bRecomputeDRR(TRUE),
 	m_nSteps(64),
-	m_nShift(6)
+	m_nShift(6),
+	m_scale(1.0f),
+	m_bias(0.0f)
 {
 	m_pView->myProjectionMatrix.AddObserver(this);
 }
@@ -216,9 +218,6 @@ bool ClipRaster(int&, // nDestStart,
 	return true;
 }
 
-float m_scale = 1.0f;
-float m_bias = 0.0f;
-
 void CDRRRenderer::ComputeDRR()
 {
 	int nWidth = forVolume->width.Get();
@@ -351,7 +350,7 @@ void CDRRRenderer::ComputeDRR()
 				&& ClipRaster(nDestStart, nDestLength, viStart, viStep, 2, 0, nDepth))
 			{
 
-#define USE_MMX
+// #define USE_MMX
 #ifdef USE_MMX
 				static int viStepMMX[6];
 				viStepMMX[0] = viStep[0];
@@ -474,8 +473,17 @@ LOOP1:
 		viEnd = viEndOld + viEndStepY;
 	}
 
+#ifdef USE_SCALE_BIAS
 	m_scale = (float)INT_MAX / (float)(nMax - nMin);
-	m_bias = -(float) nMin / m_scale;
+	m_bias = (float) -nMin / m_scale;
+#endif
+
+	for (int nPixelAt = 0; nPixelAt < nImageWidth * nImageHeight; nPixelAt++)
+	{
+		m_arrPixels[nPixelAt] -= nMin;
+		m_arrPixels[nPixelAt] *= INT_MAX / (nMax - nMin);
+	}
+
 
 	m_bRecomputeDRR = FALSE;
 }
@@ -504,12 +512,14 @@ void CDRRRenderer::DrawScene()
 
 		glDrawBuffer(GL_BACK);
 
+#ifdef USE_SCALE_BIAS
 		glPixelTransferf(GL_RED_SCALE, m_scale);
 		glPixelTransferf(GL_GREEN_SCALE, m_scale);
 		glPixelTransferf(GL_BLUE_SCALE, m_scale);
 		glPixelTransferf(GL_RED_BIAS, m_bias);
 		glPixelTransferf(GL_GREEN_BIAS, m_bias);
 		glPixelTransferf(GL_BLUE_BIAS, m_bias);
+#endif
 
 		glDrawPixels(rect.Width(), rect.Height(), GL_LUMINANCE, GL_INT, m_arrPixels.GetData());
 		ASSERT(glGetError() == GL_NO_ERROR);
