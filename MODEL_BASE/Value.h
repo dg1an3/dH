@@ -12,7 +12,7 @@
 #include "Observer.h"
 
 template<class TYPE>
-class CValue : public CObservable, public CObserver
+class CValue : public CObservableObject, public CObserver
 {
 public:
 	CValue() 
@@ -32,28 +32,6 @@ public:
 			delete m_arrFunctions[nAt];
 	}
 
-	CValue& operator=(const CValue& fromValue) 
-	{ 
-		if (m_pSyncTo)
-		{
-			return (*m_pSyncTo) = fromValue;
-		}
-
-		Set(fromValue.Get());
-
-		return (*this);
-	}
-
-//	operator const TYPE&() const
-//	{
-//		if (m_pSyncTo)
-//		{
-//			return m_pSyncTo->Get();
-//		}
-//
-//		return Get();
-//	}
-//
 	TYPE& Get() 
 	{
 		if (m_pSyncTo)
@@ -89,6 +67,8 @@ public:
 
 	void SyncTo(CValue *pToValue)
 	{
+		ASSERT(pToValue != this);
+
 		if (m_pSyncTo == pToValue)
 			return;
 
@@ -111,11 +91,12 @@ public:
 		}
 	}
 
-	virtual void OnChange(CObservable *pFromObject)
+	virtual void OnChange(CObservableObject *pFromObject)
 	{
 		FireChange();
 	}
 
+	// TODO: rename this
 	void AddFunction(CObject *pFunc)
 	{
 		m_arrFunctions.Add(pFunc);

@@ -33,13 +33,18 @@ public:
 
 	void SetAutoObserver(CObserver *pObserver)
 	{
-		if (m_pAutoObserver)
-			m_value->RemoveObserver(m_pAutoObserver);
+		// TODO: check this logic
+		if (m_pAutoObserver 
+				&& m_value 
+				&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
+			((CObservableObject *)m_value)->RemoveObserver(m_pAutoObserver);
 
 		m_pAutoObserver = pObserver;
 
-		if (m_pAutoObserver)
-			m_value->AddObserver(m_pAutoObserver);
+		if (m_pAutoObserver 
+				&& m_value 
+				&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
+			((CObservableObject *)m_value)->AddObserver(m_pAutoObserver);
 	}
 
 	TYPE *operator->() 
@@ -55,13 +60,18 @@ public:
 		}
 		else if (m_value != fromValue)
 		{
-			if (m_pAutoObserver)
-				m_value->RemoveObserver(m_pAutoObserver);
+			// TODO: check this logic
+			if (m_pAutoObserver 
+					&& m_value 
+					&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
+				((CObservableObject *)m_value)->RemoveObserver(m_pAutoObserver);
 
 			m_value = fromValue;
 
-			if (m_pAutoObserver)
-				m_value->AddObserver(m_pAutoObserver);
+			if (m_pAutoObserver 
+					&& m_value 
+					&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
+				((CObservableObject *)m_value)->AddObserver(m_pAutoObserver);
 
 			FireChange();
 		}

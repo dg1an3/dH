@@ -26,7 +26,7 @@
 			return ar; } \
 
 template<class VOXEL_TYPE>
-class CVolume : public CObservable, public CObserver
+class CVolume : public CObservableObject, public CObserver
 {
 public:
 	CVolume()
@@ -112,7 +112,7 @@ public:
 		}
 	}
 
-	virtual void OnChange(CObservable *pSource)
+	virtual void OnChange(CObservableObject *pSource)
 	{
 		SetVoxels(m_pVoxels, width.Get(), height.Get(), depth.Get());
 	}

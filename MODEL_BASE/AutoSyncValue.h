@@ -12,6 +12,7 @@
 #include "Observer.h"
 #include "Association.h"
 
+// TODO: incorporate this function into the CValue base class
 template<class TYPE, class MEMBER_TYPE>
 class CAutoSyncValue : public CValue<MEMBER_TYPE>
 {
@@ -32,7 +33,7 @@ public:
 		m_pAssoc->RemoveObserver(this);
 	}
 
-	virtual void OnChange(CObservable *pSource)
+	virtual void OnChange(CObservableObject *pSource)
 	{
 		if (pSource == m_pAssoc)
 		{

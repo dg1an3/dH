@@ -12,7 +12,7 @@
 #include "Observer.h"
 #include "Vector.h"
 
-class CPolygon : public CObservable
+class CPolygon : public CObservableObject
 {
 public:
 	CPolygon();

@@ -1,4 +1,4 @@
-// Observer.h: interface for the CObserver class.
+// Observer.h: interface for the CObserver interface and CObservable class.
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -9,25 +9,41 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-class CObservable;
+
+// forward declaration of the CObservableObject class
+class CObservableObject;
+
+
+//////////////////////////////////////////////////////////////////////
+// the CObserver interface must be implemented by any object that wants to observe
+//		a CObservableObject
 
 class CObserver  
 {
 public:
-	virtual void OnChange(CObservable *pFromObject) = 0;
+	// the call-back for changes on a CObservableObject
+	virtual void OnChange(CObservableObject *pFromObject) = 0;
 };
 
-class CObservable : public CObject
+
+//////////////////////////////////////////////////////////////////////
+// a CObservableObject fires change events that can be processed by a CObserver
+
+class CObservableObject : public CObject
 {
 public:
-	DECLARE_DYNAMIC(CObservable);
+	// includes dynamic type information
+	DECLARE_DYNAMIC(CObservableObject)
 
+	// accessors for the observer list
 	void AddObserver(CObserver *pObserver) const;
 	void RemoveObserver(CObserver *pObserver) const;
 
+	// called to fire a change
 	void FireChange();
 
 private:
+	// the array of observers
 	mutable CArray<CObserver *, CObserver *> m_arrObservers;
 };
 

@@ -27,7 +27,7 @@ CModelObject::~CModelObject()
 
 }
 
-IMPLEMENT_SERIAL(CModelObject, CObservable, 1)
+IMPLEMENT_SERIAL(CModelObject, CObservableObject, 1)
 
 void CModelObject::AddObserverToChildren(CObserver *pObserver, int nLevels)
 {
@@ -69,7 +69,7 @@ void CModelObject::Serialize( CArchive& ar )
 	children.Serialize(ar);
 }
 
-void CModelObject::OnChange(CObservable *pSource)
+void CModelObject::OnChange(CObservableObject *pSource)
 {
 	FireChange();
 }

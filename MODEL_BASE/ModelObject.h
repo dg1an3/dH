@@ -10,7 +10,7 @@
 #include "Value.h"
 #include "Collection.h"
 
-class CModelObject : public CObservable, public CObserver
+class CModelObject : public CObservableObject, public CObserver
 {
 public:
 	CModelObject(const CString& strName = "");
@@ -33,7 +33,7 @@ public:
 	virtual void Serialize( CArchive& ar );
 
 	// handles changes from contained objects
-	virtual void OnChange(CObservable *pSource);
+	virtual void OnChange(CObservableObject *pSource);
 };
 
 #endif // !defined(AFX_MODELOBJECT_H__5BF91A87_C623_11D4_BE42_005004D16DAA__INCLUDED_)
