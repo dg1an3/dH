@@ -18,7 +18,8 @@ CObjectExplorer::CObjectExplorer()
     m_bDragging(FALSE),
     m_pItemDrag(NULL),
     m_pItemDrop(NULL),
-    m_pCommandTarget(NULL)
+    m_pCommandTarget(NULL),
+	m_pDoc(NULL)
 {
 }
 
@@ -34,7 +35,7 @@ CObjectExplorer::~CObjectExplorer()
     	HTREEITEM hItem;
     	CObjectTreeItem *pItem;
     	m_mapItemHandles.GetNextAssoc(pos, hItem, pItem);
-		if (pItem->parent.Get() == NULL)
+		if (pItem->m_pParent == NULL)
 			arrDeleteList.Add(pItem);
     }
 
@@ -48,32 +49,32 @@ HTREEITEM CObjectExplorer::InsertItem(CObjectTreeItem *pNewItem)
     HTREEITEM hParentItem = TVI_ROOT;
 
     // only if the parent is not NULL,
-    if (pNewItem->parent.Get() != NULL)
+    if (pNewItem->m_pParent != NULL)
     {
     	// get the real handle to the parent
-    	hParentItem = (HTREEITEM)(*pNewItem->parent.Get());
+    	hParentItem = (HTREEITEM)(*pNewItem->m_pParent);
     }
 
  	// set up the images for the item
 
  	// add them to the list, if necessary
  	CBitmap bitmap;
- 	bitmap.LoadBitmap(pNewItem->imageResourceID.Get());
+ 	bitmap.LoadBitmap(pNewItem->m_nImageResourceID);
 	ASSERT(GetImageList(TVSIL_NORMAL) != NULL);
  	int nImageIndex = GetImageList(TVSIL_NORMAL)->Add(&bitmap, (COLORREF)0xFFFFFF);
  	bitmap.DeleteObject();
  
- 	bitmap.LoadBitmap(pNewItem->selectedImageResourceID.Get());
+ 	bitmap.LoadBitmap(pNewItem->m_nSelectedImageResourceID);
  	int nSelImageIndex = GetImageList(TVSIL_NORMAL)->Add(&bitmap, (COLORREF)0xFFFFFF);
  	bitmap.DeleteObject();
  
     // create the tree control
     HTREEITEM hTreeItem = CTreeCtrl::InsertItem(TVIF_IMAGE 
     	| TVIF_SELECTEDIMAGE | TVIF_STATE | TVIF_TEXT,
-    	pNewItem->label.Get(), 
+    	pNewItem->m_strLabel, 
  		nImageIndex, // pNewItem->GetImageIndex(),
  		nSelImageIndex, // pNewItem->GetSelectedImageIndex(),
-    	INDEXTOSTATEIMAGEMASK(pNewItem->isChecked.Get() ? 2 : 1) 
+    	INDEXTOSTATEIMAGEMASK(pNewItem->m_bChecked ? 2 : 1) 
     		| TVIS_EXPANDED, // nState, 
     	TVIS_STATEIMAGEMASK | 0xFF, // nStateMask, 
     	NULL, // lParam, 
@@ -392,11 +393,11 @@ void CObjectExplorer::OnEndLabelEdit(LPNMHDR pnmhdr, LRESULT *pLResult)
  		CObjectTreeItem *pObjectTreeItem;
  		if (m_mapItemHandles.Lookup(ptvinfo->item.hItem, pObjectTreeItem))
  		{
- 			CObject *pObject = pObjectTreeItem->forObject.Get();
+ 			CObject *pObject = pObjectTreeItem->m_pObject;
 			if (pObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
 			{
 				CModelObject *pModelObject = (CModelObject *)pObject;
-				pModelObject->name.Set(ptvinfo->item.pszText);
+				pModelObject->SetName(ptvinfo->item.pszText);
 			}
  		}
 
@@ -425,6 +426,10 @@ void CObjectExplorer::OnSelChanged(NMHDR* pNMHDR, LRESULT* pResult)
     	pNewItem->OnSelected();
     }
     
+	// notify document of selection change
+	if (m_pDoc != NULL)
+		m_pDoc->UpdateAllViews(NULL, (LPARAM)pNewItem->m_pObject, this);
+
     *pResult = 0;
 }
 
@@ -449,7 +454,7 @@ void CObjectExplorer::OnCheck(NMHDR* pNMHDR, LRESULT* pResult)
  			//		the item's check state has not yet been updated at the time
  			//		of the click message
  			// pItem->SetChecked(!GetCheck(ht.hItem)); // 
-			pItem->isChecked.Set(!GetCheck(ht.hItem));
+			pItem->m_bChecked = !GetCheck(ht.hItem);
  		}
  	}
  	

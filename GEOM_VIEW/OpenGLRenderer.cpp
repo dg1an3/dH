@@ -4,10 +4,10 @@
 
 #include "stdafx.h"
 
+#include <gl/gl.h>
+
 #include "OpenGLRenderer.h"
 #include "OpenGLView.h"
-
-#include "gl/gl.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -22,37 +22,78 @@ static char THIS_FILE[]=__FILE__;
 COpenGLRenderer::COpenGLRenderer(COpenGLView *pView)
 	: m_pView(pView),
 		m_nDrawList(-1),
-		color(RGB(255, 255, 255)),
-		isEnabled(TRUE)
+		m_color(RGB(255, 255, 255)),
+		m_bEnabled(TRUE)
 {
-	color.AddObserver(this, (ChangeFunction) OnChange);
-	modelviewMatrix.AddObserver(this, (ChangeFunction) OnChangeNoRender);
-	isEnabled.AddObserver(this, (ChangeFunction) OnChangeNoRender);
 }
 
 COpenGLRenderer::~COpenGLRenderer()
 {
 }
 
-void COpenGLRenderer::Invalidate()
+// color for the renderer (use depends on objects being rendered)
+COLORREF COpenGLRenderer::GetColor() const
 {
-	m_pView->MakeCurrentGLRC();
-
-	if (m_nDrawList != -1)
-		glDeleteLists(m_nDrawList, 1);
-
-	m_nDrawList = -1;
-
-	m_pView->Invalidate();
+	return m_color;
 }
 
-void COpenGLRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
+void COpenGLRenderer::SetColor(COLORREF color)
 {
+	// set the color
+	m_color = color;
+
+	// invalidate to redraw
 	Invalidate();
 }
 
-void COpenGLRenderer::OnChangeNoRender(CObservableObject *pSource, void *pOldValue)
+// defines the modelview matrix for this renderer
+const CMatrix<4>& COpenGLRenderer::GetModelviewMatrix() const
 {
+	return m_mModelview;
+}
+
+void COpenGLRenderer::SetModelviewMatrix(const CMatrix<4>& m)
+{
+	// set the modelview matrix
+	m_mModelview = m;
+
+	// and invalidate the view to redraw without re-rendering
+	m_pView->Invalidate();
+}
+
+
+// turns on/off the renderer;
+BOOL COpenGLRenderer::IsEnabled() const
+{
+	return m_bEnabled;
+}
+
+void COpenGLRenderer::SetEnabled(BOOL bEnabled)
+{
+	// set the enabled flag
+	m_bEnabled = bEnabled;
+
+	// and invalidate the view to redraw without re-rendering
+	m_pView->Invalidate();
+}
+
+
+void COpenGLRenderer::Invalidate(CObservableEvent *pEvent, void *pValue)
+{
+	// set the current HGLRC
+	m_pView->MakeCurrentGLRC();
+
+	// if the draw list exists,
+	if (m_nDrawList != -1)
+	{
+		// delete it
+		glDeleteLists(m_nDrawList, 1);
+
+		// set it to -1
+		m_nDrawList = -1;
+	}
+
+	// invalidate the view, which will trigger re-rendering
 	m_pView->Invalidate();
 }
 
@@ -62,8 +103,11 @@ void COpenGLRenderer::OnRenderScene()
 
 void COpenGLRenderer::DrawScene()
 {
-	if (!isEnabled.Get())
+	// only draw if enabled
+	if (!IsEnabled())
+	{
 		return;
+	}
 
 	// see if we need to re-create the draw list
 	if (m_nDrawList == -1)

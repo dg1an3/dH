@@ -2,154 +2,410 @@
 //
 //////////////////////////////////////////////////////////////////////
 
+// pre-compiled headers
 #include "stdafx.h"
 
-#include <ScalarFunction.h>
+// floating point utilities
+#include <float.h>
 
+// math utilities
+#include <MathUtil.h>
+
+// class interface
 #include "OpenGLCamera.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::COpenGLCamera
+// 
+// constructs a camera object
+//////////////////////////////////////////////////////////////////////
 COpenGLCamera::COpenGLCamera()
-	: targetPoint(CVector<3>(0.0, 0.0, 0.0)),
-		distance(100.0),
-		theta(0.0),
-		phi(0.0),
-		rollAngle(0.0),
-		viewingAngle(45.0),
-		aspectRatio(1.0),
-		nearPlane(50.0),
-		farPlane(150.0)
+#pragma warning(disable: 4355)
+	: m_eventChange(this),
+#pragma warning(default: 4355)
+		m_vTargetPoint(CVector<3>(0.0, 0.0, 0.0)),
+		m_distance(100.0),
+		m_theta(0.0),
+		m_phi(0.0),
+		m_rollAngle(0.0),
+		m_viewingAngle(45.0),
+		m_aspectRatio(1.0),
+		m_nearPlane(50.0),
+		m_farPlane(150.0)
 {
-	// add the change listeners for the model-to-camera transform
-	targetPoint.AddObserver(this, (ChangeFunction) OnComputeModelXform);
-	distance.AddObserver(this, (ChangeFunction) OnComputeModelXform);
-	rollAngle.AddObserver(this, (ChangeFunction) OnComputeModelXform);
-	theta.AddObserver(this, (ChangeFunction) OnComputeModelXform);
-	phi.AddObserver(this, (ChangeFunction) OnComputeModelXform);
+	// set up the projection
+	RecalcProjection();
 
-	// add the change listeners for the camera direction and roll
-	modelXform.AddObserver(this, (ChangeFunction) OnComputeCameraAngles);
-
-	// add the change listeners for the camera projection
-	viewingAngle.AddObserver(this, (ChangeFunction) OnComputeProjection);
-	aspectRatio.AddObserver(this, (ChangeFunction) OnComputeProjection);
-	nearPlane.AddObserver(this, (ChangeFunction) OnComputeProjection);
-	farPlane.AddObserver(this, (ChangeFunction) OnComputeProjection);
-
-	// set up the total projection matrix
-	projection.SyncTo(&(
-		perspective * modelXform
-	));
+	// and model xform matrices
+	RecalcModelXform();
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::~COpenGLCamera
+// 
+// destroys the camera object
+//////////////////////////////////////////////////////////////////////
 COpenGLCamera::~COpenGLCamera()
 {
 }
 
-void COpenGLCamera::SetFieldOfView(double maxObjectSize)
-{
-	farPlane.Set(nearPlane.Get() + maxObjectSize * 2.5f);
-	distance.Set(nearPlane.Get() + maxObjectSize / 1.2f);
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::GetDistance
+// 
+// returns the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+double COpenGLCamera::GetDistance() const 
+{ 
+	return m_distance;
 }
 
-BOOL m_bNoComputeXform = FALSE;
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetDistance(double dist) 
+{ 
+	// set the distance from the camera to the target point
+	m_distance = dist;
 
-void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldValue)
+	// recalculat the model transform
+	RecalcModelXform();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::GetTheta
+// 
+// returns the theta angle for the camera
+//////////////////////////////////////////////////////////////////////
+double COpenGLCamera::GetTheta() const 
+{ 
+	return m_theta;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetTheta
+// 
+// sets the theta angle for the camera
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetTheta(double theta) 
+{ 
+	// set theta
+	m_theta = theta;
+
+	// and recalculate the model xform
+	RecalcModelXform();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::GetPhi
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+double COpenGLCamera::GetPhi() const 
+{ 
+	return m_phi;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetPhi
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetPhi(double phi) 
+{ 
+	// set phi
+	m_phi = phi;
+
+	// and recalculate the model xform
+	RecalcModelXform();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// the camera rotation about its optical axis
+double COpenGLCamera::GetRollAngle() const 
+{ 
+	return m_rollAngle;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetRollAngle(double rollAngle) 
+{ 
+	m_rollAngle = rollAngle;
+
+	// and recalculate the model xform
+	RecalcModelXform();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// matrix representing the transform from the model space to the
+//		camera space
+const CMatrix<4>& COpenGLCamera::GetModelXform() const 
+{ 
+	return m_mModelXform;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetModelXform(const CMatrix<4>& m) 
+{ 
+	// assign the matrix
+	m_mModelXform = m;
+
+	// compute the total projection
+	m_mProjection = GetPerspective() * m_mModelXform;
+
+	// form the rotation angles for the camera direction
+	m_phi = acos(m[2][2]);
+
+	// set the theta and roll angles to zero initially
+	m_theta = 0.0;
+	m_rollAngle = 0.0;
+
+	// the sine of phi is used to compute the other angles
+	double sin_phi = sin(m_phi);
+	if (sin_phi > EPS)
+	{
+		// compute theta
+		if (m[2][0] != 0.0 && m[2][1] != 0.0)
+		{
+			m_theta = AngleFromSinCos(
+				m[2][0] / sin_phi,
+				m[2][1] / sin_phi);
+		}
+
+		// compute phi
+		if (m[0][2] != 0.0 && m[1][2] != 0.0)
+		{
+			m_rollAngle = AngleFromSinCos(
+				m[0][2] / sin_phi,
+				-m[1][2] / sin_phi);
+		}
+	}
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// the viewing angle for the camera (0 for orthographic camera)
+double COpenGLCamera::GetViewingAngle() const 
+{ 
+	return m_viewingAngle;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetViewingAngle(double angle) 
+{ 
+	m_viewingAngle = angle;
+
+	// and recalculate the projection
+	RecalcProjection();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// the aspect ratio is usually set to the aspect ratio of the viewport
+double COpenGLCamera::GetAspectRatio() const 
+{ 
+	return m_aspectRatio;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetAspectRatio(double aspectRatio) 
+{ 
+	// make sure a valid aspect ratio is passed
+	ASSERT(!_isnan(aspectRatio));
+
+	m_aspectRatio = aspectRatio;
+
+	// and recalculate the projection
+	RecalcProjection();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// the clipping planes, distance from focal point
+double COpenGLCamera::GetNearPlane() const 
+{ 
+	return m_nearPlane;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+double COpenGLCamera::GetFarPlane() const 
+{ 
+	return m_farPlane;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetClippingPlanes(double nearPlane, double farPlane) 
+{ 
+	m_nearPlane = nearPlane;
+	m_farPlane = farPlane;
+
+	// and recalculate the projection
+	RecalcProjection();
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::SetFieldOfView(double maxObjectSize)
 {
-	if (m_bNoComputeXform)
-		return;
+	SetClippingPlanes(GetNearPlane(), 
+			GetNearPlane() + maxObjectSize * 2.5f);
+	SetDistance(GetNearPlane() + maxObjectSize / 1.2f);
+}
 
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// matrix representing the camera projection
+const CMatrix<4>& COpenGLCamera::GetPerspective() const
+{
+	return m_mPerspective;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::SetDistance
+// 
+// sets the distance along the optical axis from the camera's 
+//		focal point to the target point
+//////////////////////////////////////////////////////////////////////
+// the total matrix for the projection and transform
+const CMatrix<4>& COpenGLCamera::GetProjection() const
+{
+	return m_mProjection;
+}
+
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::RecalcModelXform
+// 
+// recalculates the model transform
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::RecalcModelXform()
+{
 	// form the rotation matrix for the camera direction
-	CMatrix<4> mRotateDir = CreateRotate(phi.Get(), CVector<3>(1.0, 0.0, 0.0))
-		* CreateRotate(theta.Get(), CVector<3>(0.0, 0.0, 1.0));
+	CMatrix<3> mRotateDir = CreateRotate(GetPhi(), CVector<3>(1.0, 0.0, 0.0))
+		* CreateRotate(GetTheta(), CVector<3>(0.0, 0.0, 1.0));
 
 	// form the camera roll rotation matrix
-	CMatrix<4> mRotateRoll = CreateRotate(rollAngle.Get(), 
+	CMatrix<3> mRotateRoll = CreateRotate(GetRollAngle(), 
 		CVector<3>(0.0, 0.0, 1.0));
 
 	// form the translation from the target point to the focal point
-	CMatrix<4> mTranslate = CreateTranslate(distance.Get(), 
+	CMatrix<4> mTranslate = CreateTranslate(GetDistance(), 
 		CVector<3>(0.0, 0.0, -1.0));
 
 	// and set the total camera transformation to all three matrices
-	modelXform.Set(mTranslate * mRotateRoll * 
-		mRotateDir);
+	m_mModelXform = 
+		mTranslate * CMatrix<4>(mRotateRoll) * CMatrix<4>(mRotateDir);
+
+	// compute the total projection
+	m_mProjection = GetPerspective() * GetModelXform();
 
 	// notify listeners that the camera has changed
-	FireChange();
+	GetChangeEvent().Fire();
 }
 
-void COpenGLCamera::OnComputeCameraAngles(CObservableObject *pSource, void *pOldValue)
-{
-	CMatrix<4> mXform = modelXform.Get();
-	TRACE_MATRIX4("mXform in COpenGLCamera = ", mXform);
-
-	// form the rotation angles for the camera direction
-	double new_phi = acos(mXform[2][2]);
-	double sin_phi = sin(phi.Get());
-	double new_theta = 0.0;
-	double new_rollAngle = 0.0;
-	if (sin_phi > EPS)
-	{
-		if (mXform[2][0] != 0.0 && mXform[2][1] != 0.0)
-			new_theta = AngleFromSinCos(
-				mXform[2][0] / sin_phi,
-				mXform[2][1] / sin_phi);
-		if (mXform[0][2] != 0.0 && mXform[1][2] != 0.0)
-			new_rollAngle = AngleFromSinCos(
-				mXform[0][2] / sin_phi,
-				-mXform[1][2] / sin_phi);
-	}
-	// TRACE2("Angles in COpenGLCamera: phi = %lf\t theta = %lf\n",
-	//	new_phi, new_theta);
-
-	m_bNoComputeXform = TRUE;
-
-	// compare to the existing, only replace if different
-	if (!IS_APPROX_EQUAL(new_phi, phi.Get()))
-		phi.Set(new_phi);
-
-	if (!IS_APPROX_EQUAL(new_theta, theta.Get()))
-		theta.Set(new_theta);
-
-	if (!IS_APPROX_EQUAL(new_rollAngle, rollAngle.Get()))
-		rollAngle.Set(new_rollAngle);
-
-	m_bNoComputeXform = FALSE;
-
-	// notify listeners that the camera has changed
-	FireChange();
-}
-
-
-void COpenGLCamera::OnComputeProjection(CObservableObject *pSource, void *pOldValue)
+//////////////////////////////////////////////////////////////////////
+// COpenGLCamera::RecalcProjection
+// 
+// recalculates the projection (perspective and xform)
+//////////////////////////////////////////////////////////////////////
+void COpenGLCamera::RecalcProjection()
 {
 	// compute the top edge of the viewing frustum from the nearPlane 
 	//		and viewingAngle
-	double top = nearPlane.Get() * tan(viewingAngle.Get() * PI / 360.0);
+	double top = GetNearPlane() * tan(GetViewingAngle() * PI / 360.0);
 
 	// compute the right edge from the top edge and the aspect ratio
-	double right = top * aspectRatio.Get();
+	double right = top * GetAspectRatio();
 
 	// now populate the perspective projection matrix
 	CMatrix<4> mPersp;
-	mPersp[0][0] = 2.0 * nearPlane.Get() 
-		/ (2.0 * right);
-	mPersp[1][1] = 2.0 * nearPlane.Get()
-		/ (2.0 * top);
-	mPersp[2][2] = -(farPlane.Get() + nearPlane.Get())
-		/ (farPlane.Get() - nearPlane.Get());
-	mPersp[2][3] = -2.0 * farPlane.Get() * nearPlane.Get()
-		/ (farPlane.Get() - nearPlane.Get());
+	mPersp[0][0] = 2.0 * GetNearPlane() / (2.0 * right);
+	mPersp[1][1] = 2.0 * GetNearPlane() / (2.0 * top);
+	mPersp[2][2] = -(GetFarPlane() + GetNearPlane()) 
+		/ (GetFarPlane() - GetNearPlane());
+	mPersp[2][3] = -2.0 * GetFarPlane() * GetNearPlane()
+		/ (GetFarPlane() - GetNearPlane());
 	mPersp[3][2] = -1.0;
 	mPersp[3][3] = 0.0;
 
 	// and set the projection
-	perspective.Set(mPersp);
+	m_mPerspective = mPersp;
+
+	// compute the total projection
+	m_mProjection = GetPerspective() * GetModelXform();
 
 	// notify listeners that the camera has changed
-	FireChange();
+	GetChangeEvent().Fire();
 }

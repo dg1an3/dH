@@ -13,8 +13,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Value.h"
-#include "Matrix.h"
+// matrix include file
+#include <Matrix.h>
+
+// observable events
+#include <Observer.h>
 
 // forward declaration of the COpenGLView class 
 class COpenGLView;
@@ -32,33 +35,43 @@ public:
 	virtual ~COpenGLRenderer();
 
 	// color for the renderer (use depends on objects being rendered)
-	CValue< COLORREF > color;	
+	COLORREF GetColor() const;
+	void SetColor(COLORREF);
 
 	// defines the modelview matrix for this renderer
-	CValue< CMatrix<4> > modelviewMatrix;
+	const CMatrix<4>& GetModelviewMatrix() const;
+	void SetModelviewMatrix(const CMatrix<4>& m);
 
 	// turns on/off the renderer;
-	CValue< BOOL > isEnabled;
-
-	// triggers invalidation and re-rendering
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
-
-	// triggers invalidation (without full re-render)
-	virtual void OnChangeNoRender(CObservableObject *pSource, void *pOldValue);
-
-	// invalidates the 
-	void Invalidate();
-
-	// called to draw the scene
-	virtual void DrawScene();
+	BOOL IsEnabled() const;
+	void SetEnabled(BOOL bEnabled = TRUE);
 
 	// Renders the scene -- called by DrawScene to create the drawlist
 	virtual void OnRenderScene();
 
+	// called to draw the scene -- don't over-ride this unless the
+	//		drawlist logic needs to be overridden
+	virtual void DrawScene();
+
+	// invalidates the object -- is a CObservableEvent compatible
+	//		member function (ListenerFunction)
+	void Invalidate(CObservableEvent *pEvent = NULL, void *pValue = NULL);
+
 protected:
+	// the view for this class
 	COpenGLView * m_pView;
 
 private:
+	// the rendering color
+	COLORREF m_color;	
+
+	// the modelview matrix for the object
+	CMatrix<4> m_mModelview;
+
+	// the enabled flag
+	BOOL m_bEnabled;
+
+	// the draw list for draw compilation
 	int m_nDrawList;
 };
 

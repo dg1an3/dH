@@ -9,11 +9,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "OpenGLTracker.h"
-#include "Vector.h"
-#include "Matrix.h"
+#include <Vector.h>
+#include <Matrix.h>
 
-#include "Value.h"
+#include "OpenGLTracker.h"
 
 class CZoomTracker : public COpenGLTracker  
 {
@@ -26,13 +25,13 @@ public:
 	virtual void OnMouseDrag(UINT nFlags, CPoint point);
 
 private:
-	CValue< double > privInitY;
+	double privInitY;
 
-	CValue< CMatrix<4> > privInitProjMatrix;
+	CMatrix<4> privInitProjMatrix;
 
-	CValue< double > privCurrY;
+	double privCurrY;
 
-	CValue< CMatrix<4> >& privCurrProjMatrix;
+	CMatrix<4> privCurrProjMatrix;
 };
 
 #endif // !defined(ZOOMTRACKER_H)

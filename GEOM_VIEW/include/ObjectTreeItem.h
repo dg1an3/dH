@@ -5,9 +5,6 @@
 #if !defined(AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_)
 #define AFX_OBJECTTREEITEM_H__BFB71EC3_C55D_11D4_BE40_005004D16DAA__INCLUDED_
 
-#include <Value.h>
-#include <Association.h>
-#include <Collection.h>
 #include <ModelObject.h>
 
 class CObjectExplorer;
@@ -26,28 +23,28 @@ public:
 	operator HTREEITEM() const;
     
 	// string holding the name (label) for this tree item
-	CValue< CString > label;
+	CString m_strLabel;
 
 	// value to indicate that the item should be checked
-	CValue< BOOL > isChecked; 
+	BOOL m_bChecked; 
 
 	// access to the object represented by this item
-	CAssociation< CObject > forObject;
+	CObject *m_pObject;
 
 	// flag to indicate that the children of this item should be auto-created
-	CValue< BOOL > autoCreateChildren;
+	BOOL m_bAutoCreateChildren;
 
 	// access to the parent tree item; NOTE: do not change this by hand,
 	//		use the parent's AddChild member function
-	CAssociation< CObjectTreeItem > parent;
+	CObjectTreeItem *m_pParent;
 
 	// child access -- override GetChildCount and GetChild in order to
 	//		create children from model object's contained objects
-	CCollection< CObjectTreeItem > children;
+	CObArray  m_arrChildren;		// CObjectTreeItem
 
 	// resource identifiers for the icons to be used
-	CValue<UINT> imageResourceID;
-	CValue<UINT> selectedImageResourceID;
+	UINT m_nImageResourceID;
+	UINT m_nSelectedImageResourceID;
 
 	// returns the current popup menu for this item
 	virtual CMenu * GetPopupMenu();

@@ -4,6 +4,9 @@
 
 #include "stdafx.h"
 //#include "vsim_ogl.h"
+
+// #include <ScalarFunction.h>
+
 #include "ZoomTracker.h"
 
 #include "OpenGLView.h"
@@ -21,6 +24,26 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+/*
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix arithmetic
+//////////////////////////////////////////////////////////////////////
+FUNCTION_FACTORY2(operator+, CMatrix<4>)
+FUNCTION_FACTORY2_ARG(operator*, CMatrix<4>, CMatrix<4>, CMatrix<4>)
+
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix creation from parameters
+//////////////////////////////////////////////////////////////////////
+FUNCTION_FACTORY2(CreateRotate, CMatrix<4>)
+FUNCTION_FACTORY1(CreateTranslate, CMatrix<4>)
+FUNCTION_FACTORY2(CreateTranslate, CMatrix<4>)
+FUNCTION_FACTORY1(CreateScale, CMatrix<4>)
+
+//////////////////////////////////////////////////////////////////////
+// declare function factories for matrix inversion
+//////////////////////////////////////////////////////////////////////
+FUNCTION_FACTORY1(Invert, CMatrix<4>)
+*/
 CMatrix<4> ComputeScaleMatrix(const double& initY, const double& finalY)
 {
 	// compute the difference
@@ -31,16 +54,14 @@ CMatrix<4> ComputeScaleMatrix(const double& initY, const double& finalY)
 	return CreateScale(CVector<3>(scale, scale, scale));
 }
 
-FUNCTION_FACTORY2(ComputeScaleMatrix, CMatrix<4>)
+// FUNCTION_FACTORY2(ComputeScaleMatrix, CMatrix<4>)
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
 CZoomTracker::CZoomTracker(COpenGLView *pView)
-	: COpenGLTracker(pView),
-		privCurrProjMatrix(privInitProjMatrix 
-			* ComputeScaleMatrix(privInitY, privCurrY))
+	: COpenGLTracker(pView)
 {
 }
 
@@ -51,28 +72,29 @@ CZoomTracker::~CZoomTracker()
 
 void CZoomTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	privInitProjMatrix.Set(m_pView->camera.modelXform.Get());
+	privInitProjMatrix = m_pView->GetCamera().GetModelXform();
 
 	CRect rect;
 	m_pView->GetClientRect(&rect);
-	privInitY.Set((double) point.y / (double) rect.Height());
+	privInitY = (double) point.y / (double) rect.Height();
 
-	privCurrY.Set(privInitY.Get());
+	privCurrY = privInitY;
 
-	m_pView->camera.modelXform.SyncTo(&privCurrProjMatrix);
 }
 
 void CZoomTracker::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	m_pView->camera.modelXform.SyncTo(NULL);
-	m_pView->camera.modelXform.Set(privCurrProjMatrix.Get());
+	m_pView->GetCamera().SetModelXform(privCurrProjMatrix);
 }
 
 void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
 	CRect rect;
 	m_pView->GetClientRect(&rect);
-	privCurrY.Set((double) point.y / (double) rect.Height());
+	privCurrY = (double) point.y / (double) rect.Height();
+
+	privCurrProjMatrix = privInitProjMatrix 
+		* ComputeScaleMatrix(privInitY, privCurrY);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

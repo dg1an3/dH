@@ -12,8 +12,6 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Collection.h>
-
 #include <Matrix.h>
 
 #include "OpenGLRenderer.h"
@@ -39,20 +37,31 @@ public:
 public:
 	
 	// the background color for the view
-	CValue< COLORREF > backgroundColor;
-
-	// collection of renderers
-	CCollection< COpenGLRenderer > renderers;
+	COLORREF GetBackgroundColor() const;
+	void SetBackgroundColor(COLORREF color);
 
 	// the view's camera
-	COpenGLCamera camera;
+	COpenGLCamera& GetCamera();
 
-	// stores the lights for the view
-	CCollection< COpenGLLight > lights;
+	// collection of renderers
+	int GetRendererCount() const;
+	COpenGLRenderer *GetRendererAt(int nAt);
+	int AddRenderer(COpenGLRenderer *pRenderer);
 
-	// collection of trackers
-	CCollection< COpenGLTracker > leftTrackers;
-	CCollection< COpenGLTracker > middleTrackers;
+	// collection of lights for the view
+	int GetLightCount() const;
+	COpenGLLight *GetLightAt(int nAt);
+	int AddLight(COpenGLLight *pRenderer);
+
+	// collection of trackers for left button
+	int GetLeftTrackerCount() const;
+	COpenGLTracker *GetLeftTrackerAt(int nAt);
+	int AddLeftTracker(COpenGLTracker *pRenderer);
+
+	// collection of trackers for middle button
+	int GetMiddleTrackerCount() const;
+	COpenGLTracker *GetMiddleTrackerAt(int nAt);
+	int AddMiddleTracker(COpenGLTracker *pRenderer);
 
 // Operations
 public:
@@ -110,6 +119,24 @@ private:
 
 	// holds the OpenGL rendering context
 	HGLRC m_hrc;
+
+	// the background color for the view
+	COLORREF m_backgroundColor;
+
+	// the rednerers
+	CObArray m_arrRenderers;		// COpenGLRenderer 
+
+	// the view camera
+	COpenGLCamera m_camera;
+
+	// the array of lights
+	CObArray m_arrLights;			// COpenGLLight
+
+	// the array of left button trackers
+	CObArray m_arrLeftTrackers;		// COpenGLTracker
+
+	// the array of middle button trackers
+	CObArray m_arrMiddleTrackers;	// COpenGLTracker
 
 	// flag to indicate that the dragging is occurring
 	BOOL m_bDragging;

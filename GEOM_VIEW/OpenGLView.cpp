@@ -37,7 +37,7 @@ IMPLEMENT_DYNCREATE(COpenGLView, CWnd)
 COpenGLView::COpenGLView()
 	: m_pDC(NULL),
 		m_hrc(NULL),
-		backgroundColor(RGB(0, 0, 0)),
+		m_backgroundColor(RGB(0, 0, 0)),
 		m_bDragging(FALSE),
 		m_bMiddleDragging(FALSE)
 {
@@ -50,6 +50,87 @@ COpenGLView::COpenGLView()
 /////////////////////////////////////////////////////////////////////////////
 COpenGLView::~COpenGLView()
 {
+}
+
+// the background color for the view
+COLORREF COpenGLView::GetBackgroundColor() const
+{
+	return m_backgroundColor;
+}
+
+void COpenGLView::SetBackgroundColor(COLORREF color)
+{
+	m_backgroundColor = color;
+}
+
+// the view's GetCamera()
+COpenGLCamera& COpenGLView::GetCamera()
+{
+	return m_camera;
+}
+
+// collection of renderers
+int COpenGLView::GetRendererCount() const
+{
+	return m_arrRenderers.GetSize();
+}
+
+COpenGLRenderer *COpenGLView::GetRendererAt(int nAt)
+{
+	return (COpenGLRenderer *) m_arrRenderers[nAt];
+}
+
+int COpenGLView::AddRenderer(COpenGLRenderer *pRenderer) 
+{ 
+	return m_arrRenderers.Add(pRenderer);
+}
+
+// collection of lights for the view
+int COpenGLView::GetLightCount() const 
+{ 
+	return m_arrLights.GetSize();
+}
+
+COpenGLLight *COpenGLView::GetLightAt(int nAt)
+{ 
+	return (COpenGLLight *) m_arrLights[nAt];
+}
+
+int COpenGLView::AddLight(COpenGLLight *pRenderer) 
+{ 
+	return m_arrLights.Add(pRenderer);
+}
+
+// collection of trackers for left button
+int COpenGLView::GetLeftTrackerCount() const 
+{ 
+	return m_arrLeftTrackers.GetSize();
+}
+
+COpenGLTracker *COpenGLView::GetLeftTrackerAt(int nAt) 
+{ 
+	return (COpenGLTracker *) m_arrLeftTrackers[nAt];
+}
+
+int COpenGLView::AddLeftTracker(COpenGLTracker *pRenderer) 
+{ 
+	return m_arrLeftTrackers.Add(pRenderer);
+}
+
+// collection of trackers for middle button
+int COpenGLView::GetMiddleTrackerCount() const 
+{ 
+	return m_arrLeftTrackers.GetSize();
+}
+
+COpenGLTracker *COpenGLView::GetMiddleTrackerAt(int nAt) 
+{ 
+	return (COpenGLTracker *) m_arrLeftTrackers[nAt];
+}
+
+int COpenGLView::AddMiddleTracker(COpenGLTracker *pRenderer)
+{
+	return m_arrLeftTrackers.Add(pRenderer);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -146,7 +227,7 @@ void COpenGLView::MakeCurrentGLRC()
 /////////////////////////////////////////////////////////////////////////////
 CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt)
 {
-	return ModelPtFromWndPt(wndPt, camera.projection.Get());
+	return ModelPtFromWndPt(wndPt, GetCamera().GetProjection());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -172,7 +253,7 @@ CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vModelPt;
 	gluUnProject((GLdouble)viewport[2] - wndPt.x, (GLdouble)wndPt.y, 
-		camera.nearPlane.Get(),
+		GetCamera().GetNearPlane(),
 		modelMatrix, projMatrix, viewport, 
 		&vModelPt[0], &vModelPt[1], &vModelPt[2]);
 
@@ -268,19 +349,19 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// create the default lights for the view
 
 	COpenGLLight *pNewLight = new COpenGLLight();
-	pNewLight->diffuseColor.Set(RGB(255, 255, 255));
-	pNewLight->position.Set(CVector<3>(-5.0, -5.0, 3.0));
-	lights.Add(pNewLight);
+	pNewLight->SetDiffuseColor(RGB(255, 255, 255));
+	pNewLight->SetPosition(CVector<3>(-5.0, -5.0, 3.0));
+	AddLight(pNewLight);
 
 	pNewLight = new COpenGLLight();
-	pNewLight->diffuseColor.Set(RGB(128, 128, 128));
-	pNewLight->position.Set(CVector<3>(5.0, -5.0, 3.0));
-	lights.Add(pNewLight);
+	pNewLight->SetDiffuseColor(RGB(128, 128, 128));
+	pNewLight->SetPosition(CVector<3>(5.0, -5.0, 3.0));
+	AddLight(pNewLight);
 
 	pNewLight = new COpenGLLight();
-	pNewLight->diffuseColor.Set(RGB(128, 128, 128));
-	pNewLight->position.Set(CVector<3>(0.0, 5.0, 3.0));
-	lights.Add(pNewLight);
+	pNewLight->SetDiffuseColor(RGB(128, 128, 128));
+	pNewLight->SetPosition(CVector<3>(0.0, 5.0, 3.0));
+	AddLight(pNewLight);
 
 	glEnable(GL_LIGHTING);
 
@@ -337,7 +418,16 @@ void COpenGLView::OnSize(UINT nType, int cx, int cy)
 	glViewport(0, 0, cx, cy);
 
 	// calculate the aspect ratio for the camera
-	camera.aspectRatio.Set((double) cx / (double) cy);
+	if (cx > 0 && cy > 0)
+	{
+		GetCamera().SetAspectRatio((double) cx / (double) cy);
+	}
+	else
+	{
+		GetCamera().SetAspectRatio(1.0);
+	}
+
+	TRACE_MATRIX("COpenGLView::OnSize Projection Matrix", GetCamera().GetProjection());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -351,34 +441,38 @@ void COpenGLView::OnPaint()
 	MakeCurrentGLRC();
 
 	// clear the buffers
-	glClearColor(backgroundColor.Get());
+	glClearColor(GetBackgroundColor());
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// load the projection matrix
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrix(camera.projection.Get());
+	glLoadMatrix(GetCamera().GetProjection());
+	TRACE_MATRIX("COpenGLView::OnPaint Projection Matrix", 
+		GetCamera().GetProjection());
 
 	// set up the lights
-	for (int nAtLight = 0; nAtLight < lights.GetSize(); nAtLight++)
-		lights.Get(nAtLight)->TurnOn(nAtLight);
+	for (int nAtLight = 0; nAtLight < GetLightCount(); nAtLight++)
+	{
+		GetLightAt(nAtLight)->TurnOn(nAtLight);
+	}
 
 	// set the matrix mode to modelview
 	glMatrixMode(GL_MODELVIEW);
 
 	// for each renderer, 
-	for (int nAt = 0; nAt < renderers.GetSize(); nAt++)
+	for (int nAt = 0; nAt < GetRendererCount(); nAt++)
 	{
 		// save the current model matrix state
 		glPushMatrix();
 
 		// load the renderer's modelview matrix
-		glLoadMatrix(renderers.Get(nAt)->modelviewMatrix.Get());
+		glLoadMatrix(GetRendererAt(nAt)->GetModelviewMatrix());
 
 		// save the current rendering attributes
 		// glPushAttrib(GL_ALL_ATTRIB_BITS);
 
 		// draw its scene
-		renderers.Get(nAt)->DrawScene();
+		GetRendererAt(nAt)->DrawScene();
 
 		// restore the rendering attributes
 		// glPopAttrib();
@@ -413,12 +507,12 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 	m_bDragging = TRUE;
 
 	// find the tracker which contains the point
-	for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
+	for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
 	{
-		if (leftTrackers.Get(nAt)->IsInside(point))
+		if (GetLeftTrackerAt(nAt)->IsInside(point))
 		{
 			// found one
-			leftTrackers.Get(nAt)->OnLButtonDown(nFlags, point);
+			GetLeftTrackerAt(nAt)->OnLButtonDown(nFlags, point);
 			break;
 		}
 	}
@@ -442,11 +536,11 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 	m_bDragging = FALSE;	
 	
 	// find the tracker which contains the point
-	for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
+	for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
 	{
-		if (leftTrackers.Get(nAt)->IsInside(point))
+		if (GetLeftTrackerAt(nAt)->IsInside(point))
 		{
-			leftTrackers.Get(nAt)->OnLButtonUp(nFlags, point);
+			GetLeftTrackerAt(nAt)->OnLButtonUp(nFlags, point);
 			break;
 		}
 	}
@@ -470,11 +564,11 @@ void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point)
 	m_bMiddleDragging = TRUE;
 
 	// find the tracker which contains the point
-	for (int nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
+	for (int nAt = 0; nAt < GetMiddleTrackerCount(); nAt++)
 	{
-		if (middleTrackers.Get(nAt)->IsInside(point))
+		if (GetMiddleTrackerAt(nAt)->IsInside(point))
 		{
-			middleTrackers.Get(nAt)->OnLButtonDown(nFlags, point);
+			GetMiddleTrackerAt(nAt)->OnLButtonDown(nFlags, point);
 			break;
 		}
 	}
@@ -495,11 +589,11 @@ void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point)
 	m_bMiddleDragging = FALSE;	
 	
 	// find the tracker which contains the point
-	for (int nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
+	for (int nAt = 0; nAt < GetMiddleTrackerCount(); nAt++)
 	{
-		if (middleTrackers.Get(nAt)->IsInside(point))
+		if (GetMiddleTrackerAt(nAt)->IsInside(point))
 		{
-			middleTrackers.Get(nAt)->OnLButtonUp(nFlags, point);
+			GetMiddleTrackerAt(nAt)->OnLButtonUp(nFlags, point);
 			break;
 		}
 	}
@@ -513,48 +607,57 @@ void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point)
 /////////////////////////////////////////////////////////////////////////////
 void COpenGLView::OnMouseMove(UINT nFlags, CPoint point) 
 {
+	// process base class move event
 	CWnd::OnMouseMove(nFlags, point);
 
+	// see if we are in a left-drag
 	if (m_bDragging)
 	{
-		for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
+		for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
 		{
-			if (leftTrackers.Get(nAt)->IsInside(point))
+			if (GetLeftTrackerAt(nAt)->IsInside(point))
 			{
-				leftTrackers.Get(nAt)->OnMouseDrag(nFlags, point);
+				GetLeftTrackerAt(nAt)->OnMouseDrag(nFlags, point);
 				return;
 			}
 		}
+
+		// return if none found
 		return;
 	}
 
+	// see if we are in a middle drag
 	if (m_bMiddleDragging)
 	{
-		for (int nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
+		for (int nAt = 0; nAt < GetMiddleTrackerCount(); nAt++)
 		{
-			if (middleTrackers.Get(nAt)->IsInside(point))
+			if (GetMiddleTrackerAt(nAt)->IsInside(point))
 			{
-				middleTrackers.Get(nAt)->OnMouseDrag(nFlags, point);
+				GetMiddleTrackerAt(nAt)->OnMouseDrag(nFlags, point);
 				return;
 			}
 		}
+
+		// return if none found
 		return;
 	}
 
-	for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
+	// process regular left move
+	for (int nAt = 0; nAt < GetLeftTrackerCount(); nAt++)
 	{
-		if (leftTrackers.Get(nAt)->IsInside(point))
+		if (GetLeftTrackerAt(nAt)->IsInside(point))
 		{
-			leftTrackers.Get(nAt)->OnMouseMove(nFlags, point);
+			GetLeftTrackerAt(nAt)->OnMouseMove(nFlags, point);
 			return;
 		}
 	}
 
-	for (nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
+	// process regular middle move
+	for (nAt = 0; nAt < GetMiddleTrackerCount(); nAt++)
 	{
-		if (middleTrackers.Get(nAt)->IsInside(point))
+		if (GetMiddleTrackerAt(nAt)->IsInside(point))
 		{
-			middleTrackers.Get(nAt)->OnMouseMove(nFlags, point);
+			GetMiddleTrackerAt(nAt)->OnMouseMove(nFlags, point);
 			return;
 		}
 	}

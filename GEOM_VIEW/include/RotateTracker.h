@@ -9,8 +9,6 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Value.h>
-
 #include <Vector.h>
 #include <Matrix.h>
 

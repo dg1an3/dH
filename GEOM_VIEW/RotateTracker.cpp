@@ -69,11 +69,11 @@ void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 
 	// store the initial model transform matrix; subsequent rotations will be applied
 	//		to this matrix directly
-	m_initModelXform = m_pView->camera.modelXform.Get();
+	m_initModelXform = m_pView->GetCamera().GetModelXform();
 
 	// store the current projection matrix from the view, for transforming
 	//		subsequent coordinates
-	m_initProjMatrix = m_pView->camera.projection.Get();
+	m_initProjMatrix = m_pView->GetCamera().GetProjection();
 
 	// store the current mouse position in 3-d
 	m_vInitPoint = m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
@@ -91,7 +91,9 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 	CMatrix<4> mRotate = ComputeRotMatrix(vFinalPoint, m_vInitPoint);
 
 	// set the new model xform to the initial composed with the rotation
-	m_pView->camera.modelXform.Set(m_initModelXform * mRotate);
+	TRACE_MATRIX("CRotateTracker::OnLButtonDown Pre-GetProjection", m_pView->GetCamera().GetProjection());
+	m_pView->GetCamera().SetModelXform(m_initModelXform * mRotate);
+	TRACE_MATRIX("CRotateTracker::OnLButtonDown Post-GetProjection", m_pView->GetCamera().GetProjection());
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

@@ -19,20 +19,20 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 
 CObjectTreeItem::CObjectTreeItem()
-    : forObject(NULL),
+    : m_pObject(NULL),
 		m_pObjectExplorer(NULL),
 		m_hTreeItem(NULL),
-		parent(NULL),
-		autoCreateChildren(TRUE),
-		imageResourceID(IDB_FOLDER_CLOSED),
-		selectedImageResourceID(IDB_FOLDER_OPENED),
-		isChecked(TRUE)
+		m_pParent(NULL),
+		m_bAutoCreateChildren(TRUE),
+		m_nImageResourceID(IDB_FOLDER_CLOSED),
+		m_nSelectedImageResourceID(IDB_FOLDER_OPENED),
+		m_bChecked(TRUE)
 {
-	::AddObserver<CObjectTreeItem>(&forObject, this, (ChangeFunction) OnForObjectChanged);
+/*	::AddObserver<CObjectTreeItem>(&forObject, this, (ChangeFunction) OnForObjectChanged);
 	// forObject.SetAutoObserver(this, (ChangeFunction) OnChange);
 	::AddObserver<CObjectTreeItem>(&label, this, (ChangeFunction) OnLabelChanged);
 	::AddObserver<CObjectTreeItem>(&parent, this, (ChangeFunction) OnParentChanged);
-	::AddObserver<CObjectTreeItem>(&children, this, (ChangeFunction) OnChildrenChanged);
+	::AddObserver<CObjectTreeItem>(&children, this, (ChangeFunction) OnChildrenChanged); */
 }
 
 CObjectTreeItem::~CObjectTreeItem()
@@ -48,8 +48,8 @@ BOOL CObjectTreeItem::Create(CObjectExplorer *pExplorer)
     m_hTreeItem = pExplorer->InsertItem(this);
 
     // create the child items
-    for (int nAtChild = 0; nAtChild < children.GetSize(); nAtChild++)
-    	children.Get(nAtChild)->Create(pExplorer);
+    for (int nAtChild = 0; nAtChild < m_arrChildren.GetSize(); nAtChild++)
+    	((CObjectTreeItem *) m_arrChildren.GetAt(nAtChild))->Create(pExplorer);
 
     // everythings OK
     return (m_hTreeItem != NULL);
@@ -75,32 +75,32 @@ void CObjectTreeItem::OnDeleteItem()
     
 void CObjectTreeItem::OnForObjectChanged(CObject *pSource, void *pOldValue)
 {
-	if (forObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
+	if (m_pObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
 	{
-		CModelObject *pModel = (CModelObject *)forObject.Get();
+		CModelObject *pModel = (CModelObject *)m_pObject;
 
 		// set the label for this item to the name of the model object
-		label.SyncTo(&pModel->name);
+		// label.SyncTo(&pModel->name);
 
-		if (autoCreateChildren.Get())
+		if (m_bAutoCreateChildren)
 		{
 			// delete existing children
-			children.RemoveAll();
+			m_arrChildren.RemoveAll();
 
 			// auto-create the children
-			for (int nAt = 0; nAt < pModel->children.GetSize(); nAt++)
+			for (int nAt = 0; nAt < pModel->GetChildCount(); nAt++)
 			{
 				CObjectTreeItem *pChildItem = new CObjectTreeItem();
 
 				// set the initial icons
-				pChildItem->imageResourceID.Set(imageResourceID.Get());
-				pChildItem->selectedImageResourceID.Set(selectedImageResourceID.Get());
+				pChildItem->m_nImageResourceID = m_nImageResourceID;
+				pChildItem->m_nSelectedImageResourceID = m_nSelectedImageResourceID;
 
 				// set the parent
-				pChildItem->parent.Set(this);
+				pChildItem->m_pParent = this;
 
 				// set the object for the item
-				pChildItem->forObject.Set(pModel->children.Get(nAt));
+				pChildItem->m_pObject = pModel->GetChildAt(nAt);
 			}
 		}
 	}
@@ -112,7 +112,7 @@ void CObjectTreeItem::OnLabelChanged(CObject *pSource, void *pOldValue)
 	{
 		// if so, change the label for the item
 		m_pObjectExplorer->SetItem(m_hTreeItem, TVIF_TEXT, 
-  			label.Get(), 0, 0, 0, 0, NULL);
+  			m_strLabel, 0, 0, 0, 0, NULL);
 	}
 }
 
@@ -127,7 +127,7 @@ void CObjectTreeItem::OnParentChanged(CObject *pSource, void *pOldValue)
 		CObjectTreeItem *pOldParent = (CObjectTreeItem *) pOldValue;
 
 		// remove this from its current parent
-		pOldParent->children.Release(this);
+		// pOldParent->m_arrChildren.Release(this);
 	}
 
 	// now delete this item from the old tree view
@@ -135,7 +135,7 @@ void CObjectTreeItem::OnParentChanged(CObject *pSource, void *pOldValue)
 		m_pObjectExplorer->DeleteItem(this);
 
 	// add this to the new parent
-	parent->children.Add(this);
+	m_pParent->m_arrChildren.Add(this);
 }
 
 void CObjectTreeItem::OnChildrenChanged(CObject *pSource, void *pOldValue)
@@ -149,7 +149,7 @@ void CObjectTreeItem::OnChildrenChanged(CObject *pSource, void *pOldValue)
 		CObjectTreeItem *pNewChild = (CObjectTreeItem *) pOldValue;
 
 		// set the parent parent for the new child
-		pNewChild->parent.Set(this);
+		pNewChild->m_pParent = this;
 
 		// create the child if this (the parent) has been created
 		if (m_pObjectExplorer)
@@ -165,7 +165,7 @@ void CObjectTreeItem::OnSelected()
 BOOL CObjectTreeItem::OnDrop(CObjectTreeItem *pDroppedItem)
 {
 	// move the dropped item here by setting this as the parent
-	pDroppedItem->parent.Set(this);
+	pDroppedItem->m_pParent = this;
 
 	// return TRUE
     return TRUE;

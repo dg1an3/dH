@@ -19,14 +19,34 @@ static GLenum arrLightID[] =
 //////////////////////////////////////////////////////////////////////
 
 COpenGLLight::COpenGLLight()
-	: diffuseColor(RGB(160, 160, 160))
+	: m_diffuseColor(RGB(160, 160, 160))
 {
-
 }
 
 COpenGLLight::~COpenGLLight()
 {
+}
 
+// accessors for the position of the light
+const CVector<3>& COpenGLLight::GetPosition() const
+{
+	return m_vPosition;
+}
+
+void COpenGLLight::SetPosition(const CVector<3>& vPos)
+{
+	m_vPosition = vPos;
+}
+
+// diffuse color for the light
+COLORREF COpenGLLight::GetDiffuseColor() const
+{
+	return m_diffuseColor;
+}
+
+void COpenGLLight::SetDiffuseColor(COLORREF color)
+{
+	m_diffuseColor = color;
 }
 
 void COpenGLLight::TurnOn(int nLightNum)
@@ -35,13 +55,13 @@ void COpenGLLight::TurnOn(int nLightNum)
 	glEnable(GL_LIGHTING);
 
 	// set the light's direction
-	glLightDirection(arrLightID[nLightNum], position.Get());
+	glLightDirection(arrLightID[nLightNum], GetPosition());
 
 	// set the light's diffuse color
 	GLfloat diffuse[4];
-	diffuse[0] = (float) GetRValue(diffuseColor.Get()) / 255.0f;
-	diffuse[1] = (float) GetGValue(diffuseColor.Get()) / 255.0f;
-	diffuse[2] = (float) GetBValue(diffuseColor.Get()) / 255.0f;
+	diffuse[0] = (float) GetRValue(GetDiffuseColor()) / 255.0f;
+	diffuse[1] = (float) GetGValue(GetDiffuseColor()) / 255.0f;
+	diffuse[2] = (float) GetBValue(GetDiffuseColor()) / 255.0f;
 	diffuse[3] = 1.0f;
 	glLightfv(arrLightID[nLightNum], GL_DIFFUSE, diffuse);
 
