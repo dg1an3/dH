@@ -23,8 +23,9 @@
 #endif // _MSC_VER > 1000
 
 
-class COptimizer;
-typedef void (*CCallbackFunc)(COptimizer *pOpt, int nIter);
+// class COptimizer;
+// typedef void (*CCallbackFunc)(COptimizer *pOpt, int nIter); 
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CPrescription
@@ -64,7 +65,7 @@ public:
 
 	///////////////////////////////////
 
-	BOOL Optimize(CVectorN<>& vInit, CCallbackFunc func);
+	BOOL Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *pParam);
 
 	void CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput) const;
 

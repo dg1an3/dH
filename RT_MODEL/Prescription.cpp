@@ -29,15 +29,15 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		m_nLevel(nLevel),
 		m_pOptimizer(NULL),
 		m_pNextLevel(NULL),
-		m_totalEntropyWeight(1.0),
-		m_inputScale(0.5)
+		m_totalEntropyWeight((REAL) 0.05),
+		m_inputScale((REAL) 0.5)
 {
 	m_pOptimizer = new CConjGradOptimizer(this);
 
 	if (m_nLevel == 0)
 	{
 		REAL GBinSigma = (REAL) 0.20;
-		int nAtSigma[] = {2, 2, 1};
+		int nAtSigma[] = {4, 2, 1};
 		REAL tol[] = // {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
 			{(REAL) 1e-4, (REAL) 1e-4, (REAL) 1e-4};
 
@@ -292,12 +292,18 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-BOOL CPrescription::Optimize(CVectorN<>& vInit, CCallbackFunc func)
+BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *pParam)
 {
 	if (m_pNextLevel)
 	{
 		// FilterStateVector(vInit, m_nLevel, vInit);
-		m_pNextLevel->Optimize(vInit, func);
+		if (!m_pNextLevel->Optimize(vInit, pFunc, pParam))
+		{
+			// problem with prev level optimization
+			return FALSE;
+		}
+
+		// continue with our optimization
 		InvFilterStateVector(vInit, m_nLevel+1, vInit, TRUE);
 	}
 
@@ -311,7 +317,15 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, CCallbackFunc func)
 	}
 
 	m_pOptimizer->SetTolerance(m_tolerance);
+	m_pOptimizer->SetCallback(pFunc, pParam);
 	CVectorN<> vRes = m_pOptimizer->Optimize(vInit);
+
+	// check for problem with optimization
+	if (m_pOptimizer->GetIterations() == -1)
+	{
+		return FALSE;
+	}
+
 	LOG_EXPR(m_pOptimizer->GetIterations());
 	cout << "Iterations for S" << m_nLevel << " = " 
 		<< m_pOptimizer->GetIterations() << endl;
