@@ -18,7 +18,7 @@
 
 #define POST_PROCESS
 #define COMPUTE_MINMAX
-#define USE_TANDEM_RAYS
+// #define USE_TANDEM_RAYS
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -375,7 +375,7 @@ void CDRRRenderer::ComputeDRR()
 				)
 			{
 
-#define USE_MMX
+// #define USE_MMX
 #ifdef USE_MMX
 
 #ifdef USE_TANDEM_RAYS
@@ -563,6 +563,7 @@ LOOP1:
 				}
 
 #else	// ifdef USE_MMX
+				int nPixelValue = 0;
 				for (int nAt = 0; nAt < nDestLength; nAt++)
 				{
 #ifdef _DEBUG
@@ -575,13 +576,14 @@ LOOP1:
 						&& nVoxelY >= 0 && nVoxelY < nHeight
 						&& nVoxelZ >= 0 && nVoxelZ < nDepth);
 
-					m_arrPixels[nPixelAt] += pppVoxels[nVoxelZ][nVoxelY][nVoxelX];
+					nPixelValue += pppVoxels[nVoxelZ][nVoxelY][nVoxelX];
 #else	// ifdef _DEBUG
-					m_arrPixels[nPixelAt] += pppVoxels[viStart[2] >> 16][viStart[1] >> 16][viStart[0] >> 16];
+					nPixelValue += pppVoxels[viStart[2] >> 16][viStart[1] >> 16][viStart[0] >> 16];
 #endif	// ifdef _DEBUG
 
 					viStart += viStep;
 				}
+				m_arrPixels[nPixelAt] = nPixelValue;
 
 #endif	// ifdef USE_MMX
 

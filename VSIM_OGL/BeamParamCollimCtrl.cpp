@@ -79,6 +79,11 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 
 void CBeamParamCollimCtrl::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
+	if (pFromObject == &forBeam)
+	{
+		forBeam->collimAngle.AddObserver(this, (ChangeFunction) OnChange);
+	}
+
 	if (::IsWindow(m_hWnd))
 		UpdateData(FALSE);
 }

@@ -32,6 +32,8 @@ public:
 // Operations
 public:
 	void SetBEVPerspective(CBeam& beam);
+	CMatrix<4> ComputeProjection(CBeam& beam);
+
 	// association to the currently selected beam
 	CAssociation<CBeam> currentBeam;
 

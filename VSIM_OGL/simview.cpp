@@ -5,6 +5,8 @@
 #include "VSIM_OGL.h"
 #include "SimView.h"
 
+#include <math.h>
+
 #include "gl/gl.h"
 #include "glMatrixVector.h"
 
@@ -71,10 +73,80 @@ void CSimView::OnDraw(CDC* pDC)
 	pDC->SelectObject(pOldBrush);
 }
 
+double AngleFromSinCos(double sin_angle, double cos_angle)
+{
+	double angle = 0.0;
+
+	if (sin_angle >= 0.0)
+	{
+		angle = acos(cos_angle);	// range of [0..PI]	
+	}
+	else if (cos_angle >= 0.0)
+	{
+		angle = asin(sin_angle);	// range of [-PI/2..PI/2]
+	}
+	else
+	{
+		angle = 2 * PI - acos(cos_angle);
+	}
+
+	// ensure the angle is in range [0..2*PI];
+	if (angle < 0.0)
+		angle += 2 * PI;
+
+	// now check
+	ASSERT(fabs(sin(angle) - sin_angle) < 1e-6);
+	ASSERT(fabs(cos(angle) - cos_angle) < 1e-6);
+
+	return angle;
+}
+
 void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
-	CBeam *pBeam = (CBeam *)pFromObject;
-	SetBEVPerspective(*pBeam);
+	if (pFromObject == &m_wndBEV.projectionMatrix)
+	{
+		// determine the new beam parameters from the BEV viewing matrix
+		CMatrix<4> mProjMatrix = m_wndBEV.projectionMatrix.Get();
+
+		// first, retrieve the projection matrix for the beam
+		CMatrix<4> mPerspProj = ComputeProjection(*currentBeam.Get());
+
+		// now, annihilate the projection matrix
+		CMatrix<4> mNewB2P = Invert(Invert(mPerspProj) * mProjMatrix);
+		if (mNewB2P[2][2] < -1.0 || mNewB2P[2][2] > 1.0)
+			return;
+
+		// now factor the B2P matrix into translation and rotation components
+		double gantry = acos(mNewB2P[2][2]);	// gantry in [0..PI]
+		double couch = 0.0;
+		double coll = 0.0;
+
+		if (gantry > 0.0)
+		{
+			double cos_couch = mNewB2P[2][0] / sin(gantry);
+			double sin_couch = mNewB2P[2][1] / -sin(gantry);
+			couch = AngleFromSinCos(sin_couch, cos_couch);
+
+			double cos_coll =  mNewB2P[0][2] / -sin(gantry);
+			double sin_coll =  mNewB2P[1][2] / -sin(gantry);
+			coll = AngleFromSinCos(sin_coll, cos_coll);
+		}
+
+		TRACE1("New gantry = %lf\n", gantry * 180.0 / PI);
+		TRACE1("New couch = %lf\n", couch * 180.0 / PI);
+		TRACE1("New coll = %lf\n", coll * 180.0 / PI);
+
+		currentBeam->couchAngle.Set(couch);
+		currentBeam->gantryAngle.Set(PI - gantry);
+		currentBeam->collimAngle.Set(coll);
+
+		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+	else
+	{
+		CBeam *pBeam = (CBeam *)pFromObject;
+		SetBEVPerspective(*pBeam);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -357,7 +429,7 @@ void CSimView::OnUpdateViewWireframe(CCmdUI* pCmdUI)
 	}
 }
 
-void CSimView::SetBEVPerspective(CBeam& beam)
+CMatrix<4> CSimView::ComputeProjection(CBeam& beam)
 {
 	CMatrix<4> mProj;
 
@@ -369,8 +441,8 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	CVector<2> vMin = beam.collimMin.Get();
 	CVector<2> vMax = beam.collimMax.Get();
 
-	double collimHeight = max(fabs(vMin[1]), fabs(vMax[1])) + 1.0;
-	double collimWidth = max(fabs(vMin[0]), fabs(vMax[0])) + 1.0;
+	double collimHeight = max(fabs(vMin[1]), fabs(vMax[1])) + 10.0;
+	double collimWidth = max(fabs(vMin[0]), fabs(vMax[0])) + 10.0;
 
 	// get the window's client rectangle
 	CRect rect;
@@ -386,12 +458,22 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	// now rotate by 180 degrees about Y
 	mProj *= CreateRotate(PI, CVector<3>(0.0, 1.0, 0.0));
 
+	return mProj;
+}
+
+void CSimView::SetBEVPerspective(CBeam& beam)
+{
+	// compute the projection
+	CMatrix<4> mProj = ComputeProjection(beam);
+
 	// and inverse transform from beam to patient
 	CMatrix<4> mB2P = beam.beamToPatientXform.Get();
 	mB2P.Invert();
 	mProj *= mB2P;
 
+	m_wndBEV.projectionMatrix.RemoveObserver(this, (ChangeFunction) OnChange);
 	m_wndBEV.projectionMatrix.Set(mProj);
+	m_wndBEV.projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 #if defined(USE_FUNCTIONS_FOR_BEV)

@@ -72,6 +72,12 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 
 void CBeamParamPosCtrl::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
+	if (pFromObject == &forBeam)
+	{
+		forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
+		forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
+	}
+
 	if (::IsWindow(m_hWnd))
 		UpdateData(FALSE);
 }
