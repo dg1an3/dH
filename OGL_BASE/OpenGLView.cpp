@@ -1,17 +1,21 @@
-// OpenGLView.cpp : implementation file
+//////////////////////////////////////////////////////////////////////
+// OpenGLView.cpp: implementation of the COpenGLView class.
 //
+// Copyright (C) 2000-2001
+// $Id$
+//////////////////////////////////////////////////////////////////////
 
+// pre-compiled headers
 #include "stdafx.h"
 
 #include "OpenGLView.h"
 
 #include <math.h>
 
-#include <gl/glu.h>
-
 #include <Matrix.h>
 
 #include "glMatrixVector.h"
+#include <gl/glu.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -20,10 +24,16 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView
-
+// IMPLEMENT_DYNCREATE -- implements the dynamic creation mechanism for
+//		COpenGLView
+/////////////////////////////////////////////////////////////////////////////
 IMPLEMENT_DYNCREATE(COpenGLView, CWnd)
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::COpenGLView
+// 
+// constructs a new COpenGLView.
+/////////////////////////////////////////////////////////////////////////////
 COpenGLView::COpenGLView()
 	: m_pDC(NULL),
 		m_hrc(NULL),
@@ -33,27 +43,49 @@ COpenGLView::COpenGLView()
 {
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::~COpenGLView
+// 
+// destroys the COpenGLView
+/////////////////////////////////////////////////////////////////////////////
 COpenGLView::~COpenGLView()
 {
 }
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenGLView diagnostics
+/////////////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::AssertValid
+// 
+// destroys the COpenGLView
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::AssertValid() const
 {
 	CWnd::AssertValid();
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::Dump
+// 
+// destroys the COpenGLView
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::Dump(CDumpContext& dc) const
 {
 	CWnd::Dump(dc);
 }
 #endif //_DEBUG
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::SetupPixelFormat
+// 
+// sets up the pixel format for the view class
+/////////////////////////////////////////////////////////////////////////////
 BOOL COpenGLView::SetupPixelFormat()
 {
+	// pixel format descriptor
 	static PIXELFORMATDESCRIPTOR pfd =
 	{
 		sizeof(PIXELFORMATDESCRIPTOR),  // size of this pfd
@@ -75,14 +107,17 @@ BOOL COpenGLView::SetupPixelFormat()
 		0,                              // reserved
 		0, 0, 0                         // layer masks ignored
 	};
+
 	int pixelformat;
 
+	// now try to choose the pixel format
 	if ( (pixelformat = ChoosePixelFormat(m_pDC->GetSafeHdc(), &pfd)) == 0 )
 	{
 		MessageBox("ChoosePixelFormat failed");
 		return FALSE;
 	}
 
+	// and see if we can successfully set the pixel format
 	if (SetPixelFormat(m_pDC->GetSafeHdc(), pixelformat, &pfd) == FALSE)
 	{
 		MessageBox("SetPixelFormat failed");
@@ -92,6 +127,34 @@ BOOL COpenGLView::SetupPixelFormat()
 	return TRUE;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::MakeCurrentGLRC
+// 
+// handles a middle-button up event by passing to the appropriate
+//		tracker
+/////////////////////////////////////////////////////////////////////////////
+void COpenGLView::MakeCurrentGLRC()
+{
+	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::ModelPtFromWndPt
+// 
+// converts a point in viewport coordinates to a 3-d point using the
+//		current projection matrix
+/////////////////////////////////////////////////////////////////////////////
+CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt)
+{
+	return ModelPtFromWndPt(wndPt, camera.projection.Get());
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::ModelPtFromWndPt
+// 
+// converts a point in viewport coordinates to a 3-d point given 
+//		a projection matrix
+/////////////////////////////////////////////////////////////////////////////
 CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 {
 	// retrieve the model and projection matrices
@@ -116,12 +179,12 @@ CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 	return vModelPt;
 }
 
-CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt)
-{
-	return ModelPtFromWndPt(wndPt, camera.projection.Get());
-}
-
-
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::PreCreateWindow
+// 
+// ensures that the necessary window styles are applied to this window 
+//		during creation
+/////////////////////////////////////////////////////////////////////////////
 BOOL COpenGLView::PreCreateWindow(CREATESTRUCT& cs) 
 {
 	// An OpenGL window must be created with the following flags and must not
@@ -133,14 +196,159 @@ BOOL COpenGLView::PreCreateWindow(CREATESTRUCT& cs)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView drawing
+// COpenGLView Message Map
+/////////////////////////////////////////////////////////////////////////////
 
-void COpenGLView::OnPaint()
+BEGIN_MESSAGE_MAP(COpenGLView, CWnd)
+	//{{AFX_MSG_MAP(COpenGLView)
+	ON_WM_CREATE()
+	ON_WM_DESTROY()
+	ON_WM_SIZE()
+	ON_WM_ERASEBKGND()
+	ON_WM_PAINT()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP() 
+	ON_WM_MBUTTONDOWN()
+	ON_WM_MBUTTONUP() 
+	ON_WM_MOUSEMOVE()
+	//}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView message handlers
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnCreate
+// 
+// renders the buffer, and swaps back and front buffer
+/////////////////////////////////////////////////////////////////////////////
+int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
+	if (CWnd::OnCreate(lpCreateStruct) == -1)
+		return -1;
+	
+	// construct the Window's device context which the OpenGL rendering
+	//		context will use
+	m_pDC = new CClientDC(this);
+	ASSERT(m_pDC != NULL);
+
+	// set up the OpenGL pixel format
+	if (!SetupPixelFormat())
+		return -1;
+
+	// create the OpenGL rendering context
+	m_hrc = wglCreateContext(m_pDC->GetSafeHdc());
+	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
+
+	// set depth testing for hidden line removal
+	glClearDepth(1.0f);
+	glEnable(GL_DEPTH_TEST);
+
+	// Set the shading model
+	glShadeModel(GL_SMOOTH);
+
+	// Set the polygon mode to fill
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// Define material properties of specular color and degree of 
+	// shininess.  Since this is only done once in this particular 
+	// example, it applies to all objects.  Material properties can 
+	// be set for individual objects, individual faces of the objects,
+	// individual vertices of the faces, etc... 
+	GLfloat specular [] = { 0.5, 0.5, 0.5, 1.0 };
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+	GLfloat shininess [] = { 20.0 };
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+
+	// Set the GL_AMBIENT_AND_DIFFUSE color state variable to be the
+	// one referred to by all following calls to glColor
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
+
+	// create the default lights for the view
+
+	COpenGLLight *pNewLight = new COpenGLLight();
+	pNewLight->diffuseColor.Set(RGB(255, 255, 255));
+	pNewLight->position.Set(CVector<3>(-5.0, -5.0, 3.0));
+	lights.Add(pNewLight);
+
+	pNewLight = new COpenGLLight();
+	pNewLight->diffuseColor.Set(RGB(128, 128, 128));
+	pNewLight->position.Set(CVector<3>(5.0, -5.0, 3.0));
+	lights.Add(pNewLight);
+
+	pNewLight = new COpenGLLight();
+	pNewLight->diffuseColor.Set(RGB(128, 128, 128));
+	pNewLight->position.Set(CVector<3>(0.0, 5.0, 3.0));
+	lights.Add(pNewLight);
+
+	glEnable(GL_LIGHTING);
+
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnDestroy
+// 
+// removes the rendering context when the window is destroyed
+/////////////////////////////////////////////////////////////////////////////
+void COpenGLView::OnDestroy() 
+{
+	// select no OpenGL rendering context
+	wglMakeCurrent(NULL,  NULL);
+
+	// delete the OpenGL rendering context
+	if (m_hrc)
+		::wglDeleteContext(m_hrc);
+
+	// delete the Window's device context
+	if (m_pDC)
+		delete m_pDC;
+
+	// call base class destroy
+	CWnd::OnDestroy();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnEraseBkgnd
+// 
+// over-ride to do nothing, because double-buffering pre-empts the need
+/////////////////////////////////////////////////////////////////////////////
+BOOL COpenGLView::OnEraseBkgnd(CDC* pDC) 
+{
+	// over-ride default to prevent flicker
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnSize
+// 
+// adjusts the camera aspect ratio for the new size
+/////////////////////////////////////////////////////////////////////////////
+void COpenGLView::OnSize(UINT nType, int cx, int cy) 
+{
+	// let the base class have a chance
+	CWnd::OnSize(nType, cx, cy);
+	
+	// make sure we are using the correct rendering context
 	MakeCurrentGLRC();
 
-	CRect rect;
-	GetUpdateRect(&rect);
+	// set the OpenGL viewport parameter
+	glViewport(0, 0, cx, cy);
+
+	// calculate the aspect ratio for the camera
+	camera.aspectRatio.Set((double) cx / (double) cy);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnPaint
+// 
+// renders the buffer, and swaps back and front buffer
+/////////////////////////////////////////////////////////////////////////////
+void COpenGLView::OnPaint()
+{
+	// make sure we are using the correct rendering context
+	MakeCurrentGLRC();
 
 	// clear the buffers
 	glClearColor(backgroundColor.Get());
@@ -180,133 +388,22 @@ void COpenGLView::OnPaint()
 		glPopMatrix();
 	}
 
-	// and finish up the rendering
+	// finish up the rendering
 	glFinish();
+
+	// and switch the buffers
 	SwapBuffers(wglGetCurrentDC());
 
-	// make sure the rectangle is updated
-	ValidateRect(&rect);
+	// make sure the window is updated
+	ValidateRect(NULL);
 }
-
-BEGIN_MESSAGE_MAP(COpenGLView, CWnd)
-	//{{AFX_MSG_MAP(COpenGLView)
-	ON_WM_CREATE()
-	ON_WM_DESTROY()
-	ON_WM_SIZE()
-	ON_WM_ERASEBKGND()
-	ON_WM_PAINT()
-	ON_WM_LBUTTONDOWN()
-	ON_WM_LBUTTONUP() 
-	ON_WM_MBUTTONDOWN()
-	ON_WM_MBUTTONUP() 
-	ON_WM_MOUSEMOVE()
-	//}}AFX_MSG_MAP
-END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
-// COpenGLView message handlers
-
-int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
-{
-	if (CWnd::OnCreate(lpCreateStruct) == -1)
-		return -1;
-	
-	// construct the Window's device context which the OpenGL rendering
-	//		context will use
-	m_pDC = new CClientDC(this);
-	ASSERT(m_pDC != NULL);
-
-	// set up the OpenGL pixel format
-	if (!SetupPixelFormat())
-		return -1;
-
-	// create the OpenGL rendering context
-	m_hrc = wglCreateContext(m_pDC->GetSafeHdc());
-	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
-
-	// set the clear color to black
-	// glClearColor(0.0, 0.0, 0.0, 0.0);
-
-	// set depth testing for hidden line removal
-	glClearDepth(1.0f);
-	glEnable(GL_DEPTH_TEST);
-
-	// Set the shading model
-	glShadeModel(GL_SMOOTH);
-
-	// Set the polygon mode to fill
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	// Define material properties of specular color and degree of 
-	// shininess.  Since this is only done once in this particular 
-	// example, it applies to all objects.  Material properties can 
-	// be set for individual objects, individual faces of the objects,
-	// individual vertices of the faces, etc... 
-	GLfloat specular [] = { 0.5, 0.5, 0.5, 1.0 };
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-	GLfloat shininess [] = { 20.0 };
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-
-	// Set the GL_AMBIENT_AND_DIFFUSE color state variable to be the
-	// one referred to by all following calls to glColor
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	glEnable(GL_COLOR_MATERIAL);
-
-	COpenGLLight *pNewLight = new COpenGLLight();
-	pNewLight->diffuseColor.Set(RGB(255, 255, 255));
-	pNewLight->position.Set(CVector<3>(-5.0, -5.0, 3.0));
-	lights.Add(pNewLight);
-
-	pNewLight = new COpenGLLight();
-	pNewLight->diffuseColor.Set(RGB(128, 128, 128));
-	pNewLight->position.Set(CVector<3>(5.0, -5.0, 3.0));
-	lights.Add(pNewLight);
-
-	pNewLight = new COpenGLLight();
-	pNewLight->diffuseColor.Set(RGB(128, 128, 128));
-	pNewLight->position.Set(CVector<3>(0.0, 5.0, 3.0));
-	lights.Add(pNewLight);
-
-	glEnable(GL_LIGHTING);
-
-	return 0;
-}
-
-void COpenGLView::OnDestroy() 
-{
-	// select no OpenGL rendering context
-	wglMakeCurrent(NULL,  NULL);
-
-	// delete the OpenGL rendering context
-	if (m_hrc)
-		::wglDeleteContext(m_hrc);
-
-	// delete the Window's device context
-	if (m_pDC)
-		delete m_pDC;
-
-	// call base class destroy
-	CWnd::OnDestroy();
-}
-
-BOOL COpenGLView::OnEraseBkgnd(CDC* pDC) 
-{
-	// over-ride default to prevent flicker
-	return TRUE;
-}
-
-void COpenGLView::OnSize(UINT nType, int cx, int cy) 
-{
-	CWnd::OnSize(nType, cx, cy);
-	
-	// set the OpenGL viewport parameter
-	MakeCurrentGLRC();
-	glViewport(0, 0, cx, cy);
-
-	// calculate the aspect ratio for the camera
-	camera.aspectRatio.Set((double) cx / (double) cy);
-}
-
+// COpenGLView::OnLButtonDown
+// 
+// handles a left-button down event by passing to the appropriate
+//		tracker
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point) 
 {
 	// handle base class
@@ -330,8 +427,15 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 	SetCapture();
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnLButtonUp
+// 
+// handles a left-button up event by passing to the appropriate
+//		tracker
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
+	// handle base class
 	CWnd::OnLButtonUp(nFlags, point);
 
 	// dragging is over -- clear flag
@@ -351,6 +455,12 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 	::ReleaseCapture();
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnMButtonDown
+// 
+// handles a middle-button down event by passing to the appropriate
+//		tracker
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point) 
 {
 	// handle base class
@@ -370,8 +480,15 @@ void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point)
 	}
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnMButtonUp
+// 
+// handles a middle-button up event by passing to the appropriate
+//		tracker
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point) 
 {
+	// handle base class
 	CWnd::OnMButtonUp(nFlags, point);
 
 	// dragging is over -- clear flag
@@ -388,6 +505,12 @@ void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point)
 	}
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// COpenGLView::OnMouseMove
+// 
+// handles a middle-button up event by passing to the appropriate
+//		tracker
+/////////////////////////////////////////////////////////////////////////////
 void COpenGLView::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	CWnd::OnMouseMove(nFlags, point);
@@ -435,9 +558,4 @@ void COpenGLView::OnMouseMove(UINT nFlags, CPoint point)
 			return;
 		}
 	}
-}
-
-void COpenGLView::MakeCurrentGLRC()
-{
-	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
 }
