@@ -30,21 +30,23 @@
 // constants used to optimize
 ///////////////////////////////////////////////////////////////////////////////
 
-const REAL GOLD = 1.618034;	// golden mean
+const REAL GOLD = (REAL) 1.618034;	// golden mean
 
-const REAL CGOLD = 0.3819660;	// golden section ratio
+const REAL CGOLD = (REAL) 0.3819660;	// golden section ratio
 								
-const REAL ZEPS = 1.0e-1;		// z-epsilon -- small number to protect against 
-								// fractional accuracy for a minimum that
-								// happens to be exactly zero;  used in
-								//    function FindMinimum
+const REAL ZEPS = (REAL) 1.0e-1;	// z-epsilon -- small number to protect against 
+									// fractional accuracy for a minimum that
+									// happens to be exactly zero;  used in
+									//    function FindMinimum
 
 
-const REAL TINY = 1.0e-20;	// used in function BracketMinimum 
+const REAL TINY = (REAL) 1.0e-20;	// used in function BracketMinimum 
 
-const REAL BRACKET = 10.0;		// initial bracket size
+/*
+const REAL BRACKET = (REAL) 10.0;	// 10.0	// initial bracket size
 
-const REAL GLIMIT = 100.0;	// parameter needed by function BracketMinimum  
+const REAL GLIMIT = (REAL) 100.0;		// 100.0;	// parameter needed by function BracketMinimum  
+*/
 
 const int ITER_MAX = 1000;		// maximum iteration
 
@@ -65,7 +67,9 @@ CBrentOptimizer::CBrentOptimizer(CObjectiveFunction *pFunc)
 		m_vCx(1),
 		m_vX(1), 
 		m_vU(1),
-		m_vGrad(1)
+		m_vGrad(1),
+		m_Bracket(10.0),
+		m_GLimit(100.0)		
 {
 	// make sure the brent optimizer's starting value is correct
 	ASSERT(0.0 == m_vBrentInit[0]);
@@ -80,7 +84,7 @@ const CVectorN<>& CBrentOptimizer::Optimize(const CVectorN<>& vInit)
 {
 	// find three values the bracket a minimum
 	REAL ax = vInit[0];
-	REAL bx = ax + (REAL) BRACKET;
+	REAL bx = ax + m_Bracket;
 	REAL cx;
 	BracketMinimum(ax, bx, cx);
 
@@ -141,7 +145,7 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 	}
 
 	// First guess for c. 
-	cx = (bx) + (REAL) GOLD * (bx - ax);
+	cx = bx + (REAL) GOLD * (bx - ax);
 
 	m_vCx[0] = cx;
 	fc = (*m_pFunc)(m_vCx);
@@ -156,7 +160,7 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 		REAL u = (REAL) (bx - ((bx - cx) * q - (bx - ax) * r)
 			 / (2.0 * SIGN(max(fabs(q - r), TINY),q - r)));
 		REAL fu; // function value at u
-		REAL ulim = bx + (REAL)(GLIMIT * (cx - bx));
+		REAL ulim = bx + (m_GLimit * (cx - bx));
 
 		// We won't go farther than this.  Test various possibilities 
 		if ((bx - u) * (u - cx) > 0.0)
@@ -532,4 +536,10 @@ REAL CBrentOptimizer::FindMinimumGrad(REAL ax, REAL bx, REAL cx)
 const CVectorN<>& CBrentOptimizer::GetInitZero()
 {
 	return m_vBrentInit;
+}
+
+void CBrentOptimizer::SetParams(REAL Bracket, REAL GLimit)
+{
+	m_Bracket = Bracket;
+	m_GLimit = GLimit;
 }
