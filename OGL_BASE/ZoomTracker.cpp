@@ -51,7 +51,7 @@ CZoomTracker::~CZoomTracker()
 
 void CZoomTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	privInitProjMatrix.Set(m_pView->projectionMatrix.Get());
+	privInitProjMatrix.Set(m_pView->camera.projectionMatrix.Get());
 
 	CRect rect;
 	m_pView->GetClientRect(&rect);
@@ -59,13 +59,13 @@ void CZoomTracker::OnLButtonDown(UINT nFlags, CPoint point)
 
 	privCurrY.Set(privInitY.Get());
 
-	m_pView->projectionMatrix.SyncTo(&privCurrProjMatrix);
+	m_pView->camera.projectionMatrix.SyncTo(&privCurrProjMatrix);
 }
 
 void CZoomTracker::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	m_pView->projectionMatrix.SyncTo(NULL);
-	m_pView->projectionMatrix.Set(privCurrProjMatrix.Get());
+	m_pView->camera.projectionMatrix.SyncTo(NULL);
+	m_pView->camera.projectionMatrix.Set(privCurrProjMatrix.Get());
 }
 
 void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
