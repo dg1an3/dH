@@ -52,7 +52,7 @@ CMachineRenderable::~CMachineRenderable()
 //////////////////////////////////////////////////////////////////////
 CBeam *CMachineRenderable::GetBeam()
 {
-	return m_pBeam;
+	return (CBeam *) GetObject();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -62,20 +62,33 @@ CBeam *CMachineRenderable::GetBeam()
 //////////////////////////////////////////////////////////////////////
 void CMachineRenderable::SetBeam(CBeam *pBeam)
 {
+	SetObject(pBeam);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CMachineRenderable::SetObject
+// 
+// over-ride to register change listeners, etc.
+//////////////////////////////////////////////////////////////////////
+void CMachineRenderable::SetObject(CObject *pObject)
+{
+	// make sure the object is of the right class
+	ASSERT(pObject->IsKindOf(RUNTIME_CLASS(CBeam)));
+
 	// remove this as an observer on the old beam
-	if (NULL != m_pBeam)
+	if (NULL != GetBeam())
 	{
-		::RemoveObserver<CMachineRenderable>(&pBeam->GetChangeEvent(),
+		::RemoveObserver<CMachineRenderable>(&GetBeam()->GetChangeEvent(),
 			this, Invalidate);
 	}
 
 	// set the beam pointer
-	m_pBeam = pBeam;
+	CRenderable::SetObject(pObject);
 
 	// add this as an observer on the new beam
-	if (NULL != m_pBeam)
+	if (NULL != GetBeam())
 	{
-		::AddObserver<CMachineRenderable>(&pBeam->GetChangeEvent(),
+		::AddObserver<CMachineRenderable>(&GetBeam()->GetChangeEvent(),
 			this, Invalidate);
 	}
 
@@ -125,12 +138,12 @@ void CMachineRenderable::DescribeOpaque()
 	DescribeTable();
 
 	// compute the axis-to-collimator distance
-	double SAD = m_pBeam->GetTreatmentMachine()->m_SAD;
-	double SCD = m_pBeam->GetTreatmentMachine()->m_SCD;
+	double SAD = GetBeam()->GetTreatmentMachine()->GetSAD();
+	double SCD = GetBeam()->GetTreatmentMachine()->GetSCD();
 	double axisToCollim = SAD - SCD;
 
 	// rotate for the gantry
-	glRotated(m_pBeam->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
+	glRotated(GetBeam()->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
 
 	// describe the gantry itself
 	DescribeGantry(axisToCollim);
@@ -157,8 +170,8 @@ void CMachineRenderable::DescribeTable()
 {
 	glPushMatrix();
 
-	glTranslate(-1.0 * m_pBeam->GetTableOffset());
-	glRotated(m_pBeam->GetCouchAngle() * 180.0 / PI, 
+	glTranslate(-1.0 * GetBeam()->GetTableOffset());
+	glRotated(GetBeam()->GetCouchAngle() * 180.0 / PI, 
 		0.0, 0.0, 1.0);
 
 	glBegin(GL_QUADS);

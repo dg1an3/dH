@@ -39,6 +39,9 @@ public:
 	CBeam *GetBeam();
 	void SetBeam(CBeam *pBeam);
 
+	// over-ride to the set the object to a beam
+	virtual void SetObject(CObject *pObject);
+
 	// renders the beam
 	virtual void DescribeOpaque();
 

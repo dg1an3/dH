@@ -36,6 +36,9 @@ public:
 	CBeam *GetBeam();
 	void SetBeam(CBeam *pBeam);
 
+	// over-ride to register change listeners, etc.
+	virtual void SetObject(CObject *pObject);
+
 	// rendering routine
 	virtual void DescribeOpaque();
 
@@ -45,9 +48,6 @@ public:
 	void DescribeCollimator(double axisToCollim);
 
 private:
-	// beam for treatment machine parameters
-	CBeam *m_pBeam;
-
 	// flag to indicate that the machine is to be rendered as a wireframe
 	BOOL m_bWireFrame;
 };

@@ -83,6 +83,20 @@ CBeam *CBeamRenderable::GetBeam()
 //////////////////////////////////////////////////////////////////////
 void CBeamRenderable::SetBeam(CBeam *pBeam)
 {
+	// set the beam object
+	SetObject(pBeam);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::SetBeam
+// 
+// over-ride to the set the object to a beam
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::SetObject(CObject *pObject)
+{
+	// ensure it is a beam
+	ASSERT(pObject->IsKindOf(RUNTIME_CLASS(CBeam)));
+
 	// remove this as an observer on the old beam
 	if (NULL != GetBeam())
 	{
@@ -91,7 +105,7 @@ void CBeamRenderable::SetBeam(CBeam *pBeam)
 	}
 
 	// set the beam pointer
-	SetObject(pBeam);
+	CRenderable::SetObject(pObject);
 
 	// add this as an observer on the new beam
 	if (NULL != GetBeam())
@@ -149,6 +163,11 @@ void CBeamRenderable::DescribeOpaque()
 
 	glPopMatrix();
 
+	glDisable(GL_LIGHTING);
+
+	glEnable(GL_LINE_SMOOTH);
+	glLineWidth(1.0f);
+
 	// describe the central axis
 	DescribeCentralAxis();
 
@@ -167,7 +186,7 @@ void CBeamRenderable::DescribeOpaque()
 	// glEnable(GL_BLEND);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glShadeModel(GL_FLAT);
+	// glShadeModel(GL_FLAT);
 
 	glColor4f(0.0f, 1.0f, 0.0f, 0.25f);
 
@@ -178,7 +197,6 @@ void CBeamRenderable::DescribeOpaque()
 	DescribeBlockDivergenceSurfaces();
 
 	glEnable(GL_COLOR_MATERIAL);
-	glEnable(GL_DEPTH_TEST);
 
 	// Set the shading model
 	glShadeModel(GL_SMOOTH);
@@ -205,7 +223,7 @@ void CBeamRenderable::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
 	// check to make sure this is the right event
 	if (pEvent == &GetBeam()->GetChangeEvent())
 	{
-		CMatrix<4> mProjInv(GetBeam()->GetTreatmentMachine()->m_projection);
+		CMatrix<4> mProjInv(GetBeam()->GetTreatmentMachine()->GetProjection());
 		mProjInv.Invert();
 
 		// set up the renderable's modelview matrix
