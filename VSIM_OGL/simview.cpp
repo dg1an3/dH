@@ -237,7 +237,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CSurfaceRenderer *pSurfaceRenderer = new CSurfaceRenderer(&m_wndREV);
 		pSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
 
-		pSurfaceRenderer->myColor.Set(arrColors[nAtSurf]);
+		pSurfaceRenderer->color.Set(arrColors[nAtSurf]);
 		pSurfaceRenderer->SetSurface(pSurface);
 		m_wndREV.AddRenderer(pSurfaceRenderer);
 
@@ -261,7 +261,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		{
 			CSurfaceRenderer *pBEVSurfaceRenderer = new CSurfaceRenderer(&m_wndBEV);
 			pBEVSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
-			pBEVSurfaceRenderer->myColor.Set(arrColors[nAtSurf]);
+			pBEVSurfaceRenderer->color.Set(arrColors[nAtSurf]);
 			pBEVSurfaceRenderer->SetSurface(pSurface);
 			m_wndBEV.AddRenderer(pBEVSurfaceRenderer);
 			pBEVSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);

@@ -13,11 +13,12 @@
 
 #include <OpenGLView.h>
 
-#define RAY_TRACE_RESOLUTION 64	
-#define RAY_TRACE_RES_LOG2   6
+#define RAY_TRACE_RESOLUTION 256			
+#define RAY_TRACE_RES_LOG2   8
 
 #define POST_PROCESS
 #define COMPUTE_MINMAX
+#define USE_TANDEM_RAYS
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -330,7 +331,6 @@ void CDRRRenderer::ComputeDRR()
 	mult_mask <<= 32;
 	mult_mask |= (nWidth << 17L) | (1 << 1L);
 
-#define USE_TANDEM_RAYS
 #ifdef USE_TANDEM_RAYS
 	__int64 mult_mask2 = nWidth << 1L;	// WATCH THIS: we need to shift by
 										//		the log2(nHeight) also
@@ -464,9 +464,9 @@ LOOP1:
 
 					movq mm6, mm1			// move the first ray's x- and y- coordinates to 
 											//		work register mm6
-					psrad mm6, 16			// adjust for fixed-point
-
 					movq mm7, mm3			// move the first ray's z- to work register mm7
+
+					psrad mm6, 16			// adjust for fixed-point
 					psrad mm7, 16			// adjust for fixed-point
 						
 					packssdw mm6, mm7		// pack the four 32-bit values into four 16-bit 
@@ -479,6 +479,7 @@ LOOP1:
 					movd edx, mm6			// now store the x- and y- offset
 
 					psrlq mm6, 32			// shift the z-offset down
+
 					movd ebx, mm6			// store the z-offset
 					shl ebx, 9				// multiply by nHeight
 					add edx, ebx			// and add the two offsets
@@ -497,9 +498,9 @@ LOOP1:
 
 					movq mm6, mm5			// move the first ray's x- and y- coordinates to 
 											//		work register mm6
-					psrad mm6, 16			// adjust for fixed-point
-
 					movq mm7, mm3			// move the first ray's z- to work register mm7
+
+					psrad mm6, 16			// adjust for fixed-point
 					psrad mm7, 16			// adjust for fixed-point
 						
 					packssdw mm6, mm7		// pack the four 32-bit values into four 16-bit 

@@ -32,11 +32,11 @@ CBeamRenderer::CBeamRenderer(COpenGLView *pView)
 	forBeam.AddObserver(this, (ChangeFunction) OnChange);
 
 	// set up the modelview matrix for the beam
-	CValue< CMatrix<4> >& modelviewMatrix =
+	CValue< CMatrix<4> >& privModelviewMatrix =
 		  privBeamToPatientXform 
 		* CreateScale(CVector<3>(1.0, 1.0, -1.0))
 		* Invert(privMachineProjection);
-	myModelviewMatrix.SyncTo(&modelviewMatrix);
+	modelviewMatrix.SyncTo(&privModelviewMatrix);
 }
 
 CBeamRenderer::~CBeamRenderer()

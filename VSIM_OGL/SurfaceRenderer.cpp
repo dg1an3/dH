@@ -37,7 +37,7 @@ CSurfaceRenderer::CSurfaceRenderer(COpenGLView *pView)
 		m_pLightfieldTexture(NULL),
 		isWireFrame(TRUE)
 {
-	myColor.Set(RGB(192, 192, 192));
+	color.Set(RGB(192, 192, 192));
 	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
 }
 
@@ -115,7 +115,7 @@ void CSurfaceRenderer::OnRenderScene()
 		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(1.0f);
 
-		glColor(myColor.Get());
+		glColor(color.Get());
 
 		for (int nAt = 0; nAt < m_pSurface->GetContourCount(); nAt++)
 		{
@@ -155,7 +155,7 @@ void CSurfaceRenderer::OnRenderScene()
 	glNormalPointer(GL_DOUBLE, 0, m_pSurface->GetNormalArray().GetData()-1);
 
 	// set the color of the surface
-	glColor(myColor.Get());
+	glColor(color.Get());
 
 	if (m_pBeam != NULL)
 	{

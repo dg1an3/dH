@@ -14,28 +14,36 @@
 #include "Beam.h"
 #include "OpenGLTexture.h"	// Added by ClassView
 
-// TODO: give generic Texture mapping facility
-//			over-ride ^^^ for light field display
-
-class CSurfaceRenderer : public COpenGLRenderer // , public CObserver
+class CSurfaceRenderer : public COpenGLRenderer
 {
 public:
+	// Constructors/destructores
 	CSurfaceRenderer(COpenGLView *pView);
 	virtual ~CSurfaceRenderer();
 
+	// Accessors for the surface to be rendered
 	CSurface * GetSurface();
 	void SetSurface(CSurface *m_pSurface);
 
+	// Accessors for the beam to use for lightfield generation
 	CBeam * GetLightFieldBeam();
 	void SetLightFieldBeam(CBeam *pBeam);
 
-	virtual void OnRenderScene();
-
-	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
-
+	// Flag to indicate wire frame mode (project contours, not mesh)
 	CValue< BOOL > isWireFrame;
 
+	// Translation vector 
 	static CVector<3> m_vXlate;
+
+	// Rendering routines
+	virtual void OnRenderScene();
+
+	// Capture changes from the surface and/or lightfield beam
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
+
+protected:
+	// Re-generates the lightfield texture, if necessary
+	COpenGLTexture * GetLightfieldTexture();
 
 private:
 	// pointer to the surface data
@@ -46,8 +54,6 @@ private:
 
 	// stores the texture for the lightfield
 	COpenGLTexture *m_pLightfieldTexture;
-protected:
-	COpenGLTexture * GetLightfieldTexture();
 };
 
 #endif // !defined(AFX_SURFACERENDERER_H__0E2B2435_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_)
