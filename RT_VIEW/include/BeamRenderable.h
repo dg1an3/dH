@@ -29,8 +29,11 @@ class CBeamRenderable : public CRenderable
 {
 public:
 	// construction/destruction
-	CBeamRenderable(CSceneView *pView);
+	CBeamRenderable();
 	virtual ~CBeamRenderable();
+
+	// allow for dynamic creation
+	DECLARE_DYNCREATE(CBeamRenderable)
 
 	// accessors for the beam to be rendered
 	CBeam *GetBeam();
@@ -56,9 +59,6 @@ public:
 	void OnBeamChanged(CObservableEvent *pEvent, void *pOldValue);
 
 private:
-	// association to the beam
-	CBeam *m_pBeam;
-
 	// holds the four corners of the field during description
 	CVector<2> m_vMin;
 	CVector<2> m_vMax;

@@ -41,9 +41,8 @@ inline void DrawProjectedVertex(const CVector<2>& v)
 // 
 // a depiction of the treatment beam
 //////////////////////////////////////////////////////////////////////
-CBeamRenderable::CBeamRenderable(CSceneView *pView)
-	: CRenderable(pView),
-		m_bCentralAxisEnabled(TRUE),
+CBeamRenderable::CBeamRenderable()
+	: m_bCentralAxisEnabled(TRUE),
 		m_bGraticuleEnabled(FALSE),
 		m_bFieldDivergenceSurfacesEnabled(FALSE),
 		m_bBlockDivergenceSurfacesEnabled(TRUE)
@@ -60,13 +59,21 @@ CBeamRenderable::~CBeamRenderable()
 }
 
 //////////////////////////////////////////////////////////////////////
+// IMPLEMENT_DYNCREATE
+// 
+// implements the dynamic create behavior for the renderables
+//////////////////////////////////////////////////////////////////////
+IMPLEMENT_DYNCREATE(CBeamRenderable, CRenderable);
+
+
+//////////////////////////////////////////////////////////////////////
 // CBeamRenderable::GetBeam
 // 
 // returns the beam being rendered
 //////////////////////////////////////////////////////////////////////
 CBeam *CBeamRenderable::GetBeam()
 {
-	return m_pBeam;
+	return (CBeam *) GetObject();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -77,23 +84,23 @@ CBeam *CBeamRenderable::GetBeam()
 void CBeamRenderable::SetBeam(CBeam *pBeam)
 {
 	// remove this as an observer on the old beam
-	if (NULL != m_pBeam)
+	if (NULL != GetBeam())
 	{
-		::RemoveObserver<CBeamRenderable>(&pBeam->GetChangeEvent(),
+		::RemoveObserver<CBeamRenderable>(&GetBeam()->GetChangeEvent(),
 			this, OnBeamChanged);
 	}
 
 	// set the beam pointer
-	m_pBeam = pBeam;
+	SetObject(pBeam);
 
 	// add this as an observer on the new beam
-	if (NULL != m_pBeam)
+	if (NULL != GetBeam())
 	{
-		::AddObserver<CBeamRenderable>(&pBeam->GetChangeEvent(),
+		::AddObserver<CBeamRenderable>(&GetBeam()->GetChangeEvent(),
 			this, OnBeamChanged);
 
 		// fire a change event to update
-		OnBeamChanged(&pBeam->GetChangeEvent(), NULL);
+		OnBeamChanged(&GetBeam()->GetChangeEvent(), NULL);
 	}
 	else
 	{
@@ -115,8 +122,8 @@ void CBeamRenderable::DescribeOpaque()
 	glLineWidth(1.0f);
 
 	// set up the four corners of the collimator rectangle
-	m_vMin = m_pBeam->GetCollimMin();
-	m_vMax = m_pBeam->GetCollimMax();
+	m_vMin = GetBeam()->GetCollimMin();
+	m_vMax = GetBeam()->GetCollimMax();
 	m_vMinXMaxY[0] = m_vMin[0];
 	m_vMinXMaxY[1] = m_vMax[1];
 	m_vMaxXMinY[0] = m_vMax[0];
@@ -198,11 +205,11 @@ void CBeamRenderable::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
 	// check to make sure this is the right event
 	if (pEvent == &GetBeam()->GetChangeEvent())
 	{
-		CMatrix<4> mProjInv(m_pBeam->GetTreatmentMachine()->m_projection);
+		CMatrix<4> mProjInv(GetBeam()->GetTreatmentMachine()->m_projection);
 		mProjInv.Invert();
 
 		// set up the renderable's modelview matrix
- 		SetModelviewMatrix(m_pBeam->GetBeamToFixedXform()
+ 		SetModelviewMatrix(GetBeam()->GetBeamToFixedXform()
  			* CMatrix<4>(CreateScale(CVector<3>(1.0, 1.0, -1.0)))
  			* mProjInv);
 
@@ -309,9 +316,9 @@ void CBeamRenderable::DescribeField()
 //////////////////////////////////////////////////////////////////////
 void CBeamRenderable::DescribeBlocks()
 {
-	for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
+	for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
 	{
-		CPolygon *pBlock = m_pBeam->GetBlockAt(nAt);
+		CPolygon *pBlock = GetBeam()->GetBlockAt(nAt);
 
 		glBegin(GL_LINE_LOOP);
 
@@ -400,15 +407,15 @@ void CBeamRenderable::DescribeBlockDivergenceSurfaces()
 		// draw the divergence surfaces
 		glBegin(GL_QUAD_STRIP);
 		
-			for (int nAt = 0; nAt < m_pBeam->GetBlockCount(); nAt++)
+			for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
 			{
-				CPolygon& polygon = *m_pBeam->GetBlockAt(nAt);
+				CPolygon *pPolygon = GetBeam()->GetBlockAt(nAt);
 
-				for (int nAtVert = 0; nAtVert < polygon.GetVertexCount(); 
+				for (int nAtVert = 0; nAtVert < pPolygon->GetVertexCount(); 
 						nAtVert++)
 				{
 					// draw divergence lines
-					DrawProjectedVertex(polygon.GetVertex(nAtVert)); 
+					DrawProjectedVertex(pPolygon->GetVertex(nAtVert)); 
 				}
 			}
 

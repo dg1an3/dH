@@ -25,10 +25,8 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CSurfaceRenderable::CSurfaceRenderable(CSceneView *pView)
-	: CRenderable(pView),
-		m_pSurface(NULL),
-		m_pBeam(NULL),
+CSurfaceRenderable::CSurfaceRenderable()
+	: m_pBeam(NULL),
 		m_pLightfieldTexture(NULL),
 		m_pEndTexture(NULL),
 		m_bWireFrame(FALSE),
@@ -47,32 +45,39 @@ CSurfaceRenderable::~CSurfaceRenderable()
 	}	
 }
 
+//////////////////////////////////////////////////////////////////////
+// IMPLEMENT_DYNCREATE
+// 
+// implements the dynamic create behavior for the renderables
+//////////////////////////////////////////////////////////////////////
+IMPLEMENT_DYNCREATE(CSurfaceRenderable, CRenderable);
+
 CSurface * CSurfaceRenderable::GetSurface()
 {
-	return m_pSurface;
+	return (CSurface *)GetObject();
 }
 
 void CSurfaceRenderable::SetSurface(CSurface *pSurface)
 {
-	if (NULL != m_pSurface)
+	if (NULL != GetSurface())
 	{
 		// remove this as an observer of surface changes
-		::RemoveObserver<CSurfaceRenderable>(&m_pSurface->GetChangeEvent(),
+		::RemoveObserver<CSurfaceRenderable>(&GetSurface()->GetChangeEvent(),
 			this, Invalidate);
 	}
 
 	// assign the pointer
-	m_pSurface = pSurface;
+	SetObject(pSurface);
 
-	if (NULL != m_pSurface)
+	if (NULL != GetSurface())
 	{
 		// add this as an observer of surface changes
-		::AddObserver<CSurfaceRenderable>(&m_pSurface->GetChangeEvent(),
+		::AddObserver<CSurfaceRenderable>(&GetSurface()->GetChangeEvent(),
 			this, Invalidate);
 
 		// set the renderables centroid to the center of the bounding box
-		SetCentroid(0.5 * (m_pSurface->GetBoundsMin() 
-			+ m_pSurface->GetBoundsMax()));
+		SetCentroid(0.5 * (GetSurface()->GetBoundsMin() 
+			+ GetSurface()->GetBoundsMax()));
 	}
 
 	// trigger re-rendering
@@ -140,14 +145,14 @@ void CSurfaceRenderable::DescribeOpaque()
 
 		glColor(GetColor());
 
-		for (int nAt = 0; nAt < m_pSurface->GetContourCount(); nAt++)
+		for (int nAt = 0; nAt < GetSurface()->GetContourCount(); nAt++)
 		{
-			CPolygon& polygon = m_pSurface->GetContour(nAt);
+			CPolygon& polygon = GetSurface()->GetContour(nAt);
 
 			glPushMatrix();
 
 			// translate to the appropriate reference distance
-			glTranslated(0.0, m_pSurface->GetContourRefDist(nAt), 0.0);
+			glTranslated(0.0, GetSurface()->GetContourRefDist(nAt), 0.0);
 
 			// after we rotate the data into the X-Z plane
 			glRotated(90.0, 1.0, 0.0, 0.0);
@@ -187,28 +192,28 @@ void CSurfaceRenderable::DescribeOpaque()
 		// draw the boundary surfaces
 		glColor(RGB(0, 0, 128));
 
-		double yMin = m_pSurface->GetBoundsMin()[1];
-		double yMax = m_pSurface->GetBoundsMax()[1];
-		for (int nAtTri = 0; nAtTri < m_pSurface->GetTriangleCount(); nAtTri++)
+		double yMin = GetSurface()->GetBoundsMin()[1];
+		double yMax = GetSurface()->GetBoundsMax()[1];
+		for (int nAtTri = 0; nAtTri < GetSurface()->GetTriangleCount(); nAtTri++)
 		{
-			const double *vVert0 = m_pSurface->GetTriangleVertex(nAtTri, 0);
-			const double *vVert1 = m_pSurface->GetTriangleVertex(nAtTri, 1);
-			const double *vVert2 = m_pSurface->GetTriangleVertex(nAtTri, 2);
+			const double *vVert0 = GetSurface()->GetTriangleVertex(nAtTri, 0);
+			const double *vVert1 = GetSurface()->GetTriangleVertex(nAtTri, 1);
+			const double *vVert2 = GetSurface()->GetTriangleVertex(nAtTri, 2);
 
 			if (vVert0[1] == yMin && vVert1[1] == yMin && vVert2[1] == yMin)
 			{
 				glBegin(GL_TRIANGLES);
 
 				glVertex3dv(vVert0);
-				glNormal3dv(m_pSurface->GetTriangleNormal(nAtTri, 0));
+				glNormal3dv(GetSurface()->GetTriangleNormal(nAtTri, 0));
 				glTexCoord3dv(vVert0);
 
 				glVertex3dv(vVert1);
-				glNormal3dv(m_pSurface->GetTriangleNormal(nAtTri, 1));
+				glNormal3dv(GetSurface()->GetTriangleNormal(nAtTri, 1));
 				glTexCoord3dv(vVert1);
 
 				glVertex3dv(vVert2);
-				glNormal3dv(m_pSurface->GetTriangleNormal(nAtTri, 2));
+				glNormal3dv(GetSurface()->GetTriangleNormal(nAtTri, 2));
 				glTexCoord3dv(vVert2);
 
 				glEnd();
@@ -219,12 +224,12 @@ void CSurfaceRenderable::DescribeOpaque()
 	// set the array for vertices
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(3, GL_DOUBLE, 0,
-		m_pSurface->GetVertexArray().GetData()-1);
+		GetSurface()->GetVertexArray().GetData()-1);
 
 	// set the array for normals
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glNormalPointer(GL_DOUBLE, 0, 
-		m_pSurface->GetNormalArray().GetData()-1);
+		GetSurface()->GetNormalArray().GetData()-1);
 
 	// make the depth mask read-only
 	glDepthMask(GL_FALSE);
@@ -280,7 +285,7 @@ void CSurfaceRenderable::DescribeOpaque()
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 		// set the texture coordinate pointer
-		glTexCoordPointer(3, GL_DOUBLE, 0, m_pSurface->GetVertexArray().GetData()-1);
+		glTexCoordPointer(3, GL_DOUBLE, 0, GetSurface()->GetVertexArray().GetData()-1);
 
 		glMatrixMode(GL_MODELVIEW);
 
@@ -289,8 +294,8 @@ void CSurfaceRenderable::DescribeOpaque()
 	}
 
 	// now draw the surface from the arrays of data
-	glDrawElements(GL_TRIANGLES, m_pSurface->GetTriangleCount() * 3, 
-		GL_UNSIGNED_INT, (void *)m_pSurface->GetIndexArray().GetData());
+	glDrawElements(GL_TRIANGLES, GetSurface()->GetTriangleCount() * 3, 
+		GL_UNSIGNED_INT, (void *)GetSurface()->GetIndexArray().GetData());
 
 	// disable the use of arrays
 	glDisableClientState(GL_VERTEX_ARRAY);

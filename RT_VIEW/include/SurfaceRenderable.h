@@ -33,8 +33,11 @@ class CSurfaceRenderable : public CRenderable
 {
 public:
 	// Constructors/destructores
-	CSurfaceRenderable(CSceneView *pView);
+	CSurfaceRenderable();
 	virtual ~CSurfaceRenderable();
+
+	// allow for dynamic creation
+	DECLARE_DYNCREATE(CSurfaceRenderable)
 
 	// Accessors for the surface to be rendered
 	CSurface * GetSurface();
@@ -55,9 +58,6 @@ protected:
 	CTexture * GetLightfieldTexture();
 
 private:
-	// pointer to the surface data
-	CSurface *m_pSurface;
-
 	// pointer to the beam to use for light field generation
 	CBeam * m_pBeam;
 

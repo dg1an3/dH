@@ -31,9 +31,8 @@ static char THIS_FILE[]=__FILE__;
 // 
 // a depiction of the treatment machine
 //////////////////////////////////////////////////////////////////////
-CMachineRenderable::CMachineRenderable(CSceneView *pView)
-	: CRenderable(pView),
-		m_bWireFrame(FALSE)
+CMachineRenderable::CMachineRenderable()
+	: m_bWireFrame(FALSE)
 {
 }
 

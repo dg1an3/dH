@@ -29,7 +29,7 @@ class CMachineRenderable : public CRenderable
 {
 public:
 	// constructor/destructor
-	CMachineRenderable(CSceneView *pView);
+	CMachineRenderable();
 	virtual ~CMachineRenderable();
 
 	// beam for treatment machine parameters
