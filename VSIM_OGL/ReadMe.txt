@@ -103,3 +103,12 @@ don't do this, some of the UI elements of your application will remain in the
 language of the operating system.
 
 /////////////////////////////////////////////////////////////////////////////
+
+TODO:
+
+1) Move SurfaceRenderable to GEOM_VIEW after separating lightpatch code
+
+2) Move other renderables and view objects to RT_VIEW library
+
+3) Clean CSimView
+

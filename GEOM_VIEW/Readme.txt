@@ -31,3 +31,7 @@ should add to or customize.
 
 
 /////////////////////////////////////////////////////////////////////////////
+
+TODO:
+
+1) Check RotateTracker with updated matrix orthogonalization routine

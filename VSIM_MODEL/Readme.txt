@@ -31,3 +31,9 @@ should add to or customize.
 
 
 /////////////////////////////////////////////////////////////////////////////
+
+TODO:
+
+1) Move header files to include directory
+
+2) Rename to RT_MODEL

@@ -33,12 +33,6 @@ should add to or customize.
 /////////////////////////////////////////////////////////////////////////////
 TODO
 
-1) Files to be cleaned:
+1) Move header files to include directory
 
-	BrentOptimizer.h
-	ConjGradOptimizer.h
-	ObjectiveFunction.h
-	Optimizer.h
-	PowellOptimizer.h
-	Optimizer.cpp (is this necessary?)
-
+2) Try conjugate gradient optimizer with a Newton-Rapheson 1D optimizer
