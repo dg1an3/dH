@@ -25,7 +25,7 @@ CFG=OPTIMIZER_BASE - Win32 Debug
 # PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=xicl6.exe
+CPP=cl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "OPTIMIZER_BASE - Win32 Release"
@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /G6 /MD /W3 /GX /Ob2 /I "include" /I "..\MTL" /I "..\XMLLogging" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /Yu"stdafx.h" /FD /O3 /QaxK /Qip /c
+# ADD CPP /nologo /G6 /MD /W3 /GX /Ob2 /I "include" /I "..\MTL" /I "..\XMLLogging" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /Yu"stdafx.h" /FD /O3 /QaxK /Qip /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
