@@ -27,10 +27,10 @@ static char THIS_FILE[]=__FILE__;
 // helper function to render the beam
 //////////////////////////////////////////////////////////////////////
 inline void DrawProjectedVertex(CRenderContext *pRC, 
-								const CVector<2>& v)
+								const CVectorD<2>& v)
 {
-	pRC->Vertex(CVector<3>(v[0], v[1], -1.0));
-	pRC->Vertex(CVector<3>(v[0], v[1],  1.0));
+	pRC->Vertex(CVectorD<3>(v[0], v[1], -1.0));
+	pRC->Vertex(CVectorD<3>(v[0], v[1],  1.0));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -148,7 +148,7 @@ void CBeamRenderable::DrawOpaque(CRenderContext *pRC)
 	pRC->PushMatrix();
 
 		// translate to draw at SCD (-1.0 under the inverse projection)
-		pRC->Translate(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Translate(CVectorD<3>(0.0, 0.0, -1.0));
 
 		// Draw the graticule
 		DrawGraticule(pRC);
@@ -165,7 +165,7 @@ void CBeamRenderable::DrawOpaque(CRenderContext *pRC)
 	pRC->PushMatrix();
 
 		// translate to draw at SID (1.0 under the inverse projection)
-		pRC->Translate(CVector<3>(0.0, 0.0, 1.0));
+		pRC->Translate(CVectorD<3>(0.0, 0.0, 1.0));
 
 		// the field
 		DrawField(pRC);
@@ -195,12 +195,12 @@ void CBeamRenderable::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
 	// check to make sure this is the right event
 	if (pEvent == &GetBeam()->GetChangeEvent())
 	{
-		CMatrix<4> mProjInv(GetBeam()->GetTreatmentMachine()->GetProjection());
+		CMatrixD<4> mProjInv(GetBeam()->GetTreatmentMachine()->GetProjection());
 		mProjInv.Invert();
 
 		// set up the renderable's modelview matrix
  		SetModelviewMatrix(GetBeam()->GetBeamToFixedXform()
- 			* CMatrix<4>(CreateScale(CVector<3>(1.0, 1.0, -1.0)))
+ 			* CMatrixD<4>(CreateScale(CVectorD<3>(1.0, 1.0, -1.0)))
  			* mProjInv);
 
 		// and re-render
@@ -218,18 +218,18 @@ void CBeamRenderable::DrawGraticule(CRenderContext *pRC, double size)
 	if (m_bGraticuleEnabled)
 	{
 		// now draw the graticule
-		CVector<2> vPos;
+		CVectorD<2> vPos;
 
 		pRC->BeginLines();
 
-			vPos = CVector<2>(0.0, 0.0);			
+			vPos = CVectorD<2>(0.0, 0.0);			
 			pRC->Vertex(vPos);
 			while (vPos[0] > m_vMin[0])
 			{
-				vPos -= CVector<2>(1.0, 0.0);
+				vPos -= CVectorD<2>(1.0, 0.0);
 				pRC->Vertex(vPos);
-				pRC->Vertex(vPos + CVector<2>(0.0, 0.5));
-				pRC->Vertex(vPos - CVector<2>(0.0, 0.5));
+				pRC->Vertex(vPos + CVectorD<2>(0.0, 0.5));
+				pRC->Vertex(vPos - CVectorD<2>(0.0, 0.5));
 				pRC->Vertex(vPos);
 			}
 
@@ -237,14 +237,14 @@ void CBeamRenderable::DrawGraticule(CRenderContext *pRC, double size)
 
 		pRC->BeginLines();
 
-			vPos = CVector<2>(0.0, 0.0);
+			vPos = CVectorD<2>(0.0, 0.0);
 			pRC->Vertex(vPos);
 			while (vPos[0] < m_vMax[0])
 			{
-				vPos += CVector<2>(1.0, 0.0);
+				vPos += CVectorD<2>(1.0, 0.0);
 				pRC->Vertex(vPos);
-				pRC->Vertex(vPos + CVector<2>(0.0, 0.5));
-				pRC->Vertex(vPos - CVector<2>(0.0, 0.5));
+				pRC->Vertex(vPos + CVectorD<2>(0.0, 0.5));
+				pRC->Vertex(vPos - CVectorD<2>(0.0, 0.5));
 				pRC->Vertex(vPos);
 			}
 
@@ -252,14 +252,14 @@ void CBeamRenderable::DrawGraticule(CRenderContext *pRC, double size)
 
 		pRC->BeginLines();
 
-			vPos = CVector<2>(0.0, 0.0);
+			vPos = CVectorD<2>(0.0, 0.0);
 			pRC->Vertex(vPos);
 			while (vPos[1] > m_vMin[1])
 			{
-				vPos -= CVector<2>(0.0, 1.0);
+				vPos -= CVectorD<2>(0.0, 1.0);
 				pRC->Vertex(vPos);
-				pRC->Vertex(vPos + CVector<2>(0.5, 0.0));
-				pRC->Vertex(vPos - CVector<2>(0.5, 0.0));
+				pRC->Vertex(vPos + CVectorD<2>(0.5, 0.0));
+				pRC->Vertex(vPos - CVectorD<2>(0.5, 0.0));
 				pRC->Vertex(vPos);
 			}
 
@@ -267,14 +267,14 @@ void CBeamRenderable::DrawGraticule(CRenderContext *pRC, double size)
 
 		pRC->BeginLines();
 
-			vPos = CVector<2>(0.0, 0.0);
+			vPos = CVectorD<2>(0.0, 0.0);
 			pRC->Vertex(vPos);
 			while (vPos[1] < m_vMax[1])
 			{
-				vPos += CVector<2>(0.0, 1.0);
+				vPos += CVectorD<2>(0.0, 1.0);
 				pRC->Vertex(vPos);
-				pRC->Vertex(vPos + CVector<2>(0.5, 0.0));
-				pRC->Vertex(vPos - CVector<2>(0.5, 0.0));
+				pRC->Vertex(vPos + CVectorD<2>(0.5, 0.0));
+				pRC->Vertex(vPos - CVectorD<2>(0.5, 0.0));
 				pRC->Vertex(vPos);
 			}
 
@@ -338,19 +338,19 @@ void CBeamRenderable::DrawCentralAxis(CRenderContext *pRC)
 		pRC->BeginLines();
 
 			// draw central axis
-			pRC->Vertex(CVector<3>(0.0, 0.0, -1.0));
-			pRC->Vertex(CVector<3>(0.0, 0.0,  1.0));
+			pRC->Vertex(CVectorD<3>(0.0, 0.0, -1.0));
+			pRC->Vertex(CVectorD<3>(0.0, 0.0,  1.0));
 
 		pRC->End();
 
 		// draw isocenter
 		pRC->BeginLines();
 
-			pRC->Vertex(CVector<3>(-5.0, 0.0, 0.5));
-			pRC->Vertex(CVector<3>( 5.0, 0.0, 0.5));
+			pRC->Vertex(CVectorD<3>(-5.0, 0.0, 0.5));
+			pRC->Vertex(CVectorD<3>( 5.0, 0.0, 0.5));
 
-			pRC->Vertex(CVector<3>(0.0, -5.0, 0.5));
-			pRC->Vertex(CVector<3>(0.0,  5.0, 0.5));
+			pRC->Vertex(CVectorD<3>(0.0, -5.0, 0.5));
+			pRC->Vertex(CVectorD<3>(0.0,  5.0, 0.5));
 
 		pRC->End();
 	}

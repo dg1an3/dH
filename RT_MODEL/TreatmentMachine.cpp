@@ -6,7 +6,7 @@
 
 #include <UtilMacros.h>
 
-#include <Matrix.h>
+#include <MatrixD.h>
 
 #include "TreatmentMachine.h"
 
@@ -67,7 +67,7 @@ double CTreatmentMachine::GetSID() const
 }
 
 // the projection matrix for the machine
-const CMatrix<4>& CTreatmentMachine::GetProjection() const
+const CMatrixD<4>& CTreatmentMachine::GetProjection() const
 {
 	return m_projection;
 }

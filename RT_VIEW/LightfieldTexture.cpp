@@ -83,14 +83,14 @@ void CLightfieldTexture::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue
 	// hollow brush
 	CBrush *pOldBrush = (CBrush *)pDC->SelectStockObject(HOLLOW_BRUSH);
 
-	CVector<2> vMin = GetBeam()->GetCollimMin();
-	CVector<2> vMax = GetBeam()->GetCollimMax();
+	CVectorD<2> vMin = GetBeam()->GetCollimMin();
+	CVectorD<2> vMax = GetBeam()->GetCollimMax();
 
 	vMin *= (double)(TEX_RESOLUTION - 5) / TEX_SIZE;
-	vMin += CVector<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
+	vMin += CVectorD<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
 
 	vMax *= (double)(TEX_RESOLUTION - 5) / TEX_SIZE;
-	vMax += CVector<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
+	vMax += CVectorD<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
 
 	pDC->Rectangle((int)vMin[0], (int)vMin[1], (int)vMax[0], (int)vMax[1]);
 
@@ -104,9 +104,9 @@ void CLightfieldTexture::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue
 		arrBlock.SetSize(pPolygon->GetVertexCount());
 		for (int nAtVert = 0; nAtVert < pPolygon->GetVertexCount(); nAtVert++)
 		{
-			CVector<2> v = pPolygon->GetVertex(nAtVert);
+			CVectorD<2> v = pPolygon->GetVertex(nAtVert);
 			v *= (double)(TEX_RESOLUTION - 5) / TEX_SIZE;
-			v += CVector<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
+			v += CVectorD<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
 
 			arrBlock[nAtVert] = v;
 		}
@@ -115,14 +115,14 @@ void CLightfieldTexture::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue
 	}
 
 	// draw the central axis
-	CVector<2> vCenter(0.0, 0.0);
+	CVectorD<2> vCenter(0.0, 0.0);
 	vCenter *= (double)(TEX_RESOLUTION - 5) / TEX_SIZE;
-	vCenter += CVector<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
+	vCenter += CVectorD<2>(TEX_RESOLUTION/2, TEX_RESOLUTION/2);
 
-	pDC->MoveTo(vCenter - CVector<2>(8.0, 0.0));
-	pDC->LineTo(vCenter + CVector<2>(8.0, 0.0));
-	pDC->MoveTo(vCenter - CVector<2>(0.0, 8.0));
-	pDC->LineTo(vCenter + CVector<2>(0.0, 8.0));
+	pDC->MoveTo(vCenter - CVectorD<2>(8.0, 0.0));
+	pDC->LineTo(vCenter + CVectorD<2>(8.0, 0.0));
+	pDC->MoveTo(vCenter - CVectorD<2>(0.0, 8.0));
+	pDC->LineTo(vCenter + CVectorD<2>(0.0, 8.0));
 
 	pDC->SelectObject(pOldPen);
 	pDC->SelectObject(pOldBrush);
@@ -132,13 +132,13 @@ void CLightfieldTexture::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue
 	ReleaseDC();
 
 	// compute the texture projection
-	CMatrix<4> mTex;
+	CMatrixD<4> mTex;
 
 	// scaling component for texture size
 	mTex[0][0] = -1.0 / (TEX_SIZE + 1);
 	mTex[1][1] = -1.0 / (TEX_SIZE + 1);
-	mTex[0][3] = 0.5;
-	mTex[1][3] = 0.5;
+	mTex[3][0] = 0.5;
+	mTex[3][1] = 0.5;
 
 	// beam projection 
 	mTex *= GetBeam()->GetTreatmentMachine()->GetProjection();
@@ -147,7 +147,7 @@ void CLightfieldTexture::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue
 	// glMultMatrix(m_pBeam->GetTreatmentMachine()->m_projection);
 
 	// transform from patient -> beam coordinates
-	CMatrix<4> mB2PXform = GetBeam()->GetBeamToPatientXform();
+	CMatrixD<4> mB2PXform = GetBeam()->GetBeamToPatientXform();
 	mB2PXform.Invert();
 	mTex *= mB2PXform;
 

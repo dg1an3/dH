@@ -12,7 +12,7 @@
 // #include <Value.h>
 #include <ModelObject.h>
 
-#include <Matrix.h>
+#include <MatrixD.h>
 
 class CTreatmentMachine : public CModelObject  
 {
@@ -35,7 +35,7 @@ public:
 	double GetSID() const;
 
 	// the projection matrix for the machine
-	const CMatrix<4>& GetProjection() const;
+	const CMatrixD<4>& GetProjection() const;
 
 	// serialization
 	void Serialize(CArchive &ar);
@@ -52,7 +52,7 @@ private:
 	double m_SID;	// source-image distance
 
 	// the machine's projection matrix
-	CMatrix<4> m_projection;
+	CMatrixD<4> m_projection;
 
 };
 

@@ -39,7 +39,7 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 		m_nGantryAngle = (int)(m_pBeam->GetGantryAngle() * 180.0 / PI);
 		m_nCouchAngle  = (int)(m_pBeam->GetCouchAngle()  * 180.0 / PI);
 
-		const CVector<3>& vOffset = m_pBeam->GetTableOffset();
+		const CVectorD<3>& vOffset = m_pBeam->GetTableOffset();
 		m_nTableX = (int) vOffset[0];
 		m_nTableY = (int) vOffset[1];
 		m_nTableZ = (int) vOffset[2];
@@ -68,7 +68,7 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 		m_pBeam->SetCouchAngle(((double)m_nCouchAngle) * PI / 180.0);
 		// m_pBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
 
-		CVector<3> vOffset(m_nTableX, m_nTableY, m_nTableZ);
+		CVectorD<3> vOffset(m_nTableX, m_nTableY, m_nTableZ);
 		m_pBeam->SetTableOffset(vOffset);
 	}
 }

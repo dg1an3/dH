@@ -119,7 +119,7 @@ void CMachineRenderable::DrawOpaque(CRenderContext *pRC)
 
 		// rotate for the gantry
 		pRC->Rotate(GetBeam()->GetGantryAngle() * 180.0 / PI, 
-			CVector<3>(0.0, 1.0, 0.0));
+			CVectorD<3>(0.0, 1.0, 0.0));
 
 		// Draw the gantry itself
 		DrawGantry(pRC, axisToCollim);
@@ -146,7 +146,7 @@ void CMachineRenderable::DrawTransparent(CRenderContext *pRC)
 
 	// rotate for the gantry
 	pRC->Rotate(GetBeam()->GetGantryAngle() * 180.0 / PI, 
-		CVector<3>(0.0, 1.0, 0.0));
+		CVectorD<3>(0.0, 1.0, 0.0));
 
 	// Draw the gantry itself
 	DrawGantry(pRC, axisToCollim);
@@ -166,51 +166,51 @@ void CMachineRenderable::DrawTable(CRenderContext *pRC)
 
 	pRC->Translate(-1.0 * GetBeam()->GetTableOffset());
 	pRC->Rotate(GetBeam()->GetCouchAngle() * 180.0 / PI, 
-		CVector<3>(.0, 0.0, 1.0));
+		CVectorD<3>(.0, 0.0, 1.0));
 
 	pRC->BeginQuads();
 
-		pRC->Normal(CVector<3>(0.0, 0.0, 1.0));
+		pRC->Normal(CVectorD<3>(0.0, 0.0, 1.0));
 
-		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -100.0));
-		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -100.0));
-		pRC->Vertex(CVector<3>( 250.0,   250.0,  -100.0));
-		pRC->Vertex(CVector<3>(-250.0,   250.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVectorD<3>( 250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVectorD<3>( 250.0,   250.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0,   250.0,  -100.0));
 
-		pRC->Normal(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Normal(CVectorD<3>(0.0, 0.0, -1.0));
 
-		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,   250.0,  -150.0));
-		pRC->Vertex(CVector<3>(-250.0,   250.0,  -150.0));
+		pRC->Vertex(CVectorD<3>(-250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,   250.0,  -150.0));
+		pRC->Vertex(CVectorD<3>(-250.0,   250.0,  -150.0));
 
-		pRC->Normal(CVector<3>(-1.0, 0.0, 0.0));
+		pRC->Normal(CVectorD<3>(-1.0, 0.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -100.0));
-		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -150.0));
-		pRC->Vertex(CVector<3>(-250.0,   250.0,  -150.0));
-		pRC->Vertex(CVector<3>(-250.0,   250.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVectorD<3>(-250.0,   250.0,  -150.0));
+		pRC->Vertex(CVectorD<3>(-250.0,   250.0,  -100.0));
 
-		pRC->Normal(CVector<3>( 1.0, 0.0, 0.0));
+		pRC->Normal(CVectorD<3>( 1.0, 0.0, 0.0));
 
-		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -100.0));
-		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,   250.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,   250.0,  -100.0));
+		pRC->Vertex(CVectorD<3>( 250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVectorD<3>( 250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,   250.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,   250.0,  -100.0));
 
-		pRC->Normal(CVector<3>( 0.0, 1.0, 0.0));
+		pRC->Normal(CVectorD<3>( 0.0, 1.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-250.0,  250.0,  -100.0));
-		pRC->Vertex(CVector<3>(-250.0,  250.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,  250.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,  250.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0,  250.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0,  250.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,  250.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,  250.0,  -100.0));
 
-		pRC->Normal(CVector<3>( 0.0, -1.0, 0.0));
+		pRC->Normal(CVectorD<3>( 0.0, -1.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-250.0,-1200.0,  -100.0));
-		pRC->Vertex(CVector<3>(-250.0,-1200.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,-1200.0,  -150.0));
-		pRC->Vertex(CVector<3>( 250.0,-1200.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0,-1200.0,  -100.0));
+		pRC->Vertex(CVectorD<3>(-250.0,-1200.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,-1200.0,  -150.0));
+		pRC->Vertex(CVectorD<3>( 250.0,-1200.0,  -100.0));
 
 
 	pRC->End();
@@ -230,93 +230,93 @@ void CMachineRenderable::DrawGantry(CRenderContext *pRC,
 	// render the gantry sides
 	pRC->BeginPolygon();
 
-		pRC->Normal(CVector<3>(-1.0, 0.0, 0.0));
+		pRC->Normal(CVectorD<3>(-1.0, 0.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,  axisToCollim + 100.0) );
 
 	pRC->End();
 
 	pRC->BeginPolygon();
 
-		pRC->Normal(CVector<3>(-1.0, 0.0, 0.0));
+		pRC->Normal(CVectorD<3>(-1.0, 0.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>(-300.0,  500.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  500.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
 
 	pRC->End();
 
 	// render the gantry sides
 	pRC->BeginPolygon();
 
-		pRC->Normal(CVector<3>( 1.0, 0.0, 0.0));
+		pRC->Normal(CVectorD<3>( 1.0, 0.0, 0.0));
 
-		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,  axisToCollim + 100.0) );
 
 	pRC->End();
 
 	pRC->BeginPolygon();
 
-		pRC->Normal(CVector<3>( 1.0, 0.0, 0.0));
+		pRC->Normal(CVectorD<3>( 1.0, 0.0, 0.0));
 
-		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  500.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  500.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
 
 	pRC->End();
 
 	// render the gantry faces
 	pRC->BeginQuads();
 
-		pRC->Normal(CVector<3>(0.0, -1.0, 0.0));
+		pRC->Normal(CVectorD<3>(0.0, -1.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0, -250.0,  axisToCollim + 300.0) );
 
-		pRC->Normal(CVector<3>(0.0, 0.0, 1.0));
+		pRC->Normal(CVectorD<3>(0.0, 0.0, 1.0));
 
-		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,  axisToCollim + 300.0) );
 
-		pRC->Normal(CVector<3>(0.0, 1.0, 0.0));
+		pRC->Normal(CVectorD<3>(0.0, 1.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		pRC->Vertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
 
-		pRC->Normal(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Normal(CVectorD<3>(0.0, 0.0, -1.0));
 
-		pRC->Vertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
 
-		pRC->Normal(CVector<3>(0.0, -1.0, 0.0));
+		pRC->Normal(CVectorD<3>(0.0, -1.0, 0.0));
 
-		pRC->Vertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
-		pRC->Vertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVectorD<3>( 300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  500.0,  axisToCollim + 100.0) );
 
-		pRC->Normal(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Normal(CVectorD<3>(0.0, 0.0, -1.0));
 
-		pRC->Vertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
-		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>(-300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>( 300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVectorD<3>(-300.0, -250.0,  axisToCollim + 100.0) );
 
 	pRC->End();
 }
@@ -334,23 +334,23 @@ void CMachineRenderable::DrawCollimator(CRenderContext *pRC,
 	pRC->BeginQuadStrip();
 
 		// compute the upper and lower edges
-		CVector<4> vCollimEdgeLower(0.0, 100.0, axisToCollim, 1.0);
-		CVector<4> vCollimEdgeUpper(0.0, 100.0, axisToCollim + 100.0, 1.0);
+		CVectorD<4> vCollimEdgeLower(0.0, 100.0, axisToCollim, 1.0);
+		CVectorD<4> vCollimEdgeUpper(0.0, 100.0, axisToCollim + 100.0, 1.0);
 
 		// number of steps around the circle
 		const double STEPS = 32.0;
 		for (double angle = 0.0; angle < 2 * PI; angle += (2 * PI) / STEPS)
 		{
 			// rotate about the central axis,
-			CMatrix<4> mRot = 
-				CMatrix<4>(CreateRotate(angle, CVector<3>(0.0, 0.0, 1.0)));
+			CMatrixD<4> mRot = 
+				CMatrixD<4>(CreateRotate(angle, CVectorD<3>(0.0, 0.0, 1.0)));
 
 			// draw a quad for each step
 			pRC->Vertex(mRot * vCollimEdgeLower);
 			pRC->Vertex(mRot * vCollimEdgeUpper);
 
 			// normal points outwards
-			pRC->Normal(mRot * CVector<4>(0.0, 1.0, 0.0, 1.0));
+			pRC->Normal(mRot * CVectorD<4>(0.0, 1.0, 0.0, 1.0));
 		}
 
 		// finish off the collimator
@@ -358,7 +358,7 @@ void CMachineRenderable::DrawCollimator(CRenderContext *pRC,
 		pRC->Vertex(vCollimEdgeUpper);
 
 		// and set the normal
-		pRC->Normal(CVector<4>(0.0, 1.0, 0.0, 1.0));
+		pRC->Normal(CVectorD<4>(0.0, 1.0, 0.0, 1.0));
 
 	pRC->End();
 }

@@ -37,10 +37,10 @@ CBeam::CBeam()
 		m_gantryAngle(PI),
 		m_couchAngle(0.0),
 
-		m_vTableOffset(CVector<3>(0.0, 0.0, 0.0)),
+		m_vTableOffset(CVectorD<3>(0.0, 0.0, 0.0)),
 
-		m_vCollimMin(CVector<2>(-20.0, -20.0)),
-		m_vCollimMax(CVector<2>(20.0, 20.0)),
+		m_vCollimMin(CVectorD<2>(-20.0, -20.0)),
+		m_vCollimMax(CVectorD<2>(20.0, 20.0)),
 		m_bDoseValid(FALSE)
 {
 }
@@ -149,7 +149,7 @@ void CBeam::SetCouchAngle(double couchAngle)
 // 
 // returns the table offset
 //////////////////////////////////////////////////////////////////////
-const CVector<3>& CBeam::GetTableOffset() const
+const CVectorD<3>& CBeam::GetTableOffset() const
 {
 	return m_vTableOffset;
 }
@@ -159,7 +159,7 @@ const CVector<3>& CBeam::GetTableOffset() const
 // 
 // sets the table offset
 //////////////////////////////////////////////////////////////////////
-void CBeam::SetTableOffset(const CVector<3>& vTableOffset)
+void CBeam::SetTableOffset(const CVectorD<3>& vTableOffset)
 {
 	m_vTableOffset = vTableOffset;
 	GetChangeEvent().Fire();
@@ -171,7 +171,7 @@ void CBeam::SetTableOffset(const CVector<3>& vTableOffset)
 // 
 // returns the collimator minimum position as a 2D vector
 //////////////////////////////////////////////////////////////////////
-const CVector<2>& CBeam::GetCollimMin() const
+const CVectorD<2>& CBeam::GetCollimMin() const
 {
 	return m_vCollimMin;
 }
@@ -181,7 +181,7 @@ const CVector<2>& CBeam::GetCollimMin() const
 // 
 // sets the collimator minimum position as a 2D vector
 //////////////////////////////////////////////////////////////////////
-void CBeam::SetCollimMin(const CVector<2>& vCollimMin)
+void CBeam::SetCollimMin(const CVectorD<2>& vCollimMin)
 {
 	m_vCollimMin = vCollimMin;
 	GetChangeEvent().Fire();
@@ -193,7 +193,7 @@ void CBeam::SetCollimMin(const CVector<2>& vCollimMin)
 // 
 // returns the collimator maximum position as a 2D vector
 //////////////////////////////////////////////////////////////////////
-const CVector<2>& CBeam::GetCollimMax() const
+const CVectorD<2>& CBeam::GetCollimMax() const
 {
 	return m_vCollimMax;
 }
@@ -203,7 +203,7 @@ const CVector<2>& CBeam::GetCollimMax() const
 // 
 // sets the collimator maximum position as a 2D vector
 //////////////////////////////////////////////////////////////////////
-void CBeam::SetCollimMax(const CVector<2>& vCollimMax)
+void CBeam::SetCollimMax(const CVectorD<2>& vCollimMax)
 {
 	m_vCollimMax = vCollimMax;
 	GetChangeEvent().Fire();
@@ -214,22 +214,22 @@ void CBeam::SetCollimMax(const CVector<2>& vCollimMax)
 // 
 // returns the beam to IEC fixed coordinate system transform
 //////////////////////////////////////////////////////////////////////
-const CMatrix<4>& CBeam::GetBeamToFixedXform() const
+const CMatrixD<4>& CBeam::GetBeamToFixedXform() const
 {
 	// set up the beam-to-patient transform computation
 	m_beamToFixedXform = 
 
 		// gantry rotation
-		CMatrix<4>(CreateRotate(PI - m_gantryAngle,	
-			CVector<3>(0.0, -1.0, 0.0)))
+		CMatrixD<4>(CreateRotate(PI - m_gantryAngle,	
+			CVectorD<3>(0.0, -1.0, 0.0)))
 
 		// collimator rotation
-		* CMatrix<4>(CreateRotate(m_collimAngle,		
-			CVector<3>(0.0, 0.0, -1.0)))
+		* CMatrixD<4>(CreateRotate(m_collimAngle,		
+			CVectorD<3>(0.0, 0.0, -1.0)))
 
 		// SAD translation
 		* CreateTranslate(m_Machine.GetSAD(),		
-			CVector<3>(0.0, 0.0, -1.0));
+			CVectorD<3>(0.0, 0.0, -1.0));
 
 	return m_beamToFixedXform;
 }
@@ -239,7 +239,7 @@ const CMatrix<4>& CBeam::GetBeamToFixedXform() const
 // 
 // returns the beam to IEC patient coordinate system transform
 //////////////////////////////////////////////////////////////////////
-const CMatrix<4>& CBeam::GetBeamToPatientXform() const
+const CMatrixD<4>& CBeam::GetBeamToPatientXform() const
 {
 	// set up the beam-to-patient transform computation
 	m_beamToPatientXform = 
@@ -248,8 +248,8 @@ const CMatrix<4>& CBeam::GetBeamToPatientXform() const
 		CreateTranslate(m_vTableOffset)
 
 		// couch rotation
-		* CMatrix<4>(CreateRotate(m_couchAngle,	
-			CVector<3>(0.0, 0.0, -1.0)))
+		* CMatrixD<4>(CreateRotate(m_couchAngle,	
+			CVectorD<3>(0.0, 0.0, -1.0)))
 
 		// beam to IEC fixed xform
 		* GetBeamToFixedXform();
@@ -262,7 +262,7 @@ const CMatrix<4>& CBeam::GetBeamToPatientXform() const
 // 
 // sets the beam to IEC patient coordinate system transform
 //////////////////////////////////////////////////////////////////////
-void CBeam::SetBeamToPatientXform(const CMatrix<4>& m)
+void CBeam::SetBeamToPatientXform(const CMatrixD<4>& m)
 {
 	// factor the B2P matrix into the rotation components
 	double gantry = acos(m[2][2]);	// gantry in [0..PI]
@@ -272,20 +272,20 @@ void CBeam::SetBeamToPatientXform(const CMatrix<4>& m)
 
 	if (gantry != 0.0)
 	{
-		double cos_couch = m[2][0] / sin(gantry);
+		double cos_couch = m[0][2] / sin(gantry);
 
 		// make sure the couch angle will be in [-PI..PI]
 		if (cos_couch < 0.0)
 		{
 			gantry = 2 * PI - gantry;
-			cos_couch = m[2][0] / sin(gantry);
+			cos_couch = m[0][2] / sin(gantry);
 		}
 
-		double sin_couch = m[2][1] / sin(gantry);
+		double sin_couch = m[1][2] / sin(gantry);
 		couch = AngleFromSinCos(sin_couch, cos_couch);
 
-		double cos_coll =  -m[0][2] / sin(gantry);
-		double sin_coll =  m[1][2] / sin(gantry);
+		double cos_coll =  -m[2][0] / sin(gantry);
+		double sin_coll =  m[2][1] / sin(gantry);
 		coll = AngleFromSinCos(sin_coll, cos_coll);
 	}
 

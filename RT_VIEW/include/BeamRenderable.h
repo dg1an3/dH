@@ -66,10 +66,10 @@ public:
 
 private:
 	// holds the four corners of the field during description
-	CVector<2> m_vMin;
-	CVector<2> m_vMax;
-	CVector<2> m_vMinXMaxY;
-	CVector<2> m_vMaxXMinY;
+	CVectorD<2> m_vMin;
+	CVectorD<2> m_vMax;
+	CVectorD<2> m_vMinXMaxY;
+	CVectorD<2> m_vMaxXMinY;
 
 	// flags to control rendering
 	BOOL m_bCentralAxisEnabled;

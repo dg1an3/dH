@@ -9,7 +9,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Matrix.h>
+#include <MatrixD.h>
 
 #include <Volumep.h>
 
@@ -27,7 +27,7 @@ protected:
 // Attributes
 public:
 	// Transform to position the volume in 3-space
-	CMatrix<4> m_volumeTransform;
+	CMatrixD<4> m_volumeTransform;
 
 	// Volume data for the series
 	CVolume< short > volume;

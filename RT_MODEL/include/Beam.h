@@ -14,8 +14,8 @@
 #endif // _MSC_VER > 1000
 
 // vector/matrix includes
-#include <Vector.h>
-#include <Matrix.h>
+#include <VectorD.h>
+#include <MatrixD.h>
 
 // model object base class
 #include <ModelObject.h>
@@ -55,22 +55,22 @@ public:
 	void SetCouchAngle(double couchAngle);
 
 	// table offset
-	const CVector<3>& GetTableOffset() const;
-	void SetTableOffset(const CVector<3>& vTableOffset);
+	const CVectorD<3>& GetTableOffset() const;
+	void SetTableOffset(const CVectorD<3>& vTableOffset);
 
 	// collimator jaw settings
-	const CVector<2>& GetCollimMin() const;
-	void SetCollimMin(const CVector<2>& vCollimMin);
+	const CVectorD<2>& GetCollimMin() const;
+	void SetCollimMin(const CVectorD<2>& vCollimMin);
 
-	const CVector<2>& GetCollimMax() const;
-	void SetCollimMax(const CVector<2>& vCollimMin);
+	const CVectorD<2>& GetCollimMax() const;
+	void SetCollimMax(const CVectorD<2>& vCollimMin);
 
 	// returns the beam-to-IEC fixed (room) xform
-	const CMatrix<4>& GetBeamToFixedXform() const;
+	const CMatrixD<4>& GetBeamToFixedXform() const;
 
 	// computed transform from patient to beam coordinates
-	const CMatrix<4>& GetBeamToPatientXform() const;
-	void SetBeamToPatientXform(const CMatrix<4>& m);
+	const CMatrixD<4>& GetBeamToPatientXform() const;
+	void SetBeamToPatientXform(const CMatrixD<4>& m);
 
 	// boolean value to indicate that shielding blocks are used
 	//		by this beam
@@ -110,19 +110,19 @@ private:
 	double m_couchAngle;
 
 	// table parameters
-	CVector<3> m_vTableOffset;
+	CVectorD<3> m_vTableOffset;
 
 	// collimator jaw settings
-	CVector<2> m_vCollimMin;
-	CVector<2> m_vCollimMax;
+	CVectorD<2> m_vCollimMin;
+	CVectorD<2> m_vCollimMax;
 
 	// stores the current IEC fixed xform matrix; mutable because it is 
 	//		recomputed in the Get accessor
-	mutable CMatrix<4> m_beamToFixedXform;
+	mutable CMatrixD<4> m_beamToFixedXform;
 
 	// stores the current xform matrix; mutable because it is recomputed
 	//		in the Get accessor
-	mutable CMatrix<4> m_beamToPatientXform;
+	mutable CMatrixD<4> m_beamToPatientXform;
 
 	// boolean value to indicate that shielding blocks are used
 	//		by this beam

@@ -68,10 +68,10 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 
 		m_pBeam->SetCollimAngle(((double)m_nCollimAngle) * PI / 180.0);
 
-		CVector<2> vMin(m_nJawX1, m_nJawY1);
+		CVectorD<2> vMin(m_nJawX1, m_nJawY1);
 		m_pBeam->SetCollimMin(vMin);
 
-		CVector<2> vMax(m_nJawX2, m_nJawY2);
+		CVectorD<2> vMax(m_nJawX2, m_nJawY2);
 		m_pBeam->SetCollimMax(vMax);
 
 		m_bUpdatingData = FALSE;
