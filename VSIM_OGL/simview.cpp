@@ -13,6 +13,7 @@
 #include "RotateTracker.h"
 #include "BeamRenderer.h"
 #include "SurfaceRenderer.h"
+#include "MachineRenderer.h"
 #include "DRRRenderer.h"
 
 #include "MainFrm.h"
@@ -299,6 +300,10 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	pPatientItem->children.Add(pSeriesItem);
 
+	// create and add the machine renderer to the REV
+	CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
+	m_wndREV.AddRenderer(pMachineRenderer);
+
 	for (int nAtSurf = 0; nAtSurf < pSeries->structures.GetSize(); nAtSurf++)
 	{
 		CSurface *pSurface = GetDocument()->GetSeries()->structures.Get(nAtSurf);
@@ -334,7 +339,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			CVector<3> vMax = pSurface->GetBoundsMax();
 			CSurfaceRenderer::m_vXlate = (vMin + vMax) * -0.5; 
 
-			m_wndREV.SetMaxObjSize((float) (2.5 * pSurface->GetMaxSize())); 
+			m_wndREV.SetMaxObjSize((float) (8.5 * pSurface->GetMaxSize())); 
 
 			m_wndBEV.SetMaxObjSize((float) (2.5 * pSurface->GetMaxSize())); 
 		}
@@ -375,6 +380,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		pPlanItem->children.Add(pNewItem);
 
+		// create and add the beam renderer to the REV
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
 		m_pBeamRenderer->SetBeam(pBeam);
 		m_wndREV.AddRenderer(m_pBeamRenderer);
