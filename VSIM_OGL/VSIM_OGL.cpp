@@ -261,7 +261,7 @@ BOOL CVSIM_OGLApp::OnIdle(LONG lCount)
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
 	CSimView *pView = (CSimView *)pFrame->GetActiveView();
 
-	if (pView != NULL && pView->m_pDRRRenderer != NULL)
+/*	if (pView != NULL && pView->m_pDRRRenderer != NULL)
 	{
 		if (pView->m_pDRRRenderer->m_nSteps < 256)
 		{
@@ -272,6 +272,6 @@ BOOL CVSIM_OGLApp::OnIdle(LONG lCount)
 			pView->m_wndBEV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 		}
 	}
-	
+*/	
 	return TRUE; // CWinApp::OnIdle(lCount);
 }

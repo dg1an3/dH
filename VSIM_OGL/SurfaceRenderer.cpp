@@ -3,7 +3,6 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-// #include "cube.h"
 #include "SurfaceRenderer.h"
 
 #include "gl\gl.h"
@@ -35,7 +34,9 @@ CSurfaceRenderer::CSurfaceRenderer(COpenGLView *pView)
 		m_pSurface(NULL),
 		m_pBeam(NULL),
 		m_pLightfieldTexture(NULL),
-		isWireFrame(TRUE)
+		m_pEndTexture(NULL),
+		isWireFrame(TRUE),
+		showBoundsSurface(FALSE)
 {
 	color.Set(RGB(192, 192, 192));
 	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
@@ -144,6 +145,40 @@ void CSurfaceRenderer::OnRenderScene()
 		glEnable(GL_LIGHTING);
 
 		return;
+	}
+
+	if (showBoundsSurface.Get())
+	{
+		// draw the boundary surfaces
+		glColor(RGB(0, 0, 128));
+
+		double yMin = m_pSurface->GetBoundsMin()[1];
+		double yMax = m_pSurface->GetBoundsMax()[1];
+		for (int nAtTri = 0; nAtTri < m_pSurface->GetTriangleCount(); nAtTri++)
+		{
+			const double *vVert0 = m_pSurface->GetTriangleVertex(nAtTri, 0);
+			const double *vVert1 = m_pSurface->GetTriangleVertex(nAtTri, 1);
+			const double *vVert2 = m_pSurface->GetTriangleVertex(nAtTri, 2);
+
+			if (vVert0[1] == yMin && vVert1[1] == yMin && vVert2[1] == yMin)
+			{
+				glBegin(GL_TRIANGLES);
+
+				glVertex3dv(vVert0);
+				glNormal3dv(m_pSurface->GetTriangleNormal(nAtTri, 0));
+				glTexCoord3dv(vVert0);
+
+				glVertex3dv(vVert1);
+				glNormal3dv(m_pSurface->GetTriangleNormal(nAtTri, 1));
+				glTexCoord3dv(vVert1);
+
+				glVertex3dv(vVert2);
+				glNormal3dv(m_pSurface->GetTriangleNormal(nAtTri, 2));
+				glTexCoord3dv(vVert2);
+
+				glEnd();
+			}
+		}
 	}
 
 	// set the array for vertices

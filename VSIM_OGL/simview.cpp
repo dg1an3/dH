@@ -247,15 +247,16 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		if (nAtSurf == 0)	// patient surface
 		{
 			m_pSurfaceRenderer = pSurfaceRenderer;
+			m_pSurfaceRenderer->showBoundsSurface.Set(TRUE);
 
 			// compute the center of the patient surface
 			CVector<3> vMin = pSurface->GetBoundsMin();
 			CVector<3> vMax = pSurface->GetBoundsMax();
 			CSurfaceRenderer::m_vXlate = (vMin + vMax) * -0.5; 
 
-			m_wndREV.SetMaxObjSize((float) (2.0 * pSurface->GetMaxSize())); 
+			m_wndREV.SetMaxObjSize((float) (2.5 * pSurface->GetMaxSize())); 
 
-			m_wndBEV.SetMaxObjSize((float) (2.0 * pSurface->GetMaxSize())); 
+			m_wndBEV.SetMaxObjSize((float) (2.5 * pSurface->GetMaxSize())); 
 		}
 
 		if (nAtSurf > 0)

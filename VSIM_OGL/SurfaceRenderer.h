@@ -32,6 +32,9 @@ public:
 	// Flag to indicate wire frame mode (project contours, not mesh)
 	CValue< BOOL > isWireFrame;
 
+	// Flag to indicate the bounding surfaces are to be rendered
+	CValue< BOOL > showBoundsSurface;
+
 	// Translation vector 
 	static CVector<3> m_vXlate;
 
@@ -54,6 +57,9 @@ private:
 
 	// stores the texture for the lightfield
 	COpenGLTexture *m_pLightfieldTexture;
+
+	// stores the texture for the end of the mesh
+	COpenGLTexture *m_pEndTexture;
 };
 
 #endif // !defined(AFX_SURFACERENDERER_H__0E2B2435_E5C1_11D4_9E2F_00B0D0609AB0__INCLUDED_)
