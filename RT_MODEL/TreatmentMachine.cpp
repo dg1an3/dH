@@ -34,6 +34,45 @@ CTreatmentMachine::~CTreatmentMachine()
 
 IMPLEMENT_SERIAL(CTreatmentMachine, CObject, 1)
 
+// machine identification
+const CString& CTreatmentMachine::GetManufacturer() const
+{
+	return m_strManufacturer;
+}
+
+const CString& CTreatmentMachine::GetModel() const
+{
+	return m_strModel;	
+}
+
+const CString& CTreatmentMachine::GetSerialNumber() const
+{
+	return m_strSerialNumber;
+}
+
+// machine geometry parameters
+double CTreatmentMachine::GetSAD() const
+{
+	return m_SAD;
+}
+
+double CTreatmentMachine::GetSCD() const
+{
+	return m_SCD;
+}
+
+double CTreatmentMachine::GetSID() const
+{
+	return m_SID;
+}
+
+// the projection matrix for the machine
+const CMatrix<4>& CTreatmentMachine::GetProjection() const
+{
+	return m_projection;
+}
+
+
 void CTreatmentMachine::Serialize(CArchive &ar)
 {
 	SERIALIZE_VALUE(ar, m_strManufacturer);
@@ -42,4 +81,8 @@ void CTreatmentMachine::Serialize(CArchive &ar)
 	SERIALIZE_VALUE(ar, m_SAD);
 	SERIALIZE_VALUE(ar, m_SCD);
 	SERIALIZE_VALUE(ar, m_SID);
+	if (ar.IsLoading())
+	{
+		m_projection = CreateProjection(m_SCD, m_SID);
+	}
 }

@@ -31,6 +31,17 @@ CSeries::~CSeries()
 	}
 }
 
+// Structures for the series
+int CSeries::GetStructureCount() const
+{
+	return m_arrStructures.GetSize();
+}
+
+CSurface *CSeries::GetStructureAt(int nAt)
+{
+	return (CSurface *) m_arrStructures.GetAt(nAt);
+}
+
 CString CSeries::GetFileName()
 {
 	// see if its filename is correct

@@ -228,7 +228,7 @@ const CMatrix<4>& CBeam::GetBeamToFixedXform() const
 			CVector<3>(0.0, 0.0, -1.0)))
 
 		// SAD translation
-		* CreateTranslate(m_Machine.m_SAD,		
+		* CreateTranslate(m_Machine.GetSAD(),		
 			CVector<3>(0.0, 0.0, -1.0));
 
 	return m_beamToFixedXform;

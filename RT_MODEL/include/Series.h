@@ -33,6 +33,9 @@ public:
 	CVolume< short > volume;
 
 	// Structures for the series
+	int GetStructureCount() const;
+	CSurface *GetStructureAt(int nAt);
+
 	CObArray m_arrStructures;
 
 // Operations
