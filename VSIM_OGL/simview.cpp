@@ -295,7 +295,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pNewItem->imageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
 		pNewItem->selectedImageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
 
-		pNewItem->isChecked.Set(TRUE);
+		pNewItem->isChecked.Set(FALSE); // TRUE);
 
 		pSeriesItem->children.Add(pNewItem);
 
@@ -366,7 +366,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		// create and add the machine renderer to the REV
 		CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
 		pMachineRenderer->forBeam.Set(pBeam);
-		m_wndREV.renderers.Add(pMachineRenderer);
+		// m_wndREV.renderers.Add(pMachineRenderer);
 
 		// create and add the beam renderer to the REV
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
