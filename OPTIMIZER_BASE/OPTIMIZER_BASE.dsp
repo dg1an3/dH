@@ -85,7 +85,7 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\Optimizer.cpp
+SOURCE=.\BrentOptimizer.cpp
 # End Source File
 # Begin Source File
 
@@ -103,6 +103,10 @@ SOURCE=BrentOptimizer.h
 # Begin Source File
 
 SOURCE=.\ConjGradOptimizer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\LineFunction.h
 # End Source File
 # Begin Source File
 
