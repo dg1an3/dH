@@ -86,7 +86,7 @@ public:
 
 protected:
 	// external element management
-	void SetElements(int nDim, TYPE *pElements, BOOL bFreeElements = FALSE);
+	void SetElements(int nDim, TYPE *pElements, BOOL bFreeElements);
 
 	// dimension of vector
 	int m_nDim;

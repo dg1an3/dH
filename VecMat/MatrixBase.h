@@ -65,8 +65,7 @@ public:
 	CMatrixBase& operator-=(const CMatrixBase& mRight);
 	CMatrixBase& operator*=(const TYPE& scale);
 
-	// Transpose -- inverts the matrix using the Gauss-Jordan 
-	//		elimination
+	// Transpose -- transposes elements of the matrix
 	void Transpose();
 
 	// orthogonality test
@@ -89,7 +88,7 @@ public:
 
 protected:
 	// SetElements -- sets the elements to an external pointer
-	void SetElements(int nCols, int nRows, TYPE *pElements, BOOL bFree = FALSE);
+	void SetElements(int nCols, int nRows, TYPE *pElements, BOOL bFreeElements);
 
 	// helper functions for Invert
 
@@ -170,7 +169,7 @@ template<class TYPE>
 CMatrixBase<TYPE>::~CMatrixBase<TYPE>()
 {
 	// frees any elements, if needed
-	SetElements(0, 0, NULL);
+	SetElements(0, 0, NULL, TRUE);
 
 }	// CMatrixBase<TYPE>::~CMatrixBase<TYPE>
 

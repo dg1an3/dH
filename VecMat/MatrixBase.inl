@@ -97,7 +97,8 @@ void CMatrixBase<TYPE>::SetElements(int nCols, int nRows,
 		for (int nAt = 0; nAt < GetCols(); nAt++)
 		{
 			// initialize the column vector
-			m_pColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
+			m_pColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()],
+				FALSE);
 		}
 	}
 
@@ -117,15 +118,17 @@ void CMatrixBase<TYPE>::Transpose()
 	// allocate the elements of the transposed matrix
 	TYPE *pElements = new TYPE[GetRows() * GetCols()];
 
-	// make the transposed matrix
-	CMatrixBase<TYPE> mTranspose;
-	mTranspose.SetElements(GetRows(), GetCols(), pElements);
-	
-	for (int nCol = 0; nCol < GetCols(); nCol++)
 	{
-		for (int nRow = 0; nRow < GetRows(); nRow++)
+		// make the transposed matrix
+		CMatrixBase<TYPE> mTranspose;
+		mTranspose.SetElements(GetRows(), GetCols(), pElements, FALSE);
+		
+		for (int nCol = 0; nCol < GetCols(); nCol++)
 		{
-			mTranspose[nRow][nCol] = (*this)[nCol][nRow];
+			for (int nRow = 0; nRow < GetRows(); nRow++)
+			{
+				mTranspose[nRow][nCol] = (*this)[nCol][nRow];
+			}
 		}
 	}
 
