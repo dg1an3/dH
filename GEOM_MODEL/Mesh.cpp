@@ -36,7 +36,7 @@ static char THIS_FILE[]=__FILE__;
 // constructs a new surface object
 //////////////////////////////////////////////////////////////////////
 CMesh::CMesh()
-	: m_pRegion(NULL),
+	: // m_pRegion(NULL),
 		m_bRecomputeBoundsMax(TRUE),
 		m_bRecomputeBoundsMin(TRUE)
 {
@@ -48,7 +48,7 @@ CMesh::CMesh()
 // copy constructor
 //////////////////////////////////////////////////////////////////////
 CMesh::CMesh(const CMesh& fromSurface)
-	: m_pRegion(NULL)
+//	: m_pRegion(NULL)
 {
 	// assign the surface
 	(*this) = fromSurface;
@@ -62,13 +62,13 @@ CMesh::CMesh(const CMesh& fromSurface)
 CMesh::~CMesh()
 {
 	// delete the contours
-	for (int nAt = 0; nAt < GetContourCount(); nAt++)
+/*	for (int nAt = 0; nAt < GetContourCount(); nAt++)
 	{
 		delete m_arrContours[nAt];
-	}
+	} */
 
 	// delete the region
-	delete m_pRegion;
+//	delete m_pRegion;
 }
 
 
@@ -118,6 +118,7 @@ CMesh& CMesh::operator=(const CMesh& fromSurface)
 	return (*this);
 }
 
+/*
 //////////////////////////////////////////////////////////////////////
 // CMesh::GetContourCount
 // 
@@ -147,6 +148,7 @@ double CMesh::GetContourRefDist(int nIndex) const
 {
 	return m_arrRefDist[nIndex];
 }
+*/
 
 //////////////////////////////////////////////////////////////////////
 // CMesh::GetBoundsMin
@@ -208,17 +210,22 @@ const CVectorD<3>& CMesh::GetBoundsMax() const
 	return m_vBoundsMax;
 }
 
-
+/*
 //////////////////////////////////////////////////////////////////////
 // CMesh::GetRegion
 // 
 // returns the region
 //////////////////////////////////////////////////////////////////////
-CVolume<int> *CMesh::GetRegion()
+CVolume<double> *CMesh::GetRegion()
 {
+	if (NULL == m_pRegion)
+	{
+		m_pRegion = new CVolume<double>;
+	}
+
 	return m_pRegion;
 }
-
+*/
 
 //////////////////////////////////////////////////////////////////////
 // CMesh::GetMaxSize
@@ -328,10 +335,10 @@ void CMesh::Serialize(CArchive &ar)
 	// serialize the surface name
 	SERIALIZE_VALUE(ar, m_strName);
 
-	DWORD nContourCount = GetContourCount();
+	DWORD nContourCount = 0; // GetContourCount();
 	SERIALIZE_VALUE(ar, nContourCount);
 
-	// serialize the contours -- first prepare the array
+/*	// serialize the contours -- first prepare the array
 	if (ar.IsLoading())
 	{
 		// delete any existing contours
@@ -353,10 +360,11 @@ void CMesh::Serialize(CArchive &ar)
 	for (int nAt = 0; nAt < nContourCount; nAt++)
 	{
 		GetContour(nAt)->Serialize(ar);
-	}
+	} */
 
 	// serialize the reference distance
-	m_arrRefDist.Serialize(ar);
+	CArray<double, double> arrRefDist;
+	arrRefDist.Serialize(ar);
 
 	UINT nSize = m_arrTriIndex.size();
 	SERIALIZE_VALUE(ar, nSize);
@@ -379,12 +387,15 @@ void CMesh::Serialize(CArchive &ar)
 
 	if (nSchema >= 4)
 	{
-		// serialize the region also
+		CVolume<double> region;
+		region.Serialize(ar);
+
+/*		// serialize the region also
 		if (m_pRegion == NULL)
 		{
-			m_pRegion = new CVolume<int>();
+			m_pRegion = new CVolume<double>();
 		}
-		m_pRegion->Serialize(ar);
+		m_pRegion->Serialize(ar); */
 	}
 }
 

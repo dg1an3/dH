@@ -60,11 +60,11 @@ public:
 	// assignment
 	CMesh& operator=(const CMesh& fromSurface);
 
-	// contour accessors
+/*	// contour accessors
 	int GetContourCount() const;
 	CPolygon *GetContour(int nAt);
 	double GetContourRefDist(int nIndex) const;
-
+*/
 	// triangle accessors
 	int GetTriangleCount();
 
@@ -83,7 +83,7 @@ public:
 	double GetMaxSize() const;
 
 	// accessor for the region
-	CVolume<int> *GetRegion();
+//	CVolume<double> *GetRegion();
 
 	// direct access to index, vertex, and normal arrays
 	// WARNING: calls to Lock* must be matched by calls to Unlock*
@@ -118,10 +118,10 @@ protected:
 
 protected:
 	// contours for the structure
-	CObArray m_arrContours;
+/*	CObArray m_arrContours;
 
 	// reference distances for the contours
-	CArray<double, double> m_arrRefDist;
+	CArray<double, double> m_arrRefDist; */
 
 	// mesh vertices
 	vector< CTriIndex<> > m_arrTriIndex;
@@ -138,7 +138,7 @@ protected:
 
 	// accessor for the "region" -- volume with a 1 everywhere
 	//		that is in the structure
-	CVolume<int> *m_pRegion;
+//	CVolume<double> *m_pRegion;
 
 	// face orientation array -- indicates which faces are oriented
 	CArray<BOOL, BOOL> m_arrIsOriented;
