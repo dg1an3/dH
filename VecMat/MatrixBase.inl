@@ -72,7 +72,8 @@ void CMatrixBase<TYPE>::SetElements(int nCols, int nRows,
 		m_pElements = NULL;
 	}
 
-	if (NULL != m_pColumns)
+	if (nCols != m_nCols 
+		&& NULL != m_pColumns)
 	{
 		delete [] m_pColumns;
 		m_pColumns = NULL;
@@ -86,8 +87,11 @@ void CMatrixBase<TYPE>::SetElements(int nCols, int nRows,
 	// set up the column vectors
 	if (0 != m_nCols)
 	{
-		// allocate column vectors
-		m_pColumns = new CVectorBase<TYPE>[GetCols()];
+		if (m_pColumns == NULL)
+		{
+			// allocate column vectors
+			m_pColumns = new CVectorBase<TYPE>[GetCols()];
+		}
 
 		// initialize the column vectors and the pointers
 		for (int nAt = 0; nAt < GetCols(); nAt++)

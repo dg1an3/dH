@@ -61,15 +61,11 @@ private:
 template<int DIM, class TYPE>
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 {
-	m_pElements = &m_arrElements[0];
 	m_pColumns = &m_arrColumns[0];
+	m_nCols = DIM;
 
-	// initialize the column vectors and the pointers
-	for (int nAt = 0; nAt < GetCols(); nAt++)
-	{
-		// initialize the column vector
-		m_arrColumns[nAt].SetElements(DIM, &m_arrElements[nAt * DIM]);
-	}
+	// allocate the elements
+	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
 
 	// populate as an identity matrix
 	SetIdentity();
@@ -85,18 +81,14 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 template<int DIM, class TYPE>
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 {
-	m_pElements = &m_arrElements[0];
 	m_pColumns = &m_arrColumns[0];
+	m_nCols = DIM;
 
-	// initialize the column vectors and the pointers
-	for (int nAt = 0; nAt < GetCols(); nAt++)
-	{
-		// initialize the column vector
-		m_arrColumns[nAt].SetElements(DIM, &m_arrElements[nAt * DIM]);
-	}
+	// allocate the elements
+	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
 
 	// populate from other matrix
-	for (nAt = 0; nAt < DIM; nAt++)
+	for (int nAt = 0; nAt < DIM; nAt++)
 	{
 		(*this)[nAt] = fromMatrix[nAt];
 	}
@@ -111,23 +103,18 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixBase<TYPE>& fromMatrix)
-	: m_pColumns(m_arrColumns)
 {
-	m_pElements = &m_arrElements[0];
 	m_pColumns = &m_arrColumns[0];
+	m_nCols = DIM;
 
-	// initialize the column vectors and the pointers
-	for (int nAt = 0; nAt < GetCols(); nAt++)
-	{
-		// initialize the column vector
-		m_arrColumns[nAt].SetElements(DIM, &m_arrElements[nAt * DIM]);
-	}
+	// allocate the elements
+	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
 
 	// set to identity (for partial fills)
 	SetIdentity();
 
 	// populate from other matrix
-	for (nAt = 0; nAt < __min(GetCols(), fromMatrix.GetCols()); nAt++)
+	for (int nAt = 0; nAt < __min(GetCols(), fromMatrix.GetCols()); nAt++)
 	{
 		(*this)[nAt] = CVectorD<DIM, TYPE>(fromMatrix[nAt]);
 	}
@@ -146,6 +133,10 @@ CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>()
 	// ensure no monkey business has occurred
 	ASSERT(m_pElements == &m_arrElements[0]);
 	ASSERT(m_pColumns == &m_arrColumns[0]);
+
+	// don't delete anything, as it was all statically allocated
+	m_pElements = NULL;
+	m_pColumns = NULL;
 
 }	// CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>
 
