@@ -48,6 +48,10 @@ public:
 	double GetRollAngle() const;
 	void SetRollAngle(double rollAngle);
 
+	// the current zoom setting
+	double GetZoom() const;
+	void SetZoom(double zoom);
+
 	// matrix representing the transform from the model space to the
 	//		camera space
 	const CMatrix<4>& GetXform() const;
@@ -105,6 +109,9 @@ private:
 
 	// the roll angle for the camera
 	double m_rollAngle;
+
+	// the current zoom factor
+	double m_zoom;
 
 	// the model transform
 	mutable CMatrix<4> m_mXform;

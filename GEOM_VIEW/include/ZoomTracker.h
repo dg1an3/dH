@@ -37,7 +37,7 @@ public:
 
 private:
 	// stores the initial projection matrix
-	CMatrix<4> m_initXform;
+	double m_initZoom;
 
 	// stores the initial y position
 	double m_initY;

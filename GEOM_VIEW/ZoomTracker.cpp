@@ -61,8 +61,8 @@ void CZoomTracker::OnButtonDown(UINT nFlags, CPoint point)
 	m_pView->GetCamera().AssertValid();
 #endif
 
-	// store the projection matrix
-	m_initXform = m_pView->GetCamera().GetXform();
+	// store the initial zoom factor
+	m_initZoom = m_pView->GetCamera().GetZoom();
 
 	// get the client rectangle
 	CRect rect;
@@ -93,14 +93,10 @@ void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
 	double currY = (double) point.y / (double) rect.Height();
 
 	// compute the zoom factor
-	double zoom = exp(4.0 * (m_initY - currY));
-
-	// compute the projection matrix
-	CMatrix<4> currXform = m_initXform
-		* CMatrix<4>(CreateScale(CVector<3>(zoom, zoom, zoom)));
+	double zoom = m_initZoom * exp(4.0 * (m_initY - currY));
 
 	// set the new model xform
-	m_pView->GetCamera().SetXform(currXform);
+	m_pView->GetCamera().SetZoom(zoom);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

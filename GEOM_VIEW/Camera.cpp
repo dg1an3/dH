@@ -35,6 +35,7 @@ CCamera::CCamera()
 		m_theta(0.0),
 		m_phi(0.0),
 		m_rollAngle(0.0),
+		m_zoom(1.0),
 		m_viewingAngle(45.0),
 		m_aspectRatio(1.0),
 		m_nearPlane(50.0),
@@ -141,6 +142,35 @@ void CCamera::SetPhi(double phi)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CCamera::GetZoom
+// 
+// returns the camera zoom
+//////////////////////////////////////////////////////////////////////
+double CCamera::GetZoom() const 
+{ 
+	return m_zoom;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CCamera::SetZoom
+// 
+// sets the camera zoom
+//////////////////////////////////////////////////////////////////////
+void CCamera::SetZoom(double zoom) 
+{ 
+	// set phi
+	m_zoom = zoom;
+
+	// and recalculate the model xform
+	RecalcXform();
+
+	// notify listeners that the camera has changed
+	GetChangeEvent().Fire();
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
 // CCamera::GetRollAngle
 // 
 // returns the camera rotation about its optical axis
@@ -194,6 +224,18 @@ void CCamera::SetXform(const CMatrix<4>& m)
 	// create an orthogonal (rotation) matrix
 	CMatrix<3> mOrtho = CMatrix<3>(m);
 	mOrtho.Orthogonalize();
+
+	// compute the scale factor
+	CMatrix<3> mOrthoInv(mOrtho);
+	mOrthoInv.Invert();
+	CMatrix<3> mScale = mOrthoInv * CMatrix<3>(m);
+
+	// ensure that there is no warp in the xform
+	ASSERT(IS_APPROX_EQUAL(mScale[0][0], mScale[1][1]));
+	ASSERT(IS_APPROX_EQUAL(mScale[0][0], mScale[2][2]));
+
+	// set the scale factor
+	m_zoom = mScale[0][0];
 
 	// form the rotation angles for the camera direction
 	m_phi = acos(mOrtho[2][2]);
@@ -360,7 +402,8 @@ const CMatrix<4>& CCamera::GetProjection() const
 void CCamera::RecalcXform() const
 {
 	// form the rotation matrix for the camera direction
-	CMatrix<3> mRotateDir = CreateRotate(GetPhi(), CVector<3>(1.0, 0.0, 0.0))
+	CMatrix<3> mRotateDir = 
+		CreateRotate(GetPhi(), CVector<3>(1.0, 0.0, 0.0))
 		* CreateRotate(GetTheta(), CVector<3>(0.0, 0.0, 1.0));
 
 	// form the camera roll rotation matrix
@@ -371,9 +414,15 @@ void CCamera::RecalcXform() const
 	CMatrix<4> mTranslate = CreateTranslate(GetDistance(), 
 		CVector<3>(0.0, 0.0, -1.0));
 
+	// form the scale matrix
+	CMatrix<3> mScale = 
+		CreateScale(CVector<3>(m_zoom, m_zoom, m_zoom));
+
 	// and set the total camera transformation to all three matrices
-	m_mXform = 
-		mTranslate * CMatrix<4>(mRotateRoll) * CMatrix<4>(mRotateDir);
+	m_mXform = mTranslate 
+		* CMatrix<4>(mRotateRoll) 
+		* CMatrix<4>(mRotateDir)
+		* CMatrix<4>(mScale);
 
 	// compute the total projection
 	m_mProjection = GetPerspective() * GetXform();
@@ -430,13 +479,13 @@ void CCamera::AssertValid() const
 
 	// compare the model xform to the recalculated one
 	CMatrix<4> mXformPre = GetXform();
-	// RecalcXform();
-	// ASSERT(mXformPre.IsApproxEqual(GetXform(), 1e-1));
+	RecalcXform();
+	ASSERT(mXformPre.IsApproxEqual(GetXform(), 1e-1));
 
 	// compare the projection to the recalculated one
 	CMatrix<4> mPerspectivePre = GetPerspective();
-	// RecalcProjection();
-	// ASSERT(mPerspectivePre.IsApproxEqual(GetPerspective(), 1e-1));
+	RecalcProjection();
+	ASSERT(mPerspectivePre.IsApproxEqual(GetPerspective(), 1e-1));
 
 	// ensure that the current projection matrix is valid
 	MatrixValid<REAL>(GetProjection());
