@@ -17,6 +17,8 @@
 #include "MachineRenderer.h"
 #include "DRRRenderer.h"
 
+#include "NodeRenderer.h"
+
 #include "MainFrm.h"
 
 #ifdef _DEBUG
@@ -305,6 +307,9 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pSurfaceRenderer->tableOffset.SyncTo(&pMainBeam->tableOffset);
 		pSurfaceRenderer->couchAngle.SyncTo(&pMainBeam->couchAngle);
 		m_wndREV.renderers.Add(pSurfaceRenderer);
+
+		CNodeRenderer *pNodeRenderer = new CNodeRenderer(&m_wndREV);
+		m_wndREV.renderers.Add(pNodeRenderer);
 
 		pSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 
