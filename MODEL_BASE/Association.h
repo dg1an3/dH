@@ -2,7 +2,8 @@
 // Association.h: interface for the CAssociation class and the 
 //		CAutoSyncValue accessory class
 //
-// Copyright (C) 1999-2001 DGLane
+// Copyright (C) 1999-2001
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(AFX_ASSOCIATION_H__76008148_F6DF_11D4_9E3E_00B0D0609AB0__INCLUDED_)

@@ -1,7 +1,8 @@
 //////////////////////////////////////////////////////////////////////
 // ModelObject.h: interface for the CModelObject class.
 //
-// Copyright (C) 1999-2001 DGLane
+// Copyright (C) 1999-2001
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(AFX_MODELOBJECT_H__5BF91A87_C623_11D4_BE42_005004D16DAA__INCLUDED_)
