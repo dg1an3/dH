@@ -41,6 +41,9 @@ void CGraph::OnPaint()
 {
 	CPaintDC dc(this); // device context for painting
 	
+	if (m_arrDataSeries.GetSize() == 0)
+		return;
+
 	ComputeMinMax();
 
 	// draw the axes
