@@ -104,6 +104,10 @@ SOURCE=.\BeamRenderer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\DRRRenderer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MainFrm.cpp
 # End Source File
 # Begin Source File
@@ -148,6 +152,10 @@ SOURCE=.\BeamParamPosCtrl.h
 # Begin Source File
 
 SOURCE=.\BeamRenderer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DRRRenderer.h
 # End Source File
 # Begin Source File
 

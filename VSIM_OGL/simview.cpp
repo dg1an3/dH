@@ -11,6 +11,7 @@
 #include "RotateTracker.h"
 #include "BeamRenderer.h"
 #include "SurfaceRenderer.h"
+#include "DRRRenderer.h"
 
 #include "MainFrm.h"
 
@@ -187,6 +188,11 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CBeam& beam = *GetDocument()->beams.Get(0);
 
 		currentBeam.Set(&beam);
+
+		CDRRRenderer *pDRRRenderer = new CDRRRenderer(&m_wndBEV);
+		pDRRRenderer->forVolume.Set(&GetDocument()->GetSeries()->volume);
+		pDRRRenderer->volumeTransform.Set(GetDocument()->GetSeries()->volumeTransform.Get());
+		m_wndBEV.AddRenderer(pDRRRenderer);
 
 		CBeamRenderer *pBEVBeamRenderer = new CBeamRenderer(&m_wndBEV);
 		pBEVBeamRenderer->SetBeam(&beam);
