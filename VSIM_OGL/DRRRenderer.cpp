@@ -29,7 +29,8 @@ UINT BackgroundComputeDRR( LPVOID pParam )
 	pRenderer->m_bRecomputeDRR = TRUE;
 	pRenderer->ComputeDRR();
 
-	::InvalidateRect(pRenderer->m_pView->m_hWnd, NULL, FALSE);
+	pRenderer->Invalidate();
+	// ::InvalidateRect(pRenderer->m_pView->m_hWnd, NULL, FALSE);
 	pRenderer->m_pThread = NULL;
 
 	::AfxEndThread(0, TRUE);
@@ -422,9 +423,9 @@ void CDRRRenderer::ComputeDRR()
 
 void CDRRRenderer::DrawScene()
 {
-// #ifdef _DEBUG
-	return;
-// #endif
+	// only draw if the renderer is enabled
+	if (!isEnabled.Get())
+		return;
 
 	if (forVolume.Get() != NULL)
 	{
