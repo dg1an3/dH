@@ -252,3 +252,8 @@ BOOL PLDrawBitmap(CDC& dc, CBitmap* pBitmap,
 	return bRet;
 }
 
+void *CDib::GetDIBits()
+{
+	ASSERT(m_bm.bmBits != NULL);
+	return m_bm.bmBits;
+}

@@ -53,6 +53,15 @@ public:
 	CPalette* GetPalette()  { return &m_pal; }
 
 	UINT GetColorTable(RGBQUAD* colorTab, UINT nColors);
+
+	// returns a void * to the pixel data for the image
+	void *GetDIBits();
+
+	// returns the size of the bitmap
+	CSize GetBitmapSize()
+	{
+		return CSize(m_bm.bmWidth, m_bm.bmHeight);
+	}
 };
 
 #endif // _DIB_H
