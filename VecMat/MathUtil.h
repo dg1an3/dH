@@ -2,7 +2,7 @@
 // MathUtil.h: declarations of standard math types, macros and 
 //		functions
 //
-// Copyright (C) 1999-2002
+// Copyright (C) 1999-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
