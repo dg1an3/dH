@@ -31,3 +31,20 @@ should add to or customize.
 
 
 /////////////////////////////////////////////////////////////////////////////
+TODO
+
+1) Files to clean up:
+
+	OpenGLRenderer.cpp
+	OpenGLCamera.h
+	OpenGLCamera.cpp
+	OpenGLLight.h
+	OpenGLLight.cpp
+	OpenGLTracker.h
+	OpenGLTracker.cpp
+	OpenGLTexture.h
+	OpenGLTexture.cpp
+	RotateTracker.h
+	RotateTracker.cpp
+	ZoomTracker.h
+	ZoomTracker.cpp
