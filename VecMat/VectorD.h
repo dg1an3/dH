@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////
-// Vector.h: declaration and definition of the CVector template class.
+// Vector.h: declaration and definition of the CVectorD template class.
 //
 // Copyright (C) 1999-2001
 // $Id$
@@ -14,18 +14,18 @@
 
 
 //////////////////////////////////////////////////////////////////////
-// class CVector<DIM, TYPE>
+// class CVectorD<DIM, TYPE>
 //
 // represents a mathematical vector with dimension and type given
 //////////////////////////////////////////////////////////////////////
 template<int DIM = 4, class TYPE = double>
-class CVector : public CVectorBase<TYPE>
+class CVectorD : public CVectorBase<TYPE>
 {
 public:
 	//////////////////////////////////////////////////////////////////
 	// default constructor
 	//////////////////////////////////////////////////////////////////
-	CVector() 
+	CVectorD() 
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -40,7 +40,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// construct from one element
 	//////////////////////////////////////////////////////////////////
-	CVector(TYPE x) 
+	CVectorD(TYPE x) 
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -58,7 +58,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// construct from two elements
 	//////////////////////////////////////////////////////////////////
-	CVector(TYPE x, TYPE y) 
+	CVectorD(TYPE x, TYPE y) 
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -77,7 +77,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// construct from three elements
 	//////////////////////////////////////////////////////////////////
-	CVector(TYPE x, TYPE y, TYPE z) 
+	CVectorD(TYPE x, TYPE y, TYPE z) 
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -97,7 +97,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// construct from four elements
 	//////////////////////////////////////////////////////////////////
-	CVector(TYPE x, TYPE y, TYPE z, TYPE w) 
+	CVectorD(TYPE x, TYPE y, TYPE z, TYPE w) 
 	{ 
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -118,7 +118,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
-	CVector(const CVector& vFrom) 
+	CVectorD(const CVectorD& vFrom) 
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -129,7 +129,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// copy constructor from base class
 	//////////////////////////////////////////////////////////////////
-	explicit CVector(const CVectorBase<TYPE>& vFrom) 
+	explicit CVectorD(const CVectorBase<TYPE>& vFrom) 
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -146,7 +146,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// construct from a windows CPoint
 	//////////////////////////////////////////////////////////////////
-	CVector(const CPoint& pt)
+	CVectorD(const CPoint& pt)
 	{
 		m_nDim = DIM;
 		m_pElements = &m_arrElements[0];
@@ -161,7 +161,7 @@ public:
 	}
 #endif
 
-	~CVector()
+	~CVectorD()
 	{
 		// change the pointer so the base class's destructor won't
 		//		try to free it
@@ -181,9 +181,9 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
-	CVector& operator=(const CVector& vFrom)
+	CVectorD& operator=(const CVectorD& vFrom)
 	{
-		ASSERT(m_pElements == &m_arrElements[0]);
+		// ASSERT(m_pElements == &m_arrElements[0]);
 
 		// set the given elements
 		for (int nAt = 0; nAt < GetDim(); nAt++)
@@ -199,10 +199,10 @@ public:
 	// IsApproxEqual -- tests for approximate equality using the EPS
 	//		defined at the top of this file
 	//////////////////////////////////////////////////////////////////
-	BOOL IsApproxEqual(const CVector& v, TYPE epsilon = EPS) const
+	BOOL IsApproxEqual(const CVectorD& v, TYPE epsilon = EPS) const
 	{
 		// form the difference vector
-		CVector vDiff(*this);
+		CVectorD vDiff(*this);
 		vDiff -= v;
 
 		return (vDiff.GetLength() < epsilon);
@@ -212,7 +212,7 @@ public:
 	// operator+= -- in-place vector addition; returns a reference to 
 	//		this
 	//////////////////////////////////////////////////////////////////
-	CVector& operator+=(const CVector& vRight)
+	CVectorD& operator+=(const CVectorD& vRight)
 	{
 		CVectorBase<TYPE>::operator+=((const CVectorBase<TYPE>&)vRight);
 		return (*this);
@@ -222,7 +222,7 @@ public:
 	// operator-= -- in-place vector subtraction; returns a reference 
 	//		to this
 	//////////////////////////////////////////////////////////////////
-	CVector& operator-=(const CVector& vRight)
+	CVectorD& operator-=(const CVectorD& vRight)
 	{
 		CVectorBase<TYPE>::operator-=((const CVectorBase<TYPE>&)vRight);
 		return (*this);
@@ -235,130 +235,130 @@ private:
 
 
 //////////////////////////////////////////////////////////////////////
-// function operator==(const CVector, const CVector)
+// function operator==(const CVectorD, const CVectorD)
 //
 // friend function to provide equality comparison for vectors.
 // use IsApproxEqual for approximate equality.
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline bool operator==(const CVector<DIM, TYPE>& vLeft, 
-					   const CVector<DIM, TYPE>& vRight)
+inline bool operator==(const CVectorD<DIM, TYPE>& vLeft, 
+					   const CVectorD<DIM, TYPE>& vRight)
 {
 	return operator==((const CVectorBase<TYPE>&) vLeft,
 		(const CVectorBase<TYPE>&) vRight);
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator!=(const CVector, const CVector)
+// function operator!=(const CVectorD, const CVectorD)
 //
 // friend function to provide inequality comparison for vectors.
 // use !IsApproxEqual for approximate inequality.
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline bool operator!=(const CVector<DIM, TYPE>& vLeft, 
-					   const CVector<DIM, TYPE>& vRight)
+inline bool operator!=(const CVectorD<DIM, TYPE>& vLeft, 
+					   const CVectorD<DIM, TYPE>& vRight)
 {
 	return operator!=((const CVectorBase<TYPE>&) vLeft,
 		(const CVectorBase<TYPE>&) vRight);
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator+(const CVector, const CVector)
+// function operator+(const CVectorD, const CVectorD)
 //
 // friend function to add two vectors, returning the sum as a new 
 //		vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM, TYPE> operator+(const CVector<DIM, TYPE>& vLeft, 
-							  const CVector<DIM, TYPE>& vRight)
+inline CVectorD<DIM, TYPE> operator+(const CVectorD<DIM, TYPE>& vLeft, 
+							  const CVectorD<DIM, TYPE>& vRight)
 {
-	CVector<DIM, TYPE> vSum = vLeft;
+	CVectorD<DIM, TYPE> vSum = vLeft;
 	vSum += vRight;
 
 	return vSum;
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator-(const CVector, const CVector)
+// function operator-(const CVectorD, const CVectorD)
 //
 // friend function to subtract one vector from another, returning 
 //		the difference as a new vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM, TYPE> operator-(const CVector<DIM, TYPE>& vLeft, 
-							  const CVector<DIM, TYPE>& vRight)
+inline CVectorD<DIM, TYPE> operator-(const CVectorD<DIM, TYPE>& vLeft, 
+							  const CVectorD<DIM, TYPE>& vRight)
 {
-	CVector<DIM, TYPE> vSum = vLeft;
+	CVectorD<DIM, TYPE> vSum = vLeft;
 	vSum -= vRight;
 
 	return vSum;
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CVector, const CVector)
+// function operator*(const CVectorD, const CVectorD)
 //
 // friend function for vector inner product
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline TYPE operator*(const CVector<DIM, TYPE>& vLeft, 
-							  const CVector<DIM, TYPE>& vRight)
+inline TYPE operator*(const CVectorD<DIM, TYPE>& vLeft, 
+							  const CVectorD<DIM, TYPE>& vRight)
 {
 	return operator*((const CVectorBase<TYPE>&) vLeft,
 		(const CVectorBase<TYPE>&) vRight);
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(TYPE scalar, const CVector)
+// function operator*(TYPE scalar, const CVectorD)
 //
 // friend function for scalar multiplication of a vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM, TYPE> operator*(TYPE scalar, 
-							  const CVector<DIM, TYPE>& vRight)
+inline CVectorD<DIM, TYPE> operator*(TYPE scalar, 
+							  const CVectorD<DIM, TYPE>& vRight)
 {
-	CVector<DIM, TYPE> vProd = vRight;
+	CVectorD<DIM, TYPE> vProd = vRight;
 	vProd *= scalar;
 
 	return vProd;
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CVector, TYPE scalar)
+// function operator*(const CVectorD, TYPE scalar)
 //
 // friend function for scalar multiplication of a vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM, TYPE> operator*(const CVector<DIM, TYPE>& vLeft, 
+inline CVectorD<DIM, TYPE> operator*(const CVectorD<DIM, TYPE>& vLeft, 
 							  TYPE scalar)
 {
-	CVector<DIM, TYPE> vProd = vLeft;
+	CVectorD<DIM, TYPE> vProd = vLeft;
 	vProd *= scalar;
 
 	return vProd;
 }
 
 //////////////////////////////////////////////////////////////////////
-// function Cross(const CVector<2>&, const CVector<2>&)
+// function Cross(const CVectorD<2>&, const CVectorD<2>&)
 //
 // friend function for vector cross product of 2-d vectors
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-inline TYPE Cross(const CVector<2, TYPE>& vLeft, 
-					const CVector<2, TYPE>& vRight)
+inline TYPE Cross(const CVectorD<2, TYPE>& vLeft, 
+					const CVectorD<2, TYPE>& vRight)
 {
 	return vLeft[0] * vRight[1] - vLeft[1] * vRight[0];
 }
 
 //////////////////////////////////////////////////////////////////////
-// function Cross(const CVector<3>&, const CVector<3>&)
+// function Cross(const CVectorD<3>&, const CVectorD<3>&)
 //
 // friend function for vector cross product of 3-d vectors
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-inline CVector<3, TYPE> Cross(const CVector<3, TYPE>& vLeft, 
-						      const CVector<3, TYPE>& vRight)
+inline CVectorD<3, TYPE> Cross(const CVectorD<3, TYPE>& vLeft, 
+						      const CVectorD<3, TYPE>& vRight)
 {
-	CVector<3, TYPE> vProd;
+	CVectorD<3, TYPE> vProd;
 
 	vProd[0] =   vLeft[1] * vRight[2] - vLeft[2] * vRight[1];
 	vProd[1] = -(vLeft[0] * vRight[2] - vLeft[2] * vRight[0]);
@@ -368,16 +368,16 @@ inline CVector<3, TYPE> Cross(const CVector<3, TYPE>& vLeft,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function ToHomogeneous(const CVector&)
+// function ToHomogeneous(const CVectorD&)
 //
 // converts an N-dimensional vector to an N+1-dimensional homogeneous
 //		vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM + 1, TYPE> ToHomogeneous(const CVector<DIM, TYPE>& v) 
+inline CVectorD<DIM + 1, TYPE> ToHomogeneous(const CVectorD<DIM, TYPE>& v) 
 {
 	// create the homogeneous vector
-	CVector<DIM + 1, TYPE> vh;
+	CVectorD<DIM + 1, TYPE> vh;
 
 	// fill with the given vector's elements
 	for (int nAt = 0; nAt < DIM; nAt++)
@@ -392,16 +392,16 @@ inline CVector<DIM + 1, TYPE> ToHomogeneous(const CVector<DIM, TYPE>& v)
 }
 
 //////////////////////////////////////////////////////////////////////
-// function FromHomogeneous(const CVector&)
+// function FromHomogeneous(const CVectorD&)
 //
 // converts an N+1-dimensional homogeneous vector to an N-dimensional 
 //		vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-inline CVector<DIM, TYPE> FromHomogeneous(const CVector<DIM + 1, TYPE>& vh) 
+inline CVectorD<DIM, TYPE> FromHomogeneous(const CVectorD<DIM + 1, TYPE>& vh) 
 {
 	// create the non-homogeneous vector
-	CVector<DIM, TYPE> v;
+	CVectorD<DIM, TYPE> v;
 
 	// normalize the first DIM-1 elements by the last element
 	for (int nAt = 0; nAt < DIM; nAt++)
@@ -415,12 +415,12 @@ inline CVector<DIM, TYPE> FromHomogeneous(const CVector<DIM + 1, TYPE>& vh)
 #ifdef _WINDOWS
 
 //////////////////////////////////////////////////////////////////////
-// function operator<<(CArchive &ar, CVector)
+// function operator<<(CArchive &ar, CVectorD)
 //
 // CArchive serialization of a vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-CArchive& operator<<(CArchive &ar, CVector<DIM, TYPE> v)
+CArchive& operator<<(CArchive &ar, CVectorD<DIM, TYPE> v)
 {
 	for (int nAt = 0; nAt < DIM; nAt++)
 	{
@@ -431,12 +431,12 @@ CArchive& operator<<(CArchive &ar, CVector<DIM, TYPE> v)
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator>>(CArchive &ar, CVector)
+// function operator>>(CArchive &ar, CVectorD)
 //
 // CArchive de-serialization of a vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE>
-CArchive& operator>>(CArchive &ar, CVector<DIM, TYPE>& v)
+CArchive& operator>>(CArchive &ar, CVectorD<DIM, TYPE>& v)
 {
 	for (int nAt = 0; nAt < DIM; nAt++)
 	{
@@ -454,13 +454,13 @@ CArchive& operator>>(CArchive &ar, CVector<DIM, TYPE>& v)
 // helper class for a packed static vector
 //////////////////////////////////////////////////////////////////////
 template<int DIM = 4, class TYPE = double>
-class CPackedVector
+class CPackedVectorD
 {
 public:
 	//////////////////////////////////////////////////////////////////
 	// default constructor
 	//////////////////////////////////////////////////////////////////
-	CPackedVector()
+	CPackedVectorD()
 	{
 		for (int nAt = 0; nAt < DIM; nAt++)
 			m_arrElements[nAt] = 0.0;
@@ -469,18 +469,18 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
-	CPackedVector(const CVector<DIM, TYPE>& vFrom)
+	CPackedVectorD(const CVectorD<DIM, TYPE>& vFrom)
 	{
 		for (int nAt = 0; nAt < DIM; nAt++)
 			m_arrElements[nAt] = vFrom[nAt];
 	}
 
 	//////////////////////////////////////////////////////////////////
-	// cast to CVector
+	// cast to CVectorD
 	//////////////////////////////////////////////////////////////////
-	operator CVector<DIM, TYPE>() const
+	operator CVectorD<DIM, TYPE>() const
 	{
-		CVector<DIM, TYPE> vConv;
+		CVectorD<DIM, TYPE> vConv;
 		for (int nAt = 0; nAt < DIM; nAt++)
 			vConv[nAt] = m_arrElements[nAt];
 
