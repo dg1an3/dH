@@ -201,8 +201,11 @@ public:
 	//////////////////////////////////////////////////////////////////
 	BOOL IsApproxEqual(const CVector& v, TYPE epsilon = EPS) const
 	{
-		return CVectorBase<TYPE>::IsApproxEqual(
-			(const CVectorBase<TYPE>&) v, epsilon);
+		// form the difference vector
+		CVector vDiff(*this);
+		vDiff -= v;
+
+		return (vDiff.GetLength() < epsilon);
 	}
 
 	//////////////////////////////////////////////////////////////////
