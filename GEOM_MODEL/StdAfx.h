@@ -12,8 +12,17 @@
 
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 
-#include <afx.h>
+#define STRICT
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0400
+#endif
+#define _ATL_APARTMENT_THREADED
+
+// #include <afx.h>
 #include <afxwin.h>
+#include <afxext.h>         // MFC extensions
+
+#include <afxdisp.h>
 
 #include <afxtempl.h>
 
