@@ -78,34 +78,6 @@ void CSimView::OnDraw(CDC* pDC)
 	pDC->SelectObject(pOldBrush);
 }
 
-double AngleFromSinCos(double sin_angle, double cos_angle)
-{
-	double angle = 0.0;
-
-	if (sin_angle >= 0.0)
-	{
-		angle = acos(cos_angle);	// range of [0..PI]	
-	}
-	else if (cos_angle >= 0.0)
-	{
-		angle = asin(sin_angle);	// range of [-PI/2..PI/2]
-	}
-	else
-	{
-		angle = 2 * PI - acos(cos_angle);
-	}
-
-	// ensure the angle is in range [0..2*PI];
-	if (angle < 0.0)
-		angle += 2 * PI;
-
-	// now check
-	ASSERT(fabs(sin(angle) - sin_angle) < 1e-6);
-	ASSERT(fabs(cos(angle) - cos_angle) < 1e-6);
-
-	return angle;
-}
-
 void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
 	if (pFromObject == &m_wndBEV.projectionMatrix)
@@ -203,7 +175,10 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	m_wndBEV.SetClippingPlanes(1.0f, 200.0f);
 	m_wndBEV.SetMaxObjSize(20.0f);
-	m_wndBEV.AddLeftTracker(new CRotateTracker(&m_wndBEV));
+	CRotateTracker *pBEVRotateTracker = new CRotateTracker(&m_wndBEV);
+	pBEVRotateTracker->upDirection.Set(CVector<3>(0.0, 0.0, 0.0));
+	m_wndBEV.AddLeftTracker(pBEVRotateTracker);
+
 
 	return 0;
 }
