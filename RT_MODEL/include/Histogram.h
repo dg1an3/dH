@@ -65,6 +65,7 @@ public:
 
 	// partial derivative volumes
 	int Get_dVolumeCount() const;
+	int GetGroupCount() const;
 	CVolume<REAL> *Get_dVolume(int nAt, int *pnGroup = NULL) const;
 	int Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup);
 
@@ -93,14 +94,15 @@ private:
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
 	CVolume<REAL> *m_pRegion;
+	CTypedPtrArray<CObArray, CVolume<REAL> *> m_arrRegionRotate;
 
 	// 
 	REAL m_minValue;
 	REAL m_binWidth;
 
 	// bin volume
-	mutable CVolume<short> m_binVolume;
-	mutable BOOL m_bRecomputeBinVolume;
+	mutable CTypedPtrArray<CObArray, CVolume<short> *> m_arrBinVolume;
+	mutable CArray<BOOL, BOOL> m_arrRecomputeBinVolume;
 
 	// histogram bins
 	mutable CVectorN<> m_arrBins;
