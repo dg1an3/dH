@@ -16,7 +16,7 @@
 class CDRRRenderable : public CRenderable 
 {
 public:
-	CDRRRenderable(CSceneView *pView);
+	CDRRRenderable();
 	virtual ~CDRRRenderable();
 
 	// association with a CVolume that contains the volumetric data

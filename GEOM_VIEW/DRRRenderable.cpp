@@ -42,14 +42,13 @@ UINT BackgroundComputeDRR( LPVOID pParam )
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CDRRRenderable::CDRRRenderable(CSceneView *pView)
-: CRenderable(pView),
-	m_pVolume(NULL),
-	m_bRecomputeDRR(TRUE),
-	m_nSteps(RAY_TRACE_RESOLUTION),
-	m_nShift(RAY_TRACE_RES_LOG2),
-	m_nResDiv(4),
-	m_pThread(NULL)
+CDRRRenderable::CDRRRenderable()
+	: m_pVolume(NULL),
+		m_bRecomputeDRR(TRUE),
+		m_nSteps(RAY_TRACE_RESOLUTION),
+		m_nShift(RAY_TRACE_RES_LOG2),
+		m_nResDiv(4),
+		m_pThread(NULL)
 {
 //	m_pView->GetCamera().projection.AddObserver(this, (ChangeFunction) OnChange);
 }

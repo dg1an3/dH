@@ -9,8 +9,7 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CMPRRenderable::CMPRRenderable(CSceneView *pView)
-: CRenderable(pView)
+CMPRRenderable::CMPRRenderable()
 {
 
 }

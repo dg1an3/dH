@@ -14,7 +14,7 @@
 class CMPRRenderable : public CRenderable  
 {
 public:
-	CMPRRenderable(CSceneView *pView);
+	CMPRRenderable();
 	virtual ~CMPRRenderable();
 
 };
