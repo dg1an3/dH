@@ -11,7 +11,8 @@
 #include <Optimizer.h>
 
 #include <Histogram.h>
-#include <HistogramMatcher.h>
+
+#include <KLDivTerm.h>
 
 #include <Structure.h>
 
@@ -26,112 +27,6 @@ class COptimizer;
 typedef void (*CCallbackFunc)(COptimizer *pOpt, int nIter);
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CVOITerm
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-class CVOITerm
-{
-public:
-	CVOITerm(CStructure *pStructure, int nScale)
-		: m_pVOI(pStructure), 
-			m_nScale(nScale),
-			m_histogram(NULL, pStructure->GetRegion(nScale))
-	{	
-	}	// CVOITerm
-
-	// helper to create pyramid - constructs a copy, except with nScale + 1
-	virtual CVOITerm *Subcopy() = 0;
-
-	// accessors for structure and histogram
-	CStructure *GetVOI() { return m_pVOI; }
-	CHistogram *GetHistogram() { return &m_histogram; }
-
-	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL) = 0;
-
-protected:
-	// the structure and scale
-	CStructure *m_pVOI;
-	int m_nScale;
-
-	// the histogram for the term
-	CHistogram m_histogram;
-
-	// the weight
-	REAL m_weight;
-
-};	// class CVOITerm
-
-
-///////////////////////////////////////////////////////////////////////////////
-// class CKLDivTerm
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-class CKLDivTerm : public CVOITerm
-{
-public:
-	CKLDivTerm(CStructure *pStructure, int nScale)
-		: CVOITerm(pStructure, nScale)
-	{	
-	}	// CKLDivTerm
-
-	virtual CVOITerm *Subcopy() 
-	{
-		CKLDivTerm *pSubcopy = new CKLDivTerm(GetVOI(), m_nScale+1);
-		pSubcopy->m_vTargetBins = m_vTargetBins;
-		pSubcopy->m_vTargetGBins = m_vTargetGBins;
-
-		return pSubcopy;
-	}
-
-	// accessor for target bins
-	CVectorN<>& GetTargetBins() { return m_vTargetBins; }
-	const CVectorN<>& GetTargetBins() const { return m_vTargetBins; }
-	const CVectorN<>& GetTargetGBins() const { return m_vTargetGBins; }
-
-	// sets the bins to an interval distribution
-	void SetInterval(long nAt, double low, double high, double fraction);
-	void SetRamp(long nAt, double low, double low_frac,
-			double high, double high_frac);
-
-	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL);
-
-protected:
-	CVectorN<> m_vTargetBins;
-	CVectorN<> m_vTargetGBins;
-
-};	// class CKLDivTerm
-
-
-///////////////////////////////////////////////////////////////////////////////
-// class CTCPTerm
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-class CTCPTerm : public CVOITerm
-{
-public:
-	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL);
-
-};	// class CTCPTerm
-
-
-///////////////////////////////////////////////////////////////////////////////
-// class CNTCPTerm
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-class CNTCPTerm : public CVOITerm
-{
-public:
-	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL);
-
-};	// class CNTCPTerm
-
-
-
-///////////////////////////////////////////////////////////////////////////////
 // class CPrescription
 // 
 // <description>
@@ -139,50 +34,70 @@ public:
 class CPrescription : public CObjectiveFunction  
 {
 public:
-	CPrescription(CPlan *pPlan);
+	CPrescription(CPlan *pPlan, int nLevel);
 	virtual ~CPrescription();
 
-	void SetPlan(CPlan *pPlan, int nLevels = 3);
+	CPrescription *GetLevel(int nLevel)
+	{
+		if (nLevel == 0) return this; else return m_pNextLevel->GetLevel(nLevel-1);
+	}
 
-	int AddStructure(CStructure *pStruct, REAL weight);
-	CHistogram * GetHistogram(CStructure *pStruct, int nScale);
+	const CPrescription *GetLevel(int nLevel) const
+	{
+		if (nLevel == 0) return this; else return m_pNextLevel->GetLevel(nLevel-1);
+	}
+
 
 	void AddStructureTerm(CVOITerm *pST);
 	void RemoveStructureTerm(CStructure *pStruct);
 	CVOITerm *GetStructureTerm(CStructure *pStruct);
 
+	// sets the GBinSigma for all histograms
+	void SetGBinSigma(REAL binSigma);
+
 	//////////////////////////
 
-	void GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet);
+	void GetInitStateVector(CVectorN<>& vInit);
 
-	void GetStateVector(int nScale, CVectorN<>& vState);
-	void SetStateVector(int nScale, const CVectorN<>& vState);
-
-	void InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN<>& vOut, BOOL bFixNeg);
-
-	void StateVectorToBeamletWeights(int nScale, const CVectorN<>& vState, CMatrixNxM<>& mBeamletWeights);
-	void BeamletWeightsToStateVector(int nScale, const CMatrixNxM<>& mBeamletWeights, CVectorN<>& vState);
+	void GetStateVectorFromPlan(CVectorN<>& vState);
+	void SetStateVectorToPlan(const CVectorN<>& vState);
 
 	///////////////////////////////////
 
-	BOOL Optimize(CCallbackFunc func);
+	BOOL Optimize(CVectorN<>& vInit, CCallbackFunc func);
+
+	void CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput) const;
+
+	REAL Eval_TotalEntropy(const CVectorN<>& vInput, CVectorN<> *pGrad = NULL) const;
 
 	// evaluates the objective function
 	virtual REAL operator()(const CVectorN<>& vInput, 
 		CVectorN<> *pGrad = NULL) const;
 
-public:
+protected:
+	void StateVectorToBeamletWeights(int nScale, const CVectorN<>& vState, CMatrixNxM<>& mBeamletWeights);
+	void BeamletWeightsToStateVector(int nScale, const CMatrixNxM<>& mBeamletWeights, CVectorN<>& vState);
+
+	void GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet) const;
+	void InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN<>& vOut, BOOL bFixNeg);
+
+private:
 	CPlan *m_pPlan;
 	COptimizer * m_pOptimizer;
 	CPrescription *m_pNextLevel;
+	int m_nLevel;
 
-	CVolume<double> *m_pSumVolume;
+	CVolume<REAL> m_sumVolume;
 
-	CTypedPtrMap<CMapPtrToPtr, CStructure*, CVOITerm*> m_mapVOITerms;
+	CTypedPtrMap<CMapPtrToPtr, CStructure*, CVOITerm*> m_mapVOITs;
 
-	CTypedPtrMap<CMapPtrToPtr, CStructure*, CHistogram*> m_mapHistograms[MAX_SCALES];
+	REAL m_GBinSigma;
+	REAL m_tolerance;
 
-	CTypedPtrArray<CPtrArray, CHistogramMatcher*> m_arrHistoMatchers;
+	REAL m_totalEntropyWeight;
+
+	// scales input prior to exponentiation
+	REAL m_inputScale;
 
 };	// class CPrescription
 
