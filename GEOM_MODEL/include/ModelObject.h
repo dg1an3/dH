@@ -14,6 +14,8 @@
 
 #include "Observer.h"
 
+#include <XMLLogging.h>
+
 //////////////////////////////////////////////////////////////////////
 // class CModelObject
 // 
@@ -24,6 +26,7 @@
 //		4) can be serialized
 //////////////////////////////////////////////////////////////////////
 class CModelObject : public CObject,
+		public CXMLLoggableObject,
 		public IUnknown
 {
 public:
@@ -48,6 +51,9 @@ public:
 
 	// serialization
 	virtual void Serialize( CArchive& ar );
+
+// CXMLLoggable interface
+	virtual void Log(CXMLElement *pElem) const { }
 
 // IUnknown interface methods
 	STDMETHOD(QueryInterface)(REFIID, void **);   
