@@ -1,7 +1,6 @@
 #if !defined(AFX_SIMVIEW1_H__601FB7E1_EE42_11D4_9E36_00B0D0609AB0__INCLUDED_)
 #define AFX_SIMVIEW1_H__601FB7E1_EE42_11D4_9E36_00B0D0609AB0__INCLUDED_
 
-#include "OpenGLView.h"	// Added by ClassView
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
@@ -10,11 +9,13 @@
 
 #include "Plan.h"
 #include "Beam.h"
-#include "Association.h"
 
-#include "BeamRenderer.h"	// Added by ClassView
-#include "SurfaceRenderer.h"	// Added by ClassView
-#include "DRRRenderer.h"
+#include <DRRRenderable.h>
+
+#include "SceneView.h"	// Added by ClassView
+
+#include "BeamRenderable.h"		// Added by ClassView
+#include "SurfaceRenderable.h"	// Added by ClassView
 
 /////////////////////////////////////////////////////////////////////////////
 // CSimView view
@@ -35,26 +36,26 @@ public:
 	CMatrix<4> ComputeProjection(CBeam& beam);
 
 	// association to the currently selected beam
-	CAssociation<CBeam> currentBeam;
+	CBeam *m_pCurrentBeam;
 
-	CValue<BOOL> patientEnabled;
+	BOOL m_bPatientEnabled;
 
-	CValue< BOOL > isWireFrame;
+	BOOL m_bWireFrame;
 
-	CValue< BOOL > isColorWash;
+	BOOL m_bColorWash;
 
-	COpenGLView m_wndREV;
-	COpenGLView m_wndBEV;
+	CSceneView m_wndREV;
+	CSceneView m_wndBEV;
 
-	CValue< double > sliderPos;
+	double m_sliderPos;
 
 #ifdef SHOW_ORTHO
-	COpenGLView m_wndOrtho[3];
+	CSceneView m_wndOrtho[3];
 #endif
 
-	CSurfaceRenderer *m_pSurfaceRenderer;
-	CBeamRenderer *m_pBeamRenderer;
-	CDRRRenderer *m_pDRRRenderer;
+	CSurfaceRenderable *m_pSurfaceRenderable;
+	CBeamRenderable *m_pBeamRenderable;
+	CDRRRenderable *m_pDRRRenderable;
 
 // Overrides
 	// ClassWizard generated virtual function overrides

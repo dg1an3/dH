@@ -112,6 +112,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		"Arial");
 	m_wndExplorerCtrl.m_ExplorerCtrl.SetFont(pFont);
 
+	// free the font
+	// delete pFont;
+
 	EnableDocking(CBRS_ALIGN_ANY);
 
 	// TODO: Delete these three lines if you don't want the toolbar to

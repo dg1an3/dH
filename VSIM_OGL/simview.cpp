@@ -12,10 +12,10 @@
 
 #include "RotateTracker.h"
 #include "ZoomTracker.h"
-#include "BeamRenderer.h"
-#include "SurfaceRenderer.h"
-#include "MachineRenderer.h"
-#include "DRRRenderer.h"
+#include "BeamRenderable.h"
+#include "SurfaceRenderable.h"
+#include "MachineRenderable.h"
+#include "DRRRenderable.h"
 
 #include "BeamParamPosCtrl.h"
 
@@ -27,18 +27,51 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+//////////////////////////////////////////////////////////////////////
+// function CreateRotate
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+static CMatrix<4> CreateRotateHG(const double& theta, 
+							   const CVector<3>& vAxis)
+{
+	// start with an identity matrix
+	CMatrix<3> mRotate = CreateRotate(theta, vAxis);
+
+	CMatrix<4> mRotateHG(mRotate);
+
+	return mRotateHG;
+}
+
+//////////////////////////////////////////////////////////////////////
+// function CreateScale
+//
+// creates a rotation matrix given an angle and an axis of rotation
+//////////////////////////////////////////////////////////////////////
+static CMatrix<4> CreateScaleHG(const CVector<3>& vScale)
+{
+	// start with an identity matrix
+	CMatrix<3> mScale = CreateScale(vScale);
+
+	CMatrix<4> mScaleHG(mScale);
+
+	return mScaleHG;
+}
+
+
 /////////////////////////////////////////////////////////////////////////////
 // CSimView
 
 IMPLEMENT_DYNCREATE(CSimView, CView)
 
 CSimView::CSimView()
-	: m_pBeamRenderer(NULL),
-		m_pSurfaceRenderer(NULL),
-		m_pDRRRenderer(NULL),
-		patientEnabled(TRUE),
-		isWireFrame(FALSE),
-		isColorWash(FALSE)
+	: m_pCurrentBeam(NULL),
+		m_pBeamRenderable(NULL),
+		m_pSurfaceRenderable(NULL),
+		m_pDRRRenderable(NULL),
+		m_bPatientEnabled(TRUE),
+		m_bWireFrame(FALSE),
+		m_bColorWash(FALSE)
 {
 }
 
@@ -82,15 +115,19 @@ void CSimView::OnDraw(CDC* pDC)
 
 void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
-	if (pFromObject == &m_wndBEV.camera.modelXform)
+	// if (pFromObject //->GetParent() 
+	//		== &m_wndBEV.GetCamera())
 	{
-		CMatrix<4> mBeamToPatientXform = Invert(m_wndBEV.camera.modelXform.Get());
-		currentBeam->beamToPatientXform.Set(mBeamToPatientXform);
+		CMatrix<4> mBeamToPatientXform(m_wndBEV.GetCamera().GetXform());
+		mBeamToPatientXform.Invert();
+
+		m_pCurrentBeam->SetBeamToPatientXform(mBeamToPatientXform);
 		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
-	else if (pFromObject != &m_wndBEV.camera.projection)
+	if (pFromObject // ->GetParent() 
+		!= &m_wndBEV.GetCamera().GetChangeEvent())
 	{
-		CBeam *pBeam = (CBeam *)pFromObject;
+		CBeam *pBeam = (CBeam *)pFromObject->GetParent();
 		SetBEVPerspective(*pBeam);
 	}
 }
@@ -130,24 +167,25 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (!m_wndREV.Create(NULL, NULL, lpCreateStruct->style, CRect(0, 0, 0, 0), this, 0))
 		return -1;
 
-	m_wndREV.camera.nearPlane.Set(1.0);
-	m_wndREV.camera.farPlane.Set(200.0);
-	m_wndREV.camera.SetFieldOfView(20.0f);
-	m_wndREV.camera.phi.Set(PI);
-	m_wndREV.camera.theta.Set(PI / 2.0);
+	m_wndREV.GetCamera().SetClippingPlanes(1.0, 200.0);
+	m_wndREV.GetCamera().SetFieldOfView(20.0f);
+	m_wndREV.GetCamera().SetPhi(PI);
+	m_wndREV.GetCamera().SetTheta(0.0); // PI / 2.0);
+
+	TRACE_MATRIX("CSimView::OnCreate Projection Matrix", 
+		m_wndREV.GetCamera().GetProjection());
+
 	pRotateTracker = new CRotateTracker(&m_wndREV);
-	m_wndREV.leftTrackers.Add(pRotateTracker);
-	m_wndREV.middleTrackers.Add(new CZoomTracker(&m_wndREV));
+	m_wndREV.AddLeftTracker(pRotateTracker);
+	m_wndREV.AddMiddleTracker(new CZoomTracker(&m_wndREV));
 
 	if (!m_wndBEV.Create(NULL, NULL, lpCreateStruct->style, CRect(0, 0, 0, 0), this, 0))
 		return -1;
 	
-	m_wndBEV.camera.nearPlane.Set(1.0);
-	m_wndBEV.camera.farPlane.Set(200.0);
-	m_wndBEV.camera.SetFieldOfView(20.0f);
+	m_wndBEV.GetCamera().SetClippingPlanes(1.0, 200.0);
+	m_wndBEV.GetCamera().SetFieldOfView(20.0f);
 	CRotateTracker *pBEVRotateTracker = new CRotateTracker(&m_wndBEV);
-	m_wndBEV.leftTrackers.Add(pBEVRotateTracker);
-
+	m_wndBEV.AddLeftTracker(pBEVRotateTracker);
 
 	return 0;
 }
@@ -162,14 +200,15 @@ void CSimView::OnSize(UINT nType, int cx, int cy)
 	cy -= BORDER;
 
 	m_wndREV.MoveWindow(0 + BORDER, 0 + BORDER, 
-		cx / 2 - BORDER, cy - BORDER);	
+		cx // 2 
+			- BORDER, cy - BORDER);	
 
 	m_wndBEV.MoveWindow(cx / 2 + BORDER, 0 + BORDER, 
 		cx / 2 - BORDER, cy - BORDER);	
 
-	if (GetDocument()->beams.GetSize() > 0)
+	if (GetDocument()->GetBeamCount() > 0)
 	{
-		CBeam& beam = *GetDocument()->beams.Get(0);
+		CBeam& beam = *GetDocument()->GetBeamAt(0);
 		SetBEVPerspective(beam);
 	}
 }
@@ -213,26 +252,26 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 
 	CBeam *pMainBeam = NULL;
-	if (GetDocument()->beams.GetSize() > 0)
+	if (GetDocument()->GetBeamCount() > 0)
 	{
-		CBeam& beam = *GetDocument()->beams.Get(0);
+		CBeam& beam = *GetDocument()->GetBeamAt(0);
 		pMainBeam = &beam;
 
-		beam.name.Set("AP");
+		beam.SetName("AP");
 
-		currentBeam.Set(&beam);
+		m_pCurrentBeam = &beam;
+		m_pDRRRenderable = new CDRRRenderable(&m_wndBEV);
+		m_pDRRRenderable->m_pVolume = &GetDocument()->GetSeries()->volume;
+		m_pDRRRenderable->m_mVolumeTransform = GetDocument()->GetSeries()->m_volumeTransform;
+		m_pDRRRenderable->SetEnabled(FALSE);
+		m_wndBEV.AddRenderable(m_pDRRRenderable);
 
-		m_pDRRRenderer = new CDRRRenderer(&m_wndBEV);
-		m_pDRRRenderer->forVolume.Set(&GetDocument()->GetSeries()->volume);
-		m_pDRRRenderer->volumeTransform.Set(GetDocument()->GetSeries()->volumeTransform.Get());
-		m_wndBEV.renderers.Add(m_pDRRRenderer);
+		CBeamRenderable *pBEVBeamRenderable = new CBeamRenderable(&m_wndBEV);
+		pBEVBeamRenderable->SetBeam(&beam);
+		pBEVBeamRenderable->m_bGraticuleEnabled = TRUE;
+		m_wndBEV.AddRenderable(pBEVBeamRenderable);
 
-		CBeamRenderer *pBEVBeamRenderer = new CBeamRenderer(&m_wndBEV);
-		pBEVBeamRenderer->SetBeam(&beam);
-		pBEVBeamRenderer->isGraticuleEnabled.Set(TRUE);
-		m_wndBEV.renderers.Add(pBEVBeamRenderer);
-
-		beam.AddObserver(this, (ChangeFunction) OnChange);
+		beam.GetChangeEvent().AddObserver(this, (ChangeFunction) OnChange);
 	}
 
 // #define ADD_EXTRA_BEAMS
@@ -269,63 +308,63 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
 
 #ifdef USE_HIERARCHY
-	pSeriesItem->label.Set("Series: " + pSeries->GetFileRoot());
+	pSeriesItem->m_strLabel = "Series: " + pSeries->GetFileRoot();
 	pPatientItem->children.Add(pSeriesItem);
 #else
-	pSeriesItem->label.Set("Structures");
+	pSeriesItem->m_strLabel = "Structures";
 	pSeriesItem->Create(pExplorer);
 #endif
 
-	for (int nAtSurf = 0; nAtSurf < pSeries->structures.GetSize(); nAtSurf++)
+	for (int nAtSurf = 0; nAtSurf < pSeries->m_arrStructures.GetSize(); nAtSurf++)
 	{
-		CSurface *pSurface = GetDocument()->GetSeries()->structures.Get(nAtSurf);
+		CSurface *pSurface = (CSurface *) GetDocument()->GetSeries()->m_arrStructures.GetAt(nAtSurf);
 
 		// add the surface to the object explorer
 		CObjectTreeItem *pNewItem = new CObjectTreeItem();
 
-		pNewItem->forObject.Set(pSurface);
+		pNewItem->m_pObject = pSurface;
 
-		pNewItem->imageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
-		pNewItem->selectedImageResourceID.Set(arrIconResourceIDs[nAtSurf % 13]);
+		pNewItem->m_nImageResourceID = arrIconResourceIDs[nAtSurf % 13];
+		pNewItem->m_nSelectedImageResourceID = arrIconResourceIDs[nAtSurf % 13];
 
-		pNewItem->isChecked.Set(TRUE);
+		pNewItem->m_bChecked = TRUE;
 
-		pSeriesItem->children.Add(pNewItem);
+		pSeriesItem->m_arrChildren.Add(pNewItem);
 
-		CSurfaceRenderer *pSurfaceRenderer = new CSurfaceRenderer(&m_wndREV);
-		pSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
+		CSurfaceRenderable *pSurfaceRenderable = new CSurfaceRenderable(&m_wndREV);
+		// pSurfaceRenderable->m_bWireFrame.SyncTo(&isWireFrame);
 
-		pSurfaceRenderer->color.Set(arrColors[nAtSurf]);
-		pSurfaceRenderer->SetSurface(pSurface);
-		pSurfaceRenderer->tableOffset.SyncTo(&pMainBeam->tableOffset);
-		pSurfaceRenderer->couchAngle.SyncTo(&pMainBeam->couchAngle);
-		m_wndREV.renderers.Add(pSurfaceRenderer);
+		pSurfaceRenderable->SetColor(arrColors[nAtSurf]);
+		pSurfaceRenderable->SetSurface(pSurface);
+		// pSurfaceRenderable->tableOffset.SyncTo(&pMainBeam->tableOffset);
+		// pSurfaceRenderable->couchAngle.SyncTo(&pMainBeam->couchAngle);
+		m_wndREV.AddRenderable(pSurfaceRenderable);
 
-		pSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
+		// pSurfaceRenderable->isEnabled.SyncTo(&pNewItem->isChecked);
 
 		if (nAtSurf == 0)	// patient surface
 		{
-			m_pSurfaceRenderer = pSurfaceRenderer;
-			m_pSurfaceRenderer->showBoundsSurface.Set(TRUE);
+			m_pSurfaceRenderable = pSurfaceRenderable;
+			m_pSurfaceRenderable->m_bShowBoundsSurface = TRUE;
 
 			// compute the center of the patient surface
 			CVector<3> vMin = pSurface->GetBoundsMin();
 			CVector<3> vMax = pSurface->GetBoundsMax();
-			// CSurfaceRenderer::m_vXlate = (vMin + vMax) * -0.5; 
+			// CSurfaceRenderable::m_vXlate = (vMin + vMax) * -0.5; 
 
-			m_wndREV.camera.SetFieldOfView((float) (8.5 * pSurface->GetMaxSize())); 
-			m_wndBEV.camera.SetFieldOfView((float) (2.5 * pSurface->GetMaxSize())); 
+			m_wndREV.GetCamera().SetFieldOfView((float) (8.5 * pSurface->GetMaxSize())); 
+			m_wndBEV.GetCamera().SetFieldOfView((float) (2.5 * pSurface->GetMaxSize())); 
 		}
 
 		if (nAtSurf > 0)
 		{
-			CSurfaceRenderer *pBEVSurfaceRenderer = new CSurfaceRenderer(&m_wndBEV);
-			pBEVSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
-			pBEVSurfaceRenderer->isColorWash.SyncTo(&isColorWash);
-			pBEVSurfaceRenderer->color.Set(arrColors[nAtSurf]);
-			pBEVSurfaceRenderer->SetSurface(pSurface);
-			m_wndBEV.renderers.Add(pBEVSurfaceRenderer);
-			pBEVSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
+			CSurfaceRenderable *pBEVSurfaceRenderable = new CSurfaceRenderable(&m_wndBEV);
+			// pBEVSurfaceRenderable->m_bWireFrame.SyncTo(&isWireFrame);
+			// pBEVSurfaceRenderable->m_bColorWash.SyncTo(&isColorWash);
+			pBEVSurfaceRenderable->SetColor(arrColors[nAtSurf]);
+			pBEVSurfaceRenderable->SetSurface(pSurface);
+			m_wndBEV.AddRenderable(pBEVSurfaceRenderable);
+			//pBEVSurfaceRenderable->isEnabled.SyncTo(&pNewItem->isChecked);
 		}
 	}
 
@@ -333,70 +372,70 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 #ifdef USE_HIERARCHY
 #else
-	pRefPtItem->label.Set("Ref Pts");
+	pRefPtItem->m_strLabel = "Ref Pts";
 	pRefPtItem->Create(pExplorer);
 #endif
 
 	{
 		CObjectTreeItem *pNewItem = new CObjectTreeItem();
 
-		pNewItem->label.Set("pt1");
-		pNewItem->imageResourceID.Set(IDB_POINT_BLUE);
-		pNewItem->selectedImageResourceID.Set(IDB_POINT_BLUE);
+		pNewItem->m_strLabel = "pt1";
+		pNewItem->m_nImageResourceID = IDB_POINT_BLUE;
+		pNewItem->m_nSelectedImageResourceID = IDB_POINT_BLUE;
 
-		pRefPtItem->children.Add(pNewItem);
+		pRefPtItem->m_arrChildren.Add(pNewItem);
 
 		pNewItem = new CObjectTreeItem();
 
-		pNewItem->label.Set("pt2");
-		pNewItem->imageResourceID.Set(IDB_POINT_YELLOW);
-		pNewItem->selectedImageResourceID.Set(IDB_POINT_YELLOW);
+		pNewItem->m_strLabel = "pt2";
+		pNewItem->m_nImageResourceID = IDB_POINT_YELLOW;
+		pNewItem->m_nSelectedImageResourceID = IDB_POINT_YELLOW;
 
-		pRefPtItem->children.Add(pNewItem);
+		pRefPtItem->m_arrChildren.Add(pNewItem);
 	}
 
-	if (GetDocument()->beams.GetSize() > 0)
+	if (GetDocument()->GetBeamCount() > 0)
 	{
-		CBeam& beam = *GetDocument()->beams.Get(0);
+		CBeam& beam = *GetDocument()->GetBeamAt(0);
 		SetBEVPerspective(beam);
 	}
 
 	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
 
 #ifdef USE_HIERARCHY
-	pPlanItem->label.Set("Plan: " + GetDocument()->GetFileRoot());
+	pPlanItem->m_strLabel = "Plan: " + GetDocument()->GetFileRoot();
 	pPatientItem->children.Add(pPlanItem);
 #else
-	pPlanItem->label.Set("Beams");
+	pPlanItem->m_strLabel = "Beams";
 	pPlanItem->Create(pExplorer);
 #endif
 
 	int nAtBeam;
-	for (nAtBeam = 0; nAtBeam < GetDocument()->beams.GetSize(); nAtBeam++)
+	for (nAtBeam = 0; nAtBeam < GetDocument()->GetBeamCount(); nAtBeam++)
 	{
-		CBeam *pBeam = GetDocument()->beams.Get(nAtBeam);
+		CBeam *pBeam = GetDocument()->GetBeamAt(nAtBeam);
 
 		CObjectTreeItem *pNewItem = new CObjectTreeItem();
 
-		pNewItem->forObject.Set(pBeam);
+		pNewItem->m_pObject = pBeam;
 
-		pNewItem->imageResourceID.Set(IDB_BEAM_GREEN);
-		pNewItem->selectedImageResourceID.Set(IDB_BEAM_MAGENTA);
+		pNewItem->m_nImageResourceID = IDB_BEAM_GREEN;
+		pNewItem->m_nSelectedImageResourceID = IDB_BEAM_MAGENTA;
 
-		pPlanItem->children.Add(pNewItem);
+		pPlanItem->m_arrChildren.Add(pNewItem);
 
-		// create and add the machine renderer to the REV
-		CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
-		pMachineRenderer->forBeam.Set(pBeam);
-		m_wndREV.renderers.Add(pMachineRenderer);
+		// create and add the machine Renderable to the REV
+		CMachineRenderable *pMachineRenderable = new CMachineRenderable(&m_wndREV);
+		pMachineRenderable->m_pBeam = pBeam;
+		m_wndREV.AddRenderable(pMachineRenderable);
 
-		// create and add the beam renderer to the REV
-		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
-		m_pBeamRenderer->SetBeam(pBeam);
-		m_pBeamRenderer->SetREVBeam();
+		// create and add the beam Renderable to the REV
+		m_pBeamRenderable = new CBeamRenderable(&m_wndREV);
+		m_pBeamRenderable->SetBeam(pBeam);
+		m_pBeamRenderable->SetREVBeam();
 
-		m_wndREV.renderers.Add(m_pBeamRenderer);
-		m_pBeamRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
+		m_wndREV.AddRenderable(m_pBeamRenderable);
+		// m_pBeamRenderable->isEnabled.SyncTo(&pNewItem->isChecked);
 	}
 
 #ifdef USE_HIERARCHY
@@ -407,41 +446,41 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 #endif
 
 	// rotate the view to a standard position
-	pRotateTracker->OnLButtonDown(0, CPoint(111, 45));
+	pRotateTracker->OnButtonDown(0, CPoint(111, 45));
 	pRotateTracker->OnMouseDrag(0, CPoint(250, 405));
 
-	pRotateTracker->OnLButtonDown(0, CPoint(75, 109));
+	pRotateTracker->OnButtonDown(0, CPoint(75, 109));
 	pRotateTracker->OnMouseDrag(0, CPoint(123, 154));
 }
 
 void CSimView::OnViewBeam() 
 {
-	m_pBeamRenderer->isEnabled.Set(!m_pBeamRenderer->isEnabled.Get());
+	m_pBeamRenderable->SetEnabled(!m_pBeamRenderable->IsEnabled());
 }
 
 void CSimView::OnUpdateViewBeam(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_pBeamRenderer != NULL);
-	if (m_pBeamRenderer != NULL)
+	pCmdUI->Enable(m_pBeamRenderable != NULL);
+	if (m_pBeamRenderable != NULL)
 	{
-		pCmdUI->SetCheck(m_pBeamRenderer->isEnabled.Get() ? 1 : 0);
+		pCmdUI->SetCheck(m_pBeamRenderable->IsEnabled() ? 1 : 0);
 	}
 }
 
 void CSimView::OnViewLightfield() 
 {
-	if (m_pSurfaceRenderer->GetLightFieldBeam() == NULL)
-		m_pSurfaceRenderer->SetLightFieldBeam(GetDocument()->beams.Get(0));
+	if (m_pSurfaceRenderable->GetLightFieldBeam() == NULL)
+		m_pSurfaceRenderable->SetLightFieldBeam(GetDocument()->GetBeamAt(0));
 	else
-		m_pSurfaceRenderer->SetLightFieldBeam(NULL);
+		m_pSurfaceRenderable->SetLightFieldBeam(NULL);
 }
 
 void CSimView::OnUpdateViewLightfield(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_pSurfaceRenderer != NULL);
-	if (m_pSurfaceRenderer != NULL)
+	pCmdUI->Enable(m_pSurfaceRenderable != NULL);
+	if (m_pSurfaceRenderable != NULL)
 	{
-		pCmdUI->SetCheck(m_pSurfaceRenderer->GetLightFieldBeam() ? 1 : 0);
+		pCmdUI->SetCheck(m_pSurfaceRenderable->GetLightFieldBeam() ? 1 : 0);
 	}
 }
 
@@ -453,15 +492,15 @@ BOOL CSimView::OnEraseBkgnd(CDC* pDC)
 
 void CSimView::OnViewWireframe() 
 {
-	isWireFrame.Set( !isWireFrame.Get() );
+	m_bWireFrame = !m_bWireFrame;
 }
 
 void CSimView::OnUpdateViewWireframe(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_pSurfaceRenderer != NULL);
-	if (m_pSurfaceRenderer != NULL)
+	pCmdUI->Enable(m_pSurfaceRenderable != NULL);
+	if (m_pSurfaceRenderable != NULL)
 	{
-		pCmdUI->SetCheck(isWireFrame.Get() ? 1 : 0);
+		pCmdUI->SetCheck(m_bWireFrame ? 1 : 0);
 	}
 }
 
@@ -472,27 +511,27 @@ CMatrix<4> CSimView::ComputeProjection(CBeam& beam)
 	// translate forward slightly (will not affect projection, since it occurs _after_ the perspective)
 	mProj *= CreateTranslate(0.01, CVector<3>(0.0, 0.0, 1.0));
 
-	mProj *= beam.forMachine->projection.Get();
+	mProj *= beam.GetTreatmentMachine()->m_projection;
 
-	CVector<2> vMin = beam.collimMin.Get();
-	CVector<2> vMax = beam.collimMax.Get();
+	CVector<2> vMin = beam.GetCollimMin();
+	CVector<2> vMax = beam.GetCollimMax();
 
-	double collimHeight = max(fabs(vMin[1]), fabs(vMax[1])) + 10.0;
-	double collimWidth = max(fabs(vMin[0]), fabs(vMax[0])) + 10.0;
+	double collimHeight = __max(fabs(vMin[1]), fabs(vMax[1])) + 10.0;
+	double collimWidth = __max(fabs(vMin[0]), fabs(vMax[0])) + 10.0;
 
 	// get the window's client rectangle
 	CRect rect;
 	m_wndBEV.GetClientRect(&rect);
 	float aspect = (float) rect.Width() / (float) rect.Height();
 
-	double height = max(collimWidth / aspect, collimHeight);
-	double width = max(collimHeight * aspect, collimWidth);
+	double height = __max(collimWidth / aspect, collimHeight);
+	double width = __max(collimHeight * aspect, collimWidth);
 
 	// scale, including a slight dilation along the z-axis to avoid clipping the collimator plane
-	mProj *= CreateScale(CVector<3>(1.0 / width, 1.0 / height, 1.0));
+	mProj *= CreateScaleHG(CVector<3>(1.0 / width, 1.0 / height, 1.0));
 
 	// now rotate by 180 degrees about Y
-	mProj *= CreateRotate(PI, CVector<3>(0.0, 1.0, 0.0));
+	mProj *= CreateRotateHG(PI, CVector<3>(0.0, 1.0, 0.0));
 
 	return mProj;
 }
@@ -501,25 +540,21 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 {
 	// compute the projection
 	CMatrix<4> mProj = ComputeProjection(beam);
-	m_wndBEV.camera.perspective.Set(mProj);
+	// m_wndBEV.GetCamera().SetPerspective(mProj);
 
 	// and inverse transform from beam to patient
-	CMatrix<4> mB2P = beam.beamToPatientXform.Get();
+	CMatrix<4> mB2P = beam.GetBeamToPatientXform();
 	mB2P.Invert();
 
-	m_wndBEV.camera.modelXform.RemoveObserver(this, (ChangeFunction) OnChange);
-	m_wndBEV.camera.modelXform.Set(mB2P);
-
-	// m_wndBEV.camera.modelXform.Set(beam.beamToPatientXform.Get()); // mProj);
-	m_wndBEV.camera.modelXform.AddObserver(this, (ChangeFunction) OnChange); 
+	m_wndBEV.GetCamera().SetXform(mB2P);
 }
 
 void CSimView::OnViewColorwash() 
 {
-	isColorWash.Set( !isColorWash.Get() );
+	m_bColorWash = !m_bColorWash;
 }
 
 void CSimView::OnUpdateViewColorwash(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(isColorWash.Get() ? 1 : 0);	
+	pCmdUI->SetCheck(m_bColorWash ? 1 : 0);	
 }
