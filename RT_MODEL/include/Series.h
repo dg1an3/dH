@@ -13,14 +13,15 @@
 
 #include <Volumep.h>
 
-#include <Mesh.h>
+// #include <Mesh.h>
+#include "Structure.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CSeries document
 
 class CSeries : public CDocument
 {
-protected:
+public:
 	CSeries();           // protected constructor used by dynamic creation
 	DECLARE_DYNCREATE(CSeries)
 
@@ -34,7 +35,7 @@ public:
 
 	// Structures for the series
 	int GetStructureCount() const;
-	CMesh *GetStructureAt(int nAt);
+	CStructure *GetStructureAt(int nAt);
 
 	CObArray m_arrStructures;
 
@@ -51,7 +52,7 @@ public:
 
 // Implementation
 public:
-	CMesh * CreateSphereStructure(const CString& strName);
+	CStructure * CreateSphereStructure(const CString& strName);
 	CString GetFileRoot();
 	CString GetFileName();
 	BOOL OnNewDocument();

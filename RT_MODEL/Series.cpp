@@ -5,6 +5,8 @@
 
 #include <UtilMacros.h>
 
+#include <MatrixBase.inl>
+
 #include "Series.h"
 
 #ifdef _DEBUG
@@ -37,9 +39,9 @@ int CSeries::GetStructureCount() const
 	return m_arrStructures.GetSize();
 }
 
-CMesh *CSeries::GetStructureAt(int nAt)
+CStructure *CSeries::GetStructureAt(int nAt)
 {
-	return (CMesh *) m_arrStructures.GetAt(nAt);
+	return (CStructure *) m_arrStructures.GetAt(nAt);
 }
 
 CString CSeries::GetFileName()
@@ -287,7 +289,9 @@ BOOL CSeries::OnNewDocument()
 	return TRUE;
 }
 
+/*
 CMesh *CSeries::CreateSphereStructure(const CString &strName)
 {
 	return NULL;
 }
+*/

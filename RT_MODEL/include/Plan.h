@@ -46,7 +46,7 @@ public:
 	void SetSeries(CSeries *pSeries);
 
 	// histogram accessor
-	CHistogram *GetHistogram(CMesh *pSurface);
+	CHistogram *GetHistogram(CStructure *pSurface);
 
 	// the beams for this plan
 	int GetBeamCount() const;
@@ -64,7 +64,7 @@ public:
 	void SetTargetDVH(CMesh *pStructure, CMatrixNxM<> *pmTarget);
 
 	// the computed dose for this plan (NULL if no dose exists)
-	CVolume<double> *GetDoseMatrix();
+	CVolume<double> *GetDoseMatrix(int nScale = 0);
 
 // Operations
 public:
@@ -102,24 +102,24 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
+	// the plan's beams
+	CObArray m_arrBeams;
+
 private:
 	// the series upon which this plan is based
 	CSeries * m_pSeries;
-
-	// the plan's beams
-	CObArray m_arrBeams;
 
 	// the target DVHs
 	CMapStringToPtr m_mapTargetDVHs;
 
 	// the dose matrix for the plan
-	CVolume<double> m_dose;
+	CVolume<double> m_arrDose[MAX_SCALES];
 
 	// flag to indicate the total dose is to be recomputed
 	BOOL m_bRecomputeTotalDose;
 
 	// the histograms
-	CObArray m_arrHistograms;
+	CMapPtrToPtr m_mapHistograms;
 
 	// static variable that stores a pointer to the 
 	//		CSeries document template
@@ -127,7 +127,9 @@ private:
 
 	// stores the filename for the corresponding series
 	CString m_strSeriesFilename;
-};
+
+};	// class CPlan
+
 
 /////////////////////////////////////////////////////////////////////////////
 
