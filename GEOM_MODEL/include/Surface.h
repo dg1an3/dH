@@ -25,11 +25,11 @@
 #include "Volumep.h"
 
 
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // class CSurface
 //
 // represents a meshed surface
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 class CSurface : public CModelObject
 {
 public:
@@ -55,8 +55,12 @@ public:
 
 	// triangle accessors
 	int GetTriangleCount();
-	const double *GetTriangleVertex(int nTriangle, int nVertex);
-	const double *GetTriangleNormal(int nTriangle, int nVertex);
+
+	// accessors for triangle vertices
+	const CPackedVector<3>& GetTriVert(int nTriangle, int nVertex);
+
+	// accessors for triangle normals
+	const CPackedVector<3>& GetTriNorm(int nTriangle, int nVertex);
 
 	// volume bounds for the surface
 	CVector<3> GetBoundsMin() const;
@@ -65,41 +69,29 @@ public:
 	// returns largest dimension
 	double GetMaxSize();
 
-	// direct access to index, vertex, and normal array
+	// direct access to index, vertex, and normal arrays
 	// WARNING: if you change the values through these references, you
 	//		MUST call CSurface::FireChange() as soon as possible to
 	//		notify observers of the change
-	CArray<int, int>& GetIndexArray() { return m_arrVertIndex; }
-	CArray<CPackedVector<3>, CPackedVector<3>&>& 
-		GetVertexArray() { return m_arrVertex; }
-	CArray<CPackedVector<3>, CPackedVector<3>&>& 
-		GetNormalArray() { return m_arrNormal; }
+	CArray<int, int>& GetIndexArray();
+	CArray<CPackedVector<3>, CPackedVector<3>&>& GetVertexArray();
+	CArray<CPackedVector<3>, CPackedVector<3>&>& GetNormalArray();
 
-	// function to ensure the orientation of the triangles are consistent with
-	//		the normals
-	void OrientFaces();
-
-	CArray<BOOL, BOOL> m_arrIsOriented;
-	int m_nAtTri;
-	int m_nUnorientedCount;
-
-public:
-	void ReverseTriangleOrientation(int nAt);
-	int FindTriangleWithVertices(int nStart, const CVector<3>& v1, 
-								const CVector<3>& v2, BOOL *bOriented,
-								int *pNeighborVertex);
-
-	const CPackedVector<3>& GetTriVert(int nTriangle, int nVertex)
-	{
-		return m_arrVertex[m_arrVertIndex[nTriangle*3 + nVertex]-1];
-	}
-
-	// accessor for the "region" -- volume with a 1.0 everywhere
-	//		that is in the structure
-	CVolume<int> *m_pRegion;
+	// function to ensure the orientation of the triangle orientations are 
+	//		consistent; returns FALSE when all are consistent
+	BOOL OrientNextFace();
 
 	// serialization
 	void Serialize(CArchive &ar);
+
+protected:
+	// helper function to reverse the orientation of a face
+	void ReverseTriangleOrientation(int nAt);
+
+	// helper function to find a neighbor triangle
+	int FindTriangleWithVertices(int nStart, const CVector<3>& v1, 
+			const CVector<3>& v2, BOOL *bOriented, int *pNeighborVertex);
+
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -117,36 +109,87 @@ private:
 	CArray<int, int> m_arrVertIndex;
 	CArray<CPackedVector<3>, CPackedVector<3>&> m_arrVertex;
 	CArray<CPackedVector<3>, CPackedVector<3>&> m_arrNormal;
+
+	// surface bounding box
+	mutable CVector<3> m_vBoundsMax;
+	mutable CVector<3> m_vBoundsMin;
+
+	// flags to recompute the bounding box
+	mutable BOOL m_bRecomputeBoundsMax;
+	mutable BOOL m_bRecomputeBoundsMin;
+
+	// accessor for the "region" -- volume with a 1 everywhere
+	//		that is in the structure
+	CVolume<int> *m_pRegion;
+
+	// face orientation array -- indicates which faces are oriented
+	CArray<BOOL, BOOL> m_arrIsOriented;
+
+	// current position for face orientation
+	int m_nAtTri;
+	
+	// current count of unoriented faces
+	int m_nUnorientedCount;
 };
 
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // CSurface::GetTriangleCount
 // 
 // returns the number of triangles in the mesh
-//////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 inline int CSurface::GetTriangleCount()
 {
 	return m_arrVertIndex.GetSize() / 3;
 }
 
-//////////////////////////////////////////////////////////////////////
-// CSurface::GetTriangleVertex
+///////////////////////////////////////////////////////////////////////////////
+// CSurface::GetTriVert
 // 
-// returns the vertex for a specific triangle
-//////////////////////////////////////////////////////////////////////
-inline const double *CSurface::GetTriangleVertex(int nTriangle, int nVertex)
+// returns the vertex for a specific triangle as a CPackedVector<3>
+///////////////////////////////////////////////////////////////////////////////
+inline const CPackedVector<3>& CSurface::GetTriVert(int nTriangle, int nVertex)
 {
 	return m_arrVertex[m_arrVertIndex[nTriangle*3 + nVertex]-1];
 }
 
-//////////////////////////////////////////////////////////////////////
-// CSurface::GetTriangleNormal
+///////////////////////////////////////////////////////////////////////////////
+// CSurface::GetTriNorm
 // 
-// returns the normal for a specific triangle
-//////////////////////////////////////////////////////////////////////
-inline const double *CSurface::GetTriangleNormal(int nTriangle, int nVertex)
+// returns the normal for a specific triangle as a CPackedVector<3>
+///////////////////////////////////////////////////////////////////////////////
+inline const CPackedVector<3>& CSurface::GetTriNorm(int nTriangle, int nVertex)
 {
 	return m_arrNormal[m_arrVertIndex[nTriangle*3 + nVertex]-1];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CSurface::GetIndexArray
+// 
+// returns a reference to the index array
+///////////////////////////////////////////////////////////////////////////////
+inline CArray<int, int>& CSurface::GetIndexArray() 
+{ 
+	return m_arrVertIndex; 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CSurface::GetVertexArray
+// 
+// returns a reference to the vertex array
+///////////////////////////////////////////////////////////////////////////////
+inline CArray<CPackedVector<3>, CPackedVector<3>&>& CSurface::GetVertexArray() 
+{ 
+	return m_arrVertex; 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CSurface::GetNormalArray
+// 
+// returns a reference to the normal array
+///////////////////////////////////////////////////////////////////////////////
+inline CArray<CPackedVector<3>, CPackedVector<3>&>& CSurface::GetNormalArray() 
+{ 
+	return m_arrNormal; 
 }
 
 #endif // !defined(AFX_SURFACE_H__C7A6AA31_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)
