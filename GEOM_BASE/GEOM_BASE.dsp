@@ -85,10 +85,6 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\MatrixFunction.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\Polygon.cpp
 # End Source File
 # Begin Source File
@@ -119,6 +115,10 @@ SOURCE=.\StdAfx.h
 # Begin Source File
 
 SOURCE=.\Vector.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\VectorFunction.h
 # End Source File
 # Begin Source File
 
