@@ -53,6 +53,11 @@ public:
 	const CVector<3>& GetCentroid() const;
 	void SetCentroid(const CVector<3>& vCentroid);
 
+	// computes the nearest and furthest distances to the
+	//	given point
+	virtual double GetNearestDistance(const CVector<3>& vPoint);
+	virtual double GetFurthestDistance(const CVector<3>& vPoint);
+
 	// defines the modelview matrix for this renderer
 	const CMatrix<4>& GetModelviewMatrix() const;
 	void SetModelviewMatrix(const CMatrix<4>& m);

@@ -8,6 +8,9 @@
 // pre-compiled header
 #include "stdafx.h"
 
+// floating-point constants
+#include <float.h>
+
 // OpenGL includes
 #include "glMatrixVector.h"
 
@@ -150,6 +153,73 @@ void CSurfaceRenderable::SetObject(CObject *pObject)
 	// trigger re-rendering
 	Invalidate();
 }
+
+//////////////////////////////////////////////////////////////////////////////
+// CSurfaceRenderable::GetNearestDistance
+// 
+// computes the nearest distance to the given point
+//////////////////////////////////////////////////////////////////////////////
+double CSurfaceRenderable::GetNearestDistance(const CVector<3>& vPoint)
+{
+	return CRenderable::GetNearestDistance(vPoint);
+
+	CVector<3> vMin = GetSurface()->GetBoundsMin();
+	CVector<3> vMax = GetSurface()->GetBoundsMax();
+	
+	double nearestDist = FLT_MAX;
+	for (int nAtZ = 0; nAtZ < 2; nAtZ++)
+	{
+		for (int nAtY = 0; nAtY < 2; nAtY++)
+		{
+			for (int nAtX = 0; nAtX < 2; nAtX++)
+			{
+				CVector<3> vCorner;
+				vCorner[0] = (nAtX == 0) ? vMin[0] : vMax[0];
+				vCorner[1] = (nAtY == 0) ? vMin[1] : vMax[1];
+				vCorner[2] = (nAtZ == 0) ? vMin[2] : vMax[2];
+
+				double dist = (vCorner - vPoint).GetLength();
+				nearestDist = __min(dist, nearestDist);
+			}
+		}
+	}
+
+	return nearestDist;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// CSurfaceRenderable::GetFurthestDistance
+// 
+// computes the furthest distance to the given point
+//////////////////////////////////////////////////////////////////////////////
+double CSurfaceRenderable::GetFurthestDistance(const CVector<3>& vPoint)
+{
+	return CRenderable::GetFurthestDistance(vPoint);
+
+	CVector<3> vMin = GetSurface()->GetBoundsMin();
+	CVector<3> vMax = GetSurface()->GetBoundsMax();
+	
+	double furthestDist = 0.0;
+	for (int nAtZ = 0; nAtZ < 2; nAtZ++)
+	{
+		for (int nAtY = 0; nAtY < 2; nAtY++)
+		{
+			for (int nAtX = 0; nAtX < 2; nAtX++)
+			{
+				CVector<3> vCorner;
+				vCorner[0] = (nAtX == 0) ? vMin[0] : vMax[0];
+				vCorner[1] = (nAtY == 0) ? vMin[1] : vMax[1];
+				vCorner[2] = (nAtZ == 0) ? vMin[2] : vMax[2];
+
+				double dist = (vCorner - vPoint).GetLength();
+				furthestDist = __max(dist, furthestDist);
+			}
+		}
+	}
+
+	return furthestDist;
+}
+
 
 ///////////////////////////////////////////////////////////////////////
 // CSurfaceRenderable::DescribeOpaque

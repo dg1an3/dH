@@ -154,13 +154,30 @@ void CRenderable::SetCentroid(const CVector<3>& vCentroid)
 {
 	// set the renderable centroid
 	m_vCentroid = vCentroid;
+}
 
-	// invalidate if we are live
-	if (NULL != m_pView)
-	{
-		// now we need to re-sort
-		m_pView->SortRenderables();
-	}
+///////////////////////////////////////////////////////////////////////
+// CRenderable::GetNearestDistance
+// 
+// returns the nearest distance from the passed point to the object
+//		being rendered.  Default implementation returns distance
+//		from the point to the centroid
+//////////////////////////////////////////////////////////////////////
+double CRenderable::GetNearestDistance(const CVector<3>& vPoint)
+{
+	return (vPoint - GetCentroid()).GetLength();
+}
+
+///////////////////////////////////////////////////////////////////////
+// CRenderable::GetFurthestDistance
+// 
+// returns the furthest distance from the passed point to the object
+//		being rendered.  Default implementation returns distance
+//		from the point to the centroid
+//////////////////////////////////////////////////////////////////////
+double CRenderable::GetFurthestDistance(const CVector<3>& vPoint)
+{
+	return (vPoint - GetCentroid()).GetLength();
 }
 
 ///////////////////////////////////////////////////////////////////////

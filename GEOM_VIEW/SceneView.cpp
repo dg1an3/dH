@@ -64,7 +64,7 @@ CSceneView::~CSceneView()
 	// delete the renderables
 	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
 	{
-		delete m_arrRenderables[nAt];
+		delete m_arrRenderablesNearest[nAt];
 	}
 
 	// delete the lights
@@ -123,7 +123,7 @@ CCamera& CSceneView::GetCamera()
 /////////////////////////////////////////////////////////////////////////////
 int CSceneView::GetRenderableCount() const
 {
-	return m_arrRenderables.GetSize();
+	return m_arrRenderablesNearest.GetSize();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -133,7 +133,7 @@ int CSceneView::GetRenderableCount() const
 /////////////////////////////////////////////////////////////////////////////
 CRenderable *CSceneView::GetRenderableAt(int nAt)
 {
-	return (CRenderable *) m_arrRenderables[nAt];
+	return (CRenderable *) m_arrRenderablesNearest[nAt];
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -141,13 +141,14 @@ CRenderable *CSceneView::GetRenderableAt(int nAt)
 // 
 // adds a new renderable to the sceneview
 /////////////////////////////////////////////////////////////////////////////
-int CSceneView::AddRenderable(CRenderable *pRenderer) 
+int CSceneView::AddRenderable(CRenderable *pRenderable) 
 { 
 	// set this as the scene view
-	pRenderer->m_pView = this;
+	pRenderable->m_pView = this;
 
-	// add to the renderable array
-	return m_arrRenderables.Add(pRenderer);
+	// add to both renderable arrays
+	m_arrRenderablesFurthest.Add(pRenderable);
+	return m_arrRenderablesNearest.Add(pRenderable);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -247,13 +248,9 @@ int CSceneView::AddMiddleTracker(CTracker *pRenderer)
 /////////////////////////////////////////////////////////////////////////////
 void CSceneView::OnCameraChanged(CObservableEvent *, void *)
 {
-	// re-sort the renderables
-	SortRenderables();
-
 	// invalidate the window to redraw
 	Invalidate();
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CSceneView diagnostics
@@ -345,32 +342,25 @@ void CSceneView::MakeCurrentGLRC()
 // sorts the renderables from the furthest to the nearest based on the
 //		current camera position
 /////////////////////////////////////////////////////////////////////////////
-void CSceneView::SortRenderables()
+void CSceneView::SortRenderables(CObArray *pArray, 
+		double (CRenderable::*DistFunc)(const CVector<3>& vPoint))
 {
-	// current camera xform
-	const CMatrix<4>& mXform = GetCamera().GetXform();
-
-	// TODO: sort from front-to-back and back-to-front based on 
-	//		the bounding boxes
-
-	// TODO: clean up the calling sequence for this 
-	//		prior to rendering? -- YES
-	//		anytime a renderable changes? -- NO
+	// current camera position
+	CVector<3> vCameraPos = CVector<3>(GetCamera().GetXform()
+		* ToHomogeneous(CVector<3>(0.0, 0.0, 0.0)));
 
 	// stores the distances for the renderable centroids
 	CArray<double, double> arrDistances;
 
-	// compute the distances
-	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
+	// compute the nearest distances
+	for (int nAt = 0; nAt < pArray->GetSize(); nAt++)
 	{
-		CRenderable *pRenderable = GetRenderableAt(nAt);
-
-		// position of renderable centroid in camera coordinates
-		CVector<3> vCentroid = CVector<3>(mXform 
-			* ToHomogeneous(pRenderable->GetCentroid()));
+		// get the renderable
+		CRenderable *pRenderable = (CRenderable *) pArray->GetAt(nAt);
 
 		// add to the array
-		arrDistances.Add(vCentroid.GetLength());
+		double distance = (pRenderable->*DistFunc)(vCameraPos);
+		arrDistances.Add(distance);
 	}
 
 	// flag to indicate a rearrangement has occurred
@@ -381,15 +371,15 @@ void CSceneView::SortRenderables()
 		bRearrange = FALSE;
 
 		// for each link,
-		for (nAt = 0; nAt < GetRenderableCount()-1; nAt++)
+		for (nAt = 0; nAt < pArray->GetSize()-1; nAt++)
 		{
 			// compare their weights
 			if (arrDistances[nAt] < arrDistances[nAt+1])
 			{
 				// if first is less than second, swap the pointers
-				CObject *pTemp = m_arrRenderables.GetAt(nAt);
-				m_arrRenderables.SetAt(nAt, m_arrRenderables.GetAt(nAt+1));
-				m_arrRenderables.SetAt(nAt+1, pTemp);
+				CObject *pTemp = pArray->GetAt(nAt);
+				pArray->SetAt(nAt, pArray->GetAt(nAt+1));
+				pArray->SetAt(nAt+1, pTemp);
 
 				// and the distances
 				double tempDistance = arrDistances[nAt];
@@ -631,7 +621,10 @@ void CSceneView::OnPaint()
 	}
 
 	// sort the renderables from furthest to nearest
-	SortRenderables();
+	SortRenderables(&m_arrRenderablesNearest, 
+		CRenderable::GetNearestDistance);
+	SortRenderables(&m_arrRenderablesFurthest, 
+		CRenderable::GetFurthestDistance);
 
 	// Set the polygon mode to fill
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -657,6 +650,12 @@ void CSceneView::OnPaint()
 
 		// disable blending
 		glDisable(GL_BLEND);
+
+		// enable culling
+		glDisable(GL_CULL_FACE);
+
+		// enable lighting effects
+		glEnable(GL_LIGHTING);
 
 		// save the current model matrix state
 		glMatrixMode(GL_MODELVIEW);
@@ -695,10 +694,17 @@ void CSceneView::OnPaint()
 
 	for (int nAtPass = 0; nAtPass < 4; nAtPass++)
 	{
+		// use the furthest array for back-faced rendering
+		CObArray *pArray = (arrFaces[nAtPass] == GL_FRONT)
+			? &m_arrRenderablesFurthest : &m_arrRenderablesNearest;
+
 		// for each renderer, 
-		for (nAt = 0; nAt < GetRenderableCount(); nAt++)
+		for (nAt = 0; nAt < pArray->GetSize(); nAt++)
 		{
-			if (GetRenderableAt(nAt)->GetAlpha() <= MAX_ALPHA)
+			// get the renderable
+			CRenderable *pRenderable = (CRenderable *) pArray->GetAt(nAt);
+
+			if (pRenderable->GetAlpha() <= MAX_ALPHA)
 			{
 				// enable culling
 				glEnable(GL_CULL_FACE);
@@ -728,7 +734,7 @@ void CSceneView::OnPaint()
 				glPushMatrix();
 
 				// draw its scene
-				GetRenderableAt(nAt)->DescribeAlphaDrawList();
+				pRenderable->DescribeAlphaDrawList();
 
 				// restore the model matrix state
 				glMatrixMode(GL_MODELVIEW);

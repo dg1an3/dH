@@ -96,7 +96,8 @@ protected:
 
 	// sorts the renderables from furthest to nearest, based on current camera
 	//		position
-	void SortRenderables();
+	void SortRenderables(CObArray *pArray, 
+		double (CRenderable::*DistFunc)(const CVector<3>& vPoint));
 
 	// friend classes can access the OpenGL rendering context
 	friend class CRenderable;
@@ -133,8 +134,13 @@ private:
 	// the background color for the view
 	COLORREF m_backgroundColor;
 
-	// the rednerers
-	CObArray m_arrRenderables;		// CRenderables
+	// the renderables sorted from back-to-front
+	//		based on nearest point
+	CObArray m_arrRenderablesNearest;	// CRenderables
+
+	// the renderables sorted from back-to-front
+	//		based on nearest point
+	CObArray m_arrRenderablesFurthest;	// CRenderables
 
 	// the view camera
 	CCamera m_camera;
