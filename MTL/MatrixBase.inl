@@ -215,15 +215,15 @@ TYPE CMatrixBase<TYPE>::Determinant() const
 		TYPE det = 0.0;
 		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++) 
 		{
-			CMatrixNxM mMinor(GetCols()-1, GetRows()-1);
-			for (nAtRow = 1; nAtRow < GetRows(); nAtRow++) 
+			CMatrixNxM<TYPE> mMinor(GetCols()-1, GetRows()-1);
+			for (int nAtRow = 1; nAtRow < GetRows(); nAtRow++) 
 			{
-				nAtMinorCol = 0;
-				for (nAtCol2 = 0; nAtCol2 < GetCols(); nAtCol2++) 
+				int nAtMinorCol = 0;
+				for (int nAtCol2 = 0; nAtCol2 < GetCols(); nAtCol2++) 
 				{
 				   if (nAtCol2 != nAtCol)
 				   {
-					   mMinor[nAtMinorCol][nAtRow-1] = a[nAtCol2][nAtRow];
+					   mMinor[nAtMinorCol][nAtRow-1] = (*this)[nAtCol2][nAtRow];
 					   nAtMinorCol++;
 				   }
 				}
@@ -472,72 +472,91 @@ void CMatrixBase<TYPE>::FindPivotElem(int nDiag,
 template<class TYPE>
 BOOL CMatrixBase<TYPE>::SVD(CVectorBase<TYPE>& w, CMatrixBase<TYPE>& v)
 {
+	BEGIN_LOG_SECTION(CMatrixBase::SVD);
+
 	// stored reduction vector
 	CVectorN<TYPE> rv1(GetCols());
 
 	// perform the householder reduction
 	TYPE anorm = Householder(w, rv1);
+	LOG("Householder result");
+	LOG_EXPR_EXT(w);
+	LOG_EXPR_EXT(rv1);
 
 	// accumulation of right-hand transformations
 	AccumulateRH(v, rv1);
+	LOG("AccumulateRH result");
+	LOG_EXPR_EXT(v);
+	LOG_EXPR_EXT(rv1);
 
 	// accumulation of left-hand transformations
 	AccumulateLH(w);
+	LOG("AccumulateLH result");
+	LOG_EXPR_EXT(w);
+
+	FLUSH_LOG();
 
 	// Diagonalization of the bidiagonal form
 	for (int nK = GetCols()-1; nK >= 0; nK--)
 	{
 		for (int nIter = 1; nIter < MAX_ITER; nIter++)
 		{
+			BOOL bFlag = TRUE;
+			int nM;
 			for (int nL = nK; nL >= 0; nL--)
 			{
+				nM = nL - 1;
+
 				if (((TYPE) fabs(rv1[nL]) + anorm) == anorm)
+				{
+					bFlag = FALSE;
+					break;
+				}
+				if (((TYPE) fabs(w[nL - 1]) + anorm) == anorm)
 				{
 					break;
 				}
-
-				if (nL == 0 
-					|| (((TYPE) fabs(w[nL - 1]) + anorm) == anorm))
-				{
-					TYPE c = 0.0;
-					TYPE s = 1.0;
-					for (int nI = nL; nI <= nK; nI++)
-					{
-						TYPE f = s * rv1[nI];
-						rv1[nI] = c * rv1[nI];
-
-						if ((TYPE)(fabs(f) + anorm) == anorm)
-						{
-							break;
-						}
-
-						TYPE g = w[nI];
-						TYPE h = pythag(f,g);
-						w[nI] = h;
-						h = 1.0 / h;
-						c = g * h;
-						s = -f * h;
-						for (int nJ = 0; nJ < GetRows(); nJ++)
-						{
-							TYPE y = (*this)[nL - 1][nJ];
-							TYPE z = (*this)[nI][nJ];
-							(*this)[nL - 1][nJ] = y * c + z * s;
-							(*this)[nI][nJ] = z * c - y * s;
-						}	// for
-					}	// for
-
-					break;
-
-				}	// if
 			}
+
+			if (bFlag)
+			{
+				TYPE c = 0.0;
+				TYPE s = 1.0;
+				for (int nI = nL; nI <= nK; nI++)
+				{
+					TYPE f = s * rv1[nI];
+					rv1[nI] = c * rv1[nI];
+
+					if ((TYPE)(fabs(f) + anorm) == anorm)
+					{
+						break;
+					}
+
+					TYPE g = w[nI];
+					TYPE h = pythag(f,g);
+					w[nI] = h;
+					h = 1.0 / h;
+					c = g * h;
+					s = -f * h;
+					for (int nJ = 0; nJ < GetRows(); nJ++)
+					{
+						TYPE y = (*this)[nM][nJ];
+						TYPE z = (*this)[nI][nJ];
+						(*this)[nM][nJ] = y * c + z * s;
+						(*this)[nI][nJ] = z * c - y * s;
+					}	// for
+				}	// for
+			}	// if
+
+			TYPE z = w[nK];
 
 			// test for convergence
 			if (nL == nK)
 			{
-				if (w[nK] < 0.0)
+				if (z < 0.0)
 				{
 					// singular value is made non-negative
-					w[nK] = -w[nK];
+					w[nK] = -z;
 					for (int nJ = 0; nJ < GetCols(); nJ++)
 					{
 						v[nK][nJ] = -v[nK][nJ];
@@ -545,11 +564,11 @@ BOOL CMatrixBase<TYPE>::SVD(CVectorBase<TYPE>& w, CMatrixBase<TYPE>& v)
 				}
 
 				break;
+
 			}	// if
 
 			TYPE x = w[nL];	// shift from bottom 2x2 minor
 			TYPE y = w[nK - 1];
-			TYPE z = w[nK];
 
 			TYPE g = rv1[nK - 1];
 			TYPE h = rv1[nK];
@@ -608,10 +627,14 @@ BOOL CMatrixBase<TYPE>::SVD(CVectorBase<TYPE>& w, CMatrixBase<TYPE>& v)
 
 		if (nIter == MAX_ITER)
 		{
-			TRACE("SVD: no convergence in %i steps\n", MAX_ITER);
+			LOG(FMT("SVD: no convergence in %i steps\n", MAX_ITER));
+			EXIT_LOG_SECTION();
+
 			return FALSE;
 		}
 	}
+
+	END_LOG_SECTION();	// CMatrixBase::SVD
 
 	return TRUE;
 
