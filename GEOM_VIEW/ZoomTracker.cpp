@@ -1,22 +1,22 @@
+//////////////////////////////////////////////////////////////////////
 // ZoomTracker.cpp: implementation of the CZoomTracker class.
 //
+// Copyright (C) 2000-2002
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
+// pre-compiled headers
 #include "stdafx.h"
-//#include "vsim_ogl.h"
 
-// #include <ScalarFunction.h>
+// OpenGL includes
+#include "glMatrixVector.h"
 
+// class declaration
 #include "ZoomTracker.h"
 
+// parent class
 #include "SceneView.h"
 
-#include <Matrix.h>
-
-#include "gl/gl.h"
-#include "gl/glu.h"
-
-#include "glMatrixVector.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -28,15 +28,32 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////
+// CZoomTracker::CZoomTracker
+// 
+// creates a zoom tracker for the sceneview
+//////////////////////////////////////////////////////////////////////
 CZoomTracker::CZoomTracker(CSceneView *pView)
 	: CTracker(pView)
 {
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// CZoomTracker::~CZoomTracker
+// 
+// destroys the zoom tracker
+//////////////////////////////////////////////////////////////////////
 CZoomTracker::~CZoomTracker()
 {
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// CZoomTracker::OnButtonDown
+// 
+// begins processing of the ZOOM
+//////////////////////////////////////////////////////////////////////
 void CZoomTracker::OnButtonDown(UINT nFlags, CPoint point)
 {
 #ifdef _DEBUG
@@ -55,6 +72,12 @@ void CZoomTracker::OnButtonDown(UINT nFlags, CPoint point)
 	m_initY = (double) point.y / (double) rect.Height();
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// CZoomTracker::OnMouseDrag
+// 
+// processes the mouse-drag ZOOM
+//////////////////////////////////////////////////////////////////////
 void CZoomTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
 #ifdef _DEBUG

@@ -1,19 +1,22 @@
+//////////////////////////////////////////////////////////////////////
 // RotateTracker.cpp: implementation of the CRotateTracker class.
 //
+// Copyright (C) 2000-2002
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
+// pre-compiled headers
 #include "stdafx.h"
-//#include "vsim_ogl.h"
+
+// OpenGL includes
+#include "glMatrixVector.h"
+
+// class declaration
 #include "RotateTracker.h"
 
+// parent class
 #include "SceneView.h"
 
-#include <Matrix.h>
-
-#include "gl/gl.h"
-#include "gl/glu.h"
-
-#include "glMatrixVector.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -25,16 +28,32 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////
+// CRotateTracker::CRotateTracker
+// 
+// creates a rotate tracker for the sceneview
+//////////////////////////////////////////////////////////////////////
 CRotateTracker::CRotateTracker(CSceneView *pView)
 	: CTracker(pView)
 {
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// CRotateTracker::~CRotateTracker
+// 
+// destroys the rotate tracker
+//////////////////////////////////////////////////////////////////////
 CRotateTracker::~CRotateTracker()
 {
-
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// CRotateTracker::OnButtonDown
+// 
+// begins processing of the rotation
+//////////////////////////////////////////////////////////////////////
 void CRotateTracker::OnButtonDown(UINT nFlags, CPoint point)
 {
 #ifdef _DEBUG
@@ -54,6 +73,12 @@ void CRotateTracker::OnButtonDown(UINT nFlags, CPoint point)
 	m_vInitPoint = m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// CRotateTracker::OnMouseDrag
+// 
+// processes the mouse-drag rotation
+//////////////////////////////////////////////////////////////////////
 void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
 #ifdef _DEBUG
