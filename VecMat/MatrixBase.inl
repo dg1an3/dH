@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////
 // MatrixBase.inl : implementation of the CMatrixBase class.
 //
-// Copyright (C) 2002
+// Copyright (C) 2002-2003 Derek G Lane
 // $Id$
 // U.S. Patent Pending
 //////////////////////////////////////////////////////////////////////
@@ -187,7 +187,7 @@ void CMatrixBase<TYPE>::Orthogonalize()
 				mOrtho[nAtCol][nAtRow] -= scalar * mOrtho[nAtOrthoCol][nAtRow];
 
 			// make sure we are now orthogonal to this
-			ASSERT(mOrtho[nAtCol] * mOrtho[nAtOrthoCol] < EPS);
+			ASSERT(mOrtho[nAtCol] * mOrtho[nAtOrthoCol] < DEFAULT_EPSILON);
 		}
 	}
 
