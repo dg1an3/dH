@@ -1,0 +1,84 @@
+// VOITerm.cpp: implementation of the CVOITerm class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#include "stdafx.h"
+#include "VOITerm.h"
+
+#include <Structure.h>
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// CVOITerm::CVOITerm
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVOITerm::CVOITerm(CStructure *pStructure, REAL weight)
+	: m_pVOI(pStructure), 
+		m_nLevel(0),
+		m_histogram(NULL, pStructure->GetRegion(0)),
+		m_weight(weight),
+		m_pNextScale(NULL)
+{
+}	// CVOITerm::CVOITerm
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CVOITerm::~CVOITerm
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVOITerm::~CVOITerm()
+{
+	delete m_pNextScale;
+
+}	// CVOITerm::~CVOITerm
+
+
+IMPLEMENT_SERIAL(CVOITerm, CModelObject, 1);
+
+///////////////////////////////////////////////////////////////////////////////
+// CVOITerm::Subcopy
+// 
+// helper to create pyramid - constructs a copy, except with nScale + 1
+///////////////////////////////////////////////////////////////////////////////
+CVOITerm *CVOITerm::Subcopy(CVOITerm *pSubcopy)
+{
+	pSubcopy->m_nLevel = m_nLevel + 1;
+	pSubcopy->m_weight = m_weight;
+
+	pSubcopy->m_histogram.SetRegion(m_pVOI->GetRegion(pSubcopy->m_nLevel));
+
+	m_pNextScale = pSubcopy;
+	
+	return pSubcopy;
+
+}	// CVOITerm::Subcopy
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CVOITerm::GetSubcopy
+// 
+// returns the subcopy at the given scale (relative to the current scale)
+///////////////////////////////////////////////////////////////////////////////
+CVOITerm *CVOITerm::GetLevel(int nLevel, BOOL bCreate)
+{
+	if (nLevel == 0)
+	{
+		return this;
+	}
+	else if (m_pNextScale)
+	{
+		return m_pNextScale->GetLevel(nLevel-1);
+	}
+	else if (bCreate)
+	{
+		return Subcopy()->GetLevel(nLevel-1);
+	}
+
+	return NULL;
+
+}	// CVOITerm::GetSubcopy
