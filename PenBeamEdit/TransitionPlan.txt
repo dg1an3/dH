@@ -1,0 +1,6 @@
+X 1) Change CImage -> CVolume
+X 2) Use CDib from GUI_BASE
+3) Add to CPlan to contain beam doses, beam weights, and total dose
+4) Add an OpenGLRenderer to draw an image (a single slice of a CVolume) 
+	-- allow blending of two images using a color lookup and alpha value
+5) Add a DVH graph view (use Microsoft Chart control?)
