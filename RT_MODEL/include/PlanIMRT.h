@@ -21,9 +21,7 @@ public:
 	CPlanIMRT();
 	virtual ~CPlanIMRT();
 
-	int GetRegionCount();
-	CVolume<double> *GetRegion(int nAt, int nScale);
-	int AddRegion(CVolume<double> *pRegion);
+	int AddStructure(CStructure *pStruct);
 
 	CHistogram *GetRegionHisto(int nAt, int nScale);
 
