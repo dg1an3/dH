@@ -10,7 +10,9 @@
 
 // OpenGL includes
 #include <gl/gl.h>
-#include "glMatrixVector.h"
+
+// render context
+#include "RenderContext.h"
 
 // the parent class
 #include "SceneView.h"
@@ -37,7 +39,7 @@ CRenderable::CRenderable()
 	: m_pObject(NULL),
 		m_pView(NULL),
 		m_nDrawListOpaque(-1),
-		m_nDrawListAlpha(-1),
+		m_nDrawListTransparent(-1),
 		m_color(RGB(255, 255, 255)),
 		m_alpha(1.0),
 		m_bEnabled(TRUE)
@@ -263,13 +265,13 @@ void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 	}
 
 	// if the draw list exists,
-	if (-1 != m_nDrawListAlpha)
+	if (-1 != m_nDrawListTransparent)
 	{
 		// delete it
-		glDeleteLists(m_nDrawListAlpha, 1);
+		glDeleteLists(m_nDrawListTransparent, 1);
 
 		// set it to -1
-		m_nDrawListAlpha = -1;
+		m_nDrawListTransparent = -1;
 	}
 
 	// invalidate the view, which will trigger re-rendering
@@ -281,19 +283,21 @@ void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 // 
 // sets up the rendering context
 //////////////////////////////////////////////////////////////////////
-void CRenderable::SetupRenderingContext()
+void CRenderable::SetupRenderingContext(CRenderContext *pRC)
 {
 	// load the renderer's modelview matrix
-	glLoadMatrix(GetModelviewMatrix());
+	pRC->LoadMatrix(GetModelviewMatrix());
+
+	// set the drawing color
+	pRC->Color(GetColor());
+	pRC->Alpha(1.0 - sqrt(1.0 - GetAlpha()));
+	// glColor(GetColor(), );
 
 	// Set the shading model
 	glShadeModel(GL_SMOOTH);
 
 	// enable lighting
 	// glEnable(GL_LIGHTING);
-
-	// set the drawing color
-	glColor(GetColor(), 1.0 - sqrt(1.0 - GetAlpha()));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -301,7 +305,7 @@ void CRenderable::SetupRenderingContext()
 // 
 // call to describe the opaque part of the renderable
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DescribeOpaque()
+void CRenderable::DrawOpaque(CRenderContext *pRC)
 {
 }
 
@@ -310,7 +314,7 @@ void CRenderable::DescribeOpaque()
 // 
 // call to describe the transparent part of the renderable
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DescribeAlpha()
+void CRenderable::DrawTransparent(CRenderContext *pRC)
 {
 }
 
@@ -319,7 +323,7 @@ void CRenderable::DescribeAlpha()
 // 
 // forms a call list for the opaque parts, and then calls it
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DescribeOpaqueDrawList()
+void CRenderable::DrawOpaqueList(CRenderContext *pRC)
 {
 	// only draw if enabled
 	if (!IsEnabled())
@@ -337,10 +341,10 @@ void CRenderable::DescribeOpaqueDrawList()
 		glNewList(m_nDrawListOpaque, GL_COMPILE);
 
 		// set up the rendering context
-		SetupRenderingContext();
+		SetupRenderingContext(pRC);
 
 		// now populate the draw list
-		DescribeOpaque();
+		DrawOpaque(pRC);
 
 		// finish up the list
 		glEndList();
@@ -359,7 +363,7 @@ void CRenderable::DescribeOpaqueDrawList()
 // 
 // forms a call list for the alpha parts, and then calls it
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DescribeAlphaDrawList()
+void CRenderable::DrawTransparentList(CRenderContext *pRC)
 {
 	// only draw if enabled
 	if (!IsEnabled())
@@ -368,26 +372,26 @@ void CRenderable::DescribeAlphaDrawList()
 	}
 
 	// see if we need to re-create the draw list
-	if (-1 == m_nDrawListAlpha)
+	if (-1 == m_nDrawListTransparent)
 	{
 		// generate a new draw list name
-		m_nDrawListAlpha = glGenLists(1);
+		m_nDrawListTransparent = glGenLists(1);
 
 		// create the list
-		glNewList(m_nDrawListAlpha, GL_COMPILE);
+		glNewList(m_nDrawListTransparent, GL_COMPILE);
 
 		// set up the rendering context
-		SetupRenderingContext();
+		SetupRenderingContext(pRC);
 
 		// now populate the draw list
-		DescribeAlpha();
+		DrawTransparent(pRC);
 
 		// finish up the list
 		glEndList();
 	}
 
 	// now actually render the scene
-	glCallList(m_nDrawListAlpha);
+	glCallList(m_nDrawListTransparent);
 
 	// make sure nothing bad happened
 	GLenum glerror = glGetError();

@@ -22,6 +22,9 @@
 // forward declaration of the CSceneView class 
 class CSceneView;
 
+// forward declaration of the rendering context
+class CRenderContext;
+
 //////////////////////////////////////////////////////////////////////
 // class CRenderable
 //
@@ -82,17 +85,17 @@ protected:
 	CSceneView *m_pView;
 
 	// helper function to set up the rendering context
-	void SetupRenderingContext();
+	void SetupRenderingContext(CRenderContext *pRC);
 
 	// describes the opaque part of the object
-	virtual void DescribeOpaque();
+	virtual void DrawOpaque(CRenderContext *pRC);
 
 	// describes the part controlled by the alpha parameter
-	virtual void DescribeAlpha();
+	virtual void DrawTransparent(CRenderContext *pRC);
 
 	// draw list management functions
-	void DescribeOpaqueDrawList();
-	void DescribeAlphaDrawList();
+	void DrawOpaqueList(CRenderContext *pRC);
+	void DrawTransparentList(CRenderContext *pRC);
 
 private:
 	// the object being described
@@ -117,7 +120,7 @@ private:
 	int m_nDrawListOpaque;
 
 	// the draw list for alpha draw compilation
-	int m_nDrawListAlpha;
+	int m_nDrawListTransparent;
 };
 
 #endif // !defined(RENDERABLE_H)

@@ -7,9 +7,9 @@
 
 #include <float.h>
 
+// OpenGL includes
 #include <gl/gl.h>
 #include <gl/glu.h>
-#include <glMatrixVector.h>
 
 #include <SceneView.h>
 

@@ -12,10 +12,12 @@
 
 // OpenGL include files
 #include <gl/glu.h>
-#include "glMatrixVector.h"
 
 // class declaration
 #include "SceneView.h"
+
+// render context object
+#include "RenderContext.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,7 +31,6 @@ const double MAX_ALPHA = 0.99;
 // constants for reflectance properties
 GLfloat DEFAULT_SPECULAR[] = { 0.5, 0.5, 0.5, 1.0 };
 GLfloat DEFAULT_SHININESS[] = { 20.0 };
-
 
 /////////////////////////////////////////////////////////////////////////////
 // IMPLEMENT_DYNCREATE -- implements the dynamic creation mechanism for
@@ -599,12 +600,17 @@ void CSceneView::OnPaint()
 {
 	// make sure we are using the correct rendering context
 	MakeCurrentGLRC();
+	CRenderContext rc(this);
 
 	//////////////////////////////////////////////////////////////////////////
 	// set up rendering
 
 	// clear the buffers
-	glClearColor(GetBackgroundColor());
+	glClearColor(
+		(float) GetRValue(GetBackgroundColor()) / 255.0f, 
+		(float) GetGValue(GetBackgroundColor()) / 255.0f, 
+		(float) GetBValue(GetBackgroundColor()) / 255.0f, 
+		1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// enable depth testing
@@ -612,7 +618,7 @@ void CSceneView::OnPaint()
 
 	// load the projection matrix
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrix(GetCamera().GetProjection());
+	rc.LoadMatrix(GetCamera().GetProjection());
 
 	// set up the lights
 	for (int nAtLight = 0; nAtLight < GetLightCount(); nAtLight++)
@@ -658,30 +664,26 @@ void CSceneView::OnPaint()
 		glEnable(GL_LIGHTING);
 
 		// save the current model matrix state
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
+		rc.PushMatrix();
 
 		// draw its scene
-		GetRenderableAt(nAt)->DescribeOpaqueDrawList();
+		GetRenderableAt(nAt)->DrawOpaqueList(&rc);
 
 		// restore the model matrix state
-		glMatrixMode(GL_MODELVIEW);
-		glPopMatrix();
+		rc.PopMatrix();
 
 		// also draw the alpha part of the renderable, 
 		//		if alpha is greater than the max
 		if (GetRenderableAt(nAt)->GetAlpha() > MAX_ALPHA)
 		{
 			// save the current model matrix state
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
+			rc.PushMatrix();
 
 			// draw its scene
-			GetRenderableAt(nAt)->DescribeAlphaDrawList();
+			GetRenderableAt(nAt)->DrawTransparentList(&rc);
 
 			// restore the model matrix state
-			glMatrixMode(GL_MODELVIEW);
-			glPopMatrix();
+			rc.PopMatrix();
 		}
 	}
 
@@ -730,15 +732,13 @@ void CSceneView::OnPaint()
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				// save the current model matrix state
-				glMatrixMode(GL_MODELVIEW);
-				glPushMatrix();
+				rc.PushMatrix();
 
 				// draw its scene
-				pRenderable->DescribeAlphaDrawList();
+				pRenderable->DrawTransparentList(&rc);
 
 				// restore the model matrix state
-				glMatrixMode(GL_MODELVIEW);
-				glPopMatrix();
+				rc.PopMatrix();
 			}
 		}
 	}

@@ -127,7 +127,7 @@ SOURCE=.\Renderable.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\RenderableObjectExplorer.cpp
+SOURCE=.\RenderContext.cpp
 # End Source File
 # Begin Source File
 
@@ -180,10 +180,6 @@ SOURCE=.\include\DRRRenderable.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\glMatrixVector.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\include\Graph.h
 # End Source File
 # Begin Source File
@@ -212,7 +208,7 @@ SOURCE=.\include\Renderable.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\RenderableObjectExplorer.h
+SOURCE=.\include\RenderContext.h
 # End Source File
 # Begin Source File
 

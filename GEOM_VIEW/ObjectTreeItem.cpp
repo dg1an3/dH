@@ -7,6 +7,7 @@
 
 #include "ObjectTreeItem.h"
 #include "ObjectExplorer.h"
+#include "SceneView.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -14,13 +15,17 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+// map from object classes to renderable classes
+CMapPtrToPtr CObjectTreeItem::m_mapClasses;
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
 CObjectTreeItem::CObjectTreeItem()
-    : m_pObject(NULL),
-		m_pObjectExplorer(NULL),
+    : m_pObjectExplorer(NULL),
+		m_pObject(NULL),
+		m_pRenderable(NULL),
 		m_hTreeItem(NULL),
 		m_pParent(NULL),
 		m_bAutoCreateChildren(TRUE),
@@ -72,6 +77,12 @@ BOOL CObjectTreeItem::IsChecked() const
 void CObjectTreeItem::SetChecked(BOOL bChecked)
 {
 	m_bChecked = bChecked;
+
+	if (NULL != m_pRenderable)
+	{
+		m_pRenderable->SetEnabled(IsChecked());
+		m_pRenderable->Invalidate();
+	}
 }
 
 
@@ -220,6 +231,38 @@ BOOL CObjectTreeItem::IsDroppable(CObjectTreeItem *pPotentialDrop,
     return TRUE;
 }
 
+void CObjectTreeItem::RegisterClass(CRuntimeClass *pObjectClass, 
+									CRuntimeClass *pRenderableClass)
+{
+	// make sure the renderable class is really a renderable class
+	ASSERT(pRenderableClass->IsDerivedFrom(RUNTIME_CLASS(CRenderable)));
+
+	// add to the map
+	m_mapClasses.SetAt(pObjectClass, pRenderableClass);
+}
+
+
+CRenderable *CObjectTreeItem::CreateRenderableForObject(CSceneView *pSceneView)
+{
+	// look up the renderable class for the model object
+	CRuntimeClass *pRenderableClass;
+	if (m_mapClasses.Lookup(GetObject()->GetRuntimeClass(), 
+			(void *&) pRenderableClass))
+	{
+		// create the renderable
+		m_pRenderable = (CRenderable *) pRenderableClass->CreateObject();
+
+		// set up the renderable for this object
+		m_pRenderable->SetObject(GetObject());
+
+		// and add to the scene view
+		pSceneView->AddRenderable(m_pRenderable);
+	}
+
+	return m_pRenderable;
+}
+
+
 CMenu * CObjectTreeItem::GetPopupMenu()
 {
     // load the popup menu
@@ -241,5 +284,30 @@ BEGIN_MESSAGE_MAP(CObjectTreeItem, CCmdTarget)
    //{{AFX_MSG_MAP(CObjectTreeItem)
 	ON_COMMAND(ID_ITEM_RENAME, OnRenameItem)
 	ON_COMMAND(ID_ITEM_DELETE, OnDeleteItem)
+	ON_COMMAND(ID_ITEM_25, OnItem25percent)
+	ON_COMMAND(ID_ITEM_50, OnItem50percent)
+	ON_COMMAND(ID_ITEM_75, OnItem75percent)
+	ON_COMMAND(ID_ITEM_100, OnItem100percent)
    //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
+
+void CObjectTreeItem::OnItem25percent() 
+{
+	m_pRenderable->SetAlpha(0.25);
+}
+
+void CObjectTreeItem::OnItem50percent() 
+{
+	m_pRenderable->SetAlpha(0.50);
+}
+
+void CObjectTreeItem::OnItem75percent() 
+{
+	m_pRenderable->SetAlpha(0.75);
+}
+
+void CObjectTreeItem::OnItem100percent() 
+{
+	m_pRenderable->SetAlpha(1.00);
+}
+

@@ -8,9 +8,6 @@
 // pre-compiled headers
 #include "stdafx.h"
 
-// OpenGL includes
-#include "glMatrixVector.h"
-
 // class declaration
 #include "RotateTracker.h"
 

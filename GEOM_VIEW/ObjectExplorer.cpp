@@ -245,7 +245,8 @@ void CObjectExplorer::OnRButtonDown(UINT nFlags, CPoint point)
     if (pPopupMenu != NULL)
     {
     	// set the menu command target
-    	m_pCommandTarget = NULL; // m_pItemMenu;
+    	m_pCommandTarget = // NULL; // 
+			m_pItemMenu;
 
     	// process the popup menu
     	ClientToScreen(&point);
@@ -447,8 +448,8 @@ void CObjectExplorer::OnCheck(NMHDR* pNMHDR, LRESULT* pResult)
  			// NOTE: use the opposite of the GetCheck call because
  			//		the item's check state has not yet been updated at the time
  			//		of the click message
- 			// pItem->SetChecked(!GetCheck(ht.hItem)); // 
-			pItem->m_bChecked = !GetCheck(ht.hItem);
+ 			pItem->SetChecked(!GetCheck(ht.hItem)); // 
+			// pItem->m_bChecked = !GetCheck(ht.hItem);
  		}
  	}
  	

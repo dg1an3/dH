@@ -8,8 +8,8 @@
 // pre-compiled headers
 #include "stdafx.h"
 
-// OpenGL include files
-#include "glMatrixVector.h"
+// OpenGL includes
+#include <gl/gl.h>
 
 // class declaration
 #include "Light.h"
@@ -22,7 +22,6 @@ static GLenum arrLightID[] =
 	GL_LIGHT0, GL_LIGHT1, GL_LIGHT2, GL_LIGHT3,
 	GL_LIGHT4, GL_LIGHT5, GL_LIGHT6, GL_LIGHT7,
 };
-
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -98,7 +97,14 @@ void CLight::TurnOn(int nLightNum)
 	glEnable(GL_LIGHTING);
 
 	// set the light's direction
-	glLightDirection(arrLightID[nLightNum], GetPosition());
+	GLfloat dir[4];
+	dir[0] = (float) GetPosition()[0];
+	dir[1] = (float) GetPosition()[1];
+	dir[2] = (float) GetPosition()[2];
+	dir[3] = 0.0f;
+
+	// call the light position
+	glLightfv(arrLightID[nLightNum], GL_POSITION, dir);
 
 	// set the light's diffuse color
 	GLfloat diffuse[4];

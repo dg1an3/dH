@@ -55,17 +55,17 @@ public:
 	virtual double GetFurthestDistance(const CVector<3>& vPoint);
 
 	// opaque rendering routines
-	virtual void DescribeOpaque();
+	virtual void DrawOpaque(CRenderContext *pRC);
 
 	// opaque rendering helper functions
-	void DescribeWireframe();
+	void DrawWireframe(CRenderContext *pRC);
 
 	// alpha-blended rendering
-	virtual void DescribeAlpha();
+	virtual void DrawTransparent(CRenderContext *pRC);
 
 	// alpha-blended helper functions
-	void DescribeSurface();
-	void DescribeBoundsSurface();
+	void DrawSurface(CRenderContext *pRC);
+	void DrawBoundsSurface(CRenderContext *pRC);
 
 private:
 	// stores the texture for the surface
@@ -73,9 +73,6 @@ private:
 
 	// Flag to indicate wire frame mode (project contours, not mesh)
 	BOOL m_bWireFrame;
-
-	// Flag to indicate wire frame mode (project contours, not mesh)
-	BOOL m_bColorWash;
 
 	// Flag to indicate the bounding surfaces are to be rendered
 	BOOL m_bShowBoundsSurface;

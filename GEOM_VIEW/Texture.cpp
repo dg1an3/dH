@@ -25,6 +25,7 @@ static char THIS_FILE[]=__FILE__;
 
 CTexture::CTexture()
 :	m_nWidth(0), m_nHeight(0),
+	m_bWrap(FALSE),
 	m_pDC(NULL),
 	m_pBitmap(NULL),
 	m_pOldBitmap(NULL),
@@ -53,6 +54,17 @@ void CTexture::SetWidthHeight(int nWidth, int nHeight)
 
 	// delete any pixels that are cached, so they will be re-allocated
 	m_arrPixels.SetSize(nWidth * nHeight);
+}
+
+// flag to indicate texture wrapping
+BOOL CTexture::IsWrap() const
+{
+	return m_bWrap;
+}
+
+void CTexture::SetWrap(BOOL bWrap)
+{
+	m_bWrap = bWrap;
 }
 
 CDC * CTexture::GetDC()
@@ -163,7 +175,7 @@ BOOL CTexture::LoadBitmap(UINT nResourceID)
 	return bResult;
 }
 
-void CTexture::Bind(CSceneView *pView, BOOL bWrap)
+void CTexture::Bind(CSceneView *pView)
 {
 	m_pView = pView;
 
@@ -175,7 +187,7 @@ void CTexture::Bind(CSceneView *pView, BOOL bWrap)
 
     glBindTexture (GL_TEXTURE_2D, m_nHandle);
     glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
-	if (bWrap)
+	if (m_bWrap)
 	{
 		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////
 // SurfaceRenderable.cpp: declaration of the CSurfaceRenderable class
 //
-// Copyright (C) 2000-2002
+// Copyright (C) 2000-2002 Derek G. Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
@@ -11,8 +11,8 @@
 // floating-point constants
 #include <float.h>
 
-// OpenGL includes
-#include "glMatrixVector.h"
+// render context for rendering
+#include "RenderContext.h"
 
 // class declaration
 #include "SurfaceRenderable.h"
@@ -36,7 +36,6 @@ static char THIS_FILE[]=__FILE__;
 CSurfaceRenderable::CSurfaceRenderable()
 	: m_pTexture(NULL),
 		m_bWireFrame(FALSE),
-		m_bColorWash(FALSE),
 		m_bShowBoundsSurface(FALSE)
 {
 	SetColor(RGB(192, 192, 192));
@@ -161,8 +160,6 @@ void CSurfaceRenderable::SetObject(CObject *pObject)
 //////////////////////////////////////////////////////////////////////////////
 double CSurfaceRenderable::GetNearestDistance(const CVector<3>& vPoint)
 {
-	return CRenderable::GetNearestDistance(vPoint);
-
 	CVector<3> vMin = GetSurface()->GetBoundsMin();
 	CVector<3> vMax = GetSurface()->GetBoundsMax();
 	
@@ -194,8 +191,6 @@ double CSurfaceRenderable::GetNearestDistance(const CVector<3>& vPoint)
 //////////////////////////////////////////////////////////////////////////////
 double CSurfaceRenderable::GetFurthestDistance(const CVector<3>& vPoint)
 {
-	return CRenderable::GetFurthestDistance(vPoint);
-
 	CVector<3> vMin = GetSurface()->GetBoundsMin();
 	CVector<3> vMax = GetSurface()->GetBoundsMax();
 	
@@ -222,196 +217,125 @@ double CSurfaceRenderable::GetFurthestDistance(const CVector<3>& vPoint)
 
 
 ///////////////////////////////////////////////////////////////////////
-// CSurfaceRenderable::DescribeOpaque
+// CSurfaceRenderable::DrawOpaque
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DescribeOpaque()
+void CSurfaceRenderable::DrawOpaque(CRenderContext *pRC)
 {
-	DescribeWireframe();
+	DrawWireframe(pRC);
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-// CSurfaceRenderable::DescribeAlpha
+// CSurfaceRenderable::DrawAlpha
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DescribeAlpha()
+void CSurfaceRenderable::DrawTransparent(CRenderContext *pRC)
 {
-	// DescribeBoundsSurface();
+	// DrawBoundsSurface();
 
-	DescribeSurface();
+	DrawSurface(pRC);
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-// CSurfaceRenderable::DescribeWireframe
+// CSurfaceRenderable::DrawWireframe
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DescribeWireframe()
+void CSurfaceRenderable::DrawWireframe(CRenderContext *pRC)
 {
 	if (m_bWireFrame)
 	{
-		glDisable(GL_LIGHTING);
-		glEnable(GL_LINE_SMOOTH);
-		glLineWidth(1.0f);
+		// setup line rendering
+		pRC->SetupLines();
 
-		// glColor(GetColor());
-
+		// iterate through contours
 		for (int nAt = 0; nAt < GetSurface()->GetContourCount(); nAt++)
 		{
+			// get a reference to the current polygon
 			CPolygon& polygon = GetSurface()->GetContour(nAt);
 
-			glPushMatrix();
+			// save the modelview matrix
+			pRC->PushMatrix();
 
 			// translate to the appropriate reference distance
-			glTranslated(0.0, GetSurface()->GetContourRefDist(nAt), 0.0);
+			pRC->Translate(
+				CVector<3>(0.0, GetSurface()->GetContourRefDist(nAt), 0.0));
 
 			// after we rotate the data into the X-Z plane
-			glRotated(90.0, 1.0, 0.0, 0.0);
+			pRC->Rotate(90.0, CVector<3>(1.0, 0.0, 0.0));
 
-			// use the polygon's vertex data as the data array
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glVertexPointer(2, GL_DOUBLE, 0, 
-				polygon.GetVertexArray().GetData());
+			// render the polygon as a line loop
+			pRC->LineLoopFromPolygon(polygon);
 
-			// and draw the loop
-			glDrawArrays(GL_LINE_LOOP, 0, polygon.GetVertexCount());
-
-			glDisableClientState(GL_VERTEX_ARRAY);
-
-			glPopMatrix();
+			// restore the modelview matrix
+			pRC->PopMatrix();
 		}
-
-		glEnable(GL_LIGHTING);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////
-// CSurfaceRenderable::DescribeSurface
+// CSurfaceRenderable::DrawSurface
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DescribeSurface()
+void CSurfaceRenderable::DrawSurface(CRenderContext *pRC)
 {
-	if (m_bColorWash)
+	if (NULL != GetTexture())
 	{
-		// disable lighting
-		glDisable(GL_LIGHTING);
-
-		// set the depth mask to read-only
-		glDepthMask(GL_FALSE);
-
-		// set up the accumulation buffer, using the current transparency
-		glAccum(GL_LOAD, 0.75f);
+		pRC->Bind(GetTexture());
 	}
 
-	// set the array for vertices
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_DOUBLE, 0,
-		GetSurface()->GetVertexArray().GetData()-1);
+	// draw the surface
+	pRC->TrianglesFromSurface(*GetSurface());
 
-	// set the array for normals
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glNormalPointer(GL_DOUBLE, 0, 
-		GetSurface()->GetNormalArray().GetData()-1);
-
-	// enable blending; this is redundant but needed because
-	//		of the draw list
-	// glEnable(GL_BLEND);
-	// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	if (GetTexture() != NULL)
+	if (NULL != GetTexture())
 	{
-		GetTexture()->Bind(m_pView);
-
-		glMatrixMode(GL_TEXTURE);
-
-		// load the texture adjustment onto the matrix stack
-		glLoadMatrix(GetTexture()->GetProjection());
-
-		// enable texture coordinate mode
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-		// set the texture coordinate pointer
-		glTexCoordPointer(3, GL_DOUBLE, 0, GetSurface()->GetVertexArray().GetData()-1);
-
-		glMatrixMode(GL_MODELVIEW);
-
-		// make sure no errors occurred
-		ASSERT(glGetError() == GL_NO_ERROR);
-	}
-
-	// now draw the surface from the arrays of data
-	glDrawElements(GL_TRIANGLES, GetSurface()->GetTriangleCount() * 3, 
-		GL_UNSIGNED_INT, (void *)GetSurface()->GetIndexArray().GetData());
-
-	// disable the use of arrays
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-
-	if (NULL != GetTexture()) 
-	{
-		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		GetTexture()->Unbind();
-	}
-
-	// make the depth mask read-only
-	glDepthMask(GL_TRUE);
-
-	if (m_bColorWash)
-	{
-		// set up the accumulation buffer, using the current transparency
-		glAccum(GL_ACCUM, 0.25f);
-		glAccum(GL_RETURN, 1.0f);
-
-		// set the depth mask to writeable
-		glDepthMask(GL_TRUE);
-
-		// re-enable lighting
-		glEnable(GL_LIGHTING);
+		pRC->Unbind();
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////
-// CSurfaceRenderable::DescribeBoundsSurface
+// CSurfaceRenderable::DrawBoundsSurface
 // 
 // 
 //////////////////////////////////////////////////////////////////////
-void CSurfaceRenderable::DescribeBoundsSurface()
+void CSurfaceRenderable::DrawBoundsSurface(CRenderContext *pRC)
 {
 	if (m_bShowBoundsSurface)
 	{
 		// draw the boundary surfaces
-		glColor(RGB(0, 0, 128));
+		pRC->Color(RGB(0, 0, 128));
 
 		double yMin = GetSurface()->GetBoundsMin()[1];
 		double yMax = GetSurface()->GetBoundsMax()[1];
 		for (int nAtTri = 0; nAtTri < GetSurface()->GetTriangleCount(); nAtTri++)
 		{
-			const double *vVert0 = GetSurface()->GetTriangleVertex(nAtTri, 0);
-			const double *vVert1 = GetSurface()->GetTriangleVertex(nAtTri, 1);
-			const double *vVert2 = GetSurface()->GetTriangleVertex(nAtTri, 2);
+			CPackedVector<3> vVert0 = GetSurface()->GetTriVert(nAtTri, 0);
+			CPackedVector<3> vVert1 = GetSurface()->GetTriVert(nAtTri, 1);
+			CPackedVector<3> vVert2 = GetSurface()->GetTriVert(nAtTri, 2);
 
 			if (vVert0[1] == yMin && vVert1[1] == yMin && vVert2[1] == yMin)
 			{
-				glBegin(GL_TRIANGLES);
+				CPackedVector<3> vNorm0 = GetSurface()->GetTriNorm(nAtTri, 0);
+				CPackedVector<3> vNorm1 = GetSurface()->GetTriNorm(nAtTri, 1);
+				CPackedVector<3> vNorm2 = GetSurface()->GetTriNorm(nAtTri, 2);
 
-				glVertex3dv(vVert0);
-				glNormal3dv(GetSurface()->GetTriangleNormal(nAtTri, 0));
-				glTexCoord3dv(vVert0);
+				pRC->BeginTriangles();
 
-				glVertex3dv(vVert1);
-				glNormal3dv(GetSurface()->GetTriangleNormal(nAtTri, 1));
-				glTexCoord3dv(vVert1);
+					pRC->Vertex(vVert0);
+					pRC->Normal(vNorm0);
 
-				glVertex3dv(vVert2);
-				glNormal3dv(GetSurface()->GetTriangleNormal(nAtTri, 2));
-				glTexCoord3dv(vVert2);
+					pRC->Vertex(vVert1);
+					pRC->Normal(vNorm1);
 
-				glEnd();
+					pRC->Vertex(vVert2);
+					pRC->Normal(vNorm2);
+
+				pRC->End();
 			}
 		}
 	}

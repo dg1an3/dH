@@ -7,6 +7,8 @@
 
 #include <ModelObject.h>
 
+#include "Renderable.h"
+
 class CObjectExplorer;
 
 class CObjectTreeItem : public CCmdTarget
@@ -49,6 +51,14 @@ public:
 	// actually creates the tree item
 	virtual BOOL Create(CObjectExplorer *pObjectExplorer);
 
+	// class registration for renderable creation
+	static void RegisterClass(CRuntimeClass *pObjectClass, 
+								CRuntimeClass *pRenderableClass);
+
+	// creates a renderable for this model object, based on the
+	//		registered classes
+	CRenderable *CreateRenderableForObject(CSceneView *pSceneView);
+
 	// member function to determine of a potential dropped item may be dropped here
 	virtual BOOL IsDroppable(CObjectTreeItem *pPotentialDrop, 
 		CString *pStrToolTipMessage = NULL);
@@ -60,6 +70,10 @@ public:
 protected:
     
     //{{AFX_MSG(CObjectTreeItem)
+	afx_msg void OnItem25percent();
+	afx_msg void OnItem50percent();
+	afx_msg void OnItem75percent();
+	afx_msg void OnItem100percent();
     afx_msg void OnRenameItem();
     afx_msg void OnDeleteItem();
     //}}AFX_MSG
@@ -72,6 +86,11 @@ protected:
 
     // a pointer to the MFC tree control object that contains this item
     CObjectExplorer * m_pObjectExplorer;
+
+public:
+	// the renderable for the object
+	CRenderable *m_pRenderable;
+protected:
 
 	// value to indicate that the item should be checked
 	BOOL m_bChecked; 
@@ -98,6 +117,9 @@ private:
 
 	// children
 	CObArray m_arrChildren;		// CObjectTreeItem
+
+	// map from object classes to renderable classes
+	static CMapPtrToPtr m_mapClasses;
 };
 
 // define this archive extraction operator so that we can use the CAssociation with this 

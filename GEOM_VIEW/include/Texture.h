@@ -18,6 +18,7 @@
 
 // forward declaration of the view class
 class CSceneView;
+class CRenderContext;
 
 //////////////////////////////////////////////////////////////////////
 // class CTexture
@@ -34,6 +35,10 @@ public:
 	// width and height of texture image
 	void SetWidthHeight(int nWidth, int nHeight);
 
+	// flag to indicate texture wrapping
+	BOOL IsWrap() const;
+	void SetWrap(BOOL bWrap = FALSE);
+
 	// get a DC for drawing the texture
 	CDC * GetDC();
 	void DrawBorder(int nWidth = 1);
@@ -46,14 +51,17 @@ public:
 	const CMatrix<4>& GetProjection();
 	void SetProjection(const CMatrix<4>& mXform);
 
-	// binds for rendering
-	void Bind(CSceneView *pView, BOOL bWrap = FALSE);
-	void Unbind();
-
 	// returns reference to the change event
 	CObservableEvent& GetChangeEvent();
 
 protected:
+	// friend to access the Bind/Unbind functions
+	friend CRenderContext;
+
+	// binds for rendering
+	void Bind(CSceneView *pView);
+	void Unbind();
+
 	// helper function to process the transparency color
 	void ProcessTransparency();
 
@@ -64,6 +72,9 @@ private:
 	// the height and width of the texture
 	int m_nWidth;
 	int m_nHeight;
+
+	// flag to indicate texture wrapping
+	BOOL m_bWrap;
 
 	// texture handle
 	int m_nHandle;
