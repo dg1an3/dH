@@ -9,12 +9,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "OpenGLRenderer.h"
-#include "Beam.h"
+#include <Association.h>
 
-#include "Observer.h"
-#include "Association.h"
-// #include "AutoSyncValue.h"
+#include <Beam.h>
+
+#include <OpenGLRenderer.h>
 
 class CBeamRenderer : public COpenGLRenderer
 {

@@ -5,10 +5,6 @@
 #include "stdafx.h"
 #include "BeamRenderer.h"
 
-#include <gl/gl.h>
-
-#include <Matrix.h>
-
 #include <glMatrixVector.h>
 
 

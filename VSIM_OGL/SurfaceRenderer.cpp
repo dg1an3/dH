@@ -5,9 +5,7 @@
 #include "stdafx.h"
 #include "SurfaceRenderer.h"
 
-#include "gl\gl.h"
-#include "gl\glu.h"
-#include "glMatrixVector.h"
+#include <glMatrixVector.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE

@@ -1,7 +1,10 @@
 #if !defined(GLMATRIXVECTOR_H)
 #define GLMATRIXVECTOR_H
 
+#include <gl/gl.h>
+
 #include <Vector.h>
+#include <Matrix.h>
 
 inline void glVertex(const CVector<2, double>& v)
 {
