@@ -106,10 +106,6 @@ SOURCE=.\Matrix.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\MatrixFunction.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\Polygon.h
 # End Source File
 # Begin Source File
@@ -123,10 +119,6 @@ SOURCE=.\StdAfx.h
 # Begin Source File
 
 SOURCE=.\Vector.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\VectorFunction.h
 # End Source File
 # Begin Source File
 
