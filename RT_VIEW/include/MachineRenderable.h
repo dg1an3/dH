@@ -28,7 +28,6 @@
 class CMachineRenderable : public CRenderable 
 {
 public:
-	void DescribeAlpha();
 	// constructor/destructor
 	CMachineRenderable();
 	virtual ~CMachineRenderable();
@@ -41,12 +40,13 @@ public:
 	virtual void SetObject(CObject *pObject);
 
 	// rendering routine
-	virtual void DescribeOpaque();
+	virtual void DrawOpaque(CRenderContext *pRC);
+	virtual void DrawTransparent(CRenderContext *pRC);
 
 	// rendering the parts of the machine
-	void DescribeTable();
-	void DescribeGantry(double axisToCollim);
-	void DescribeCollimator(double axisToCollim);
+	void DrawTable(CRenderContext *pRC);
+	void DrawGantry(CRenderContext *pRC, double axisToCollim);
+	void DrawCollimator(CRenderContext *pRC, double axisToCollim);
 
 private:
 	// flag to indicate that the machine is to be rendered as a wireframe

@@ -9,8 +9,8 @@
 // pre-compiled headers
 #include "stdafx.h"
 
-// OpenGL includes
-#include <glMatrixVector.h>
+// render context
+#include <RenderContext.h>
 
 // class declaration
 #include "BeamRenderable.h"
@@ -26,10 +26,11 @@ static char THIS_FILE[]=__FILE__;
 // 
 // helper function to render the beam
 //////////////////////////////////////////////////////////////////////
-inline void DrawProjectedVertex(const CVector<2>& v)
+inline void DrawProjectedVertex(CRenderContext *pRC, 
+								const CVector<2>& v)
 {
-	glVertex3d(v[0], v[1], -1.0);
-	glVertex3d(v[0], v[1], 1.0);
+	pRC->Vertex(CVector<3>(v[0], v[1], -1.0));
+	pRC->Vertex(CVector<3>(v[0], v[1],  1.0));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -126,16 +127,14 @@ void CBeamRenderable::SetObject(CObject *pObject)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeOpaque
+// CBeamRenderable::DrawOpaque
 // 
-// describes the beam itself
+// Draws the beam itself
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeOpaque()
+void CBeamRenderable::DrawOpaque(CRenderContext *pRC)
 {
-	glDisable(GL_LIGHTING);
-
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(1.0f);
+	// set up for line rendering
+	pRC->SetupLines();
 
 	// set up the four corners of the collimator rectangle
 	m_vMin = GetBeam()->GetCollimMin();
@@ -145,31 +144,45 @@ void CBeamRenderable::DescribeOpaque()
 	m_vMaxXMinY[0] = m_vMax[0];
 	m_vMaxXMinY[1] = m_vMin[1];
 
-	// set the color for the beam rendering
-	// glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
-
-	// first describe items on the collimator plane
-	glPushMatrix();
+	// first Draw items on the collimator plane
+	pRC->PushMatrix();
 
 		// translate to draw at SCD (-1.0 under the inverse projection)
-		glTranslate(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Translate(CVector<3>(0.0, 0.0, -1.0));
 
-		// describe the graticule
-		DescribeGraticule();
+		// Draw the graticule
+		DrawGraticule(pRC);
 
 		// the field
-		DescribeField();
+		DrawField(pRC);
 
 		// and the blocks
-		DescribeBlocks();
+		DrawBlocks(pRC);
 
-	glPopMatrix();
+	pRC->PopMatrix();
 
-	// describe the central axis
-	DescribeCentralAxis();
+	// draw items on SID plane
+	pRC->PushMatrix();
 
-	// describe field divergence as lines
-	DescribeFieldDivergenceLines();
+		// translate to draw at SID (1.0 under the inverse projection)
+		pRC->Translate(CVector<3>(0.0, 0.0, 1.0));
+
+		// the field
+		DrawField(pRC);
+
+		// and the blocks
+		DrawBlocks(pRC);
+
+	pRC->PopMatrix();
+
+	// Draw the central axis
+	DrawCentralAxis(pRC);
+
+	// Draw field divergence as lines
+	DrawFieldDivergenceLines(pRC);
+
+	// restore opaque surface drawing.  TODO: fix this
+	pRC->SetupOpaqueSurface();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -196,223 +209,227 @@ void CBeamRenderable::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeGraticule
+// CBeamRenderable::DrawGraticule
 // 
-// describes the graticule at the collimator plane
+// Draws the graticule at the collimator plane
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeGraticule(double size)
+void CBeamRenderable::DrawGraticule(CRenderContext *pRC, double size)
 {
 	if (m_bGraticuleEnabled)
 	{
 		// now draw the graticule
 		CVector<2> vPos;
 
-		glBegin(GL_LINES);
+		pRC->BeginLines();
 
 			vPos = CVector<2>(0.0, 0.0);			
-			glVertex(vPos);
+			pRC->Vertex(vPos);
 			while (vPos[0] > m_vMin[0])
 			{
 				vPos -= CVector<2>(1.0, 0.0);
-				glVertex(vPos);
-				glVertex(vPos + CVector<2>(0.0, 0.5));
-				glVertex(vPos - CVector<2>(0.0, 0.5));
-				glVertex(vPos);
+				pRC->Vertex(vPos);
+				pRC->Vertex(vPos + CVector<2>(0.0, 0.5));
+				pRC->Vertex(vPos - CVector<2>(0.0, 0.5));
+				pRC->Vertex(vPos);
 			}
 
-		glEnd();
+		pRC->End();
 
-		glBegin(GL_LINES);
+		pRC->BeginLines();
 
 			vPos = CVector<2>(0.0, 0.0);
-			glVertex(vPos);
+			pRC->Vertex(vPos);
 			while (vPos[0] < m_vMax[0])
 			{
 				vPos += CVector<2>(1.0, 0.0);
-				glVertex(vPos);
-				glVertex(vPos + CVector<2>(0.0, 0.5));
-				glVertex(vPos - CVector<2>(0.0, 0.5));
-				glVertex(vPos);
+				pRC->Vertex(vPos);
+				pRC->Vertex(vPos + CVector<2>(0.0, 0.5));
+				pRC->Vertex(vPos - CVector<2>(0.0, 0.5));
+				pRC->Vertex(vPos);
 			}
 
-		glEnd();
+		pRC->End();
 
-		glBegin(GL_LINES);
+		pRC->BeginLines();
 
 			vPos = CVector<2>(0.0, 0.0);
-			glVertex(vPos);
+			pRC->Vertex(vPos);
 			while (vPos[1] > m_vMin[1])
 			{
 				vPos -= CVector<2>(0.0, 1.0);
-				glVertex(vPos);
-				glVertex(vPos + CVector<2>(0.5, 0.0));
-				glVertex(vPos - CVector<2>(0.5, 0.0));
-				glVertex(vPos);
+				pRC->Vertex(vPos);
+				pRC->Vertex(vPos + CVector<2>(0.5, 0.0));
+				pRC->Vertex(vPos - CVector<2>(0.5, 0.0));
+				pRC->Vertex(vPos);
 			}
 
-		glEnd();
+		pRC->End();
 
-		glBegin(GL_LINES);
+		pRC->BeginLines();
 
 			vPos = CVector<2>(0.0, 0.0);
-			glVertex(vPos);
+			pRC->Vertex(vPos);
 			while (vPos[1] < m_vMax[1])
 			{
 				vPos += CVector<2>(0.0, 1.0);
-				glVertex(vPos);
-				glVertex(vPos + CVector<2>(0.5, 0.0));
-				glVertex(vPos - CVector<2>(0.5, 0.0));
-				glVertex(vPos);
+				pRC->Vertex(vPos);
+				pRC->Vertex(vPos + CVector<2>(0.5, 0.0));
+				pRC->Vertex(vPos - CVector<2>(0.5, 0.0));
+				pRC->Vertex(vPos);
 			}
 
-		glEnd();
+		pRC->End();
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeField
+// CBeamRenderable::DrawField
 // 
-// describes the field on the collimator plane
+// Draws the field on the collimator plane
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeField()
+void CBeamRenderable::DrawField(CRenderContext *pRC)
 {
-	glBegin(GL_LINE_LOOP);
+	pRC->BeginLineLoop();
 
-		glVertex(m_vMin     ); 
-		glVertex(m_vMinXMaxY); 
-		glVertex(m_vMax     ); 
-		glVertex(m_vMaxXMinY);
+		pRC->Vertex(m_vMin     ); 
+		pRC->Vertex(m_vMinXMaxY); 
+		pRC->Vertex(m_vMax     ); 
+		pRC->Vertex(m_vMaxXMinY);
 
-	glEnd();
+	pRC->End();
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeBlocks
+// CBeamRenderable::DrawBlocks
 // 
-// describes the blocks on the collimator plane
+// Draws the blocks on the collimator plane
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeBlocks()
+void CBeamRenderable::DrawBlocks(CRenderContext *pRC)
 {
 	for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
 	{
 		CPolygon *pBlock = GetBeam()->GetBlockAt(nAt);
 
-		glBegin(GL_LINE_LOOP);
+		pRC->BeginLineLoop();
 
 			for (int nAtVert = 0; nAtVert < pBlock->GetVertexCount(); 
 					nAtVert++)
 			{
 				// draw divergence lines
-				glVertex(pBlock->GetVertex(nAtVert));
+				pRC->Vertex(pBlock->GetVertex(nAtVert));
 			}
 
-		glEnd();
+		pRC->End();
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeCentralAxis
+// CBeamRenderable::DrawCentralAxis
 // 
-// describes the central axis of the beam
+// Draws the central axis of the beam
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeCentralAxis()
+void CBeamRenderable::DrawCentralAxis(CRenderContext *pRC)
 {
 	if (m_bCentralAxisEnabled)
 	{
-		glColor3f(0.0f, 1.0f, 0.0f);
+		pRC->Color(RGB(0, 255, 0));
 
 		// draw central axis
-		glBegin(GL_LINES);
+		pRC->BeginLines();
 
 			// draw central axis
-			glVertex3d(0.0, 0.0, -1.0);
-			glVertex3d(0.0, 0.0,  1.0);
+			pRC->Vertex(CVector<3>(0.0, 0.0, -1.0));
+			pRC->Vertex(CVector<3>(0.0, 0.0,  1.0));
 
-		glEnd();
+		pRC->End();
+
+		// draw isocenter
+		pRC->BeginLines();
+
+			pRC->Vertex(CVector<3>(-5.0, 0.0, 0.5));
+			pRC->Vertex(CVector<3>( 5.0, 0.0, 0.5));
+
+			pRC->Vertex(CVector<3>(0.0, -5.0, 0.5));
+			pRC->Vertex(CVector<3>(0.0,  5.0, 0.5));
+
+		pRC->End();
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeFieldDivergenceLines
+// CBeamRenderable::DrawFieldDivergenceLines
 // 
-// describes the divergence lines at the four corners of the field
+// Draws the divergence lines at the four corners of the field
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeFieldDivergenceLines()
+void CBeamRenderable::DrawFieldDivergenceLines(CRenderContext *pRC)
 {
-	glBegin(GL_LINES);
+	pRC->BeginLines();
 
 		// draw divergence lines
-		DrawProjectedVertex(m_vMin     );
-		DrawProjectedVertex(m_vMinXMaxY);
-		DrawProjectedVertex(m_vMax     );
-		DrawProjectedVertex(m_vMaxXMinY);
+		DrawProjectedVertex(pRC, m_vMin     );
+		DrawProjectedVertex(pRC, m_vMinXMaxY);
+		DrawProjectedVertex(pRC, m_vMax     );
+		DrawProjectedVertex(pRC, m_vMaxXMinY);
 
-	glEnd();
+	pRC->End();
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeAlpha
+// CBeamRenderable::DrawTransparent
 // 
 // renders the beam surfaces
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeAlpha()
+void CBeamRenderable::DrawTransparent(CRenderContext *pRC)
 {
-	// set up for surface rendering
+	// set up for beam surface rendering
+	pRC->SetSmoothShading(FALSE);
+	pRC->SetLighting(FALSE);
 
-	// Set the shading model
-	glShadeModel(GL_FLAT);
+	// Draw the field divergence surfaces
+	DrawFieldDivergenceSurfaces(pRC);
 
-	// disable lighting
-	glDisable(GL_LIGHTING);
+	// Draw the block divergence surfaces
+	DrawBlockDivergenceSurfaces(pRC);
 
-	// describe the field divergence surfaces
-	DescribeFieldDivergenceSurfaces();
-
-	// describe the block divergence surfaces
-	DescribeBlockDivergenceSurfaces();
-
-	// enable lighting
-	glEnable(GL_LIGHTING);
-
-	// Set the shading model
-	//  TODO: add this to setup
-	glShadeModel(GL_SMOOTH);
+	// restore surface rendering settings
+	pRC->SetSmoothShading(TRUE);
+	pRC->SetLighting(TRUE);
 }
 
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeFieldDivergenceSurfaces
+// CBeamRenderable::DrawFieldDivergenceSurfaces
 // 
-// describes the divergence surfaces for the field
+// Draws the divergence surfaces for the field
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeFieldDivergenceSurfaces()
+void CBeamRenderable::DrawFieldDivergenceSurfaces(CRenderContext *pRC)
 {
 	if (m_bFieldDivergenceSurfacesEnabled)
 	{
-		glBegin(GL_QUAD_STRIP);
+		pRC->BeginQuadStrip();
 		
 			// draw 
-			DrawProjectedVertex(m_vMin     );
-			DrawProjectedVertex(m_vMinXMaxY);
-			DrawProjectedVertex(m_vMax     );
-			DrawProjectedVertex(m_vMaxXMinY);
-			DrawProjectedVertex(m_vMin     );
+			DrawProjectedVertex(pRC, m_vMin     );
+			DrawProjectedVertex(pRC, m_vMinXMaxY);
+			DrawProjectedVertex(pRC, m_vMax     );
+			DrawProjectedVertex(pRC, m_vMaxXMinY);
+			DrawProjectedVertex(pRC, m_vMin     );
 
-		glEnd();
+		pRC->End();
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
-// CBeamRenderable::DescribeBlockDivergenceSurfaces
+// CBeamRenderable::DrawBlockDivergenceSurfaces
 // 
-// describes the divergence surfaces for the block
+// Draws the divergence surfaces for the block
 //////////////////////////////////////////////////////////////////////
-void CBeamRenderable::DescribeBlockDivergenceSurfaces()
+void CBeamRenderable::DrawBlockDivergenceSurfaces(CRenderContext *pRC)
 {
 	if (m_bBlockDivergenceSurfacesEnabled)
 	{
 		// draw the divergence surfaces
-		glBegin(GL_QUAD_STRIP);
+		pRC->BeginQuadStrip();
 		
 			for (int nAt = 0; nAt < GetBeam()->GetBlockCount(); nAt++)
 			{
@@ -422,10 +439,10 @@ void CBeamRenderable::DescribeBlockDivergenceSurfaces()
 						nAtVert++)
 				{
 					// draw divergence lines
-					DrawProjectedVertex(pPolygon->GetVertex(nAtVert)); 
+					DrawProjectedVertex(pRC, pPolygon->GetVertex(nAtVert)); 
 				}
 			}
 
-		glEnd();
+		pRC->End();
 	}
 }

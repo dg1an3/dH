@@ -9,8 +9,8 @@
 // pre-compiled headers
 #include "stdafx.h"
 
-// OpenGL includes
-#include <glMatrixVector.h>
+// rendering context
+#include <RenderContext.h>
 
 // class declaration
 #include "MachineRenderable.h"
@@ -97,27 +97,20 @@ void CMachineRenderable::SetObject(CObject *pObject)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CMachineRenderable::DescribeOpaque
+// CMachineRenderable::DrawOpaque
 // 
-// describes the treatment machine
+// Draws the treatment machine
 //////////////////////////////////////////////////////////////////////
-void CMachineRenderable::DescribeOpaque()
+void CMachineRenderable::DrawOpaque(CRenderContext *pRC)
 {
 	// set up the rendering parameters
 	if (m_bWireFrame)
 	{
-		// set up for wire frame rendering
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		// setup for line drawing
+		pRC->SetupLines();
 
-		// no lighting
-		glDisable(GL_LIGHTING);
-
-		// line defaults
-		glEnable(GL_LINE_SMOOTH);
-		glLineWidth(1.0f);
-
-		// describe the table
-		DescribeTable();
+		// Draw the table
+		DrawTable(pRC);
 
 		// compute the axis-to-collimator distance
 		double SAD = GetBeam()->GetTreatmentMachine()->GetSAD();
@@ -125,33 +118,26 @@ void CMachineRenderable::DescribeOpaque()
 		double axisToCollim = SAD - SCD;
 
 		// rotate for the gantry
-		glRotated(GetBeam()->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
+		pRC->Rotate(GetBeam()->GetGantryAngle() * 180.0 / PI, 
+			CVector<3>(0.0, 1.0, 0.0));
 
-		// describe the gantry itself
-		DescribeGantry(axisToCollim);
+		// Draw the gantry itself
+		DrawGantry(pRC, axisToCollim);
 
-		// describe the collimator
-		DescribeCollimator(axisToCollim);
-
-		// set back to polygon fill mode
-		// TODO: do this in SetupRenderingContext
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		// re-enable lighting
-		// TODO: do this in SetupRenderingContext
-		glEnable(GL_LIGHTING);
+		// Draw the collimator
+		DrawCollimator(pRC, axisToCollim);
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
-// CMachineRenderable::DescribeAlpha
+// CMachineRenderable::DrawTransparent
 // 
-// describes the treatment machine
+// Draws the treatment machine
 //////////////////////////////////////////////////////////////////////
-void CMachineRenderable::DescribeAlpha()
+void CMachineRenderable::DrawTransparent(CRenderContext *pRC)
 {
-	// describe the table
-	DescribeTable();
+	// Draw the table
+	DrawTable(pRC);
 
 	// compute the axis-to-collimator distance
 	double SAD = GetBeam()->GetTreatmentMachine()->GetSAD();
@@ -159,190 +145,193 @@ void CMachineRenderable::DescribeAlpha()
 	double axisToCollim = SAD - SCD;
 
 	// rotate for the gantry
-	glRotated(GetBeam()->GetGantryAngle() * 180.0 / PI, 0.0, 1.0, 0.0);
+	pRC->Rotate(GetBeam()->GetGantryAngle() * 180.0 / PI, 
+		CVector<3>(0.0, 1.0, 0.0));
 
-	// describe the gantry itself
-	DescribeGantry(axisToCollim);
+	// Draw the gantry itself
+	DrawGantry(pRC, axisToCollim);
 
-	// describe the collimator
-	DescribeCollimator(axisToCollim);
+	// Draw the collimator
+	DrawCollimator(pRC, axisToCollim);
 }
 
 //////////////////////////////////////////////////////////////////////
-// CMachineRenderable::DescribeTable
+// CMachineRenderable::DrawTable
 // 
-// describes the treatment machine table
+// Draws the treatment machine table
 //////////////////////////////////////////////////////////////////////
-void CMachineRenderable::DescribeTable()
+void CMachineRenderable::DrawTable(CRenderContext *pRC)
 {
-	glPushMatrix();
+	pRC->PushMatrix();
 
-	glTranslate(-1.0 * GetBeam()->GetTableOffset());
-	glRotated(GetBeam()->GetCouchAngle() * 180.0 / PI, 
-		0.0, 0.0, 1.0);
+	pRC->Translate(-1.0 * GetBeam()->GetTableOffset());
+	pRC->Rotate(GetBeam()->GetCouchAngle() * 180.0 / PI, 
+		CVector<3>(.0, 0.0, 1.0));
 
-	glBegin(GL_QUADS);
+	pRC->BeginQuads();
 
-		glNormal(CVector<3>(0.0, 0.0, 1.0));
+		pRC->Normal(CVector<3>(0.0, 0.0, 1.0));
 
-		glVertex(CVector<3>(-250.0, -1200.0,  -100.0));
-		glVertex(CVector<3>( 250.0, -1200.0,  -100.0));
-		glVertex(CVector<3>( 250.0,   250.0,  -100.0));
-		glVertex(CVector<3>(-250.0,   250.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVector<3>( 250.0,   250.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0,   250.0,  -100.0));
 
-		glNormal(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Normal(CVector<3>(0.0, 0.0, -1.0));
 
-		glVertex(CVector<3>(-250.0, -1200.0,  -150.0));
-		glVertex(CVector<3>( 250.0, -1200.0,  -150.0));
-		glVertex(CVector<3>( 250.0,   250.0,  -150.0));
-		glVertex(CVector<3>(-250.0,   250.0,  -150.0));
+		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,   250.0,  -150.0));
+		pRC->Vertex(CVector<3>(-250.0,   250.0,  -150.0));
 
-		glNormal(CVector<3>(-1.0, 0.0, 0.0));
+		pRC->Normal(CVector<3>(-1.0, 0.0, 0.0));
 
-		glVertex(CVector<3>(-250.0, -1200.0,  -100.0));
-		glVertex(CVector<3>(-250.0, -1200.0,  -150.0));
-		glVertex(CVector<3>(-250.0,   250.0,  -150.0));
-		glVertex(CVector<3>(-250.0,   250.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVector<3>(-250.0,   250.0,  -150.0));
+		pRC->Vertex(CVector<3>(-250.0,   250.0,  -100.0));
 
-		glNormal(CVector<3>( 1.0, 0.0, 0.0));
+		pRC->Normal(CVector<3>( 1.0, 0.0, 0.0));
 
-		glVertex(CVector<3>( 250.0, -1200.0,  -100.0));
-		glVertex(CVector<3>( 250.0, -1200.0,  -150.0));
-		glVertex(CVector<3>( 250.0,   250.0,  -150.0));
-		glVertex(CVector<3>( 250.0,   250.0,  -100.0));
+		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -100.0));
+		pRC->Vertex(CVector<3>( 250.0, -1200.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,   250.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,   250.0,  -100.0));
 
-		glNormal(CVector<3>( 0.0, 1.0, 0.0));
+		pRC->Normal(CVector<3>( 0.0, 1.0, 0.0));
 
-		glVertex(CVector<3>(-250.0,  250.0,  -100.0));
-		glVertex(CVector<3>(-250.0,  250.0,  -150.0));
-		glVertex(CVector<3>( 250.0,  250.0,  -150.0));
-		glVertex(CVector<3>( 250.0,  250.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0,  250.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0,  250.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,  250.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,  250.0,  -100.0));
 
-		glNormal(CVector<3>( 0.0, -1.0, 0.0));
+		pRC->Normal(CVector<3>( 0.0, -1.0, 0.0));
 
-		glVertex(CVector<3>(-250.0,-1200.0,  -100.0));
-		glVertex(CVector<3>(-250.0,-1200.0,  -150.0));
-		glVertex(CVector<3>( 250.0,-1200.0,  -150.0));
-		glVertex(CVector<3>( 250.0,-1200.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0,-1200.0,  -100.0));
+		pRC->Vertex(CVector<3>(-250.0,-1200.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,-1200.0,  -150.0));
+		pRC->Vertex(CVector<3>( 250.0,-1200.0,  -100.0));
 
 
-	glEnd();
+	pRC->End();
 
-	glPopMatrix();
+	pRC->PopMatrix();
 }
 
 //////////////////////////////////////////////////////////////////////
-// CMachineRenderable::DescribeGantry
+// CMachineRenderable::DrawGantry
 // 
-// describes the treatment machine gantry; assumes the rotation has
+// Draws the treatment machine gantry; assumes the rotation has
 //		already been set
 //////////////////////////////////////////////////////////////////////
-void CMachineRenderable::DescribeGantry(double axisToCollim)
+void CMachineRenderable::DrawGantry(CRenderContext *pRC, 
+										double axisToCollim)
 {
 	// render the gantry sides
-	glBegin(GL_POLYGON);
+	pRC->BeginPolygon();
 
-		glNormal(CVector<3>(-1.0, 0.0, 0.0));
+		pRC->Normal(CVector<3>(-1.0, 0.0, 0.0));
 
-		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 100.0) );
 
-	glEnd();
+	pRC->End();
 
-	glBegin(GL_POLYGON);
+	pRC->BeginPolygon();
 
-		glNormal(CVector<3>(-1.0, 0.0, 0.0));
+		pRC->Normal(CVector<3>(-1.0, 0.0, 0.0));
 
-		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>(-300.0,  500.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0,  500.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
 
-	glEnd();
+	pRC->End();
 
 	// render the gantry sides
-	glBegin(GL_POLYGON);
+	pRC->BeginPolygon();
 
-		glNormal(CVector<3>( 1.0, 0.0, 0.0));
+		pRC->Normal(CVector<3>( 1.0, 0.0, 0.0));
 
-		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 100.0) );
 
-	glEnd();
+	pRC->End();
 
-	glBegin(GL_POLYGON);
+	pRC->BeginPolygon();
 
-		glNormal(CVector<3>( 1.0, 0.0, 0.0));
+		pRC->Normal(CVector<3>( 1.0, 0.0, 0.0));
 
-		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  500.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  500.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
 
-	glEnd();
+	pRC->End();
 
 	// render the gantry faces
-	glBegin(GL_QUADS);
+	pRC->BeginQuads();
 
-		glNormal(CVector<3>(0.0, -1.0, 0.0));
+		pRC->Normal(CVector<3>(0.0, -1.0, 0.0));
 
-		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
 
-		glNormal(CVector<3>(0.0, 0.0, 1.0));
+		pRC->Normal(CVector<3>(0.0, 0.0, 1.0));
 
-		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
 
-		glNormal(CVector<3>(0.0, 1.0, 0.0));
+		pRC->Normal(CVector<3>(0.0, 1.0, 0.0));
 
-		glVertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
-		glVertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>(-300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  750.0,  axisToCollim + 300.0) );
+		pRC->Vertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
 
-		glNormal(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Normal(CVector<3>(0.0, 0.0, -1.0));
 
-		glVertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>(-300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>( 300.0,  750.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
 
-		glNormal(CVector<3>(0.0, -1.0, 0.0));
+		pRC->Normal(CVector<3>(0.0, -1.0, 0.0));
 
-		glVertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
-		glVertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>(-300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>( 300.0,  500.0,-(axisToCollim + 300.0)));
+		pRC->Vertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
 
-		glNormal(CVector<3>(0.0, 0.0, -1.0));
+		pRC->Normal(CVector<3>(0.0, 0.0, -1.0));
 
-		glVertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
-		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>(-300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>( 300.0,  500.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>( 300.0, -250.0,  axisToCollim + 100.0) );
+		pRC->Vertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
 
-	glEnd();
+	pRC->End();
 }
 
 //////////////////////////////////////////////////////////////////////
-// CMachineRenderable::DescribeCollimator
+// CMachineRenderable::DrawCollimator
 // 
-// describes the treatment machine collimator; assumes the rotation 
+// Draws the treatment machine collimator; assumes the rotation 
 //		has already been set
 //////////////////////////////////////////////////////////////////////
-void CMachineRenderable::DescribeCollimator(double axisToCollim)
+void CMachineRenderable::DrawCollimator(CRenderContext *pRC,
+											double axisToCollim)
 {
 	// render the collimator
-	glBegin(GL_QUAD_STRIP);
+	pRC->BeginQuadStrip();
 
 		// compute the upper and lower edges
 		CVector<4> vCollimEdgeLower(0.0, 100.0, axisToCollim, 1.0);
@@ -357,19 +346,19 @@ void CMachineRenderable::DescribeCollimator(double axisToCollim)
 				CMatrix<4>(CreateRotate(angle, CVector<3>(0.0, 0.0, 1.0)));
 
 			// draw a quad for each step
-			glVertex(mRot * vCollimEdgeLower);
-			glVertex(mRot * vCollimEdgeUpper);
+			pRC->Vertex(mRot * vCollimEdgeLower);
+			pRC->Vertex(mRot * vCollimEdgeUpper);
 
 			// normal points outwards
-			glNormal(mRot * CVector<4>(0.0, 1.0, 0.0, 1.0));
+			pRC->Normal(mRot * CVector<4>(0.0, 1.0, 0.0, 1.0));
 		}
 
 		// finish off the collimator
-		glVertex(vCollimEdgeLower);
-		glVertex(vCollimEdgeUpper);
+		pRC->Vertex(vCollimEdgeLower);
+		pRC->Vertex(vCollimEdgeUpper);
 
 		// and set the normal
-		glNormal(CVector<4>(0.0, 1.0, 0.0, 1.0));
+		pRC->Normal(CVector<4>(0.0, 1.0, 0.0, 1.0));
 
-	glEnd();
+	pRC->End();
 }

@@ -43,23 +43,23 @@ public:
 	virtual void SetObject(CObject *pObject);
 
 	// renders the beam with lines
-	virtual void DescribeOpaque();
+	virtual void DrawOpaque(CRenderContext *pRC);
 
 	// description of items on the collimator plane
-	void DescribeGraticule(double size = 0.5);
-	void DescribeField();
-	void DescribeBlocks();
+	void DrawGraticule(CRenderContext *pRC, double size = 0.5);
+	void DrawField(CRenderContext *pRC);
+	void DrawBlocks(CRenderContext *pRC);
 
 	// description of divergence lines
-	void DescribeCentralAxis();
-	void DescribeFieldDivergenceLines();
+	void DrawCentralAxis(CRenderContext *pRC);
+	void DrawFieldDivergenceLines(CRenderContext *pRC);
 
 	// renders the beam surfaces
-	virtual void DescribeAlpha();
+	virtual void DrawTransparent(CRenderContext *pRC);
 
 	// description of divergence surfaces
-	void DescribeBlockDivergenceSurfaces();
-	void DescribeFieldDivergenceSurfaces();
+	void DrawBlockDivergenceSurfaces(CRenderContext *pRC);
+	void DrawFieldDivergenceSurfaces(CRenderContext *pRC);
 
 	// event handler
 	void OnBeamChanged(CObservableEvent *pEvent, void *pOldValue);
