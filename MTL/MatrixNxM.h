@@ -402,10 +402,12 @@ template<class TYPE>
 inline CVectorBase<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
 									const CVectorBase<TYPE>& v)
 {
-	ASSERT(mat.GetRows() == v.GetDim());
+	ASSERT(mat.GetCols() == v.GetDim());
 
 	// stored the product
-	CVectorBase<TYPE> vProduct(v);
+	CVectorN<TYPE> vProduct;
+	vProduct.SetDim(mat.GetRows());
+	vProduct.SetZero();
 
 	// step through the rows of the matrix
 	for (int nRow = 0; nRow < mat.GetRows(); nRow++)
