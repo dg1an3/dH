@@ -35,8 +35,6 @@
 class CPrescription : public CObjectiveFunction  
 {
 public:
-	void UpdateTerms(CPrescription *pPresc);
-	void SetEntropyWeight(REAL weight);
 	CPrescription(CPlan *pPlan, int nLevel);
 	virtual ~CPrescription();
 
@@ -54,6 +52,10 @@ public:
 	void AddStructureTerm(CVOITerm *pST);
 	void RemoveStructureTerm(CStructure *pStruct);
 	CVOITerm *GetStructureTerm(CStructure *pStruct);
+
+	void UpdateTerms(CPrescription *pPresc);
+
+	void SetEntropyWeight(REAL weight);
 
 	// sets the GBinSigma for all histograms
 	void SetGBinSigma(REAL binSigma);
@@ -99,6 +101,7 @@ private:
 	REAL m_tolerance;
 
 	REAL m_totalEntropyWeight;
+	REAL m_intensityMapSumWeight;
 
 public:
 	// scales input prior to exponentiation
