@@ -81,6 +81,7 @@ void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 void CRotateTracker::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	m_pView->projectionMatrix.SyncTo(NULL);
+	m_pView->projectionMatrix.Set(privCurrProjMatrix.Get());
 }
 
 void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
