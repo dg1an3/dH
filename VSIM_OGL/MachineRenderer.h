@@ -23,15 +23,17 @@ public:
 	CMachineRenderer(COpenGLView *pView);
 	virtual ~CMachineRenderer();
 
-	// association to the treatment machine to be rendered
-	CAssociation< CTreatmentMachine > forMachine;
-
-	// association to the beam, for treatment machine parameters
-	//		may be NULL
+	// association to the beam for treatment machine parameters
 	CAssociation< CBeam > forBeam;
 
 	// rendering routine
 	virtual void OnRenderScene();
+
+	// re-loads the gantry angle
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
+
+private:
+	CValue<double> privGantryAngle;
 };
 
 #endif // !defined(AFX_MACHINERENDERER_H__F8B84E0C_8074_11D5_ABA5_00B0D0AB90D6__INCLUDED_)
