@@ -60,9 +60,6 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name GEOM_MODEL
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name GEOM_VIEW
     End Project Dependency
     Begin Project Dependency
@@ -73,6 +70,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name RT_MODEL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name GEOM_MODEL
     End Project Dependency
 }}}
 

@@ -134,6 +134,14 @@ void CSimView::OnDraw(CDC* pDC)
 	CRect rect;
 	GetClientRect(&rect);
 
+	CRect rectREV;
+	m_wndREV.GetWindowRect(&rectREV);
+	ScreenToClient(&rectREV);
+
+	CRgn rgn;
+	rgn.CreateRectRgnIndirect(&rectREV);
+	pDC->SelectClipRgn(&rgn, RGN_DIFF);
+
 	CBrush brush(RGB(0, 0, 255));
 	CBrush *pOldBrush = pDC->SelectObject(&brush);
 	pDC->Rectangle(rect);
@@ -173,16 +181,18 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	if (!m_wndREV.Create(NULL, NULL, lpCreateStruct->style, 
-			CRect(0, 0, 0, 0), this, 0))
+			CRect(0, 0, 1024, 1024), this, 0))
 	{
 		return -1;
 	}
 
 	// set up the REV camera
-	m_wndREV.GetCamera().SetClippingPlanes(1.0, 200.0);
-	m_wndREV.GetCamera().SetFieldOfView(20.0);
-	m_wndREV.GetCamera().SetPhi(-PI / 4.0);
-	m_wndREV.GetCamera().SetTheta(3.0 * PI / 8.0);
+	m_wndREV.GetCamera().SetDirection(CVectorD<3>(0.0, 0.2, 1.0));
+	m_wndREV.GetCamera().SetDistance(300.0);
+	m_wndREV.GetCamera().SetClippingPlanes(1.0, 1000.0);
+	m_wndREV.GetCamera().SetViewingAngle(PI / 4);
+	// m_wndREV.GetCamera().SetFieldOfView(20.0);
+	// m_wndREV.GetCamera().SetDirection(CVectorD<3>(1.0, 0.5, 0.2));
 
 	// set up the trackers
 	m_wndREV.AddLeftTracker(new CRotateTracker(&m_wndREV));
@@ -329,8 +339,8 @@ void CSimView::OnInitialUpdate()
 		for (int nAtSurf = 0; nAtSurf < pSeries->GetStructureCount(); nAtSurf++)
 		{
 			// get a pointer to the next structure
-			CSurface *pSurface = 
-				(CSurface *) pSeries->GetStructureAt(nAtSurf);
+			CMesh *pSurface = 
+				(CMesh *) pSeries->GetStructureAt(nAtSurf);
 
 			// create the object tree item
 			CObjectTreeItem *pNewItem = new CObjectTreeItem();
@@ -356,8 +366,8 @@ void CSimView::OnInitialUpdate()
 				m_pSurfaceRenderable = pSurfaceRenderable;
 
 				// and set the camera FOV
-				m_wndREV.GetCamera().SetFieldOfView((float) 
-					(8.5 * pSurface->GetMaxSize())); 
+				// m_wndREV.GetCamera().SetFieldOfView((float) 
+				//	(8.5 * pSurface->GetMaxSize())); 
 			}
 		}
 	}
@@ -401,19 +411,16 @@ void CSimView::OnInitialUpdate()
 	///////////////////////////////////////////////////////////////////////////
 	// treatment machine
 
-	// create and add the machine Renderable to the REV
-	CMachineRenderable *pMachineRenderable = 
-		new CMachineRenderable();
-	pMachineRenderable->SetBeam(GetDocument()->GetBeamAt(0));
-	pMachineRenderable->SetColor(RGB(128, 128, 255));
-	pMachineRenderable->SetAlpha(0.5);
-	m_wndREV.AddRenderable(pMachineRenderable);	
-
-	// trace out the camera parameters
-	TRACE_MATRIX("xform", m_wndREV.GetCamera().GetXform());
-
-	// trace out the camera parameters
-	TRACE_MATRIX("projection", m_wndREV.GetCamera().GetProjection());
+	if (GetDocument()->GetBeamCount() > 0)
+	{
+		// create and add the machine Renderable to the REV
+		CMachineRenderable *pMachineRenderable = 
+			new CMachineRenderable();
+		pMachineRenderable->SetBeam(GetDocument()->GetBeamAt(0));
+		pMachineRenderable->SetColor(RGB(255, 255, 128));
+		pMachineRenderable->SetAlpha(1.0); // 0.5);
+		m_wndREV.AddRenderable(pMachineRenderable);	
+	}
 }
 
 int nAtStructure = 0;
@@ -427,7 +434,7 @@ void CSimView::OnTimer(UINT nIDEvent)
 	if (nAtStructure < GetDocument()->GetSeries()->GetStructureCount())
 	{
 		// get structure pointer
-		CSurface *pStructure = GetDocument()->GetSeries()->GetStructureAt(nAtStructure);
+		CMesh *pStructure = GetDocument()->GetSeries()->GetStructureAt(nAtStructure);
 
 		// orient 50 faces
 		for (int nAt = 0; nAt < 50; nAt++)
@@ -445,6 +452,7 @@ void CSimView::OnTimer(UINT nIDEvent)
 	
 }
 
+#ifdef USE_ExportFieldCOM
 #import "..\..\srcAx\FieldCOM\FieldCOM.tlb" no_namespace
 
 void CSimView::OnExportFieldcom() 
@@ -454,7 +462,7 @@ void CSimView::OnExportFieldcom()
 	CSeries *pSeries = GetDocument()->GetSeries();
 	for (int nAtStruct = 0; nAtStruct < pSeries->GetStructureCount(); nAtStruct++)
 	{
-		CSurface *pSurface = pSeries->GetStructureAt(nAtStruct);
+		CMesh *pSurface = pSeries->GetStructureAt(nAtStruct);
 		IMeshPtr pMesh;
 		hr = pMesh.CreateInstance("FieldCOM.Mesh");
 
@@ -525,13 +533,19 @@ void CSimView::OnExportFieldcom()
 		pStorage.Release();
 	}
 }
+#else
+void CSimView::OnExportFieldcom() 
+{
+}
+#endif
 
 void CSimView::OnExportNuages() 
 {
+/*
 	CSeries *pSeries = GetDocument()->GetSeries();
 	for (int nAtStruct = 0; nAtStruct < pSeries->GetStructureCount(); nAtStruct++)
 	{
-		CSurface *pSurface = pSeries->GetStructureAt(nAtStruct);
+		CMesh *pSurface = pSeries->GetStructureAt(nAtStruct);
 
 		CString strName = pSurface->GetName() + ".cnt";
 		FILE *fCnt = fopen(strName, "w");
@@ -539,7 +553,7 @@ void CSimView::OnExportNuages()
 		double refDist = -9999.99;
 		for (int nAtContour = 0; nAtContour < pSurface->GetContourCount(); nAtContour++)
 		{
-			CPolygon *pPoly = &pSurface->GetContour(nAtContour);
+			CPolygon *pPoly = &pSurface->get_Contour(nAtContour);
 
 			if (refDist != pSurface->GetContourRefDist(nAtContour))
 			{
@@ -561,7 +575,7 @@ void CSimView::OnExportNuages()
 			fprintf(fCnt, "{\n");
 			for (int nAtVert = 0; nAtVert < pPoly->GetVertexCount(); nAtVert++)
 			{
-				CVectorD<2> v = pPoly->GetVertex(nAtVert);
+				CVectorD<2> v = pPoly->GetVertexAt(nAtVert);
 				fprintf(fCnt, "%lf %lf\n", v[0], v[1]);
 			}
 			fprintf(fCnt, "}\n");
@@ -569,4 +583,5 @@ void CSimView::OnExportNuages()
 
 		fclose(fCnt);
 	}
+*/
 }

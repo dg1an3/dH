@@ -124,7 +124,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndExplorer.SetFont(m_pExplorerFont);
 
-	CObjectTreeItem::RegisterClass(RUNTIME_CLASS(CSurface), 
+	CObjectTreeItem::RegisterClass(RUNTIME_CLASS(CMesh), 
 		RUNTIME_CLASS(CSurfaceRenderable));
 	CObjectTreeItem::RegisterClass(RUNTIME_CLASS(CBeam), 
 		RUNTIME_CLASS(CBeamRenderable));

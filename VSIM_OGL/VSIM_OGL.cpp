@@ -6,6 +6,8 @@
 
 #include "MainFrm.h"
 
+// #include <FieldCOM_DLL.h>
+
 #include <Plan.h>
 #include "simview.h"
 
@@ -52,12 +54,17 @@ BOOL CVSIM_OGLApp::InitInstance()
 	AfxEnableControlContainer();
 
 	// Standard initialization
-	// If you are not using these features and wish to reduce the size
-	//  of your final executable, you should remove from the following
-	//  the specific initialization routines you do not need.
 
+	// initialize COM
 	if (CoInitialize(NULL) != S_OK)
 		return FALSE;
+
+	// initialize the linked FieldCOM DLL
+	// if (InitFieldCOMDLL() != S_OK)
+	//	return FALSE;
+
+	// create a CDynLinkLibrary to link the extensions
+	// new CDynLinkLibrary(FieldCOMDLL);
 
 #ifdef _AFXDLL
 	Enable3dControls();			// Call this when using MFC in a shared DLL
@@ -70,6 +77,9 @@ BOOL CVSIM_OGLApp::InitInstance()
 	// such as the name of your company or organization.
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
 
+
+
+	
 	LoadStdProfileSettings();  // Load standard INI file options (including MRU)
 
 	// Register the application's document templates.  Document templates
@@ -218,11 +228,18 @@ CDocument* CVSIM_OGLApp::OpenDocumentFile(LPCTSTR lpszFileName)
 	// open the plan file
 	CPlan *pPlan = (CPlan *)CWinApp::OpenDocumentFile(lpszFileName);
 
-	// check the type of the returned object
-	ASSERT(pPlan->IsKindOf(RUNTIME_CLASS(CPlan)));
+	if (pPlan)
+	{
+		// check the type of the returned object
+		ASSERT(pPlan->IsKindOf(RUNTIME_CLASS(CPlan)));
 
-	// create a temporary sphere object
-	pPlan->GetSeries()->CreateSphereStructure("Sphere");
+		// create a temporary sphere object
+		pPlan->GetSeries()->CreateSphereStructure("Sphere");
+	}
+	else
+	{
+		::AfxMessageBox("Unable to locate plan file", MB_OK);
+	}
 
 	// return the plan file
 	return pPlan;
