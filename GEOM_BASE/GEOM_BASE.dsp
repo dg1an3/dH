@@ -85,6 +85,18 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\DelaunayTess.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Edge.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Line.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MatrixFunction.cpp
 # End Source File
 # Begin Source File
@@ -93,18 +105,7 @@ SOURCE=.\Polygon.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\quadedge.cpp
-
-!IF  "$(CFG)" == "GEOM_BASE - Win32 Release"
-
-# SUBTRACT CPP /YX /Yc /Yu
-
-!ELSEIF  "$(CFG)" == "GEOM_BASE - Win32 Debug"
-
-# ADD CPP /Yu
-
-!ENDIF 
-
+SOURCE=.\QuadEdge1.cpp
 # End Source File
 # Begin Source File
 
@@ -134,6 +135,18 @@ SOURCE=.\Volumep.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\DelaunayTess.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Edge.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Line.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\Matrix.h
 # End Source File
 # Begin Source File
@@ -146,7 +159,7 @@ SOURCE=.\Polygon.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\quadedge.h
+SOURCE=.\QuadEdge1.h
 # End Source File
 # Begin Source File
 
