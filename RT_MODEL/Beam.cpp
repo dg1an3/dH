@@ -42,7 +42,9 @@ CBeam::CBeam()
 
 		m_vCollimMin(CVectorD<2>(-20.0, -20.0)),
 		m_vCollimMax(CVectorD<2>(20.0, 20.0)),
-		m_bDoseValid(FALSE)
+		m_bDoseValid(FALSE),
+
+		m_weight(1.0)
 {
 }
 
@@ -51,10 +53,11 @@ CBeam::CBeam()
 // 
 // supports serialization of beam and subordinate objects
 //////////////////////////////////////////////////////////////////////
-#define BEAM_SCHEMA 3
+#define BEAM_SCHEMA 4
 	// Schema 1: geometry description, blocks
 	// Schema 2: + dose matrix
 	// Schema 3: + call to CModelObject base class serialization
+	// Schema 4: + weight
 
 IMPLEMENT_SERIAL(CBeam, CModelObject, VERSIONABLE_SCHEMA | BEAM_SCHEMA)
 
@@ -491,6 +494,12 @@ void CBeam::Serialize(CArchive &ar)
 
 		// serialize the dose matrix
 		m_dose.Serialize(ar);
+	}
+
+	// serialize the beam weight
+	if (nSchema >= 4)
+	{
+		SERIALIZE_VALUE(ar, m_weight);
 	}
 }
 

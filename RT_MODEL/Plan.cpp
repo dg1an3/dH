@@ -39,6 +39,24 @@ CPlan::~CPlan()
 	{
 		delete m_arrBeams[nAt];
 	}
+
+	// delete the histograms
+	for (nAt = 0; nAt < m_arrHistograms.GetSize(); nAt++)
+	{
+		delete m_arrHistograms[nAt];
+	}
+
+	// delete the target DVHs
+	POSITION pos = m_mapTargetDVHs.GetStartPosition();
+	while (NULL != pos)
+	{
+		CString strStructureName;
+		CMatrixNxM<> *pmTargetDVH = NULL;
+		m_mapTargetDVHs.GetNextAssoc(pos, strStructureName, 
+			(void *&)pmTargetDVH);
+
+		delete pmTargetDVH;
+	}
 }
 
 CSeries * CPlan::GetSeries()
@@ -64,6 +82,9 @@ CBeam * CPlan::GetBeamAt(int nAt)
 int CPlan::AddBeam(CBeam *pBeam)
 {
 	int nIndex = m_arrBeams.Add(pBeam);
+	pBeam->GetChangeEvent().AddObserver(this, (ListenerFunction) OnBeamChange);
+
+	m_bRecomputeTotalDose = TRUE;
 
 	// a change has occurred, so update views
 	UpdateAllViews(NULL);
@@ -93,23 +114,72 @@ CVolume<double> *CPlan::GetDoseMatrix()
 					GetBeamAt(nAt)->GetWeight());
 			}
 		}
-		else
+
+		// compute voxel count
+/*		int nVoxelCount = m_dose.GetHeight() * m_dose.GetWidth() 
+			* m_dose.GetDepth();
+
+		if (nVoxelCount > 0)
 		{
-			return NULL;
+			// normalize the max dose
+			double maxDose = m_dose.GetMax();
+			double *pVoxels = &m_dose.GetVoxels()[0][0][0];
+			for (int nAt = 0; nAt < nVoxelCount; nAt++)
+			{
+				pVoxels[nAt] /= maxDose;
+			}
 		}
+*/
+		m_bRecomputeTotalDose = FALSE;
 	}
 
 	return &m_dose;
 }
 
 
+// histogram accessor
+CHistogram *CPlan::GetHistogram(CSurface *pStructure)
+{
+	for (int nAt = 0; nAt < GetSeries()->GetStructureCount(); nAt++)
+	{
+		if (GetSeries()->GetStructureAt(nAt) == pStructure)
+		{
+			if (m_arrHistograms.GetSize() <= nAt)
+			{
+				m_arrHistograms.SetSize(nAt+1);
+			}
+
+			if (NULL == m_arrHistograms[nAt])
+			{
+				CHistogram *pHisto = new CHistogram();
+				pHisto->SetVolume(GetDoseMatrix());
+				pHisto->SetRegion(pStructure->GetRegion());
+
+				m_arrHistograms[nAt] = pHisto;
+			}
+
+			return (CHistogram *) m_arrHistograms[nAt];
+		}
+	}
+
+	return NULL;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CPlan serialization
 
-IMPLEMENT_DYNCREATE(CPlan, CDocument)
+#define PLAN_SCHEMA 3
+	// Schema 1: initial plan schema
+	// Schema 2: + target DVH curves
+	// Schema 3: + number of fields
+
+IMPLEMENT_SERIAL(CPlan, CDocument, VERSIONABLE_SCHEMA | PLAN_SCHEMA)
 
 void CPlan::Serialize(CArchive& ar)
 {
+	// store the schema for the beam object
+	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : PLAN_SCHEMA;
+
 	// serialize the document
 	CDocument::Serialize(ar);
 
@@ -130,6 +200,16 @@ void CPlan::Serialize(CArchive& ar)
 
 	m_arrBeams.Serialize(ar);
 
+	if (ar.IsLoading())
+	{
+		// set up as change listener for beams
+		for (int nAt = 0; nAt < GetBeamCount(); nAt++)
+		{
+			GetBeamAt(nAt)->GetChangeEvent().AddObserver(this, 
+				(ListenerFunction) OnBeamChange);
+		}
+	}
+
 	BOOL m_bDoseValid = m_dose.GetWidth() > 0;
 
 	// serialize the dose matrix valid flag
@@ -144,12 +224,40 @@ void CPlan::Serialize(CArchive& ar)
 	// serialize the dose matrix
 	m_dose.Serialize(ar);
 
+	// trigger recalculation of total dose
+	m_bRecomputeTotalDose = TRUE;
+
 	// now make sure the series is loaded
 	if (ar.IsStoring())
 	{ 
 		// now save the associated series
 		GetSeries()->OnSaveDocument(GetSeries()->GetFileName());
 	}
+
+	CString strStructureName;
+	CMatrixNxM<> *pmTargetDVH = NULL;
+	if (ar.IsLoading())
+	{
+		ar >> strStructureName;
+		pmTargetDVH = new CMatrixNxM<>;
+		ar >> (*pmTargetDVH);
+		m_mapTargetDVHs.SetAt(strStructureName, (void *) pmTargetDVH);
+	}
+	else
+	{
+		// delete the target DVHs
+		POSITION pos = m_mapTargetDVHs.GetStartPosition();
+		while (NULL != pos)
+		{
+			m_mapTargetDVHs.GetNextAssoc(pos, strStructureName, 
+				(void *&)pmTargetDVH);
+
+			ar << strStructureName;
+			ar << (*pmTargetDVH);
+		}
+	}
+
+	SERIALIZE_VALUE(ar, m_nFields);
 }
 
 CDocTemplate * CPlan::m_pSeriesDocTemplate = NULL;
@@ -265,3 +373,104 @@ CString CPlan::GetFileRoot()
 
 	return strName;
 }
+
+void CPlan::OnBeamChange(CObservableEvent *, void *)
+{
+	m_bRecomputeTotalDose = TRUE;
+	m_dose.GetChangeEvent().Fire();
+}
+
+// the beam weights, as a vector
+void CPlan::GetBeamWeights(CVectorN<>& vWeights)
+{
+	vWeights.SetDim(m_nFields);
+	int nBeamletCount = GetBeamCount() / m_nFields;
+	for (int nAtField = 0; nAtField < m_nFields; nAtField++)
+	{
+		vWeights[nAtField] = GetBeamAt(nAtField * nBeamletCount + nBeamletCount / 2)
+			->GetWeight();
+	}
+#ifdef STAGGER_BEAM_WEIGHTS
+	vWeights.SetDim(GetBeamCount());
+	int nAtElem = 0;
+	int nBeamletCount = GetBeamCount() / m_nFields;
+	for (int nAtBeamlet = 0; nAtBeamlet < nBeamletCount; nAtBeamlet++)
+	{
+		for (int nAtField = 0; nAtField < m_nFields; nAtField++)
+		{
+			int nAtBeamletAlt = (nAtBeamlet + 1) / 2;
+			int nAtBeamletSign = nAtBeamlet % 2 ? 1 : -1;
+			vWeights[nAtElem] = GetBeamAt(nAtField * nBeamletCount + nBeamletCount / 2 + nAtBeamletAlt * nAtBeamletSign)
+				->GetWeight();
+			nAtElem++;
+		}
+	}
+#endif
+#ifdef STRAIGHT_BEAM_WEIGHTS
+	for (int nAt = 0; nAt < GetBeamCount(); nAt++)
+	{
+		vWeights[nAt] = GetBeamAt(nAt)->GetWeight();
+	}
+#endif
+}
+
+void CPlan::SetBeamWeights(const CVectorN<>& vWeights)
+{
+	ASSERT(vWeights.GetDim() == m_nFields);
+	int nBeamletCount = GetBeamCount() / m_nFields;
+	for (int nAtField = 0; nAtField < m_nFields; nAtField++)
+	{
+		for (int nAtBeamlet = 0; nAtBeamlet < nBeamletCount; nAtBeamlet++)
+		{
+			double normWeight = Gauss<double>(nAtBeamlet - nBeamletCount / 2, 3.0)
+				/ Gauss<double>(0.0, 3.0);
+			GetBeamAt(nAtField * nBeamletCount + nAtBeamlet)
+				->SetWeight(vWeights[nAtField] * normWeight);
+		}
+	}
+#ifdef STAGGER_BEAM_WEIGHTS
+	ASSERT(vWeights.GetDim() == GetBeamCount());
+	int nAtElem = 0;
+	int nBeamletCount = GetBeamCount() / m_nFields;
+	for (int nAtBeamlet = 0; nAtBeamlet < nBeamletCount; nAtBeamlet++)
+	{
+		for (int nAtField = 0; nAtField < m_nFields; nAtField++)
+		{
+			int nAtBeamletAlt = (nAtBeamlet + 1) / 2;
+			int nAtBeamletSign = nAtBeamlet % 2 ? 1 : -1;
+			GetBeamAt(nAtField * nBeamletCount + nBeamletCount / 2 + nAtBeamletAlt * nAtBeamletSign)
+				->SetWeight(vWeights[nAtElem]);
+			nAtElem++;
+		}
+	}
+#endif
+	m_bRecomputeTotalDose = TRUE;
+}
+
+// DVH accessors
+const CMatrixNxM<> *CPlan::GetTargetDVH(CSurface *pStructure)
+{
+	CMatrixNxM<> *pmTargetDVH;
+	if (m_mapTargetDVHs.Lookup(pStructure->GetName(), (void *&) pmTargetDVH))
+	{
+		return pmTargetDVH;
+	}
+
+	return NULL;
+}
+
+void CPlan::SetTargetDVH(CSurface *pStructure, CMatrixNxM<> *pmTargetDVH)
+{
+	CMatrixNxM<> *pmOldTargetDVH = (CMatrixNxM<> *)GetTargetDVH(pStructure);
+	delete pmOldTargetDVH;
+	if (NULL != pmTargetDVH)
+	{
+		m_mapTargetDVHs.SetAt(pStructure->GetName(), (void *) pmTargetDVH);
+	}
+	else
+	{
+		m_mapTargetDVHs.RemoveKey(pStructure->GetName());
+	}
+}
+
+
