@@ -21,7 +21,7 @@
 
 #include "Histogram.h"
 
-class CPlanIMRT;
+class CPrescription;
 
 //////////////////////////////////////////////////////////////////////
 // class CHistogramMatcher
@@ -32,7 +32,7 @@ class CHistogramMatcher : public CObjectiveFunction
 {
 public:
 	// construction / destruction
-	CHistogramMatcher(CPlanIMRT *pPlan, int nScale);
+	CHistogramMatcher(CPrescription *pPresc, int nScale);
 	virtual ~CHistogramMatcher();
 
 	// accessors for collection of histograms being optimized
@@ -84,7 +84,8 @@ private:
 	REAL m_totalEntropyWeight;
 
 	// stores the plan, and scale
-	CPlanIMRT * m_pPlan;
+	// CPlanIMRT * m_pPlan;
+	CPrescription *m_pPresc;
 	int m_nScale;
 
 public:

@@ -6,7 +6,7 @@
 
 #include <VectorD.h>
 
-#include <PlanIMRT.h>
+#include <Prescription.h>
 
 #include <HistogramMatcher.h>
 
@@ -20,13 +20,13 @@
 // 
 // constructs a new CHistogramMatcher
 //////////////////////////////////////////////////////////////////////
-CHistogramMatcher::CHistogramMatcher(CPlanIMRT *pPlan, int nScale)
+CHistogramMatcher::CHistogramMatcher(CPrescription *pPresc, int nScale)
 	: CObjectiveFunction(FALSE),
 		m_bUseRelativeEntropy(TRUE),
 		m_bUseTotalEntropy(TRUE),
 		m_totalEntropyWeight(0.5),
 		m_inputScale(0.5),
-		m_pPlan(pPlan),
+		m_pPresc(pPresc),
 		m_nScale(nScale)
 {
 }	// CHistogramMatcher::CHistogramMatcher
@@ -422,7 +422,7 @@ REAL CHistogramMatcher::Eval_TotalEntropy(const CVectorN<>& vInput,
 											   CVectorN<> *pGrad) const
 {
 	static CVectorN<> vBeamWeights;
-	vBeamWeights.SetDim(m_pPlan->GetBeamCount());
+	vBeamWeights.SetDim(m_pPresc->m_pPlan->GetBeamCount());
 	vBeamWeights.SetZero();
 
 	double sum = 0.0;
@@ -430,7 +430,7 @@ REAL CHistogramMatcher::Eval_TotalEntropy(const CVectorN<>& vInput,
 	{
 		int nBeam;
 		int nBeamlet;
-		m_pPlan->GetBeamletFromSVElem(nAt, m_nScale, &nBeam, &nBeamlet);
+		m_pPresc->GetBeamletFromSVElem(nAt, m_nScale, &nBeam, &nBeamlet);
 
 		vBeamWeights[nBeam] += Sigmoid(vInput[nAt]);
 		sum += Sigmoid(vInput[nAt]);
@@ -456,7 +456,7 @@ REAL CHistogramMatcher::Eval_TotalEntropy(const CVectorN<>& vInput,
 		{
 			int nBeam;
 			int nBeamlet;
-			m_pPlan->GetBeamletFromSVElem(nAt, m_nScale, &nBeam, &nBeamlet);
+			m_pPresc->GetBeamletFromSVElem(nAt, m_nScale, &nBeam, &nBeamlet);
 
 			// p is probability of intensity of this beamlet
 			double p = vBeamWeights[nBeam] / sum;
