@@ -29,10 +29,13 @@ public:
 
 	// evaluates the objective function
 	virtual REAL operator()(const CVectorN<>& vInput, 
-		CVectorN<> *pGrad = NULL) = 0;
+		CVectorN<> *pGrad = NULL) const = 0;
 
 	// whether gradient information is available
 	BOOL HasGradientInfo() const;
+
+	// function to test the gradient calculation
+	REAL TestGradient(const CVectorN<>& vAtParam, REAL epsilon) const;
 
 private:
 	// flag to indicate that gradient information is available
