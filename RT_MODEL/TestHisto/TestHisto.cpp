@@ -18,6 +18,7 @@ static char THIS_FILE[] = __FILE__;
 
 #include <Histogram.h>
 #include <HistogramMatcher.h>
+#include <Prescription.h>
 
 #include <BrentOptimizer.h>
 #include <LineFunction.h>
@@ -25,21 +26,19 @@ static char THIS_FILE[] = __FILE__;
 #include <PowellOptimizer.h>
 #include <ConjGradOptimizer.h>
 
-// #include "InvFilterEM.h"
-
-#include "PlanIMRT.h"
+#include <Plan.h>
 
 
 const double MAX_DOSE = 0.65;
 
 CSeries *g_pSeries = NULL;
 
-CPlanIMRT *g_pPlan = NULL;
+CPlan *g_pPlan = NULL;
 
-CVolume<double> *pRegionTarget = NULL;
-CVolume<double> *pRegionAvoid = NULL;
+CStructure *g_pStructTarget = NULL;
+CStructure *g_pStructAvoid = NULL;
 
-CHistogramMatcher *g_pMatcher[] = { NULL, NULL, NULL };
+CPrescription *g_pPresc = NULL;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -51,11 +50,10 @@ void InitPlan()
 {
 	g_pSeries = new CSeries();
 
-	g_pPlan = new CPlanIMRT();
+	g_pPlan = new CPlan();
 	g_pPlan->SetSeries(g_pSeries);
 
 	g_pPlan->SetBeamCount(7);
-
 
 /*	g_pPlan->GetBeam(0)->SetGantryAngle( -25.0 * PI / -180.0);
 	g_pPlan->GetBeam(1)->SetGantryAngle(  25.0 * PI / -180.0);
@@ -64,6 +62,8 @@ void InitPlan()
 	g_pPlan->GetBeam(4)->SetGantryAngle(  90.0 * PI / -180.0);
 	g_pPlan->GetBeam(5)->SetGantryAngle( 245.0 * PI / -180.0);
 	g_pPlan->GetBeam(6)->SetGantryAngle( 295.0 * PI / -180.0); */
+
+	g_pPresc = new CPrescription(g_pPlan);
 
 }	// InitPlan
 
@@ -123,46 +123,33 @@ void InitVolumes()
 
 	CVolume<double> *pDose = g_pPlan->GetDoseMatrix(0); // 1);
 
-	CStructure *pTargetStruct = new CStructure;
-	g_pSeries->m_arrStructures.Add(pTargetStruct);
+	g_pStructTarget = new CStructure;
+	g_pSeries->m_arrStructures.Add(g_pStructTarget);
 
-	pRegionTarget = pTargetStruct->GetRegion(0); // new CVolume<double>();
+	CVolume<double> *pRegionTarget = g_pStructTarget->GetRegion(0);
 	pRegionTarget->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), 1);
 	pRegionTarget->ClearVoxels();
 
-	CStructure *pAvoidStruct = new CStructure;
-	g_pSeries->m_arrStructures.Add(pAvoidStruct);
+	g_pStructAvoid = new CStructure;
+	g_pSeries->m_arrStructures.Add(g_pStructAvoid);
 
-	pRegionAvoid = pAvoidStruct->GetRegion(0); // new CVolume<double>();
+	CVolume<double> *pRegionAvoid = g_pStructAvoid->GetRegion(0);
 	pRegionAvoid->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), 1);
 	pRegionAvoid->ClearVoxels();
 
 	InitUTarget(pRegionTarget, pRegionAvoid);
 
-	g_pPlan->AddRegion(pRegionTarget);
-	g_pPlan->AddRegion(pRegionAvoid);
+	long nTargetIndex = g_pPresc->AddStructure(g_pStructTarget, 10.0);
+	long nAvoidIndex = g_pPresc->AddStructure(g_pStructAvoid, 1.0);
 
-	REAL binWidth = 0.0125;
 	for (int nScale = 0; nScale < MAX_SCALES; nScale++)
 	{
-		CHistogram *pHistoTarget = g_pPlan->GetRegionHisto(0, nScale);
-		pHistoTarget->SetBinning(0.0, binWidth, 2.0);
+		g_pPresc->m_arrHistoMatchers[nScale]->SetInterval(nTargetIndex, MAX_DOSE, 
+				MAX_DOSE * 1.05, 1.0);
 
-		CHistogram *pHistoAvoid = g_pPlan->GetRegionHisto(1, nScale);
-		pHistoAvoid->SetBinning(0.0, binWidth, 2.0);
-
-		g_pMatcher[nScale] = new CHistogramMatcher(g_pPlan, nScale);
-
-		long nTargetIndex = g_pMatcher[nScale]->AddHistogram(pHistoTarget, 10.0);
-		g_pMatcher[nScale]->SetInterval(nTargetIndex, MAX_DOSE, 
-			MAX_DOSE * 1.05, 1.0);
-
-		long nAvoidIndex = g_pMatcher[nScale]->AddHistogram(pHistoAvoid, 1.0);
-		g_pMatcher[nScale]->SetInterval(nAvoidIndex, 0.0, 0.30,
+		g_pPresc->m_arrHistoMatchers[nScale]->SetInterval(nAvoidIndex, 0.0, 0.30,
 			// MAX_DOSE * 0.50, 
 			1.0);
-
-		binWidth *= 2.0;
 	}
 
 	END_LOG_SECTION();	// InitVolumes
@@ -176,12 +163,12 @@ void InitVolumes()
 ///////////////////////////////////////////////////////////////////////////////
 void FreeAll()
 {
-	delete g_pMatcher[0];
-	delete g_pMatcher[1];
-	delete g_pMatcher[2];
+	// delete g_pMatcher[0];
+	// delete g_pMatcher[1];
+	// delete g_pMatcher[2];
 	delete g_pPlan;
-	delete pRegionTarget;
-	delete pRegionAvoid;
+	delete g_pStructTarget;
+	delete g_pStructAvoid;
 
 }	// FreeAll
 
@@ -202,17 +189,17 @@ void TestOptimizer()
 	{
 		vInit[nAt] = 0.01 * MAX_DOSE / (REAL) vInit.GetDim();
 	}
-	g_pMatcher[2]->StateVectorToParam(vInit, vInit);
+	g_pPresc->m_arrHistoMatchers[2]->StateVectorToParam(vInit, vInit);
 
 //	LOG_EXPR_DESC(g_pMatcher[2]->TestGradient(vInit, 1e-3), "Gradient Test Error");
 
-	OPTIMIZER opt(g_pMatcher[2]);
+	OPTIMIZER opt(g_pPresc->m_arrHistoMatchers[2]);
 	opt.SetTolerance((REAL) 1e-4);
 
 	REAL GBinSigma = 0.20;
-	for (nAt = 0; nAt < g_pMatcher[2]->GetHistogramCount(); nAt++)
+	for (nAt = 0; nAt < g_pPresc->m_arrHistoMatchers[2]->GetHistogramCount(); nAt++)
 	{
-		CHistogram *pHisto = g_pMatcher[2]->GetHistogram(nAt);
+		CHistogram *pHisto = g_pPresc->m_arrHistoMatchers[2]->GetHistogram(nAt);
 		pHisto->SetGBinSigma(GBinSigma);
 	}
 	LOG_EXPR(GBinSigma);
@@ -224,14 +211,14 @@ void TestOptimizer()
 	LOG_EXPR(opt.GetIterations());
 	cout << "Iterations 2 = " << opt.GetIterations() << endl;
 
-	LOG_OBJECT((*g_pMatcher[2]->GetHistogram(0)->GetVolume()));
+	LOG_OBJECT((*g_pPresc->m_arrHistoMatchers[2]->GetHistogram(0)->GetVolume()));
 
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(0, 2)->GetBins(), "Target Bins");
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(1, 2)->GetBins(), "Avoid Bins");
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(0, 2)->GetBinMeans(), "Bin Mean");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructTarget, 2)->GetBins(), "Target Bins");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructAvoid, 2)->GetBins(), "Avoid Bins");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructTarget, 2)->GetBinMeans(), "Bin Mean");
 
 	CVectorN<> vState;
-	g_pMatcher[2]->ParamToStateVector(vRes, vState);
+	g_pPresc->m_arrHistoMatchers[2]->ParamToStateVector(vRes, vState);
 
 	// add a small amount to all elements
 	for (nAt = 0; nAt < vState.GetDim(); nAt++)
@@ -239,39 +226,39 @@ void TestOptimizer()
 		vState[nAt] = __max(vState[nAt], 1e-4);
 	}
 
-	g_pPlan->SetStateVector(2, vState);
+	g_pPresc->SetStateVector(2, vState);
 	LOG_OBJECT((*g_pPlan->GetDoseMatrix(2)));
 
 	CVectorN<> vState1;
-	g_pPlan->InvFilterStateVector(vState, 2, vState1, FALSE);
-	g_pPlan->SetStateVector(1, vState1);
+	g_pPresc->InvFilterStateVector(vState, 2, vState1, FALSE);
+	g_pPresc->SetStateVector(1, vState1);
 	LOG_OBJECT((*g_pPlan->GetDoseMatrix(1)));
 
-	g_pPlan->InvFilterStateVector(vState, 2, vState1, TRUE);
-	g_pPlan->SetStateVector(1, vState1);
+	g_pPresc->InvFilterStateVector(vState, 2, vState1, TRUE);
+	g_pPresc->SetStateVector(1, vState1);
 	LOG_OBJECT((*g_pPlan->GetDoseMatrix(1)));
 
 
 	CVectorN<> vInit1;
-	g_pPlan->GetStateVector(1, vInit1);
+	g_pPresc->GetStateVector(1, vInit1);
 	LOG_EXPR_EXT(vInit1);
 
 	FLUSH_LOG();
 
-	g_pMatcher[1]->StateVectorToParam(vInit1, vInit1);
+	g_pPresc->m_arrHistoMatchers[1]->StateVectorToParam(vInit1, vInit1);
 
 	CVectorN<> vRes1;
 
 	for (int nAtSigma = 2; nAtSigma <= 2; nAtSigma++)
 	{
 
-	REAL res = (*g_pMatcher[1])(vInit1);
-	OPTIMIZER opt1(g_pMatcher[1]);
+	REAL res = (*g_pPresc->m_arrHistoMatchers[1])(vInit1);
+	OPTIMIZER opt1(g_pPresc->m_arrHistoMatchers[1]);
 	opt1.SetTolerance((REAL) 1e-4);
 
-	for (nAt = 0; nAt < g_pMatcher[1]->GetHistogramCount(); nAt++)
+	for (nAt = 0; nAt < g_pPresc->m_arrHistoMatchers[1]->GetHistogramCount(); nAt++)
 	{
-		CHistogram *pHisto = g_pMatcher[1]->GetHistogram(nAt);
+		CHistogram *pHisto = g_pPresc->m_arrHistoMatchers[1]->GetHistogram(nAt);
 		pHisto->SetGBinSigma(GBinSigma / (REAL) nAtSigma);
 	}
 
@@ -280,16 +267,16 @@ void TestOptimizer()
 	LOG_EXPR(opt1.GetIterations());
 	cout << "Iterations 1 = " << opt1.GetIterations() << endl;
 
-	LOG_OBJECT((*g_pMatcher[1]->GetHistogram(0)->GetVolume()));
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(0, 1)->GetBins(), "Target Bins");
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(1, 1)->GetBins(), "Avoid Bins");
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(0, 1)->GetBinMeans(), "Bin Mean");
+	LOG_OBJECT((*g_pPresc->m_arrHistoMatchers[1]->GetHistogram(0)->GetVolume()));
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructTarget, 1)->GetBins(), "Target Bins");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructAvoid, 1)->GetBins(), "Avoid Bins");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructTarget, 1)->GetBinMeans(), "Bin Mean");
 
 	vInit1 = vRes1;
 
 	}
 
-	g_pMatcher[1]->ParamToStateVector(vRes1, vState1);
+	g_pPresc->m_arrHistoMatchers[1]->ParamToStateVector(vRes1, vState1);
 
 	// add a small amount to all elements
 	for (nAt = 0; nAt < vState1.GetDim(); nAt++)
@@ -297,37 +284,37 @@ void TestOptimizer()
 		vState1[nAt] = __max(vState1[nAt], 1e-4);
 	}
 
-	g_pPlan->SetStateVector(1, vState1);
+	g_pPresc->SetStateVector(1, vState1);
 	LOG_OBJECT((*g_pPlan->GetDoseMatrix(1)));
 
 	CVectorN<> vState0;
-	g_pPlan->InvFilterStateVector(vState1, 1, vState0, FALSE);
-	g_pPlan->SetStateVector(0, vState0);
+	g_pPresc->InvFilterStateVector(vState1, 1, vState0, FALSE);
+	g_pPresc->SetStateVector(0, vState0);
 	LOG_OBJECT((*g_pPlan->GetDoseMatrix(0)));
 
-	g_pPlan->InvFilterStateVector(vState1, 1, vState0, TRUE);
-	g_pPlan->SetStateVector(0, vState0);
+	g_pPresc->InvFilterStateVector(vState1, 1, vState0, TRUE);
+	g_pPresc->SetStateVector(0, vState0);
 	LOG_OBJECT((*g_pPlan->GetDoseMatrix(0)));
 
 
 	CVectorN<> vInit0;
-	g_pPlan->GetStateVector(0, vInit0);
+	g_pPresc->GetStateVector(0, vInit0);
 	LOG_EXPR_EXT(vInit0);
 
 	FLUSH_LOG();
 
-	g_pMatcher[0]->StateVectorToParam(vInit0, vInit0);
+	g_pPresc->m_arrHistoMatchers[0]->StateVectorToParam(vInit0, vInit0);
 
 	for (nAtSigma = 2; nAtSigma <= 2; nAtSigma++)
 	{
 
-	REAL res = (*g_pMatcher[0])(vInit0);
-	OPTIMIZER opt0(g_pMatcher[0]);
+	REAL res = (*g_pPresc->m_arrHistoMatchers[0])(vInit0);
+	OPTIMIZER opt0(g_pPresc->m_arrHistoMatchers[0]);
 	opt0.SetTolerance((REAL) 1e-3);
 
-	for (nAt = 0; nAt < g_pMatcher[0]->GetHistogramCount(); nAt++)
+	for (nAt = 0; nAt < g_pPresc->m_arrHistoMatchers[0]->GetHistogramCount(); nAt++)
 	{
-		CHistogram *pHisto = g_pMatcher[0]->GetHistogram(nAt);
+		CHistogram *pHisto = g_pPresc->m_arrHistoMatchers[0]->GetHistogram(nAt);
 		pHisto->SetGBinSigma(GBinSigma / (REAL) nAtSigma);
 	}
 
@@ -338,10 +325,10 @@ void TestOptimizer()
 	LOG_EXPR(opt0.GetIterations());
 	cout << "Iterations 0 = " << opt0.GetIterations() << endl;
 
-	LOG_OBJECT((*g_pMatcher[0]->GetHistogram(0)->GetVolume()));
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(0, 0)->GetBins(), "Target Bins");
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(1, 0)->GetBins(), "Avoid Bins");
-	LOG_EXPR_EXT_DESC(g_pPlan->GetRegionHisto(0, 0)->GetBinMeans(), "Bin Mean");
+	LOG_OBJECT((*g_pPresc->m_arrHistoMatchers[0]->GetHistogram(0)->GetVolume()));
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructTarget, 0)->GetBins(), "Target Bins");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructAvoid, 0)->GetBins(), "Avoid Bins");
+	LOG_EXPR_EXT_DESC(g_pPresc->GetHistogram(g_pStructTarget, 0)->GetBinMeans(), "Bin Mean");
 
 	vInit0 = vRes0;
 
