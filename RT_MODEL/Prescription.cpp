@@ -40,7 +40,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		int nAtSigma[] = {4, 2, 1};
 		REAL tol[] = // {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
 			{(REAL) 1e-4, (REAL) 1e-4, (REAL) 1e-4};
-
+			// {(REAL) 1e-5, (REAL) 1e-5, (REAL) 1e-5};
 		CPrescription *pPresc = this;
 		pPresc->SetGBinSigma(GBinSigma / nAtSigma[0]);
 		pPresc->m_tolerance = tol[0];
@@ -126,7 +126,8 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 		static CVolume<REAL> volGroupMain;
 		volGroupMain.ConformTo(pVolume);
 		volGroupMain.ClearVoxels();
-		Resample(&volGroup, &volGroupMain, TRUE);
+		Resample(&volGroup, &volGroupMain, // FALSE); // 
+			TRUE);
 
 		// and accumulate
 		pVolume->Accumulate(&volGroupMain, 1.0, FALSE);
@@ -363,6 +364,19 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 
 }	// CPrescription::Optimize
 
+
+///////////////////////////////////////////////////////////////////////////////
+// CPrescription::GetStructureTerm
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVOITerm *CPrescription::GetStructureTerm(CStructure *pStruct)
+{
+	CVOITerm *pVOIT = NULL;
+	m_mapVOITs.Lookup(pStruct, pVOIT);
+
+	return pVOIT;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPrescription::AddStructureTerm
@@ -605,3 +619,33 @@ void CPrescription::BeamletWeightsToStateVector(int nScale, const CMatrixNxM<>& 
 
 
 
+
+void CPrescription::SetEntropyWeight(REAL weight)
+{
+	m_totalEntropyWeight = weight;
+
+	if (m_pNextLevel)
+		m_pNextLevel->SetEntropyWeight(weight);
+}
+
+void CPrescription::UpdateTerms(CPrescription *pPresc)
+{
+	m_GBinSigma = pPresc->m_GBinSigma;
+	m_inputScale = pPresc->m_inputScale;
+	SetEntropyWeight(pPresc->m_totalEntropyWeight);
+
+	// now for the terms
+	POSITION pos = pPresc->m_mapVOITs.GetStartPosition();
+	while (pos != NULL)
+	{
+		CStructure * pStruct = NULL;
+		CVOITerm *pVOIT = NULL;
+		pPresc->m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+
+		CVOITerm *pMyVOIT = NULL;
+		if (m_mapVOITs.Lookup(pStruct, pMyVOIT))
+		{
+			(*pMyVOIT) = (*pVOIT);
+		}
+	}
+}

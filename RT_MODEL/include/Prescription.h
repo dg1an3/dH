@@ -35,6 +35,8 @@
 class CPrescription : public CObjectiveFunction  
 {
 public:
+	void UpdateTerms(CPrescription *pPresc);
+	void SetEntropyWeight(REAL weight);
 	CPrescription(CPlan *pPlan, int nLevel);
 	virtual ~CPrescription();
 
@@ -82,8 +84,9 @@ protected:
 	void GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet) const;
 	void InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN<>& vOut, BOOL bFixNeg);
 
-private:
+public:
 	CPlan *m_pPlan;
+private:
 	COptimizer * m_pOptimizer;
 	CPrescription *m_pNextLevel;
 	int m_nLevel;
@@ -97,6 +100,7 @@ private:
 
 	REAL m_totalEntropyWeight;
 
+public:
 	// scales input prior to exponentiation
 	REAL m_inputScale;
 
