@@ -62,6 +62,11 @@ public:
 	// initializes all elements to zero
 	void SetZero();
 
+	// copy elements from v, starting at start, for length elements, 
+	//		and copy them to the destination position
+	int CopyElements(const CVectorBase<TYPE>& v, int nStart, int nLength, 
+		int nDest = 0);
+
 	// element accessors
 	int GetDim() const;
 	TYPE& operator[](int nAtRow);
@@ -190,6 +195,30 @@ void CVectorBase<TYPE>::SetZero()
 	memset((*this), 0, GetDim() * sizeof(TYPE));
 
 }	// CVectorBase<TYPE>::SetZero
+
+
+//////////////////////////////////////////////////////////////////
+// CVectorBase<TYPE>::CopyElements
+//
+// copy elements from v, starting at start, for length elements, 
+//		and copy them to the destination position
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+int CVectorBase<TYPE>::CopyElements(const CVectorBase<TYPE>& v, 
+		int nStart, int nLength, int nDest)
+{
+	int nLastSrcPos = __min(nStart + nLength, v.GetDim());
+	int nLastDstPos = __min(nDest + nLength, GetDim());
+	nLength = __min(nLength, nLastSrcPos - nStart);
+	nLength = __min(nLength, nLastDstPos - nDest);
+	if (nLength > 0)
+	{
+		memcpy(&(*this)[nDest], &v[nStart], nLength * sizeof(TYPE));
+	}
+
+	return nLength;
+
+}	// CVectorBase<TYPE>::CopyElements
 
 
 //////////////////////////////////////////////////////////////////
@@ -476,7 +505,7 @@ inline TYPE operator*(const CVectorBase<TYPE>& vLeft,
 // stream output of a vector
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-ostream& operator<<(ostream& os, CVectorBase<TYPE> v)
+ostream& operator<<(ostream& os, const CVectorBase<TYPE>& v)
 {
 	os << "<";
 	for (int nAt = 0; nAt < v.GetDim(); nAt++)
