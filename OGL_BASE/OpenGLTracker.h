@@ -9,9 +9,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <Observer.h>
+
 class COpenGLView;
 
-class COpenGLTracker  
+class COpenGLTracker : public CObservableObject
 {
 public:
 	COpenGLTracker(COpenGLView *pView);
