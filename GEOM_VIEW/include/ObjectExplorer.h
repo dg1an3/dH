@@ -13,6 +13,9 @@ public:
     CObjectExplorer();
     virtual ~CObjectExplorer();
 
+	// parent for notification
+	CDocument *m_pDoc;
+
 public:
 	// accessor for the explorer's root item
 	CObjectTreeItem * GetRootItem();
