@@ -39,7 +39,7 @@ int CPolygon::GetVertexCount()
 
 const CVector<2>& CPolygon::GetVertex(int nIndex)
 {
-	return m_arrVertex[nIndex % m_arrVertex.GetSize()];
+	return m_arrVertex[(nIndex + m_arrVertex.GetSize()) % m_arrVertex.GetSize()];
 }
 
 int CPolygon::AddVertex(CVector<2>& v)
@@ -53,7 +53,7 @@ int CPolygon::AddVertex(CVector<2>& v)
 
 void CPolygon::RemoveVertex(int nIndex)
 {
-	m_arrVertex.RemoveAt(nIndex % m_arrVertex.GetSize());
+	m_arrVertex.RemoveAt((nIndex + m_arrVertex.GetSize()) % m_arrVertex.GetSize());
 
 	FireChange();
 }
@@ -77,9 +77,7 @@ void CPolygon::MakeConvexHull()
 	double signedArea = GetSignedArea();
 
 	// for each vertex
-	int nAt = GetVertexCount()-1;
-	BOOL bVertexRemoved = FALSE;
-	do
+	for (int nAt = 0; nAt <= GetVertexCount(); nAt++)
 	{
 		// compute the signed area of the current triangle
 		CVector<2> vBase = GetVertex(nAt);
@@ -90,19 +88,22 @@ void CPolygon::MakeConvexHull()
 		{
 			// eliminate the middle vertex
 			RemoveVertex(nAt+1);
-			bVertexRemoved = TRUE;
 		}
+	}
 
-		nAt--;
-		if (nAt == 0)
+	for (nAt = GetVertexCount(); nAt >= 0; nAt--)
+	{
+		// compute the signed area of the current triangle
+		CVector<2> vBase = GetVertex(nAt);
+		CVector<2> v1 = GetVertex(nAt-1) - vBase;
+		CVector<2> v2 = GetVertex(nAt-2) - vBase;
+
+		if (Cross(v1, v2) * signedArea > 0)
 		{
-			if (bVertexRemoved == FALSE)
-				return;
-
-			bVertexRemoved = FALSE;
-			nAt = GetVertexCount()-1;
+			// eliminate the middle vertex
+			RemoveVertex(nAt-1);
 		}
-	} while (TRUE);
+	}
 }
 
 void CPolygon::Serialize(CArchive &ar)
