@@ -12,7 +12,7 @@
 
 class CObjectExplorer;
 
-class CObjectTreeItem : public CCmdTarget, public CObserver
+class CObjectTreeItem : public CCmdTarget //, public CObserver
 {
 public:
 	// constructors/destructore
@@ -59,8 +59,11 @@ public:
 	virtual BOOL IsDroppable(CObjectTreeItem *pPotentialDrop, 
 		CString *pStrToolTipMessage = NULL);
 
-	// change handler -- manages ensuring the consistency of the object's state
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
+	// change handlers -- manages ensuring the consistency of the object's state
+	void OnForObjectChanged(CObject *pSource, void *pOldValue);
+	void OnLabelChanged(CObject *pSource, void *pOldValue);
+	void OnParentChanged(CObject *pSource, void *pOldValue);
+	void OnChildrenChanged(CObject *pSource, void *pOldValue);
 
 	// notification events for various user interactions
 	virtual void OnSelected();

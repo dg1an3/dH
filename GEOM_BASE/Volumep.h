@@ -12,7 +12,7 @@
 #include "Value.h"
 
 template<class VOXEL_TYPE>
-class CVolume : public CObservableObject, public CObserver
+class CVolume : public CObservableObject // , public CObserver
 {
 public:
 	CVolume()
@@ -21,9 +21,9 @@ public:
 			depth(0),
 			m_pVoxels(NULL)
 	{
-		width.AddObserver(this);
-		height.AddObserver(this);
-		depth.AddObserver(this);
+		width.AddObserver(this, (ChangeFunction) OnChange);
+		height.AddObserver(this, (ChangeFunction) OnChange);
+		depth.AddObserver(this, (ChangeFunction) OnChange);
 	}
 
 	virtual ~CVolume()

@@ -2,7 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "..\VSIM_OGL\resource.h"
+#include "GUI_BASE_resource.h"
 #include "ObjectExplorerControlBar.h"
 
 #ifdef _DEBUG

@@ -28,11 +28,11 @@ CObjectTreeItem::CObjectTreeItem()
 		selectedImageResourceID(IDB_FOLDER_OPENED),
 		isChecked(TRUE)
 {
-	forObject.AddObserver(this);
-	forObject.SetAutoObserver(this);
-	label.AddObserver(this);
-	parent.AddObserver(this);
-	children.AddObserver(this);
+	forObject.AddObserver(this, (ChangeFunction) OnForObjectChanged);
+	// forObject.SetAutoObserver(this, (ChangeFunction) OnChange);
+	label.AddObserver(this, (ChangeFunction) OnLabelChanged);
+	parent.AddObserver(this, (ChangeFunction) OnParentChanged);
+	children.AddObserver(this, (ChangeFunction) OnChildrenChanged);
 }
 
 CObjectTreeItem::~CObjectTreeItem()
@@ -73,10 +73,9 @@ void CObjectTreeItem::OnDeleteItem()
 	// TODO: delete the item
 }
     
-void CObjectTreeItem::OnChange(CObservableObject *pSource, void *pOldValue)
+void CObjectTreeItem::OnForObjectChanged(CObject *pSource, void *pOldValue)
 {
-	if (pSource == &forObject 
-			&& forObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
+	if (forObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
 	{
 		CModelObject *pModel = (CModelObject *)forObject.Get();
 
@@ -105,52 +104,56 @@ void CObjectTreeItem::OnChange(CObservableObject *pSource, void *pOldValue)
 			}
 		}
 	}
-	// see if the target item has changed
-	else if (pSource == &label
-			&& m_pObjectExplorer != NULL)
+}
+
+void CObjectTreeItem::OnLabelChanged(CObject *pSource, void *pOldValue)
+{
+	if (m_pObjectExplorer != NULL)
 	{
 		// if so, change the label for the item
 		m_pObjectExplorer->SetItem(m_hTreeItem, TVIF_TEXT, 
   			label.Get(), 0, 0, 0, 0, NULL);
 	}
-	else if (pSource == &parent)
+}
+
+void CObjectTreeItem::OnParentChanged(CObject *pSource, void *pOldValue)
+{
+	if (pOldValue)
 	{
-		if (pOldValue)
-		{
-			// check that the old value is a pointer to the parent
-			ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
+		// check that the old value is a pointer to the parent
+		ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
 
-			// form a pointer to the old parent
-			CObjectTreeItem *pOldParent = (CObjectTreeItem *) pOldValue;
+		// form a pointer to the old parent
+		CObjectTreeItem *pOldParent = (CObjectTreeItem *) pOldValue;
 
-			// remove this from its current parent
-			pOldParent->children.Release(this);
-
-			// now delete this item from the old tree view
-			if (m_pObjectExplorer)
-    			m_pObjectExplorer->DeleteItem(this);
-		}
-
-		// add this to the new parent
-		parent->children.Add(this);
+		// remove this from its current parent
+		pOldParent->children.Release(this);
 	}
-	else if (pSource == &children)
+
+	// now delete this item from the old tree view
+	if (m_pObjectExplorer)
+		m_pObjectExplorer->DeleteItem(this);
+
+	// add this to the new parent
+	parent->children.Add(this);
+}
+
+void CObjectTreeItem::OnChildrenChanged(CObject *pSource, void *pOldValue)
+{
+	if (pOldValue)
 	{
-		if (pOldValue)
-		{
-			// check that the old value is a pointer to the parent
-			ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
+		// check that the old value is a pointer to the parent
+		ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
 
-			// form a pointer to the new child
-			CObjectTreeItem *pNewChild = (CObjectTreeItem *) pOldValue;
+		// form a pointer to the new child
+		CObjectTreeItem *pNewChild = (CObjectTreeItem *) pOldValue;
 
-			// set the parent parent for the new child
-			pNewChild->parent.Set(this);
+		// set the parent parent for the new child
+		pNewChild->parent.Set(this);
 
-			// create the child if this (the parent) has been created
-			if (m_pObjectExplorer)
-    			pNewChild->Create(m_pObjectExplorer);
-		}
+		// create the child if this (the parent) has been created
+		if (m_pObjectExplorer)
+    		pNewChild->Create(m_pObjectExplorer);
 	}
 }
   
