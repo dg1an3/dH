@@ -1,0 +1,105 @@
+// XMLElement.cpp: implementation of the CXMLElement class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#include "stdafx.h"
+#include "XMLElement.h"
+
+#include "XMLLogFile.h"
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLElement::CXMLElement
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CXMLElement::CXMLElement(CXMLLogFile *pLogFile, 
+						 const char *pszLabel, 
+						 const char *pszModule)
+	: m_bTagOpen(TRUE),
+		m_bElementOpen(TRUE),
+		m_pLogFile(pLogFile),
+		m_pszLabel(pszLabel),
+		m_pszModule(pszModule),
+		m_nEnabled(TRUE)
+{
+}	//  CXMLElement::CXMLElement
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLElement::~CXMLElement
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CXMLElement::~CXMLElement()
+{
+}	// CXMLElement::~CXMLElement
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLElement::Attribute
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+BOOL CXMLElement::Attribute(const char *pszName, const char *pszValue)
+{
+	// only valid while the tag is open
+	ASSERT(m_bTagOpen);
+
+	// write the attribute string
+	m_pLogFile->FormatAnywhere(" %s='%s'", pszName, pszValue);
+
+	return TRUE;
+
+}	//  CXMLElement::Attribute
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLElement::Close
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+BOOL CXMLElement::Close(BOOL bPermanent)
+{
+	// only close if opened
+	if (m_bElementOpen)
+	{
+		// close the tag first
+		CloseTag(bPermanent);
+
+		// write end tag
+		m_pLogFile->FormatAnywhere("</%s>\n", m_pszLabel);
+
+		// set permanently closed, if necessary
+		m_bElementOpen = !bPermanent;
+	}
+
+	return TRUE;
+
+}	//  CXMLElement::Close
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLElement::CloseTag
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+BOOL CXMLElement::CloseTag(BOOL bPermanent)
+{
+	// only close if opened
+	if (m_bTagOpen)
+	{
+		// close the tag
+		m_pLogFile->FormatAnywhere(">");
+
+		// set permanently closed, if necessary
+		m_bTagOpen = !bPermanent;
+	}
+
+	return TRUE;
+
+}	//  CXMLElement::CloseTag

@@ -1,0 +1,38 @@
+// XMLLoggableObject.cpp: implementation of the CXMLLoggableObject class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#include "stdafx.h"
+#include "XMLLoggableObject.h"
+
+#include "XMLLogFile.h"
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLLoggableObject::CXMLLoggableObject
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CXMLLoggableObject::CXMLLoggableObject(const char *pszClassName)
+	: m_pszClassName(pszClassName)
+{
+}	// CXMLLoggableObject::CXMLLoggableObject
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CXMLLoggableObject::LogBase
+//
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CXMLLoggableObject::LogBase(const char *pszName, const char *pszModule) const
+{
+	CXMLElement *pElem = CXMLLogFile::GetLogFile()->NewElement("lo", pszModule);
+	pElem->Attribute("type", m_pszClassName);
+	pElem->Attribute("name", pszName);
+	Log(pElem);
+	CXMLLogFile::GetLogFile()->CloseElement();
+
+}	//  CXMLLoggableObject::LogBase
