@@ -81,9 +81,6 @@ REAL CLineFunction::operator()(const CVectorN<>& vInput,
 	m_vEvalPoint *= vInput[0];
 	m_vEvalPoint += GetPoint();
 
-	// output point to be evaluated
-	TRACE_VECTOR("Eval Point = ", m_vEvalPoint);
-
 	// evaluate the function and gradient, if needed
 	REAL value = (*m_pProjFunc)(m_vEvalPoint, pGrad ? &m_vGrad : NULL);
 
