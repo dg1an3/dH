@@ -136,6 +136,12 @@ BOOL COpenGLView::PreCreateWindow(CREATESTRUCT& cs)
 
 void COpenGLView::OnPaint()
 {
+	static GLenum arrLightID[] =
+	{
+		GL_LIGHT0, GL_LIGHT1, GL_LIGHT2, GL_LIGHT3,
+		GL_LIGHT4, GL_LIGHT5, GL_LIGHT6, GL_LIGHT7,
+	};
+
 	MakeCurrentGLRC();
 
 	CRect rect;
@@ -151,8 +157,10 @@ void COpenGLView::OnPaint()
 
 	// set up the lights
 	for (int nAtLight = 0; nAtLight < lights.GetSize(); nAtLight++)
-		glLightPosition(GL_LIGHT0 + nAtLight, 
-			lights.Get(nAtLight)->position.Get());
+	{
+		glLightPosition(arrLightID[nAtLight], lights.Get(nAtLight)->position.Get());
+		glEnable(arrLightID[nAtLight]);
+	}
 
 	// set the matrix mode to modelview
 	glMatrixMode(GL_MODELVIEW);
@@ -253,7 +261,7 @@ int COpenGLView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	glEnable(GL_COLOR_MATERIAL);
 
 	// Create a Directional Light Source
-	GLfloat position [] = { 1.0, 1.0, 100.0, 0.0 };
+	GLfloat position [] = { 250.0, -250.0, 300.0, 0.0 };
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
