@@ -38,7 +38,7 @@ public:
 	void Invalidate();
 	virtual void DrawScene();
 
-protected:
+// protected:
 	COpenGLView * m_pView;
 
 private:
