@@ -16,8 +16,6 @@
 #define IDB_CONTOUR_GREEN               138
 #define IDB_CONTOUR_RED                 139
 #define IDB_CONTOUR_YELLOW              140
-#define IDB_FOLDER_CLOSED               141
-#define IDB_FOLDER_OPENED               142
 #define IDB_POINT_BLUE                  143
 #define IDB_POINT_GREEN                 144
 #define IDB_POINT_RED                   145
