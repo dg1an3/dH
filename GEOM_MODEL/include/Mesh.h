@@ -82,6 +82,9 @@ public:
 	// returns largest dimension
 	double GetMaxSize() const;
 
+	// accessor for the region
+	CVolume<int> *GetRegion();
+
 	// direct access to index, vertex, and normal arrays
 	// WARNING: calls to Lock* must be matched by calls to Unlock*
 	vector< CTriIndex<int> >& LockIndexArray();
