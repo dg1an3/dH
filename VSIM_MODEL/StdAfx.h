@@ -17,21 +17,6 @@
 
 #include <afxtempl.h>
 
-#define CREATE_TAB(LENGTH) \
-	CString TAB; \
-	while (TAB.GetLength() < LENGTH * 2) \
-		TAB += "\t\t"
-
-#define DC_TAB(DUMP_CONTEXT) \
-	DUMP_CONTEXT << TAB
-
-#define PUSH_DUMP_DEPTH(DUMP_CONTEXT) \
-	int OLD_DUMP_DEPTH = DUMP_CONTEXT.GetDepth(); \
-	DUMP_CONTEXT.SetDepth(OLD_DUMP_DEPTH + 1)
-
-#define POP_DUMP_DEPTH(DUMP_CONTEXT) \
-	DUMP_CONTEXT.SetDepth(OLD_DUMP_DEPTH)
-
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
