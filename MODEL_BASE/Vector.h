@@ -13,14 +13,14 @@ public:
 	CVector() 
 	{
 		for (int nAt = 0; nAt < DIM; nAt++)
-			m_arrElements[nAt] = 0.0;
+			m_arrElements[nAt] = (TYPE) 0.0;
 	}
 
 	CVector(TYPE x) 
 	{
 		m_arrElements[0] = x;
 		for (int nAt = 1; nAt < DIM; nAt++)
-			m_arrElements[nAt] = 0.0;
+			m_arrElements[nAt] = (TYPE) 0.0;
 	}
 
 	CVector(TYPE x, TYPE y) 
@@ -28,7 +28,7 @@ public:
 		m_arrElements[0] = x;
 		m_arrElements[1] = y;
 		for (int nAt = 2; nAt < DIM; nAt++)
-			m_arrElements[nAt] = 0.0;
+			m_arrElements[nAt] = (TYPE) 0.0;
 	}
 
 	CVector(TYPE x, TYPE y, TYPE z) 
@@ -37,7 +37,7 @@ public:
 		m_arrElements[1] = y;
 		m_arrElements[2] = z;
 		for (int nAt = 3; nAt < DIM; nAt++)
-			m_arrElements[nAt] = 0.0;
+			m_arrElements[nAt] = (TYPE) 0.0;
 	}
 
 	CVector(TYPE x, TYPE y, TYPE z, TYPE w) 
@@ -47,7 +47,7 @@ public:
 		m_arrElements[2] = z;
 		m_arrElements[3] = w;
 		for (int nAt = 4; nAt < DIM; nAt++)
-			m_arrElements[nAt] = 0.0;
+			m_arrElements[nAt] = (TYPE) 0.0;
 	}
 
 #ifdef _WINDOWS
