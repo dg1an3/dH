@@ -57,6 +57,9 @@ protected:
     CMap<HTREEITEM, HTREEITEM, CObjectTreeItem *, CObjectTreeItem *>
     	m_mapItemHandles;
 
+	// points to the item for which pop-up is being shown
+	CObjectTreeItem *m_pItemMenu;
+
 private:
     // target for right-click menu commands
     CCmdTarget * m_pCommandTarget;

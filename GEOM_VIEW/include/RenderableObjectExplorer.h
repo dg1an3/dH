@@ -47,6 +47,10 @@ public:
 protected:
 	//{{AFX_MSG(CRenderableObjectExplorer)
 	afx_msg void OnCheck(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnItem25percent();
+	afx_msg void OnItem50percent();
+	afx_msg void OnItem75percent();
+	afx_msg void OnItem100percent();
 	//}}AFX_MSG
 
 	DECLARE_MESSAGE_MAP()
