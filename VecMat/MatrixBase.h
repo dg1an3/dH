@@ -1,5 +1,6 @@
 //////////////////////////////////////////////////////////////////////
-// Matrix.h: declaration and definition of the CMatrixBase template class.
+// MatrixBase.h: declaration and definition of the CMatrixBase 
+//		template class.
 //
 // Copyright (C) 1999-2001
 // $Id$
@@ -16,7 +17,7 @@ using namespace std;
 
 #include "MathUtil.h"
 
-#include "VectorN.h"
+#include "VectorBase.h"
 
 //////////////////////////////////////////////////////////////////////
 // constant for finding the pivot during a matrix inversion
@@ -119,8 +120,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase& operator=(const CMatrixBase& fromMatrix)
 	{
-		ASSERT(GetRows() == fromMatrix.GetRows());
-		ASSERT(GetCols() == fromMatrix.GetCols());
+		Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
 
 		// assign successive column vectors
 		for (int nAt = 0; nAt < GetCols(); nAt++)
@@ -175,10 +175,10 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// GetColumn -- constructs and returns a row vector
 	//////////////////////////////////////////////////////////////////
-	void GetRow(int nAtRow, CVectorN<TYPE>& vRow) const
+	void GetRow(int nAtRow, CVectorBase<TYPE>& vRow) const
 	{
 		// make the row vector the same size
-		vRow.SetDim(GetCols());
+		// vRow.SetDim(GetCols());
 
 		// populate the row vector
 		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
@@ -190,7 +190,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	// SetColumn -- constructs and returns a column vector
 	//////////////////////////////////////////////////////////////////
-	void SetRow(int nAtRow, const CVectorN<TYPE>& vRow)
+	void SetRow(int nAtRow, const CVectorBase<TYPE>& vRow)
 	{
 		if (vRow.GetDim() == GetCols())
 		{
@@ -201,6 +201,12 @@ public:
 			}
 		}
 	}
+
+	// InterchangeRows -- swaps two rows of the matrix
+	void InterchangeRows(int nRow1, int nRow2);
+
+	// InterchangeCols -- swaps two cols of the matrix
+	void InterchangeCols(int nCol1, int nCol2);
 
 	//////////////////////////////////////////////////////////////////
 	// IsApproxEqual -- tests for approximate equality using the EPS
@@ -289,8 +295,6 @@ public:
 	//////////////////////////////////////////////////////////////////
 	CMatrixBase& operator*=(const CMatrixBase& mRight)
 	{
-		ASSERT(GetDim() == mRight.GetDim());
-
 		// multiply this by right
 		(*this) = (*this) * mRight;
 
@@ -360,114 +364,52 @@ public:
 		}
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// SetElements -- sets the elements to an external pointer
+	//////////////////////////////////////////////////////////////////
+	void SetElements(int nCols, int nRows, TYPE *pElements);
+
+	//////////////////////////////////////////////////////////////////
 	// Transpose -- inverts the matrix using the Gauss-Jordan 
 	//		elimination
+	//////////////////////////////////////////////////////////////////
 	void Transpose();
 
+	//////////////////////////////////////////////////////////////////
 	// orthogonality test
+	//////////////////////////////////////////////////////////////////
 	BOOL IsOrthogonal() const;
 
+	//////////////////////////////////////////////////////////////////
 	// Orthogonalize 
+	//////////////////////////////////////////////////////////////////
 	void Orthogonalize();
 
+	//////////////////////////////////////////////////////////////////
 	// Invert -- inverts the matrix using the Gauss-Jordan 
 	//		elimination
+	//////////////////////////////////////////////////////////////////
 	void Invert(BOOL bFullPivot = FALSE);
 
-	// SetElements -- sets the elements to an external pointer
-	void SetElements(int nCols, int nRows, double *pElements)
-	{
-		// delete previous data
-		if (m_bFreeElements && NULL != m_pElements)
-		{
-			delete [] m_pElements;
-			m_pElements = NULL;
-		}
+	//////////////////////////////////////////////////////////////////
+	// SVD -- singular-valued decomposition -- returns the singular
+	//		value matrix as a vector of diagonal values w, and 
+	//		returns V (not V^T)
+	//////////////////////////////////////////////////////////////////
+	BOOL SVD(CVectorBase<TYPE>& w, CMatrixBase& v);
 
-		if (NULL != m_arrColumns)
-		{
-			delete [] m_arrColumns;
-			m_arrColumns = NULL;
-		}
-
-		m_nCols = nCols;
-		m_nRows = nRows;
-
-		m_pElements = pElements;
-
-		// set up the column vectors
-		if (0 != m_nCols)
-		{
-			// allocate column vectors
-			m_arrColumns = new CVectorBase<TYPE>[GetCols()];
-
-			// initialize the column vectors and the pointers
-			for (int nAt = 0; nAt < GetCols(); nAt++)
-			{
-				// initialize the column vector
-				m_arrColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
-			}
-		}
-
-		m_bFreeElements = FALSE;
-	}
+	//////////////////////////////////////////////////////////////////
+	// Pseudoinvert -- in-place Moore-Penrose pseudoinversion
+	//////////////////////////////////////////////////////////////////
+	BOOL Pseudoinvert();
 
 protected:
 	//////////////////////////////////////////////////////////////////
 	// Reshape -- sets the rows and columns of the matrix
 	//////////////////////////////////////////////////////////////////
-	void Reshape(int nCols, int nRows)
-	{
-		if (GetRows() == nRows && GetCols() == nCols)
-		{
-			return;
-		}
-
-		// delete previous data
-		if (m_bFreeElements && NULL != m_pElements)
-		{
-			delete [] m_pElements;
-			m_pElements = NULL;
-		}
-
-		if (NULL != m_arrColumns)
-		{
-			delete [] m_arrColumns;
-			m_arrColumns = NULL;
-		}
-
-		// assign the dimensions
-		m_nRows = nRows;
-		m_nCols = nCols;
-
-		// set up the column vectors
-		if (0 != m_nCols)
-		{
-			// allocate elements
-			m_pElements = new TYPE[GetCols() * GetRows()];
-
-			// allocate column vectors
-			m_arrColumns = new CVectorBase<TYPE>[GetCols()];
-
-			// initialize the column vectors and the pointers
-			for (int nAt = 0; nAt < GetCols(); nAt++)
-			{
-				// initialize the column vector
-				m_arrColumns[nAt].SetElements(m_nRows, &m_pElements[nAt * GetRows()]);
-			}
-		}
-
-		// populate as an identity matrix
-		SetIdentity();
-	}
+	void Reshape(int nCols, int nRows);
 
 	// helper functions for Invert -- defined below
-
-	// InterchangeRows -- swaps two rows of the matrix
-	void InterchangeRows(int nRow1, int nRow2);
-
-	// InterchangeCols -- swaps two cols of the matrix
-	void InterchangeCols(int nCol1, int nCol2);
 
 	// FindPivotRow -- determines the best other row to be 
 	//		exchanged so that no zero elements occur on the diagonal
@@ -475,6 +417,13 @@ protected:
 
 	// FindPivotElem -- determines the best pivot element
 	void FindPivotElem(int nDiag, int *nRow, int *nCol);
+
+	// helper function for SVD to compute the Householder decomposition
+	//		of this matrix, and to accumulate the rh and lh singular
+	//		values
+	TYPE Householder(CVectorBase<TYPE>& w, CVectorBase<TYPE>& rv1);
+	void AccumulateRH(CMatrixBase& v, const CVectorBase<TYPE>& rv1);
+	void AccumulateLH(CVectorBase<TYPE>& w);
 
 protected:
 	// the matrix shape
@@ -490,293 +439,6 @@ protected:
 	// flag to indicate whether elements should be freed
 	BOOL m_bFreeElements;
 };
-
-//////////////////////////////////////////////////////////////////////
-// function CMatrixBase<TYPE>::Transpose
-//
-// transposes the matrix
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::Transpose()
-{
-	CMatrixBase<TYPE> copy;
-	copy.Reshape(GetRows(), GetCols());
-	
-	for (int nCol = 0; nCol < GetCols(); nCol++)
-	{
-		for (int nRow = 0; nRow < GetRows(); nRow++)
-		{
-			copy[nRow][nCol] = (*this)[nCol][nRow];
-		}
-	}
-
-	(*this) = copy;
-}
-
-//////////////////////////////////////////////////////////////////////
-// function IsOrthogonal
-//
-// tests for orthogonality of the matrix
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-BOOL CMatrixBase<TYPE>::IsOrthogonal() const
-{
-	// test for orthogonality
-	for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
-	{
-		for (int nAtOrthoCol = nAtCol + 1; nAtOrthoCol < GetCols(); 
-				nAtOrthoCol++)
-		{
-			if ((*this)[nAtCol] * (*this)[nAtOrthoCol] > EPS)
-			{
-				return FALSE;
-			}
-		}
-	}
-
-	// every column vector is orthogonal
-	return TRUE;
-}
-
-//////////////////////////////////////////////////////////////////////
-// function Orthogonalize
-//
-// orthogonalizes the input matrix using GSO
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::Orthogonalize()
-{
-	// make a working copy of the matrix
-	CMatrixBase<TYPE> mOrtho(*this);
-
-	// normalize the first column vector
-	mOrtho[0].Normalize();
-
-	// apply to each row vector after the zero-th
-	for (int nAtCol = 1; nAtCol < GetCols(); nAtCol++)
-	{
-		// normalize the next column vector
-		mOrtho[nAtCol].Normalize();
-
-		// ensure orthogonality with all previous column vectors
-		for (int nAtOrthoCol = nAtCol - 1; nAtOrthoCol >= 0; 
-				nAtOrthoCol--)
-		{
-			// compute the scale factor
-			double scalar = (mOrtho[nAtCol] * mOrtho[nAtOrthoCol]) 
-				/ (mOrtho[nAtOrthoCol] * mOrtho[nAtOrthoCol]);
-
-			mOrtho[nAtCol] -= scalar * mOrtho[nAtOrthoCol];
-
-			// make sure we are now orthogonal to this
-			ASSERT(mOrtho[nAtCol] * mOrtho[nAtOrthoCol] < EPS);
-		}
-	}
-
-	// assign the result
-	(*this) = mOrtho;
-}
-
-// function CMatrixBase<TYPE>::Invert
-//
-// swaps two rows of the matrix
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::Invert(BOOL bFullPivot)
-{
-	// only invert square matrices
-	ASSERT(GetCols() == GetRows());
-
-	// Gauss-Jordan elimination
-	CMatrixBase<TYPE> mCopy(*this);		// the copy of this matrix
-	CMatrixBase<TYPE> mInv(*this);		// stores the built inverse
-	mInv.SetIdentity();
-
-	// stores the sequence of column swaps for a full pivot
-	valarray<int> arrColumnSwaps(GetCols());
-
-	// helper vectors to hold rows
-	CVectorN<TYPE> vRow;
-	CVectorN<TYPE> vOtherRow;
-		
-	for (int nCol = 0; nCol < GetCols(); nCol++)
-	{
-		if (bFullPivot)
-		{
-			// CHECK THE FULL PIVOT
-			// find the full pivot element
-			int nPivotRow, nPivotCol;
-			mCopy.FindPivotElem(nCol, &nPivotRow, &nPivotCol);
-
-			// interchange the rows
-			mCopy.InterchangeRows(nCol, nPivotRow);
-			mCopy.InterchangeCols(nCol, nPivotCol);
-
-			// interchange the columns
-			mInv.InterchangeRows(nCol, nPivotRow);
-			mInv.InterchangeCols(nCol, nPivotCol);
-			
-			// store the column interchange for later restoring
-			arrColumnSwaps[nCol] = nPivotCol;
-		}
-		else	// partial pivot
-		{
-			// pivot if necessary
-			int nPivotRow = mCopy.FindPivotRow(nCol);
-			mCopy.InterchangeRows(nCol, nPivotRow);
-			mInv.InterchangeRows(nCol, nPivotRow);
-		}
-
-    	// obtain a 1 in the diagonal position
-		//		(the pivot ensures that copy[nCol][nCol] is not zero)
-		// make sure we are numerically stable
-		ASSERT(fabs(mCopy[nCol][nCol]) > 1e-8);
-
-		// scale factor to be applied
-    	double scale = 1.0 / mCopy[nCol][nCol];	
-
-		// scale the copy to get a 1.0 in the diagonal
-		mCopy.GetRow(nCol, vRow);
-		vRow *= scale;
-		mCopy.SetRow(nCol, vRow);
-
-		// scale the inverse by the same amount
-		mInv.GetRow(nCol, vRow);
-		vRow *= scale;
-		mInv.SetRow(nCol, vRow);
-
-		// obtain zeros in the off-diagonal elements
-		int nRow;	// for index
-	  	for (nRow = 0; nRow < GetRows(); nRow++) 
-		{
-    		if (nRow != nCol) 
-			{
-				// get the scale factor to be applied
-    			scale = -mCopy[nCol][nRow];
-
-				// add a scaled version of the diagonal row
-				//		to obtain a zero at this row and column
-				mCopy.GetRow(nCol, vRow);
-				mCopy.GetRow(nRow, vOtherRow);
-				vOtherRow += vRow * scale;
-				mCopy.SetRow(nRow, vOtherRow);
-
-				// same operation on the inverse
-				mInv.GetRow(nCol, vRow);
-				mInv.GetRow(nRow, vOtherRow);
-				vOtherRow += vRow * scale;
-				mInv.SetRow(nRow, vOtherRow);
-    		}
-    	}
-	}
-
-	if (bFullPivot)
-	{
-		// restores the sequence of columns
-		for (int nAtCol = GetCols()-1; nAtCol >= 0; nAtCol--)
-		{
-			mInv.InterchangeCols(nAtCol, arrColumnSwaps[nAtCol]);
-		}
-	}
-
-	// assign this to inverse
-	(*this) = mInv; 
-}
-
-//////////////////////////////////////////////////////////////////////
-// function CMatrixBase<, TYPE>::InterchangeRows
-//
-// swaps two rows of the matrix
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::InterchangeRows(int nRow1, int nRow2) 
-{
-	// check that the rows are not the same
-	if (nRow1 != nRow2)
-	{
-		for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
-		{
-			TYPE temp = (*this)[nAtCol][nRow1];
-			(*this)[nAtCol][nRow1] = (*this)[nAtCol][nRow2];
-			(*this)[nAtCol][nRow2] = temp;
-		}
-	}
-}
-    
-//////////////////////////////////////////////////////////////////////
-// function CMatrixBase<, TYPE>::InterchangeRows
-//
-// swaps two rows of the matrix
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::InterchangeCols(int nCol1, int nCol2) 
-{
-	// check that the cols are not the same
-	if (nCol1 != nCol2)
-	{
-		// temporary vector storage
-		CVectorN<TYPE> vTemp = (*this)[nCol1];	
-
-		// and swap the two rows
-		(*this)[nCol1] = (*this)[nCol2];
-		(*this)[nCol2] = vTemp;
-	}
-}
-    
-//////////////////////////////////////////////////////////////////////
-// function CMatrixBase<TYPE>::FindPivotRow
-//
-// finds the pivot element (returns the row of the element in the
-//		the given column)
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-int CMatrixBase<TYPE>::FindPivotRow(int nDiag)
-{
-	int nBestRow = nDiag;	// stores the current best row
-
-	if (fabs((*this)[nDiag][nDiag]) < MAX_TO_PIVOT) 
-	{
-		int nRow;	// for index
-    	for (nRow = nDiag + 1; nRow < GetRows(); nRow++)
-		{
-			if (fabs((*this)[nDiag][nRow]) > fabs((*this)[nDiag][nBestRow]))
-			{
-    			nBestRow = nRow;
-			}
-		}
-	}
-
-	return nBestRow;
-}
-
-//////////////////////////////////////////////////////////////////////
-// function CMatrixBase<TYPE>::FindPivotElem
-//
-// finds the pivot element, returning the row and column
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-void CMatrixBase<TYPE>::FindPivotElem(int nDiag, 
-		int *pBestRow, int *pBestCol)
-{
-	(*pBestCol) = nDiag;
-	(*pBestRow) = nDiag;
-
-	if (fabs((*this)[nDiag][nDiag]) < MAX_TO_PIVOT) 
-	{
-		for (int nCol = nDiag; nCol < GetCols(); nCol++)
-		{
-    		for (int nRow = nDiag; nRow < GetRows(); nRow++)
-			{
-				if (fabs((*this)[nCol][nRow]) 
-					> fabs((*this)[*pBestCol][*pBestRow]))
-				{
-					(*pBestCol) = nCol;
-					(*pBestRow) = nRow;
-				}
-			}
-		}
-	}
-}
 
 //////////////////////////////////////////////////////////////////////
 // function operator==(const CMatrixBase<TYPE>&, 
@@ -895,7 +557,7 @@ inline CMatrixBase<TYPE> operator*(double scale,
 }
 
 //////////////////////////////////////////////////////////////////////
-// function operator*(const CMatrixBase<TYPE>&, const CVectorN<TYPE>&)
+// function operator*(const CMatrixBase<TYPE>&, const CVectorBase<TYPE>&)
 //
 // matrix-vector multiplication
 //////////////////////////////////////////////////////////////////////
@@ -906,7 +568,7 @@ inline CVectorBase<TYPE> operator*(const CMatrixBase<TYPE>& mat,
 	ASSERT(mat.GetRows() == v.GetDim());
 
 	// stored the product
-	CVectorN<TYPE> vProduct(v.GetDim());
+	CVectorBase<TYPE> vProduct(v.GetDim());
 
 	// step through the rows of the matrix
 	for (int nRow = 0; nRow < mat.GetRows(); nRow++)
@@ -957,6 +619,7 @@ inline CMatrixBase<TYPE> operator*(const CMatrixBase<TYPE>& mLeft,
 	// return the product
 	return mProduct;
 }
+
 
 //////////////////////////////////////////////////////////////////////
 // function operator<<(ostream& ar, CMatrixBase)

@@ -49,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /include:?anchor_all@@YANXZ
 
 !ELSEIF  "$(CFG)" == "VecMat - Win32 Debug"
 
@@ -97,11 +97,19 @@ SOURCE=.\MatrixBase.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\MatrixBase.inl
+# End Source File
+# Begin Source File
+
 SOURCE=.\MatrixD.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\MatrixNxM.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\TestVec\StdAfx.h
 # End Source File
 # Begin Source File
 
