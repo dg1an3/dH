@@ -20,7 +20,7 @@
 //
 // represents a mathematical vector with dimension and type given
 //////////////////////////////////////////////////////////////////////
-template<int DIM = 4, class TYPE = double>
+template<int DIM = 4, class TYPE = REAL>
 class CVectorD : public CVectorBase<TYPE>
 {
 public:

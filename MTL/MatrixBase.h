@@ -17,7 +17,7 @@
 //
 // represents a fixed-size matrix with dimension and type given.
 //////////////////////////////////////////////////////////////////////
-template<class TYPE = double>
+template<class TYPE = REAL>
 class CMatrixBase
 {
 protected:

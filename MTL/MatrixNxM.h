@@ -21,7 +21,7 @@ const REAL PSEUDO_EPS = 1e-8;
 //
 // represents a non-square matrix with type given.
 //////////////////////////////////////////////////////////////////////
-template<class TYPE = double>
+template<class TYPE = REAL>
 class CMatrixNxM : public CMatrixBase<TYPE>
 {
 public:

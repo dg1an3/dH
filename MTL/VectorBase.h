@@ -31,7 +31,7 @@ class CMatrixNxM;
 //
 // base class for mathematical vectors with element type given
 //////////////////////////////////////////////////////////////////////
-template<class TYPE = double>
+template<class TYPE = REAL>
 class CVectorBase
 {
 protected:

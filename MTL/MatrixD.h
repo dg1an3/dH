@@ -18,7 +18,7 @@
 //
 // represents a square matrix with dimension and type given.
 //////////////////////////////////////////////////////////////////////
-template<int DIM = 4, class TYPE = double>
+template<int DIM = 4, class TYPE = REAL>
 class CMatrixD : public CMatrixBase<TYPE>
 {
 public:
@@ -599,22 +599,23 @@ inline CMatrixD<2> CreateRotate(const double& theta)
 //
 // creates a 3D rotation matrix given an angle and an axis of rotation
 //////////////////////////////////////////////////////////////////////
-inline CMatrixD<3> CreateRotate(const double& theta, 
-							   const CVectorD<3>& vAxis)
+template<class TYPE = REAL>
+inline CMatrixD<3, TYPE> CreateRotate(const TYPE& theta, 
+							   const CVectorD<3, TYPE>& vAxis)
 {
 	// start with an identity matrix
-	CMatrixD<3> mRotate;
+	CMatrixD<3, TYPE> mRotate;
 
 	// normalize the axis
-	CVectorD<3> vNormAxis = vAxis;
+	CVectorD<3, TYPE> vNormAxis = vAxis;
 	vNormAxis.Normalize();
 
 	// now compute the rotation matrix
 
 	// angle helper values
-	double st = sin(theta);
-	double ct = cos(theta);
-	double vt = 1.0 - cos(theta);
+	TYPE st = sin(theta);
+	TYPE ct = cos(theta);
+	TYPE vt = 1.0 - cos(theta);
 
 	mRotate[0][0] = vNormAxis[0] * vNormAxis[0] * vt + ct;
 	mRotate[1][0] = vNormAxis[0] * vNormAxis[1] * vt - vNormAxis[2] * st;
@@ -640,19 +641,20 @@ inline CMatrixD<3> CreateRotate(const double& theta,
 //		position and a post-rotated position. scale is a scale factor
 //		for the resulting rotation.
 //////////////////////////////////////////////////////////////////////
-inline CMatrixD<3> CreateRotate(const CVectorD<3>& vInitPt,
-	const CVectorD<3>& vFinalPt, double scale)
+template<class TYPE = REAL>
+inline CMatrixD<3, TYPE> CreateRotate(const CVectorD<3, TYPE>& vInitPt,
+	const CVectorD<3, TYPE>& vFinalPt, TYPE scale)
 {
 	// compute the length of the two legs of the triangle (a & b)
-	double a = vInitPt.GetLength(); 
-	double b = vFinalPt.GetLength();
+	TYPE a = vInitPt.GetLength(); 
+	TYPE b = vFinalPt.GetLength();
 	
 	// compute the length of the segment connecting the initial and final
 	//		point (c)
-	double c = (vFinalPt - vInitPt).GetLength();
+	TYPE c = (vFinalPt - vInitPt).GetLength();
 
 	// compute the angle theta using the law of cosines
-	double theta = 0.0;
+	TYPE theta = 0.0;
 	if (a * b != 0.0)
 	{
 		theta = (2.0 * PI - acos((a * a + b * b - c * c) 
@@ -661,7 +663,7 @@ inline CMatrixD<3> CreateRotate(const CVectorD<3>& vInitPt,
 
 	// compute the axis of rotation = normalized cross product of 
 	//		initial and current drag points
-	CVectorD<3> u = Cross(vFinalPt, vInitPt);
+	CVectorD<3, TYPE> u = Cross(vFinalPt, vInitPt);
 	u.Normalize();
 
 	// now compute the rotation matrix
