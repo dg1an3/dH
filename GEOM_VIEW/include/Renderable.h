@@ -84,6 +84,9 @@ private:
 	// the rendering transparency
 	COLORREF m_alpha;	
 
+	// the centroid of the renderable; used to determine rendering order
+	CVector<3> m_vCentroid;
+
 	// the modelview matrix for the object
 	CMatrix<4> m_mModelview;
 
