@@ -165,9 +165,9 @@ public:
 	// IsApproxEqual -- tests for approximate equality using the EPS
 	//		defined at the top of this file
 	//////////////////////////////////////////////////////////////////
-	BOOL IsApproxEqual(const CVector& v) const
+	BOOL IsApproxEqual(const CVector& v, TYPE epsilon = EPS) const
 	{
-		return ((*this - v).GetLength() < EPS);
+		return ((*this - v).GetLength() < epsilon);
 	}
 
 	//////////////////////////////////////////////////////////////////
