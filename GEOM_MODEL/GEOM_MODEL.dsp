@@ -40,6 +40,8 @@ RSC=rc.exe
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
+MTL=midl.exe
+# ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
 # ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
@@ -63,6 +65,8 @@ LIB32=link.exe -lib
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
+MTL=midl.exe
+# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
 # ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -89,6 +93,10 @@ SOURCE=.\Dib.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Mesh.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ModelObject.cpp
 # End Source File
 # Begin Source File
@@ -103,10 +111,6 @@ SOURCE=.\Polygon.cpp
 
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
-# End Source File
-# Begin Source File
-
-SOURCE=.\Surface.cpp
 # End Source File
 # Begin Source File
 
@@ -126,6 +130,10 @@ SOURCE=.\include\LookupFunction.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\include\Mesh.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\ModelObject.h
 # End Source File
 # Begin Source File
@@ -139,10 +147,6 @@ SOURCE=.\include\Polygon.h
 # Begin Source File
 
 SOURCE=.\StdAfx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\Surface.h
 # End Source File
 # Begin Source File
 
