@@ -94,7 +94,25 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	{
 		return -1;
 	}
-	m_wndExplorerCtrl.m_ExplorerCtrl.SetBkColor(RGB(196, 196, 196));
+
+	// determine rectangle for the object explorer
+	CRect rect;
+	m_wndExplorerCtrl.GetDlgItem(IDC_TREECTRLRECT)->GetWindowRect(&rect);
+	m_wndExplorerCtrl.ScreenToClient(&rect);
+
+	// create the object explorer
+	if (!m_wndExplorer.Create(WS_VISIBLE | WS_CHILD 
+		| TVS_HASLINES // | TVS_LINESATROOT 
+		| TVS_HASBUTTONS | TVS_CHECKBOXES, 
+		rect, &m_wndExplorerCtrl, IDC_TREECTRLRECT+1))
+	{
+		return -1;
+	}
+
+	// set the explorer background color
+	m_wndExplorer.SetBkColor(RGB(196, 196, 196));
+
+	// set the explorer font
 	m_pExplorerFont = new CFont();
 	m_pExplorerFont->CreateFont(18, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, 0, 
 		ANSI_CHARSET,
@@ -103,7 +121,13 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		DEFAULT_QUALITY,
 		DEFAULT_PITCH,
 		"Arial");
-	m_wndExplorerCtrl.m_ExplorerCtrl.SetFont(m_pExplorerFont);
+
+	m_wndExplorer.SetFont(m_pExplorerFont);
+
+	m_wndExplorer.RegisterClass(RUNTIME_CLASS(CSurface), 
+		RUNTIME_CLASS(CSurfaceRenderable));
+	m_wndExplorer.RegisterClass(RUNTIME_CLASS(CBeam), 
+		RUNTIME_CLASS(CBeamRenderable));
 
 	EnableDocking(CBRS_ALIGN_ANY);
 

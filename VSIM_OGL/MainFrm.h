@@ -5,11 +5,11 @@
 #if !defined(AFX_MAINFRM_H__3E80E028_F21B_11D4_9E3C_00B0D0609AB0__INCLUDED_)
 #define AFX_MAINFRM_H__3E80E028_F21B_11D4_9E3C_00B0D0609AB0__INCLUDED_
 
-#include "ObjectExplorerControlBar.h"
+#include <TabControlBar.h>
+#include <RenderableObjectExplorer.h>
 
-#include "TabControlBar.h"
-#include "BeamParamPosCtrl.h"
-#include "BeamParamCollimCtrl.h"
+#include <BeamParamPosCtrl.h>
+#include <BeamParamCollimCtrl.h>
 
 #if _MSC_VER > 1000
 #pragma once
@@ -26,11 +26,13 @@ protected: // create from serialization only
 public:
 
 	// the object explorer
-	CObjectExplorerControlBar m_wndExplorerCtrl;
+	CDialogBar m_wndExplorerCtrl;
+	CRenderableObjectExplorer m_wndExplorer;
 
 	// stores the explorer font
 	CFont *m_pExplorerFont;
 
+	// the beam parameter control
 	CTabControlBar m_wndBeamParamCtrl;
 	CBeamParamPosCtrl m_wndPosCtrl;
 	CBeamParamCollimCtrl m_wndCollimCtrl;

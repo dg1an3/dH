@@ -182,152 +182,6 @@ UINT arrIconResourceIDs[] =
 
 void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
-	if (GetDocument() == NULL)
-	{
-		return;
-	}
-
-	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
-	CObjectExplorer *pExplorer = &pFrame->m_wndExplorerCtrl.m_ExplorerCtrl;
-
-	CBeamParamPosCtrl *pPosCtrl = &pFrame->m_wndPosCtrl;
-
-	if (GetDocument()->GetBeamCount() > 0)
-	{
-		CBeam *pBeam = GetDocument()->GetBeamAt(0);
-
-		// TODO: why is this not loaded?
-		pBeam->SetName("AP");
-
-		// set current beam
-		m_pCurrentBeam = pBeam;
-
-		// register as change listener for current beam
-		::AddObserver<CSimView>(&pBeam->GetChangeEvent(),
-			this, OnBeamChanged);
-	}
-
-// #define ADD_EXTRA_BEAMS
-#ifdef ADD_EXTRA_BEAMS
-	// add some extra beams
-	CBeam *pNewBeam = new CBeam();
-	pNewBeam->name.Set("PA");
-	GetDocument()->beams.Add(pNewBeam);
-
-	pNewBeam = new CBeam();
-	pNewBeam->name.Set("RL");
-	GetDocument()->beams.Add(pNewBeam);
-
-	pNewBeam = new CBeam();
-	pNewBeam->name.Set("LR");
-	GetDocument()->beams.Add(pNewBeam);
-#endif
-
-	if (GetDocument()->GetSeries() == NULL)
-	{
-		return;
-	}
-
-	CSeries *pSeries = GetDocument()->GetSeries();
-
-	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
-	pSeriesItem->SetLabel("Structures");
-	pSeriesItem->Create(pExplorer);
-
-	for (int nAtSurf = 0; nAtSurf < pSeries->m_arrStructures.GetSize(); nAtSurf++)
-	{
-		CSurface *pSurface = (CSurface *) GetDocument()->GetSeries()->m_arrStructures.GetAt(nAtSurf);
-
-		// add the surface to the object explorer
-		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-
-		pNewItem->SetObject(pSurface);
-
-		pNewItem->m_nImageResourceID = arrIconResourceIDs[nAtSurf % 13];
-		pNewItem->m_nSelectedImageResourceID = arrIconResourceIDs[nAtSurf % 13];
-
-		pNewItem->m_bChecked = TRUE;
-
-		pSeriesItem->AddChild(pNewItem);
-
-		CSurfaceRenderable *pSurfaceRenderable = new CSurfaceRenderable(&m_wndREV);
-		// pSurfaceRenderable->m_bWireFrame.SyncTo(&isWireFrame);
-
-		pSurfaceRenderable->SetColor(arrColors[nAtSurf]);
-		pSurfaceRenderable->SetSurface(pSurface);
-		m_wndREV.AddRenderable(pSurfaceRenderable);
-
-		// add to the array for management purposes
-		m_arrSurfaceRenderables.Add(pSurfaceRenderable);
-
-		if (nAtSurf == 0)	// patient surface
-		{
-			m_pSurfaceRenderable = pSurfaceRenderable;
-			// m_pSurfaceRenderable->m_bShowBoundsSurface = TRUE;
-
-			// compute the center of the patient surface
-			CVector<3> vMin = pSurface->GetBoundsMin();
-			CVector<3> vMax = pSurface->GetBoundsMax();
-			// CSurfaceRenderable::m_vXlate = (vMin + vMax) * -0.5; 
-
-			m_wndREV.GetCamera().SetFieldOfView((float) (8.5 * pSurface->GetMaxSize())); 
-		}
-	}
-
-	CObjectTreeItem *pRefPtItem = new CObjectTreeItem();
-	pRefPtItem->SetLabel("Ref Pts");
-	pRefPtItem->Create(pExplorer);
-
-	{
-		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-
-		pNewItem->SetLabel("pt1");
-		pNewItem->m_nImageResourceID = IDB_POINT_BLUE;
-		pNewItem->m_nSelectedImageResourceID = IDB_POINT_BLUE;
-
-		pRefPtItem->AddChild(pNewItem);
-
-		pNewItem = new CObjectTreeItem();
-
-		pNewItem->SetLabel("pt2");
-		pNewItem->m_nImageResourceID = IDB_POINT_YELLOW;
-		pNewItem->m_nSelectedImageResourceID = IDB_POINT_YELLOW;
-
-		pRefPtItem->AddChild(pNewItem);
-	}
-
-	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
-
-	pPlanItem->SetLabel("Beams");
-	pPlanItem->Create(pExplorer);
-
-	int nAtBeam;
-	for (nAtBeam = 0; nAtBeam < GetDocument()->GetBeamCount(); nAtBeam++)
-	{
-		CBeam *pBeam = GetDocument()->GetBeamAt(nAtBeam);
-
-		CObjectTreeItem *pNewItem = new CObjectTreeItem();
-
-		pNewItem->SetObject(pBeam);
-
-		pNewItem->m_nImageResourceID = IDB_BEAM_GREEN;
-		pNewItem->m_nSelectedImageResourceID = IDB_BEAM_MAGENTA;
-
-		pPlanItem->AddChild(pNewItem);
-
-		// create and add the machine Renderable to the REV
-		CMachineRenderable *pMachineRenderable = 
-			new CMachineRenderable(&m_wndREV);
-		pMachineRenderable->SetBeam(pBeam);
-		pMachineRenderable->SetColor(RGB(128, 128, 255));
-		m_wndREV.AddRenderable(pMachineRenderable);
-
-		// create and add the beam Renderable to the REV
-		m_pBeamRenderable = new CBeamRenderable(&m_wndREV);
-		m_pBeamRenderable->SetBeam(pBeam);
-
-		m_wndREV.AddRenderable(m_pBeamRenderable);
-	}
 }
 
 void CSimView::OnViewBeam() 
@@ -411,4 +265,107 @@ void CSimView::OnBeamChanged(CObservableEvent *pEvent, void *pOldValue)
 		// update the modelview matrix
 		pSR->SetModelviewMatrix(mMV);
 	}
+}
+
+void CSimView::OnInitialUpdate() 
+{
+	CView::OnInitialUpdate();
+	
+	if (GetDocument() == NULL)
+	{
+		return;
+	}
+
+	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
+	CRenderableObjectExplorer *pExplorer = 
+		&pFrame->m_wndExplorer;
+
+	CBeamParamPosCtrl *pPosCtrl = &pFrame->m_wndPosCtrl;
+
+	if (GetDocument()->GetBeamCount() > 0)
+	{
+		CBeam *pBeam = GetDocument()->GetBeamAt(0);
+
+		// TODO: why is this not loaded?
+		pBeam->SetName("AP");
+
+		// set current beam
+		m_pCurrentBeam = pBeam;
+
+		// register as change listener for current beam
+		::AddObserver<CSimView>(&pBeam->GetChangeEvent(),
+			this, OnBeamChanged);
+	}
+
+// #define ADD_EXTRA_BEAMS
+#ifdef ADD_EXTRA_BEAMS
+	// add some extra beams
+	CBeam *pNewBeam = new CBeam();
+	pNewBeam->name.Set("PA");
+	GetDocument()->beams.Add(pNewBeam);
+
+	pNewBeam = new CBeam();
+	pNewBeam->name.Set("RL");
+	GetDocument()->beams.Add(pNewBeam);
+
+	pNewBeam = new CBeam();
+	pNewBeam->name.Set("LR");
+	GetDocument()->beams.Add(pNewBeam);
+#endif
+
+	if (GetDocument()->GetSeries() == NULL)
+	{
+		return;
+	}
+
+	CSeries *pSeries = GetDocument()->GetSeries();
+
+	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
+	pSeriesItem->SetLabel("Structures");
+	pSeriesItem->Create(pExplorer);
+
+	for (int nAtSurf = 0; nAtSurf < pSeries->m_arrStructures.GetSize(); nAtSurf++)
+	{
+		CSurface *pSurface = (CSurface *) GetDocument()->GetSeries()->m_arrStructures.GetAt(nAtSurf);
+
+		CSurfaceRenderable *pSurfaceRenderable = (CSurfaceRenderable *)
+			pExplorer->CreateItemForObject(pSurface, &m_wndREV, pSeriesItem, 
+				arrIconResourceIDs[nAtSurf % 13], 
+				arrIconResourceIDs[nAtSurf % 13]);
+
+		pSurfaceRenderable->SetColor(arrColors[nAtSurf]);
+		// pSurfaceRenderable->SetSurface(pSurface);
+
+		// add to the array for management purposes
+		m_arrSurfaceRenderables.Add(pSurfaceRenderable);
+
+		if (nAtSurf == 0)	// patient surface
+		{
+			m_pSurfaceRenderable = pSurfaceRenderable;
+
+			m_wndREV.GetCamera().SetFieldOfView((float) (8.5 * pSurface->GetMaxSize())); 
+		}
+	}
+
+	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
+
+	pPlanItem->SetLabel("Beams");
+	pPlanItem->Create(pExplorer);
+
+	int nAtBeam;
+	for (nAtBeam = 0; nAtBeam < GetDocument()->GetBeamCount(); nAtBeam++)
+	{
+		CBeam *pBeam = GetDocument()->GetBeamAt(nAtBeam);
+
+		CBeamRenderable *pBeamRenderable = (CBeamRenderable *)
+			pExplorer->CreateItemForObject(pBeam, &m_wndREV, pPlanItem, 
+				IDB_BEAM_GREEN, IDB_BEAM_MAGENTA);
+	}
+
+	// create and add the machine Renderable to the REV
+	CMachineRenderable *pMachineRenderable = 
+		new CMachineRenderable();
+	pMachineRenderable->SetBeam(GetDocument()->GetBeamAt(0));
+	pMachineRenderable->SetColor(RGB(128, 128, 255));
+	m_wndREV.AddRenderable(pMachineRenderable);	
 }
