@@ -40,9 +40,18 @@ public:
 	CVolume<int> *GetRegion();
 	void SetRegion(CVolume<int> *pVolume);
 
+	// binning parameter
+	void SetBinSigma(double sigma);
+
 	// accessors for bin data
 	CArray<double, double>& GetBins();
 	CArray<double, double>& GetCumBins();
+
+	// partial derivatives
+	CArray<double, double>& GetDBins(int nAt);
+
+	// partial derivative volumes
+	int AddDVolume(CVolume<double> *pdVolume);
 
 protected:
 	// change handler for when the volume or region changes
@@ -72,6 +81,12 @@ private:
 
 	// cumulative bins
 	CArray<double, double> m_arrCumBins;
+
+	// array of partial derivative volumes
+	CObArray m_arrDVolumes;		// CVolume<double>
+
+	// partial derivative histogram bins
+	CArray<double, double> *m_pArrDBins;
 };
 
 #endif // !defined(HISTOGRAM_H)
