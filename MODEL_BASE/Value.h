@@ -120,7 +120,7 @@ public:
 	void SyncTo(CValue *pToValue)
 	{
 		// check for self-sync
-		if (pToValue != this)
+		if (pToValue == this)
 		{
 			// change to an un-sync if so
 			pToValue = NULL;
