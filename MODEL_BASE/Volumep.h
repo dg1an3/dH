@@ -11,20 +11,6 @@
 
 #include "Value.h"
 
-#define DECLARE_SERIAL_TEMPLATE1(class_name, template_arg_name) \
-	_DECLARE_DYNCREATE(class_name##template_arg_name) \
-	AFX_API friend CArchive& AFXAPI operator>>(CArchive& ar, class_name* &pOb);
-
-#define IMPLEMENT_SERIAL_TEMPLATE1(class_name, template_arg_name, base_class_name, wSchema) \
-	CObject* PASCAL class_name::CreateObject() \
-		{ return new class_name; } \
-	_IMPLEMENT_RUNTIMECLASS(class_name##template_arg_name, base_class_name, wSchema, \
-		class_name::CreateObject) \
-	AFX_CLASSINIT _init_##class_name##template_arg_name(RUNTIME_CLASS(class_name##template_arg_name)); \
-	CArchive& AFXAPI operator>>(CArchive& ar, class_name* &pOb) \
-		{ pOb = (class_name*) ar.ReadObject(RUNTIME_CLASS(class_name##template_arg_name)); \
-			return ar; } \
-
 template<class VOXEL_TYPE>
 class CVolume : public CObservableObject, public CObserver
 {
@@ -43,8 +29,6 @@ public:
 	virtual ~CVolume()
 	{
 	}
-
-//	DECLARE_SERIAL_TEMPLATE1(CVolume, VOXEL_TYPE)
 
 	CValue< int > width;
 	CValue< int > height;
@@ -134,7 +118,6 @@ CArchive& operator>>(CArchive& ar, CVolume<VOXEL_TYPE>*&pOb)
 { 
 	if (pOb == NULL)
 		pOb = new CVolume<VOXEL_TYPE>; 
-//	pOb = (class_name*) ar.ReadObject();
 	pOb->Serialize(ar);
 	return ar; 
 } 
