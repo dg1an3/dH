@@ -16,7 +16,7 @@ COpenGLCamera::COpenGLCamera()
 	: targetPoint(CVector<3>(0.0, 0.0, 0.0)),
 		direction(CVector<3>(0.0, 0.0, -1.0)),
 		distance(100.0),
-		rollAngle(0.0),
+		rollAngle(PI),
 		viewingAngle(45.0),
 		aspectRatio(1.0),
 		nearPlane(50.0),
@@ -65,7 +65,8 @@ void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldVa
 		* CreateRotate(theta, CVector<3>(0.0, 0.0, 1.0));
 
 	// form the camera roll rotation matrix
-	CMatrix<4> mRotateRoll = CreateRotate(0.0, CVector<3>(0.0, 0.0, 1.0));
+	CMatrix<4> mRotateRoll = CreateRotate(rollAngle.Get(), 
+		CVector<3>(0.0, 0.0, 1.0));
 
 	// form the translation from the target point to the focal point
 	CMatrix<4> mTranslate = CreateTranslate(distance.Get(), 
