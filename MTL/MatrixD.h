@@ -10,8 +10,9 @@
 
 #include <MathUtil.h>
 
-#include "MatrixBase.h"
 #include "VectorD.h"
+
+#include "MatrixOps.h"
 
 //////////////////////////////////////////////////////////////////////
 // class CMatrixD<DIM, TYPE>
@@ -19,21 +20,49 @@
 // represents a square matrix with dimension and type given.
 //////////////////////////////////////////////////////////////////////
 template<int DIM = 4, class TYPE = REAL>
-class CMatrixD : public CMatrixBase<TYPE>
+class CMatrixD
 {
+	// column vectors
+	CVectorD<DIM, TYPE> m_arrColumns[DIM];
+
 public:
 	// constructors / destructore
 	CMatrixD();
 	CMatrixD(const CMatrixD& fromMatrix);
-	explicit CMatrixD(const CMatrixBase<TYPE>& fromMatrix);
+
+#ifdef DIRECT3D_VERSION
+	// conversion to / from D3DMATRIX
+	CMatrixD(const D3DMATRIX& matr);
+	operator D3DMATRIX() const;
+#endif
+
 	~CMatrixD();
 
 	// assignment operator
 	CMatrixD& operator=(const CMatrixD& fromMatrix);
 
+	// SetIdentity -- sets the matrix to an identity matrix
+	void SetIdentity();
+
+	typedef TYPE ELEM_TYPE;
+	typedef CVectorD<DIM, TYPE> COL_TYPE;
+
 	// operator[] -- retrieves a reference to a Column vector
 	CVectorD<DIM, TYPE>& operator[](int nAtCol);
 	const CVectorD<DIM, TYPE>& operator[](int nAtCol) const;
+
+	// TYPE * conversion -- returns a pointer to the first element
+	//		WARNING: this allows for no-bounds-checking access
+	operator TYPE *();
+	operator const TYPE *() const;
+
+	// matrix size
+	int GetCols() const;
+	int GetRows() const;
+
+	// row-vector access
+	void GetRow(int nAtRow, CVectorD<DIM, TYPE>& vRow) const;
+	void SetRow(int nAtRow, const CVectorD<DIM, TYPE>& vRow);
 
 	// IsApproxEqual -- tests for approximate equality using the EPS
 	//		defined at the top of this file
@@ -49,18 +78,7 @@ public:
 	// Transpose -- transposes elements of the matrix
 	void Transpose();
 
-#ifdef DIRECT3D_VERSION
-	// conversion to / from D3DMATRIX
-	CMatrixD(const D3DMATRIX& matr);
-	operator D3DMATRIX() const;
-#endif
-
-private:
-	// column vectors
-	CVectorBase<TYPE> m_arrColumns[DIM];
-
-	// elements
-	TYPE m_arrElements[DIM * DIM];
+	BOOL Invert(BOOL bFlag = FALSE);
 };
 
 //////////////////////////////////////////////////////////////////
@@ -68,19 +86,9 @@ private:
 //
 // default constructor -- initializes to an identity matrix
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 {
-	// we have to assign the columns before calling 
-	//		CMatrixBase::SetElements, because otherwise
-	//		SetElements will allocate the column vectors
-	//		(and ours are part of the CMatrixD)
-	m_pColumns = &m_arrColumns[0];
-	m_nCols = DIM;
-
-	// allocate the elements
-	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
-
 	// populate as an identity matrix
 	SetIdentity();
 
@@ -92,51 +100,10 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 // 
 // copy constructor
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 {
-	// we have to assign the columns before calling 
-	//		CMatrixBase::SetElements, because otherwise
-	//		SetElements will allocate the column vectors
-	//		(and ours are part of the CMatrixD)
-	m_pColumns = &m_arrColumns[0];
-	m_nCols = DIM;
-
-	// allocate the elements
-	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
-
-	// populate elements from other matrix
-	memcpy(m_arrElements, fromMatrix.m_arrElements, sizeof(m_arrElements));
-
-}	// CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>
-
-
-//////////////////////////////////////////////////////////////////
-// CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>
-//
-// copy constructor
-//////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixBase<TYPE>& fromMatrix)
-{
-	// we have to assign the columns before calling 
-	//		CMatrixBase::SetElements, because otherwise
-	//		SetElements will allocate the column vectors
-	//		(and ours are part of the CMatrixD)
-	m_pColumns = &m_arrColumns[0];
-	m_nCols = DIM;
-
-	// allocate the elements
-	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
-
-	// set to identity (for partial fills)
-	SetIdentity();
-
-	// populate from other matrix
-	for (int nAt = 0; nAt < __min(GetCols(), fromMatrix.GetCols()); nAt++)
-	{
-		(*this)[nAt] = CVectorD<DIM, TYPE>(fromMatrix[nAt]);
-	}
+	(*this) = fromMatrix;
 
 }	// CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>
 
@@ -146,17 +113,9 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixBase<TYPE>& fromMatrix)
 //
 // destructor -- frees the row vectors
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>()
 {
-	// ensure no monkey business has occurred
-	ASSERT(m_pElements == &m_arrElements[0]);
-	ASSERT(m_pColumns == &m_arrColumns[0]);
-
-	// don't delete anything, as it was all statically allocated
-	m_pElements = NULL;
-	m_pColumns = NULL;
-
 }	// CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>
 
 
@@ -165,13 +124,10 @@ CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>()
 //
 // assignment operator
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator=(const CMatrixD<DIM,TYPE>& fromMatrix)
 {
-	for (int nAt = 0; nAt < DIM; nAt++)
-	{
-		(*this)[nAt] = fromMatrix[nAt];
-	}
+	AssignValues(&(*this)[0][0], &fromMatrix[0][0], DIM * DIM);
 
 	return (*this);
 
@@ -179,17 +135,33 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator=(const CMatrixD<DIM,TYPE>& from
 
 
 //////////////////////////////////////////////////////////////////
+// CMatrixD<TYPE>::SetIdentity
+//
+// sets the matrix to an identity matrix
+//////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> __forceinline
+void CMatrixD<DIM, TYPE>::SetIdentity()
+{
+	memset(m_arrColumns, 0, sizeof(m_arrColumns));
+
+	// for each element in the matrix,
+	for (int nAt = 0; nAt < GetCols(); nAt++)
+	{
+		(*this)[nAt][nAt] = 1.0;
+	}
+
+}	// CMatrixD<TYPE>::SetIdentity
+
+//////////////////////////////////////////////////////////////////
 // CMatrixD<DIM,TYPE>::operator[]
 //
 // retrieves a reference to a Column vector
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CVectorD<DIM, TYPE>& CMatrixD<DIM,TYPE>::operator[](int nAtCol)
 {
-	// return a reference to the row vector
-	// NOTE: this is a really terrible thing to do, to down-cast
-	//		the column vectors
-	return static_cast<CVectorD<DIM, TYPE>&>(m_arrColumns[nAtCol]);
+	// return a reference to the column vector
+	return m_arrColumns[nAtCol];
 
 }	// CMatrixD<DIM,TYPE>::operator[]
 
@@ -199,15 +171,74 @@ CVectorD<DIM, TYPE>& CMatrixD<DIM,TYPE>::operator[](int nAtCol)
 //
 // retrieves a const reference to a Column vector
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 const CVectorD<DIM, TYPE>& CMatrixD<DIM,TYPE>::operator[](int nAtCol) const
 {
-	// return a reference to the row vector
-	// NOTE: this is a really terrible thing to do, to down-cast
-	//		the column vectors
-	return static_cast<const CVectorD<DIM, TYPE>&>(m_arrColumns[nAtCol]);
+	// return a reference to the column vector
+	return m_arrColumns[nAtCol];
 
 }	// CMatrixD<DIM,TYPE>::operator[] const
+
+
+//////////////////////////////////////////////////////////////////
+// CMatrixD<DIM, TYPE>::GetCols
+//
+// returns the number of columns of the matrix
+//////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> __forceinline
+int CMatrixD<DIM, TYPE>::GetCols() const
+{
+	return DIM;
+
+}	// CMatrixD<DIM, TYPE>::GetCols
+
+
+//////////////////////////////////////////////////////////////////
+// CMatrixD<DIM, TYPE>::GetRows
+//
+// returns the number of rows of the matrix
+//////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> __forceinline
+int CMatrixD<DIM, TYPE>::GetRows() const
+{
+	return DIM;
+
+}	// CMatrixD<DIM, TYPE>::GetRows
+
+
+//////////////////////////////////////////////////////////////////
+// CMatrixBase<TYPE>::GetRow
+//
+// constructs and returns a row vector
+//////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+void CMatrixD<DIM, TYPE>::GetRow(int nAtRow, CVectorD<DIM, TYPE>& vRow) const
+{
+	// populate the row vector
+	for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
+	{
+		vRow[nAtCol] = (*this)[nAtCol][nAtRow];
+	}
+
+}	// CMatrixBase<TYPE>::GetRow
+
+
+//////////////////////////////////////////////////////////////////
+// CMatrixBase<TYPE>::SetRow
+// 
+// sets the rows vector
+template<int DIM, class TYPE>
+void CMatrixD<DIM, TYPE>::SetRow(int nAtRow, const CVectorD<DIM, TYPE>& vRow)
+{
+	// de-populate the row vector
+	for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
+	{
+		(*this)[nAtCol][nAtRow] = vRow[nAtCol];
+	}
+
+}	// CMatrixBase<TYPE>::SetRow
+
+
 
 
 //////////////////////////////////////////////////////////////////
@@ -216,11 +247,18 @@ const CVectorD<DIM, TYPE>& CMatrixD<DIM,TYPE>::operator[](int nAtCol) const
 // tests for approximate equality using the EPS defined at the 
 //		top of this file
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 BOOL CMatrixD<DIM,TYPE>::IsApproxEqual(const CMatrixD<DIM,TYPE>& m, TYPE epsilon) const
 {
-	return CMatrixBase<TYPE>::IsApproxEqual(
-		(const CMatrixBase<TYPE>&) m, epsilon);
+	for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
+	{
+		if (!(*this)[nAtCol].IsApproxEqual(m[nAtCol], epsilon))
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 
 }	// CMatrixD<DIM,TYPE>::IsApproxEqual
 
@@ -230,17 +268,10 @@ BOOL CMatrixD<DIM,TYPE>::IsApproxEqual(const CMatrixD<DIM,TYPE>& m, TYPE epsilon
 //
 // in-place matrix addition; returns a reference to this
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator+=(const CMatrixD<DIM,TYPE>& mRight)
 {
-	// element-by-element sum of the matrix
-	for (int nCol = 0; nCol < DIM; nCol++)
-	{
-		for (int nRow = 0; nRow < DIM; nRow++)
-		{
-			(*this)[nCol][nRow] += mRight[nCol][nRow];
-		}
-	}
+	SumValues(&(*this)[0][0], &mRight[0][0], DIM * DIM);
 
 	// return a reference to this
 	return (*this);
@@ -253,17 +284,10 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator+=(const CMatrixD<DIM,TYPE>& mRi
 //
 // in-place matrix subtraction; returns a reference to this
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator-=(const CMatrixD& mRight)
 {
-	// element-by-element difference of the matrix
-	for (int nCol = 0; nCol < DIM; nCol++)
-	{
-		for (int nRow = 0; nRow < DIM; nRow++)
-		{
-			(*this)[nCol][nRow] -= mRight[nCol][nRow];
-		}
-	}
+	DiffValues(&(*this)[0][0], &mRight[0][0], DIM * DIM);
 
 	// return a reference to this
 	return (*this);
@@ -276,17 +300,10 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator-=(const CMatrixD& mRight)
 //
 // in-place scalar multiplication
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator*=(const TYPE& scale)
 {
-	// element-by-element scalar multiply of the matrix
-	for (int nCol = 0; nCol < DIM; nCol++)
-	{
-		for (int nRow = 0; nRow < DIM; nRow++)
-		{
-			(*this)[nCol][nRow] *= scale;
-		}
-	}
+	ScaleValues(&(*this)[0][0], scale, DIM * DIM);
 
 	// return a reference to this
 	return (*this);
@@ -299,7 +316,7 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator*=(const TYPE& scale)
 //
 // in-place matrix multiplication; returns a reference to this
 //////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator*=(const CMatrixD<DIM,TYPE>& mRight)
 {
 	// assign final product to this
@@ -312,11 +329,11 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator*=(const CMatrixD<DIM,TYPE>& mRi
 
 
 //////////////////////////////////////////////////////////////////////
-// CMatrixBase<TYPE>::Transpose
+// CMatrixD<TYPE>::Transpose
 //
 // transposes the matrix
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
+template<int DIM, class TYPE> __forceinline
 void CMatrixD<DIM,TYPE>::Transpose()
 {
 	for (int nCol = 0; nCol < DIM; nCol++)
@@ -329,7 +346,55 @@ void CMatrixD<DIM,TYPE>::Transpose()
 		}
 	}
 
-}	// CMatrixBase<TYPE>::Transpose
+}	// CMatrixD<TYPE>::Transpose
+
+
+template<int DIM, class TYPE> __forceinline						
+BOOL CMatrixD<DIM, TYPE>::Invert(BOOL bFlag)				
+{															
+	return ::Invert((*this));
+} 
+
+
+
+#ifdef USE_IPP
+// TODO: fix this memory leak
+#define DECLARE_MATRIXD_INVERT(TYPE, TYPE_IPP, DIM) \
+	template<> __forceinline									\
+	BOOL CMatrixD<DIM, TYPE>::Invert(BOOL bFlag)				\
+	{															\
+		TYPE arrElements[DIM][DIM];								\
+		static TYPE arrBuffer[2 * DIM][DIM];					\
+		IppStatus stat = ippmInvert_m_##TYPE_IPP(&(*this)[0][0],	\
+			DIM * sizeof(TYPE),									\
+			DIM, 												\
+			&arrBuffer[0][0],									\
+			&arrElements[0][0], DIM * sizeof(TYPE));			\
+		if (stat == ippStsOk)									\
+			memcpy(&(*this)[0][0], arrElements,					\
+				sizeof(arrElements));							\
+		else if (stat == ippStsDivByZeroErr)					\
+			TRACE("Singular matrix\n");							\
+		return (stat == ippStsOk);								\
+	}
+
+DECLARE_MATRIXD_INVERT(float, 32f, 1);
+DECLARE_MATRIXD_INVERT(float, 32f, 2);
+DECLARE_MATRIXD_INVERT(float, 32f, 3);
+DECLARE_MATRIXD_INVERT(float, 32f, 4);
+DECLARE_MATRIXD_INVERT(float, 32f, 5);
+DECLARE_MATRIXD_INVERT(float, 32f, 6);
+DECLARE_MATRIXD_INVERT(float, 32f, 7);
+DECLARE_MATRIXD_INVERT(float, 32f, 8);
+DECLARE_MATRIXD_INVERT(float, 32f, 9);
+DECLARE_MATRIXD_INVERT(double, 64f, 3);
+DECLARE_MATRIXD_INVERT(double, 64f, 4);
+DECLARE_MATRIXD_INVERT(double, 64f, 5);
+DECLARE_MATRIXD_INVERT(double, 64f, 6); 
+
+#endif
+
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -337,15 +402,23 @@ void CMatrixD<DIM,TYPE>::Transpose()
 //
 // exact matrix equality
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-inline bool operator==(const CMatrixD<DIM, TYPE>& mLeft, 
+template<int DIM, class TYPE> __forceinline
+bool operator==(const CMatrixD<DIM, TYPE>& mLeft, 
 					   const CMatrixD<DIM, TYPE>& mRight)
 {
-	// call CMatrixBase version
-	return operator==((const CMatrixBase<TYPE>&) mLeft,
-		(const CMatrixBase<TYPE>&) mRight);
+	// element-by-element comparison
+	for (int nCol = 0; nCol < mLeft.GetCols(); nCol++)
+	{
+		if (mLeft[nCol] != mRight[nCol])
+		{
+			return false;
+		}
+	}
+
+	return true;
 
 }	// operator==(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -353,15 +426,51 @@ inline bool operator==(const CMatrixD<DIM, TYPE>& mLeft,
 //
 // exact matrix inequality
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-inline bool operator!=(const CMatrixD<DIM, TYPE>& mLeft, 
+template<int DIM, class TYPE> __forceinline
+bool operator!=(const CMatrixD<DIM, TYPE>& mLeft, 
 					   const CMatrixD<DIM, TYPE>& mRight)
 {
-	// call CMatrixBase version
-	return operator!=((const CMatrixBase<TYPE>&) mLeft,
-		(const CMatrixBase<TYPE>&) mRight);
+	// call 
+	return !(mLeft == mRight);
 
 }	// operator==(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
+
+
+//////////////////////////////////////////////////////////////////////
+// operator+(const CMatrixD, const CMatrixD)
+//
+// friend function to add two vectors, returning the sum as a new 
+//		vector
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> __forceinline
+CMatrixD<DIM, TYPE> operator+(const CMatrixD<DIM, TYPE>& vLeft, 
+							  const CMatrixD<DIM, TYPE>& vRight)
+{
+	CMatrixD<DIM, TYPE> vSum = vLeft;
+	vSum += vRight;
+
+	return vSum;
+
+}	// operator+(const CMatrixD, const CMatrixD)
+
+
+//////////////////////////////////////////////////////////////////////
+// operator-(const CMatrixD, const CMatrixD)
+//
+// friend function to subtract one vector from another, returning 
+//		the difference as a new vector
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> __forceinline
+CMatrixD<DIM, TYPE> operator-(const CMatrixD<DIM, TYPE>& vLeft, 
+							  const CMatrixD<DIM, TYPE>& vRight)
+{
+	CMatrixD<DIM, TYPE> vSum = vLeft;
+	vSum -= vRight;
+
+	return vSum;
+
+}	// operator-(const CMatrixD, const CMatrixD)
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -369,24 +478,13 @@ inline bool operator!=(const CMatrixD<DIM, TYPE>& mLeft,
 //
 // matrix-vector multiplication
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-inline CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,
-									const CVectorD<DIM, TYPE>& v)
+template<int DIM, class TYPE> __forceinline
+CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,
+							  const CVectorD<DIM, TYPE>& v)
 {
 	// stored the product
 	CVectorD<DIM, TYPE> vProduct;
-
-	// step through the rows of the product
-	for (int nRow = 0; nRow < DIM; nRow++)
-	{
-		ASSERT(vProduct[nRow] == 0.0);
-
-		// step through the columns of the matrix
-		for (int nCol = 0; nCol < DIM; nCol++)
-		{
-			vProduct[nRow] += mat[nCol][nRow] * v[nCol];
-		}
-	}
+	MultMatrixVector(vProduct, mat, v);
 
 	// return the product
 	return vProduct;
@@ -394,31 +492,38 @@ inline CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,
 }	// operator*(const CMatrixD<DIM, TYPE>&, const CVectorD<DIM, TYPE>&)
 
 
+#ifdef USE_IPP
+#define DECLARE_MATRIXD_VECPRODUCT(TYPE, TYPE_IPP, DIM) \
+	template<> __forceinline	\
+	CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,		\
+							 const CVectorD<DIM, TYPE>& v)				\
+	{																	\
+		CVectorD<DIM, TYPE> vProduct;	/* holds the final product */	\
+		ippmMul_mTv_##TYPE_IPP##_##DIM##x##DIM(&mat[0][0], DIM * sizeof(TYPE), \
+			&v[0],														\
+			&vProduct[0]);												\
+		return vProduct;												\
+	}
+
+DECLARE_MATRIXD_VECPRODUCT(float, 32f, 3);
+DECLARE_MATRIXD_VECPRODUCT(float, 32f, 4);
+DECLARE_MATRIXD_VECPRODUCT(double, 64f, 3);
+DECLARE_MATRIXD_VECPRODUCT(double, 64f, 4);
+#endif
+
+
 //////////////////////////////////////////////////////////////////////
 // operator*(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-inline CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft, 
+template<int DIM, class TYPE> __forceinline
+CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft, 
 									const CMatrixD<DIM, TYPE>& mRight)
 {
 	// holds the final product
 	CMatrixD<DIM, TYPE> mProduct;
-
-	// compute the matrix product
-	for (int nCol = 0; nCol < DIM; nCol++)
-	{
-		for (int nRow = 0; nRow < DIM; nRow++)
-		{
-			mProduct[nCol][nRow] = 0.0;
-			for (int nMid = 0; nMid < DIM; nMid++)
-			{
-				mProduct[nCol][nRow] +=
-					mLeft[nMid][nRow] * mRight[nCol][nMid];
-			}
-		}
-	}
+	MultMatrixMatrix(mProduct, mLeft, mRight);
 
 	// return the product
 	return mProduct;
@@ -426,19 +531,44 @@ inline CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft,
 }	// operator*(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
 
 
+
 //////////////////////////////////////////////////////////////////////
 // operator*(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-inline CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft, 
+#ifdef USE_IPP
+#define DECLARE_MATRIXD_PRODUCT(TYPE, TYPE_IPP, DIM) \
+	template<> __forceinline	\
+	CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft,		\
+							 const CMatrixD<DIM, TYPE>& mRight)			\
+	{																	\
+		CMatrixD<DIM, TYPE> mProduct;	/* holds the final product */	\
+		ippmMul_mTmT_##TYPE_IPP##_##DIM##x##DIM(&mLeft[0][0], DIM * sizeof(TYPE),	\
+			&mRight[0][0], DIM * sizeof(TYPE),							\
+			&mProduct[0][0], DIM * sizeof(TYPE));						\
+		mProduct.Transpose();											\
+		return mProduct;												\
+	}
+
+DECLARE_MATRIXD_PRODUCT(float, 32f, 3);
+DECLARE_MATRIXD_PRODUCT(float, 32f, 4);
+DECLARE_MATRIXD_PRODUCT(double, 64f, 3);
+DECLARE_MATRIXD_PRODUCT(double, 64f, 4);
+#endif
+
+
+//////////////////////////////////////////////////////////////////////
+// operator*(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
+//
+// matrix multiplication
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> __forceinline
+CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft, 
 									const TYPE& scalar)
 {
 	// create the product
 	CMatrixD<DIM, TYPE> mProduct(mLeft);
-
-	// use in-place multiplication
 	mProduct *= scalar;
 
 	// return the product
@@ -452,14 +582,12 @@ inline CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft,
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE>
-inline CMatrixD<DIM, TYPE> operator*(const TYPE& scalar, 
+template<int DIM, class TYPE> __forceinline
+CMatrixD<DIM, TYPE> operator*(const TYPE& scalar, 
 									const CMatrixD<DIM, TYPE>& mRight)
 {
 	// create the product
 	CMatrixD<DIM, TYPE> mProduct(mRight);
-
-	// use in-place multiplication
 	mProduct *= scalar;
 
 	// return the product
@@ -842,6 +970,70 @@ CMatrixD<DIM, TYPE>::operator D3DMATRIX() const
 
 
 //////////////////////////////////////////////////////////////////////
+// CMatrixBase<TYPE>::Determinant
+//
+// computes the determinant of the matrix, for square matrices
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE> inline
+TYPE Determinant(const CMatrixD<DIM, TYPE>& mMat)
+{
+	TYPE det = 0.0;
+	for (int nAtCol = 0; nAtCol < mMat.GetCols(); nAtCol++) 
+	{
+		CMatrixD<DIM-1, TYPE> mMinor;
+		for (int nAtRow = 1; nAtRow < mMat.GetRows(); nAtRow++) 
+		{
+			int nAtMinorCol = 0;
+			for (int nAtCol2 = 0; nAtCol2 < mMat.GetCols(); nAtCol2++) 
+			{
+			   if (nAtCol2 != nAtCol)
+			   {
+				   mMinor[nAtMinorCol][nAtRow-1] = mMat[nAtCol2][nAtRow];
+				   nAtMinorCol++;
+			   }
+			}
+		}
+		det += ((nAtCol % 2 == 0) ? 1.0 : -1.0) 
+			* mMat[nAtCol][0] * Determinant(mMinor);
+	}
+
+	return det;
+
+}	// CMatrixBase<TYPE>::Determinant
+
+template<> inline
+float Determinant(const CMatrixD<2, float>& mMat)
+{
+	return mMat[0][0] * mMat[1][1] - mMat[1][0] * mMat[0][1];
+
+}	// CMatrixBase<TYPE>::Determinant
+
+
+template<> inline
+double Determinant(const CMatrixD<2, double>& mMat)
+{
+	return mMat[0][0] * mMat[1][1] - mMat[1][0] * mMat[0][1];
+
+}	// CMatrixBase<TYPE>::Determinant
+
+
+template<> inline
+float Determinant(const CMatrixD<1, float>& mMat)
+{
+	return mMat[0][0];
+
+}	// CMatrixBase<TYPE>::Determinant
+
+template<> inline
+double Determinant(const CMatrixD<1, double>& mMat)
+{
+	return mMat[0][0];
+
+}	// CMatrixBase<TYPE>::Determinant
+
+
+
+//////////////////////////////////////////////////////////////////////
 // Eigenvector
 //
 // computes the eigenvector of a 2x2 matrix, or returns <0.0, 0.0> if
@@ -907,5 +1099,48 @@ inline REAL Eigen(CMatrixD<2> m, int nOrder = 1,
 	return r;
 
 }	// Eigenvector
+
+
+//////////////////////////////////////////////////////////////////////
+// LogExprExt
+//
+// helper function for XML logging of vectors
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+void LogExprExt(const CVectorD<DIM, TYPE> & vVec, const char *pszName, const char *pszModule)
+{
+	// get the global log file
+	CXMLLogFile *pLog = CXMLLogFile::GetLogFile();
+
+	// only if we are logging --
+	if (pLog->IsLogging())
+	{
+		// create a new expression element
+		CXMLElement *pVarElem = pLog->NewElement("lx", pszModule);
+
+		// if there is a name,
+		if (strlen(pszName) > 0)
+		{
+			// set it.
+			pVarElem->Attribute("name", pszName);
+		}
+
+		// set type to generice "CVector"
+		pVarElem->Attribute("type", "CVector");
+		
+		// get the current format for the element type
+		const char *pszFormat = pLog->GetFormat((VECTOR_TYPE::ELEM_TYPE) 0);
+		for (int nAt = 0; nAt < vVec.GetDim(); nAt++)
+		{
+			// format each element
+			pLog->Format(pszFormat, vVec[nAt]);
+		}
+
+		// done.
+		pLog->GetLogFile()->CloseElement();
+	}
+
+}	// LogExprExt
+
 
 #endif

@@ -25,7 +25,7 @@ CFG=MTL - Win32 Debug
 # PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=xicl6.exe
+CPP=cl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "MTL - Win32 Release"
@@ -40,8 +40,9 @@ RSC=rc.exe
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
+MTL=midl.exe
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /YX /FD /c
-# ADD CPP /nologo /G6 /MD /W3 /GX /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /YX /FD /O3 /QaxK /Qip /c
+# ADD CPP /nologo /G6 /MD /W3 /GX /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_IPP" /YX /FD /O3 /QaxK /Qip /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -63,6 +64,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
+MTL=midl.exe
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /YX /FD /GZ /c
 # ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -114,14 +116,6 @@ SOURCE=.\MathUtil.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\MatrixBase.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\MatrixBase.inl
-# End Source File
-# Begin Source File
-
 SOURCE=.\MatrixD.h
 # End Source File
 # Begin Source File
@@ -130,11 +124,11 @@ SOURCE=.\MatrixNxM.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\TestVec\StdAfx.h
+SOURCE=.\MatrixOps.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\VectorBase.h
+SOURCE=.\TestVec\StdAfx.h
 # End Source File
 # Begin Source File
 
@@ -143,6 +137,10 @@ SOURCE=.\VectorD.h
 # Begin Source File
 
 SOURCE=.\VectorN.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\VectorOps.h
 # End Source File
 # End Group
 # Begin Source File
