@@ -31,6 +31,11 @@ inline void glNormal(const CVector<4, double>& v)
 	glNormal(FromHomogeneous<3, double>(v));
 }
 
+inline void glTranslate(const CVector<2, double>& v)
+{
+	glTranslated(v[0], v[1], 0.0);
+}
+
 inline void glTranslate(const CVector<3, double>& v)
 {
 	glTranslated(v[0], v[1], v[2]);
