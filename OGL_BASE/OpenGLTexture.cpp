@@ -163,6 +163,8 @@ void COpenGLTexture::Bind(COpenGLView *pView)
 		m_arrPixels.GetData());
 
 	glEnable(GL_TEXTURE_2D); // enable texture mapping 
+
+	ASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void COpenGLTexture::Unbind()
@@ -182,4 +184,5 @@ void COpenGLTexture::Unbind()
 	}
 
 	m_pView = NULL;
+	ASSERT(glGetError() == GL_NO_ERROR);
 }
