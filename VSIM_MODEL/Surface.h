@@ -9,12 +9,13 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Vector.h"
-#include "Observer.h"
-#include "Value.h"
-#include "Polygon.h"
+#include <ModelObject.h>
+#include <Value.h>
 
-class CSurface : public CObservable  /* public CObject, /* public CObserver, */ 
+#include <Vector.h>
+#include <Polygon.h>
+
+class CSurface : public CModelObject
 {
 public:
 	CSurface();
@@ -25,7 +26,7 @@ public:
 
 	CSurface& operator=(const CSurface& fromSurface);
 
-	CValue< CString > name;
+//	CValue< CString > name;
 
 	int GetContourCount() const;
 	CPolygon& GetContour(int nIndex) const;

@@ -9,20 +9,20 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Vector.h"
-#include "Matrix.h"
+#include <ModelObject.h>
+#include <Value.h>
+#include <Association.h>
+#include <AutoSyncValue.h>
+#include <Collection.h>
 
-#include "Polygon.h"
+#include <Vector.h>
+#include <Matrix.h>
 
-#include "Observer.h"
+#include <Polygon.h>
+
 #include "TreatmentMachine.h"
 
-#include "Value.h"
-#include "Association.h"
-#include "AutoSyncValue.h"
-#include "Collection.h"
-
-class CBeam : public CObservable, public CObserver
+class CBeam : public CModelObject
 {
 public:
 	// constructur/destructor
@@ -31,9 +31,6 @@ public:
 
 	// serialization support
 	DECLARE_SERIAL(CBeam)
-
-	// the given name for the beam
-	CValue< CString > name;
 
 private:
 	// private copy of a treatment machine; default machine for this beam

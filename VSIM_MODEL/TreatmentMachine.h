@@ -9,11 +9,13 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Value.h"
-#include "Function.h"
-#include "Matrix.h"
+#include <Value.h>
+#include <Function.h>
+#include <ModelObject.h>
 
-class CTreatmentMachine : public CObservable  
+#include <Matrix.h>
+
+class CTreatmentMachine : public CModelObject  
 {
 public:
 	CTreatmentMachine();
