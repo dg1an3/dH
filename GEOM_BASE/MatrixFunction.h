@@ -16,7 +16,7 @@
 // declare function factories for matrix arithmetic
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY2(operator+, CMatrix<4>)
-FUNCTION_FACTORY2(operator-, CMatrix<4>)
+// FUNCTION_FACTORY2(operator-, CMatrix<4>)
 FUNCTION_FACTORY2(operator*, CMatrix<4>)
 
 //////////////////////////////////////////////////////////////////////

@@ -26,14 +26,14 @@ inline double div(const double& l, const double& r) { return l / r; }
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY2_RENAME(operator+, add, double)
 FUNCTION_FACTORY2_RENAME(operator-, sub, double)
-FUNCTION_FACTORY2_RENAME(operator*, mul, double)
+// FUNCTION_FACTORY2_RENAME(operator*, mul, double)
 FUNCTION_FACTORY2_RENAME(operator/, div, double)
 
 //////////////////////////////////////////////////////////////////////
 // declare function factories for matrix arithmetic
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY2(operator+, CVector<4>)
-FUNCTION_FACTORY2(operator-, CVector<4>)
-FUNCTION_FACTORY2(operator*, CVector<4>)
+// FUNCTION_FACTORY2(operator-, CVector<4>)
+// FUNCTION_FACTORY2(operator*, CVector<4>)
 
 #endif // !defined(VECTORFUNCTION_H)
