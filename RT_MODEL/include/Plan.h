@@ -19,6 +19,11 @@
 // beams belonging to the plan
 #include "Beam.h"
 
+// histograms for the plan
+#include <Histogram.h>
+
+#include <VectorN.h>
+#include <MatrixNxM.h>
 
 //////////////////////////////////////////////////////////////////////
 // class CPlan
@@ -32,7 +37,7 @@ protected: // create from serialization only
 	CPlan();
 
 	// dynamic create
-	DECLARE_DYNCREATE(CPlan)
+	DECLARE_SERIAL(CPlan)
 
 // Attributes
 public:
@@ -40,10 +45,23 @@ public:
 	CSeries * GetSeries();
 	void SetSeries(CSeries *pSeries);
 
+	// histogram accessor
+	CHistogram *GetHistogram(CSurface *pSurface);
+
 	// the beams for this plan
 	int GetBeamCount() const;
 	CBeam * GetBeamAt(int nAt);
 	int AddBeam(CBeam *pBeam);
+
+	int m_nFields;
+
+	// the beam weights, as a vector
+	void GetBeamWeights(CVectorN<>& vWeights);
+	void SetBeamWeights(const CVectorN<>& vWeights);
+
+	// DVH accessors
+	const CMatrixNxM<> *GetTargetDVH(CSurface *pStructure);
+	void SetTargetDVH(CSurface *pStructure, CMatrixNxM<> *pmTarget);
 
 	// the computed dose for this plan (NULL if no dose exists)
 	CVolume<double> *GetDoseMatrix();
@@ -74,6 +92,7 @@ public:
 #endif
 
 protected:
+	void OnBeamChange(CObservableEvent *, void *);
 
 // Generated message map functions
 protected:
@@ -90,11 +109,17 @@ private:
 	// the plan's beams
 	CObArray m_arrBeams;
 
+	// the target DVHs
+	CMapStringToPtr m_mapTargetDVHs;
+
 	// the dose matrix for the plan
 	CVolume<double> m_dose;
 
 	// flag to indicate the total dose is to be recomputed
 	BOOL m_bRecomputeTotalDose;
+
+	// the histograms
+	CObArray m_arrHistograms;
 
 	// static variable that stores a pointer to the 
 	//		CSeries document template
