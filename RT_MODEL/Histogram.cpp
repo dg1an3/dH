@@ -581,15 +581,37 @@ const CVectorBase<>& CHistogram::Get_dBins(long nAt) const
 				{
 					p_dVoxels_x_Region[nAtVoxel] = pRegionVoxel[nAtVoxel] * p_dVoxels[nAtVoxel];
 				}
+				m_arr_dVolumes_x_Region[nAt]->SetThreshold(
+					Get_dVolume(nAt)->GetThreshold());
 
 				m_arr_bRecompute_dVolumes_x_Region[nAt] = FALSE;
 			}
 
-			for (int nAtVoxel = 0; nAtVoxel < m_pVolume->GetVoxelCount(); nAtVoxel++)
+			REAL ***ppp_dVoxels_x_Region = 
+				m_arr_dVolumes_x_Region[nAt]->GetVoxels();
+			CRect rectBounds = m_arr_dVolumes_x_Region[nAt]->GetThresholdBounds();
+			short ***pppBinVolumeVoxels = m_binVolume.GetVoxels();
+			for (int nAtZ = 0; nAtZ < m_arr_dVolumes_x_Region[nAt]->GetDepth(); nAtZ++)
+			{
+				REAL **pp_dVoxels_x_Region = ppp_dVoxels_x_Region[nAtZ];
+				short **ppBinVolumeVoxels = pppBinVolumeVoxels[nAtZ];
+				for (int nAtY = rectBounds.top; nAtY <= rectBounds.bottom; nAtY++)
+				{
+					REAL *p_dVoxels_x_Region = pp_dVoxels_x_Region[nAtY];
+					short *pBinVolumeVoxels = ppBinVolumeVoxels[nAtY];
+					for (int nAtX = rectBounds.left; nAtX <= rectBounds.right; nAtX++)
+					{
+						int nBin = pBinVolumeVoxels[nAtX];
+						arr_dBins[nBin] -= p_dVoxels_x_Region[nAtX];
+					}
+				}
+			}
+
+/*			for (int nAtVoxel = 0; nAtVoxel < m_pVolume->GetVoxelCount(); nAtVoxel++)
 			{
 				int nBin = pBinVolumeVoxels[nAtVoxel];
 				arr_dBins[nBin] -= p_dVoxels_x_Region[nAtVoxel];
-			}
+			} */
 		}
 		else
 		{
