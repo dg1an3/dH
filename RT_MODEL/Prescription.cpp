@@ -364,7 +364,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 
 		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
 		pBeamlet->SetThreshold((REAL) 1e-1); // pow(10, -(m_nLevel+1)));
-		pHisto->Add_dVolume(pBeamlet);
+		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
 
 	// add to the current prescription
