@@ -45,6 +45,15 @@ public:
 	CMatrixD& operator*=(const TYPE& scale);
 	CMatrixD& operator*=(const CMatrixD& mRight);
 
+	// Transpose -- transposes elements of the matrix
+	void Transpose();
+
+#ifdef DIRECT3D_VERSION
+	// conversion to / from D3DMATRIX
+	CMatrixD(const D3DMATRIX& matr);
+	operator D3DMATRIX() const;
+#endif
+
 private:
 	// column vectors
 	CVectorBase<TYPE> m_arrColumns[DIM];
@@ -305,6 +314,27 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator*=(const CMatrixD<DIM,TYPE>& mRi
 
 
 //////////////////////////////////////////////////////////////////////
+// CMatrixBase<TYPE>::Transpose
+//
+// transposes the matrix
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+void CMatrixD<DIM,TYPE>::Transpose()
+{
+	for (int nCol = 0; nCol < DIM; nCol++)
+	{
+		for (int nRow = nCol+1; nRow < DIM; nRow++)
+		{
+			TYPE temp = (*this)[nCol][nRow];
+			(*this)[nCol][nRow] = (*this)[nRow][nCol];
+			(*this)[nRow][nCol] = temp;
+		}
+	}
+
+}	// CMatrixBase<TYPE>::Transpose
+
+
+//////////////////////////////////////////////////////////////////////
 // operator==(const CMatrixD<DIM, TYPE>&, const CMatrixD<DIM, TYPE>&)
 //
 // exact matrix equality
@@ -429,7 +459,7 @@ inline CMatrixD<DIM, TYPE> operator*(const TYPE& scalar,
 									const CMatrixD<DIM, TYPE>& mRight)
 {
 	// create the product
-	CMatrixD<DIM, TYPE> mProduct(mLeft);
+	CMatrixD<DIM, TYPE> mProduct(mRight);
 
 	// use in-place multiplication
 	mProduct *= scalar;
@@ -704,6 +734,111 @@ inline CMatrixD<4> CreateProjection(const double& n, const double& f)
 	return mProj;
 
 }	// CreateProjection
+
+
+#ifdef DIRECT3D_VERSION
+
+//////////////////////////////////////////////////////////////////////
+// CMatrixD<DIM, TYPE>::CMatrixD(const D3DMATRIX& matr)
+//
+// constructs from a D3DMATRIX
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+CMatrixD<DIM, TYPE>::CMatrixD(const D3DMATRIX& matr)
+{
+	// we have to assign the columns before calling 
+	//		CMatrixBase::SetElements, because otherwise
+	//		SetElements will allocate the column vectors
+	//		(and ours are part of the CMatrixD)
+	m_pColumns = &m_arrColumns[0];
+	m_nCols = DIM;
+
+	// allocate the elements
+	SetElements(DIM, DIM, &m_arrElements[0], FALSE);
+
+	// assign matrix elements
+	(*this)[0][0] = matr._11;
+
+	if (DIM > 1)
+	{
+		(*this)[0][1] = matr._12;
+
+		(*this)[1][0] = matr._21;
+		(*this)[1][1] = matr._22;
+	}
+
+	if (DIM > 2)
+	{
+		(*this)[0][2] = matr._13;
+		(*this)[1][2] = matr._23;
+
+		(*this)[2][0] = matr._31;
+		(*this)[2][1] = matr._32;
+		(*this)[2][2] = matr._33;
+	}
+
+	if (DIM > 3)
+	{
+		(*this)[0][3] = matr._14;
+		(*this)[1][3] = matr._24;
+		(*this)[2][3] = matr._34;
+
+		(*this)[3][0] = matr._41;
+		(*this)[3][1] = matr._42;
+		(*this)[3][2] = matr._43;
+		(*this)[3][3] = matr._44;
+	}
+
+}	// CMatrixD<DIM, TYPE>::CMatrixD(const D3DMATRIX& matr)
+
+
+//////////////////////////////////////////////////////////////////////
+// CMatrixD<DIM, TYPE>::operator D3DMATRIX()
+//
+// converts to a D3DMATRIX
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+CMatrixD<DIM, TYPE>::operator D3DMATRIX() const
+{
+	D3DMATRIX matr;
+
+	matr._11 = (*this)[0][0];
+
+	if (DIM > 1)
+	{
+		matr._12 = (*this)[0][1];
+
+		matr._21 = (*this)[1][0];
+		matr._22 = (*this)[1][1];
+	}
+
+	if (DIM > 2)
+	{
+		matr._13 = (*this)[0][2];
+		matr._23 = (*this)[1][2];
+
+		matr._31 = (*this)[2][0];
+		matr._32 = (*this)[2][1];
+		matr._33 = (*this)[2][2];
+	}
+
+	if (DIM > 3)
+	{
+		matr._14 = (*this)[0][3];
+		matr._24 = (*this)[1][3];
+		matr._34 = (*this)[2][3];
+
+		matr._41 = (*this)[3][0];
+		matr._42 = (*this)[3][1];
+		matr._43 = (*this)[3][2];
+		matr._44 = (*this)[3][3];
+	}
+
+	return matr;
+
+}	// CMatrixD<DIM, TYPE>::operator D3DMATRIX()
+
+#endif
 
 
 //////////////////////////////////////////////////////////////////////
