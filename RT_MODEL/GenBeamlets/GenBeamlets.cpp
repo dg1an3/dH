@@ -153,14 +153,31 @@ void GenBeamlets(CBeam *pBeam)
 
 			CVolume<REAL> beamletOrig = (*arrBeamlets[nAtShift + 50]);
 
-			// rotate to new beamlet position
-			::Rotate(&beamletOrig, CVectorD<2>(63.0, 63.0), pBeam->GetGantryAngle(),
-				pBeamlet, CVectorD<2>(nDim / 2 + 1, nDim / 2 + 1));
 
-			CMatrixD<4> mBasis;
-			mBasis[3][0] = -(pBeamlet->GetWidth() - 1) / 2;
-			mBasis[3][1] = -(pBeamlet->GetHeight() - 1) / 2;
-			pBeamlet->SetBasis(mBasis);
+			// rotate to new beamlet position
+			// ::Rotate(&beamletOrig, CVectorD<2>(63.0, 63.0), pBeam->GetGantryAngle(),
+			//	pBeamlet, CVectorD<2>(nDim / 2 + 1, nDim / 2 + 1));
+
+			CMatrixD<4> mBasisNew;
+			mBasisNew[3][0] = -(pBeamlet->GetWidth() - 1) / 2;
+			mBasisNew[3][1] = -(pBeamlet->GetHeight() - 1) / 2;
+			pBeamlet->SetBasis(mBasisNew);
+
+			CMatrixD<4> mBasisOrigXlate;
+			mBasisOrigXlate[3][0] = -(beamletOrig.GetWidth() - 1) / 2;
+			mBasisOrigXlate[3][1] = -(beamletOrig.GetHeight() - 1) / 2;
+
+			CMatrixD<2> mRot 
+				= ::CreateRotate(pBeam->GetGantryAngle()); // + PI / 2);
+
+			CMatrixD<4> mBasisOrigRot;
+			mBasisOrigRot[0][0] = mRot[0][0];
+			mBasisOrigRot[0][1] = mRot[0][1];
+			mBasisOrigRot[1][0] = mRot[1][0];
+			mBasisOrigRot[1][1] = mRot[1][1];
+			beamletOrig.SetBasis(mBasisOrigRot * mBasisOrigXlate);
+
+			Resample(&beamletOrig, pBeamlet, TRUE);
 		}
 
 		LOG_OBJECT((*pBeamlet));
