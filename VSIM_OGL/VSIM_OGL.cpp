@@ -255,15 +255,18 @@ CDocument* CVSIM_OGLApp::OpenDocumentFile(LPCTSTR lpszFileName)
 
 BOOL CVSIM_OGLApp::OnIdle(LONG lCount) 
 {
+	if (lCount % 4 != 0)
+		return TRUE;
+
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
 	CSimView *pView = (CSimView *)pFrame->GetActiveView();
 
 	if (pView != NULL && pView->m_pDRRRenderer != NULL)
 	{
-		if (pView->m_pDRRRenderer->m_nSteps < 64)
+		if (pView->m_pDRRRenderer->m_nSteps < 256)
 		{
-			pView->m_pDRRRenderer->m_nSteps = 64;
-			pView->m_pDRRRenderer->m_nShift = 6;
+			pView->m_pDRRRenderer->m_nSteps = 256;
+			pView->m_pDRRRenderer->m_nShift = 8;
 			pView->m_pDRRRenderer->m_bRecomputeDRR = TRUE;
 			pView->m_pDRRRenderer->Invalidate();
 			pView->m_wndBEV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
