@@ -42,7 +42,7 @@ const double ZEPS = 1.0e-1;		// z-epsilon -- small number to protect against
 
 const double TINY = 1.0e-20;	// used in function BracketMinimum 
 
-const double BRACKET = 5.0;		// initial bracket size
+const double BRACKET = 10.0;		// initial bracket size
 
 const double GLIMIT = 100.0;	// parameter needed by function BracketMinimum  
 
@@ -58,7 +58,6 @@ const CVectorN<> CBrentOptimizer::m_vBrentInit(1);
 // 
 // constructs a new Brent optimizer
 //////////////////////////////////////////////////////////////////////
-// construct a new Brent Optimizer
 CBrentOptimizer::CBrentOptimizer(CObjectiveFunction *pFunc)
 	: COptimizer(pFunc),
 		m_vAx(1), 
