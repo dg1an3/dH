@@ -9,7 +9,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Matrix.h"
+#include <Matrix.h>
+
 #include "Volumep.h"
 
 template<class VOXEL_TYPE>
@@ -35,14 +36,14 @@ public:
 	{
 		if (m_pSource != NULL)
 		{
-			m_pSource->RemoveListener(this, (ChangeFunc) OnChange);
+			m_pSource->GetChangeEvent().RemoveListener(this, (ChangeFunc) OnChange);
 		}
 
 		m_pSource = pSource;
 
 		if (m_pSource != NULL)
 		{
-			m_pSource->AddListener(this, (ChangeFunc) OnChange);
+			m_pSource->GetChangeEvent().AddListener(this, (ChangeFunc) OnChange);
 		}
 	}
 
@@ -69,9 +70,9 @@ public:
 	}
 
 	// handles changes from contained objects
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue)
+	virtual void OnChange(CObservableEvent *pSource, void *pOldValue)
 	{
-		if (pSource == m_pSource)
+		if (pSource->GetParent() == m_pSource)
 		{
 			Resample();
 		}
