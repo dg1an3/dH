@@ -156,6 +156,11 @@ void GenBeamlets(CBeam *pBeam)
 			// rotate to new beamlet position
 			::Rotate(&beamletOrig, CVectorD<2>(63.0, 63.0), pBeam->GetGantryAngle(),
 				pBeamlet, CVectorD<2>(nDim / 2 + 1, nDim / 2 + 1));
+
+			CMatrixD<4> mBasis;
+			mBasis[3][0] = -(pBeamlet->GetWidth() - 1) / 2;
+			mBasis[3][1] = -(pBeamlet->GetHeight() - 1) / 2;
+			pBeamlet->SetBasis(mBasis);
 		}
 
 		LOG_OBJECT((*pBeamlet));
@@ -166,7 +171,8 @@ void GenBeamlets(CBeam *pBeam)
 	pBeam->m_vBeamletWeights.SetDim(pBeam->m_arrBeamlets[0].GetSize());
 	pBeam->m_vBeamletWeights.SetZero();
 
-	pBeam->m_dose.SetDimensions(nDim, nDim, 1);
+	// triggers setting dose matrix dimensions
+	// pBeam->GetDoseMatrix();
 
 	// generate the kernel for convolution
 	CVolume<REAL> kernel;
@@ -187,6 +193,7 @@ void GenBeamlets(CBeam *pBeam)
 		{
 			CVolume<REAL> *pBeamlet = new CVolume<REAL>;
 			pBeamlet->SetDimensions(nDim, nDim, 1);
+			pBeamlet->SetBasis(pBeam->GetBeamlet(0, nAtScale-1)->GetBasis());
 			pBeamlet->ClearVoxels();
 
 			pBeamlet->Accumulate(pBeam->GetBeamlet(nAtShift * 2 - 1, nAtScale-1), 
@@ -204,6 +211,11 @@ void GenBeamlets(CBeam *pBeam)
 			CVolume<REAL> *pBeamletConvDec = new CVolume<REAL>;
 			Decimate(pBeamletConv, pBeamletConvDec);
 			delete pBeamletConv;
+
+			CMatrixD<4> mBasis;
+			mBasis[3][0] = -(pBeamletConvDec->GetWidth() - 1) / 2;
+			mBasis[3][1] = -(pBeamletConvDec->GetHeight() - 1) / 2;
+			pBeamletConvDec->SetBasis(mBasis);
 
 			pBeam->m_arrBeamlets[nAtScale].Add(pBeamletConvDec);
 		}
