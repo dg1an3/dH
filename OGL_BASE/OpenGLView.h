@@ -34,7 +34,8 @@ public:
 	void AddRenderer(COpenGLRenderer *pRenderer);
 
 	// accessors for the COpenGLRenderers for this view
-	void AddTracker(COpenGLTracker *pTracker);
+	void AddLeftTracker(COpenGLTracker *pTracker);
+	void AddMiddleTracker(COpenGLTracker *pTracker);
 
 	// set the maximum object size to be viewed
 	void SetMaxObjSize(float maxObjSize);
@@ -82,8 +83,10 @@ protected:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnPaint();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnMButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
@@ -108,9 +111,11 @@ public:
 
 	// list of trackers
 	CArray<COpenGLTracker *, COpenGLTracker *> m_arrTrackers;
-
+	CArray<COpenGLTracker *, COpenGLTracker *> m_arrMiddleTrackers;
+	
 	// flag to indicate that the dragging is occurring
 	BOOL m_bDragging;
+	BOOL m_bMiddleDragging;
 };
 
 /////////////////////////////////////////////////////////////////////////////

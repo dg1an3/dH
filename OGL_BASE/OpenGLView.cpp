@@ -27,7 +27,8 @@ IMPLEMENT_DYNCREATE(COpenGLView, CWnd)
 COpenGLView::COpenGLView()
 	: m_pDC(NULL),
 		m_hrc(NULL),
-		m_bDragging(FALSE)
+		m_bDragging(FALSE),
+		m_bMiddleDragging(FALSE)
 {
 	projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
@@ -70,9 +71,16 @@ void COpenGLView::AddRenderer(COpenGLRenderer *pRenderer)
 	RedrawWindow();
 }
 
-void COpenGLView::AddTracker(COpenGLTracker *pTracker)
+void COpenGLView::AddLeftTracker(COpenGLTracker *pTracker)
 {
 	m_arrTrackers.Add(pTracker);
+
+	RedrawWindow();
+}
+
+void COpenGLView::AddMiddleTracker(COpenGLTracker *pTracker)
+{
+	m_arrMiddleTrackers.Add(pTracker);
 
 	RedrawWindow();
 }
@@ -280,8 +288,10 @@ BEGIN_MESSAGE_MAP(COpenGLView, CWnd)
 	ON_WM_ERASEBKGND()
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
-	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP() 
+	ON_WM_MBUTTONDOWN()
+	ON_WM_MBUTTONUP() 
+	ON_WM_MOUSEMOVE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -394,25 +404,6 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 	}
 }
 
-void COpenGLView::OnMouseMove(UINT nFlags, CPoint point) 
-{
-	CWnd::OnMouseMove(nFlags, point);
-
-	MakeCurrentGLRC();
-
-	for (int nAt = 0; nAt < m_arrTrackers.GetSize(); nAt++)
-	{
-		if (m_arrTrackers[nAt]->IsInside(point))
-		{
-			if (m_bDragging)
-				m_arrTrackers[nAt]->OnMouseDrag(nFlags, point);
-			else 
-				m_arrTrackers[nAt]->OnMouseMove(nFlags, point);
-			break;
-		}
-	}
-}
-
 void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	CWnd::OnLButtonUp(nFlags, point);
@@ -427,6 +418,66 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 		if (m_arrTrackers[nAt]->IsInside(point))
 		{
 			m_arrTrackers[nAt]->OnLButtonUp(nFlags, point);
+			break;
+		}
+	}
+}
+
+void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point) 
+{
+	// handle base class
+	CWnd::OnMButtonDown(nFlags, point);
+
+	MakeCurrentGLRC();
+
+	// set the dragging flag to TRUE
+	m_bMiddleDragging = TRUE;
+
+	for (int nAt = 0; nAt < m_arrMiddleTrackers.GetSize(); nAt++)
+	{
+		if (m_arrMiddleTrackers[nAt]->IsInside(point))
+		{
+			m_arrMiddleTrackers[nAt]->OnLButtonDown(nFlags, point);
+			break;
+		}
+	}
+}
+
+void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point) 
+{
+	CWnd::OnMButtonUp(nFlags, point);
+
+	MakeCurrentGLRC();
+
+	// dragging is over -- clear flag
+	m_bMiddleDragging = FALSE;	
+	
+	for (int nAt = 0; nAt < m_arrMiddleTrackers.GetSize(); nAt++)
+	{
+		if (m_arrMiddleTrackers[nAt]->IsInside(point))
+		{
+			m_arrMiddleTrackers[nAt]->OnLButtonUp(nFlags, point);
+			break;
+		}
+	}
+}
+
+void COpenGLView::OnMouseMove(UINT nFlags, CPoint point) 
+{
+	CWnd::OnMouseMove(nFlags, point);
+
+	MakeCurrentGLRC();
+
+	for (int nAt = 0; nAt < m_arrTrackers.GetSize(); nAt++)
+	{
+		if (m_arrTrackers[nAt]->IsInside(point))
+		{
+			if (m_bDragging)
+				m_arrTrackers[nAt]->OnMouseDrag(nFlags, point);
+			else if (m_bMiddleDragging) 
+				m_arrMiddleTrackers[nAt]->OnMouseDrag(nFlags, point);
+			else
+				m_arrTrackers[nAt]->OnMouseMove(nFlags, point);
 			break;
 		}
 	}
