@@ -10,7 +10,7 @@
 #include "Value.h"
 #include "Collection.h"
 
-class CModelObject : public CObservableObject, public CObserver
+class CModelObject : public CObservableObject // , public CObserver
 {
 public:
 	CModelObject(const CString& strName = "");
@@ -25,8 +25,8 @@ public:
 	CCollection< CModelObject > children;
 
 	// member function to add observers to all children (and grand-children, etc.)
-	void AddObserverToChildren(CObserver *pObserver, int nLevels = -1);
-	void RemoveObserverFromChildren(CObserver *pObserver, int nLevels = -1);
+	void AddObserverToChildren(CObject *pObserver, ChangeFunction func, int nLevels = -1);
+	void RemoveObserverFromChildren(CObject *pObserver, ChangeFunction func, int nLevels = -1);
 	void FireChangeChildren(int nLevels = -1);
 
 	// serialization

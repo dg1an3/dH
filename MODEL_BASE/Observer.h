@@ -12,18 +12,7 @@
 
 // forward declaration of the CObservableObject class
 class CObservableObject;
-
-
-//////////////////////////////////////////////////////////////////////
-// the CObserver interface must be implemented by any object that wants to observe
-//		a CObservableObject
-
-class CObserver  
-{
-public:
-	// the call-back for changes on a CObservableObject
-	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue) = 0;
-};
+typedef void (CObject::*ChangeFunction)(CObservableObject *, void *);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -36,15 +25,24 @@ public:
 	DECLARE_DYNAMIC(CObservableObject)
 
 	// accessors for the observer list
-	void AddObserver(CObserver *pObserver) const;
-	void RemoveObserver(CObserver *pObserver) const;
+	void AddObserver(CObject *pObserver, ChangeFunction func) const;
+	void RemoveObserver(CObject *pObserver, ChangeFunction func) const;
 
 	// called to fire a change
 	void FireChange(void *pOldValue = NULL);
 
 private:
 	// the array of observers
-	mutable CArray<CObserver *, CObserver *> m_arrObservers;
+	mutable CArray<CObject *, CObject *> m_arrObservers;
+	mutable CArray<ChangeFunction, ChangeFunction> m_arrFunctions;
 };
+
+template<class OBSERVER_TYPE>
+void AddObserver(CObservableObject *pObservable, 
+				 OBSERVER_TYPE *pObserver, ChangeFunction func);
+
+template<class OBSERVER_TYPE>
+void RemoveObserver(CObservableObject *pObservable, 
+					OBSERVER_TYPE *pObserver, ChangeFunction func);
 
 #endif // !defined(AFX_OBSERVER_H__AAA9A381_F0B7_11D4_9E39_00B0D0609AB0__INCLUDED_)

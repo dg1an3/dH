@@ -12,7 +12,7 @@
 #include "Observer.h"
 
 template<class TYPE>
-class CValue : public CObservableObject, public CObserver
+class CValue : public CObservableObject //, public CObserver
 {
 public:
 	CValue() 
@@ -74,7 +74,7 @@ public:
 
 		if (m_pSyncTo)
 		{
-			m_pSyncTo->RemoveObserver(this);
+			m_pSyncTo->RemoveObserver(this, (ChangeFunction) OnChange);
 
 			// make sure the value we are leaving is the same
 			m_value = m_pSyncTo->Get();
@@ -84,7 +84,7 @@ public:
 
 		if (m_pSyncTo)
 		{
-			m_pSyncTo->AddObserver(this);
+			m_pSyncTo->AddObserver(this, (ChangeFunction) OnChange);
 
 			// fire a change, since the effective value has changed
 			FireChange();

@@ -19,7 +19,7 @@ static char THIS_FILE[]=__FILE__;
 CModelObject::CModelObject(const CString& strName)
 	: name(strName)
 {
-	name.AddObserver(this);
+	name.AddObserver(this, (ChangeFunction)&CModelObject::OnChange);
 }
 
 CModelObject::~CModelObject()
@@ -29,23 +29,23 @@ CModelObject::~CModelObject()
 
 IMPLEMENT_SERIAL(CModelObject, CObservableObject, 1)
 
-void CModelObject::AddObserverToChildren(CObserver *pObserver, int nLevels)
+void CModelObject::AddObserverToChildren(CObject *pObserver, ChangeFunction func, int nLevels)
 {
 	for (int nAt = 0; nAt < children.GetSize(); nAt++)
 	{
-		children.Get(nAt)->AddObserver(pObserver);
+		children.Get(nAt)->AddObserver((CObject *)pObserver, func);
 		if (nLevels != 0)
-			children.Get(nAt)->AddObserverToChildren(pObserver, nLevels-1);
+			children.Get(nAt)->AddObserverToChildren(pObserver, func, nLevels-1);
 	}
 }
 
-void CModelObject::RemoveObserverFromChildren(CObserver *pObserver, int nLevels)
+void CModelObject::RemoveObserverFromChildren(CObject *pObserver, ChangeFunction func, int nLevels)
 {
 	for (int nAt = 0; nAt < children.GetSize(); nAt++)
 	{
-		children.Get(nAt)->RemoveObserver(pObserver);
+		children.Get(nAt)->RemoveObserver((CObject *)pObserver, func);
 		if (nLevels != 0)
-			children.Get(nAt)->RemoveObserverFromChildren(pObserver, nLevels-1);
+			children.Get(nAt)->RemoveObserverFromChildren(pObserver, func, nLevels-1);
 	}
 }
 

@@ -20,7 +20,7 @@ public:
 			m_pArg(pArg)
 	{
 		ASSERT(m_pArg != NULL);
-		m_pArg->AddObserver(this);
+		m_pArg->AddObserver(this, (ChangeFunction) OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg->Get()));
@@ -28,7 +28,7 @@ public:
 
 	virtual ~CFunction1()
 	{
-		m_pArg->RemoveObserver(this);
+		m_pArg->RemoveObserver(this, (ChangeFunction) OnChange);
 	}
 
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
@@ -60,10 +60,10 @@ public:
 			m_pArg2(pArg2)
 	{
 		ASSERT(m_pArg1 != NULL);
-		m_pArg1->AddObserver(this);
+		m_pArg1->AddObserver(this, (ChangeFunction) OnChange);
 
 		ASSERT(m_pArg2 != NULL);
-		m_pArg2->AddObserver(this);
+		m_pArg2->AddObserver(this, (ChangeFunction) OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
@@ -78,7 +78,7 @@ public:
 			m_pArg2(&m_argConst2)
 	{
 		ASSERT(m_pArg1 != NULL);
-		m_pArg1->AddObserver(this);
+		m_pArg1->AddObserver(this, (ChangeFunction) OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
@@ -93,13 +93,13 @@ public:
 			m_pArg2(pArg2)
 	{
 		ASSERT(m_pArg2 != NULL);
-		m_pArg2->AddObserver(this);
+		m_pArg2->AddObserver(this, (ChangeFunction) OnChange);
 	}
 
 	virtual ~CFunction2()
 	{
-		m_pArg1->RemoveObserver(this);
-		m_pArg2->RemoveObserver(this);
+		m_pArg1->RemoveObserver(this, (ChangeFunction) OnChange);
+		m_pArg2->RemoveObserver(this, (ChangeFunction) OnChange);
 	}
 
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
@@ -137,13 +137,13 @@ public:
 			m_pArg3(pArg3)
 	{
 		ASSERT(m_pArg1 != NULL);
-		m_pArg1->AddObserver(this);
+		m_pArg1->AddObserver(this, (ChangeFunction) OnChange);
 
 		ASSERT(m_pArg2 != NULL);
-		m_pArg2->AddObserver(this);
+		m_pArg2->AddObserver(this, (ChangeFunction) OnChange);
 
 		ASSERT(m_pArg3 != NULL);
-		m_pArg3->AddObserver(this);
+		m_pArg3->AddObserver(this, (ChangeFunction) OnChange);
 
 		// now set the initial value
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get(), m_pArg3->Get()));
@@ -151,9 +151,9 @@ public:
 
 	virtual ~CFunction3()
 	{
-		m_pArg1->RemoveObserver(this);
-		m_pArg2->RemoveObserver(this);
-		m_pArg3->RemoveObserver(this);
+		m_pArg1->RemoveObserver(this, (ChangeFunction) OnChange);
+		m_pArg2->RemoveObserver(this, (ChangeFunction) OnChange);
+		m_pArg3->RemoveObserver(this, (ChangeFunction) OnChange);
 	}
 
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
