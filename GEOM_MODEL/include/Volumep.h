@@ -14,6 +14,7 @@
 #endif // _MSC_VER > 1000
 
 #include <VectorD.h>
+#include <VectorN.h>
 #include <MatrixD.h>
 #include <MatrixNxM.h>
 
@@ -38,6 +39,8 @@ class CVolume : public CModelObject
 public:
 	// constructor / destructor
 	CVolume();
+	CVolume(const CVolume& vFrom);
+
 	virtual ~CVolume();
 
 	// dimension attributes
@@ -56,6 +59,7 @@ public:
 
 	// direct accessor for the voxels
 	VOXEL_TYPE ***GetVoxels();
+	const VOXEL_TYPE * const * const *GetVoxels() const;
 
 	// sets the raw voxel pointer
 	void SetVoxels(VOXEL_TYPE *pVoxels, int nWidth, int nHeight, int nDepth);
@@ -64,7 +68,7 @@ public:
 	void ClearVoxels();
 
 	// accumulates another volume
-	void Accumulate(CVolume *pVolume, double weight = 1.0);
+	void Accumulate(const CVolume *pVolume, double weight = 1.0);
 
 	// sum of voxels
 	VOXEL_TYPE GetSum();
@@ -122,6 +126,21 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
 		m_pVoxels(NULL)
 {
 }	// CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>
+
+
+//////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>&)
+// 
+// copy constructor
+//////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
+{
+	SetDimensions(from.GetWidth(), from.GetHeight(), from.GetDepth());
+	ClearVoxels();
+	Accumulate(&from);
+
+}	// CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>&)
 
 
 //////////////////////////////////////////////////////////////////////
@@ -231,7 +250,21 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetVoxelAt(int nX, int nY, int nZ)
 template<class VOXEL_TYPE>
 inline VOXEL_TYPE ***CVolume<VOXEL_TYPE>::GetVoxels()
 {
-	return &m_arrppVoxels[0];
+	return // &m_arrppVoxels[0];
+		m_arrppVoxels.GetData();
+
+}	// CVolume<VOXEL_TYPE>::GetVoxels
+
+
+//////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::GetVoxels
+// 
+// accessor for voxel iliffe - const version
+//////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+const VOXEL_TYPE * const * const *CVolume<VOXEL_TYPE>::GetVoxels() const
+{
+	return m_arrppVoxels.GetData();
 
 }	// CVolume<VOXEL_TYPE>::GetVoxels
 
@@ -313,7 +346,7 @@ inline void CVolume<VOXEL_TYPE>::ClearVoxels()
 // accumulates voxel values -- other volume must be conformant
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline void CVolume<VOXEL_TYPE>::Accumulate(CVolume<VOXEL_TYPE> *pVolume, 
+inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume, 
 											double weight)
 {
 	ASSERT(GetWidth() == pVolume->GetWidth());
@@ -321,7 +354,7 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(CVolume<VOXEL_TYPE> *pVolume,
 	ASSERT(GetDepth() == pVolume->GetDepth());
 
 	VOXEL_TYPE *pDst = &GetVoxels()[0][0][0];
-	VOXEL_TYPE *pSrc = &pVolume->GetVoxels()[0][0][0];
+	const VOXEL_TYPE *pSrc = &pVolume->GetVoxels()[0][0][0];
 
 	int nCount = GetVoxelCount();
 	for (int nAt = 0; nAt < nCount; nAt++)
@@ -479,8 +512,9 @@ inline void CVolume<VOXEL_TYPE>::Log(CXMLElement *pElem) const
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-inline void Convolve(CVolume<double> *pVol, CVolume<double> *pKernel, 
-					 CVolume<double> *pRes)
+template<class VOXEL_TYPE>
+inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel, 
+					 CVolume<VOXEL_TYPE> *pRes)
 {
 	pRes->SetDimensions(pVol->GetWidth(), pVol->GetHeight(), pVol->GetDepth());
 	pRes->ClearVoxels();
@@ -490,9 +524,9 @@ inline void Convolve(CVolume<double> *pVol, CVolume<double> *pKernel,
 
 	int nKernelBase = pKernel->GetWidth() / 2;
 
-	double ***pppVoxels = pVol->GetVoxels();
-	double ***pppKernel = pKernel->GetVoxels();
-	double ***pppRes = pRes->GetVoxels();
+	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
+	VOXEL_TYPE ***pppKernel = pKernel->GetVoxels();
+	VOXEL_TYPE ***pppRes = pRes->GetVoxels();
 	for (int nAtRow = 0; nAtRow < pVol->GetHeight(); nAtRow++)
 	{
 		for (int nAtCol = 0; nAtCol < pVol->GetWidth(); nAtCol++)
@@ -516,6 +550,37 @@ inline void Convolve(CVolume<double> *pVol, CVolume<double> *pKernel,
 	}    
 
 }	// Convolve
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CalcBinomialFilter
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+template<class TYPE>
+inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
+{
+	// find largest dimension
+	int nMaxDim = __max(pVol->GetDepth(), 
+		__max(pVol->GetWidth(), pVol->GetHeight()));
+
+	// calc coeffecients
+	CVectorN<TYPE> vCoeff;
+	vCoeff.SetDim(nMaxDim);
+	CalcBinomialCoeff(vCoeff);
+	TYPE norm = (TYPE) pow(2, 2 * (vCoeff.GetDim()-1));
+
+	// populate volume
+	TYPE ***pppVoxels = pVol->GetVoxels();
+	for (int nAtRow = 0; nAtRow < pVol->GetHeight(); nAtRow++)
+	{
+		for (int nAtCol = 0; nAtCol < pVol->GetWidth(); nAtCol++)
+		{
+			pppVoxels[0][nAtRow][nAtCol] = vCoeff[nAtRow] * vCoeff[nAtCol] 
+				/ norm;
+		}
+	}
+}	// CalcBinomialFilter
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -552,7 +617,7 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig, 
-			double angle, CVolume<VOXEL_TYPE> *pNew, CVectorD<2> vCenterNew)
+			REAL angle, CVolume<VOXEL_TYPE> *pNew, CVectorD<2> vCenterNew)
 {
 	pNew->ClearVoxels();
 
