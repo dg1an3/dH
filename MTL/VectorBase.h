@@ -16,6 +16,10 @@ using namespace std;
 // math utilities
 #include "MathUtil.h"
 
+#ifdef USE_XMLLOGGING
+#include <XMLLogging.h>
+#endif
+
 // forward-define CMatrix* as a friend class
 template<class TYPE>
 class CMatrixBase;
@@ -521,6 +525,23 @@ ostream& operator<<(ostream& os, const CVectorBase<TYPE>& v)
 
 
 //////////////////////////////////////////////////////////////////////
+// RandomVector
+//
+// initializes a random vector
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+void RandomVector(TYPE range, CVectorBase<TYPE>& v)
+{
+	for (int nAt = 0; nAt < v.GetDim(); nAt++)
+	{
+		v[nAt] = range - (TYPE) 2.0 * range * (TYPE) rand() 
+			/ (TYPE) RAND_MAX;
+	}
+
+}	// RandomVector
+
+
+//////////////////////////////////////////////////////////////////////
 // TraceVector
 //
 // helper function to output a vector for debugging
@@ -553,6 +574,50 @@ void TraceVector(const CVectorBase<TYPE>& vTrace)
 #else
 #define TRACE_VECTOR(strMessage, v)
 #endif
+
+#ifdef USE_XMLLOGGING
+//////////////////////////////////////////////////////////////////////
+// LogExprExt
+//
+// helper function for XML logging of vectors
+//////////////////////////////////////////////////////////////////////
+template<typename TYPE>
+void LogExprExt(const CVectorBase<TYPE>& vVec, const char *pszName, const char *pszModule)
+{
+	// get the global log file
+	CXMLLogFile *pLog = CXMLLogFile::GetLogFile();
+
+	// only if we are logging --
+	if (pLog->IsLogging())
+	{
+		// create a new expression element
+		CXMLElement *pVarElem = pLog->NewElement("lx", pszModule);
+
+		// if there is a name,
+		if (strlen(pszName) > 0)
+		{
+			// set it.
+			pVarElem->Attribute("name", pszName);
+		}
+
+		// set type to generice "CVector"
+		pVarElem->Attribute("type", "CVector");
+		
+		// get the current format for the element type
+		const char *pszFormat = pLog->GetFormat(vVec[0]);
+		for (int nAt = 0; nAt < vVec.GetDim(); nAt++)
+		{
+			// format each element
+			pLog->Format(pszFormat, vVec[nAt]);
+		}
+
+		// done.
+		pLog->GetLogFile()->CloseElement();
+	}
+
+}	// LogExprExt
+
+#endif	// USE_XMLLOGGING
 
 
 #ifdef _DEBUG
