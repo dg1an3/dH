@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -86,6 +86,10 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=.\Dib.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Histogram.cpp
 # End Source File
 # Begin Source File
 
@@ -118,6 +122,10 @@ SOURCE=.\Surface.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\TPSTransform.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\WinLevFilter.cpp
 # End Source File
 # End Group
@@ -126,27 +134,15 @@ SOURCE=.\WinLevFilter.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\include\Association.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\Collection.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\include\Dib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\Function.h
+SOURCE=.\include\Histogram.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\include\LookupFunction.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\Matrix.h
 # End Source File
 # Begin Source File
 
@@ -170,10 +166,6 @@ SOURCE=.\include\Resampler.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\ScalarFunction.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\StdAfx.h
 # End Source File
 # Begin Source File
@@ -182,15 +174,11 @@ SOURCE=.\include\Surface.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\Value.h
+SOURCE=.\include\TPSTransform.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\include\Vector.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\VectorN.h
+SOURCE=.\include\UtilMacros.h
 # End Source File
 # Begin Source File
 
