@@ -14,7 +14,7 @@
 #include "VectorN.h"
 
 // constant for pseudo-inverse
-const REAL PSEUDO_EPS = 1e-8;
+const REAL PSEUDO_EPS = (REAL) 1e-8;
 
 //////////////////////////////////////////////////////////////////////
 // class CMatrixNxM<TYPE>
@@ -208,7 +208,7 @@ void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows, BOOL bPreserve)
 		memset(pNewElements, 0, sizeof(TYPE) * nCols * nRows);
 
 		// create a temporary matrix to hold the old elements
-		CMatrixNxM<> mTemp;
+		CMatrixNxM<TYPE> mTemp;
 		mTemp.SetElements(nOldCols, nOldRows, pOldElements, TRUE);
 
 		// and assign
