@@ -59,7 +59,7 @@ void CDataSeries::AddDataPoint(const CVectorD<2>& vDataPt)
 	mTemp[mTemp.GetCols()-1][0] = vDataPt[0];
 	mTemp[mTemp.GetCols()-1][1] = vDataPt[1];
 
-	m_mData = mTemp;
+	m_mData = (const CMatrixBase<>&)(mTemp);
 
 	GetChangeEvent().Fire();
 }

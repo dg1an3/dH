@@ -86,7 +86,7 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 	vCurrPoint -= camera.GetTarget();
 
 	// compute the rotation matrix
-	CMatrixD<3> mRotate = CreateRotate(m_vPrevPoint, vCurrPoint, 4.0);
+	CMatrixD<3> mRotate; // = CreateRotate(m_vPrevPoint, vCurrPoint, 4.0);
 
 	// rotate the camera's direction
 	CVectorD<3> vNewDir = mRotate * camera.GetDirection();

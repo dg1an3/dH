@@ -154,7 +154,7 @@ void CSurfaceRenderable::SetObject(CObject *pObject)
 			this, Invalidate);
 
 		// set the renderables centroid to the center of the bounding box
-		SetCentroid(0.5 * (GetSurface()->GetBoundsMin() 
+		SetCentroid(((REAL) 0.5) * (GetSurface()->GetBoundsMin() 
 			+ GetSurface()->GetBoundsMax()));
 	}
 
