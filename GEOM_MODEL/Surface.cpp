@@ -26,6 +26,7 @@ static char THIS_FILE[]=__FILE__;
 // constructs a new surface object
 //////////////////////////////////////////////////////////////////////
 CSurface::CSurface()
+	: m_pRegion(NULL)
 {
 }
 
@@ -35,6 +36,7 @@ CSurface::CSurface()
 // copy constructor
 //////////////////////////////////////////////////////////////////////
 CSurface::CSurface(const CSurface& fromSurface)
+	: m_pRegion(NULL)
 {
 	// assign the surface
 	(*this) = fromSurface;
@@ -55,6 +57,9 @@ CSurface::~CSurface()
 
 	// and remove the items from the array
 	m_arrContours.RemoveAll();
+
+	// delete the region
+	delete m_pRegion;
 }
 
 
@@ -300,7 +305,7 @@ void CSurface::Serialize(CArchive &ar)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CSeries diagnostics
+// CSurface diagnostics
 
 #ifdef _DEBUG
 void CSurface::AssertValid() const
