@@ -75,6 +75,19 @@ public:
 		width.Set(nWidth);
 		height.Set(nHeight);
 		depth.Set(nDepth);
+
+		m_bRecomputeSum = TRUE;
+	}
+
+	VOXEL_TYPE GetSum()
+	{
+		VOXEL_TYPE sum = (VOXEL_TYPE) 0;
+		for (int nAtZ = 0; nAtZ < depth.Get(); nAtZ++)
+			for (int nAtY = 0; nAtY < height.Get(); nAtY++)
+				for (int nAtX = 0; nAtX < width.Get(); nAtX++)
+					sum += GetVoxels()[nAtZ][nAtY][nAtX];
+
+		return sum;
 	}
 
 	virtual void Serialize(CArchive& ar)
@@ -111,6 +124,10 @@ private:
 	// indirection arrays for voxels
 	CArray<VOXEL_TYPE *, VOXEL_TYPE *&> m_arrpVoxels;
 	CArray<VOXEL_TYPE **, VOXEL_TYPE **&> m_arrppVoxels;
+
+	// flag to recompute the volume's sum
+	BOOL m_bRecomputeSum;
+	VOXEL_TYPE m_sum;
 };
 
 template<class VOXEL_TYPE>

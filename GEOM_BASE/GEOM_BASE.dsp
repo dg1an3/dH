@@ -93,6 +93,10 @@ SOURCE=.\Edge.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Histogram.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Line.cpp
 # End Source File
 # Begin Source File
@@ -140,6 +144,10 @@ SOURCE=.\DelaunayTess.h
 # Begin Source File
 
 SOURCE=.\Edge.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Histogram.h
 # End Source File
 # Begin Source File
 
