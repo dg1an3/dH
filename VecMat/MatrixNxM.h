@@ -360,6 +360,7 @@ inline CVectorBase<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
 
 	// stored the product
 	CVectorBase<TYPE> vProduct(v);
+	vProduct.SetZero();
 
 	// step through the rows of the matrix
 	for (int nRow = 0; nRow < mat.GetRows(); nRow++)
