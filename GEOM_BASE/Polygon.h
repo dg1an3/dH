@@ -15,22 +15,34 @@
 class CPolygon : public CObservableObject
 {
 public:
+	// constructor
 	CPolygon();
+
+	// copy constructor
 	CPolygon(const CPolygon& fromPoly);
 
-	DECLARE_SERIAL(CPolygon)
-
+	// destructor
 	virtual ~CPolygon();
 
+	// serialization support for the polygon
+	DECLARE_SERIAL(CPolygon)
+
+	// assignment operator
 	CPolygon& operator=(const CPolygon& fromPoly);
 
+	// vertex accessors
 	int GetVertexCount();
 	const CVector<2>& GetVertex(int nIndex);
 	int AddVertex(CVector<2>& v);
 	void RemoveVertex(int nIndex);
 
+	// computes the signed area of the polygon
 	double GetSignedArea();
 
+	// turns this polygon into its own convex hull
+	void MakeConvexHull();
+
+	// serializes the polygon
 	void Serialize(CArchive &ar);
 
 	// direct access to vertex array
@@ -45,6 +57,7 @@ public:
 #endif
 
 private:
+	// the polygon's vertex array
 	CArray<CVector<2>, CVector<2>&> m_arrVertex;
 };
 
