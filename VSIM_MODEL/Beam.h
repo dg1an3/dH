@@ -76,9 +76,6 @@ public:
 	// the computed dose for this beam (NULL if no dose exists)
 	CVolume<double> dose;
 
-	// handles changes propagated from child objects
-//	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
-
 	// beam serialization
 	void Serialize(CArchive &ar);
 

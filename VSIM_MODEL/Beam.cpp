@@ -25,7 +25,8 @@ static char THIS_FILE[]=__FILE__;
 CBeam::CBeam()
 	: forMachine(&m_Machine),
 		SAD(&forMachine, &CTreatmentMachine::SAD),
-		projection(&forMachine, &CTreatmentMachine::projection)
+		projection(&forMachine, &CTreatmentMachine::projection),
+		isDoseValid(FALSE)
 {
 	forMachine.SetAutoObserver(this, (ChangeFunction) OnChange);
 
@@ -55,29 +56,33 @@ CBeam::CBeam()
 	collimMax.Set(CVector<2>(20.0, 20.0));
 }
 
-IMPLEMENT_SERIAL(CBeam, CModelObject, 1)
+#define BEAM_SCHEMA 2
+IMPLEMENT_SERIAL(CBeam, CModelObject, VERSIONABLE_SCHEMA | BEAM_SCHEMA)
+	// Schema 1: geometry description, blocks
+	// Schema 2: + dose matrix
 
 CBeam::~CBeam()
 {
 }
 
-//void CBeam::OnChange(CObservableObject *pSource, void *pOldValue)
-//{
-//	// propagate the change to any listeners on the beam
-//	FireChange();
-//}
-
 void CBeam::Serialize(CArchive &ar)
 {
+	// store the schema for the beam object
+	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : BEAM_SCHEMA;
+
+	// serialize the beam name
 	name.Serialize(ar);
 
 	// TODO: get this right
 	forMachine->Serialize(ar);
 
+	// serialize the beam geometry
 	collimAngle.Serialize(ar);
 	gantryAngle.Serialize(ar);
 	couchAngle.Serialize(ar);
 	tableOffset.Serialize(ar);
+
+	// serialize the collimator jaw settings
 	collimMin.Serialize(ar);
 	collimMax.Serialize(ar);
 
@@ -88,6 +93,25 @@ void CBeam::Serialize(CArchive &ar)
 
 	// serialize the block(s)
 	blocks.Serialize(ar);
+
+	// check the beam object's schema; only serialize the dose if 
+	//		we are storing or if we are loading with schema > 1
+	if (nSchema > 1)
+	{
+		// serialize the dose matrix valid flag
+		isDoseValid.Serialize(ar);
+
+		// empty the dose matrix if it is not valid
+		if (ar.IsStoring() && !isDoseValid.Get())
+		{
+			dose.width.Set(0);
+			dose.height.Set(0);
+			dose.depth.Set(0);
+		}
+
+		// serialize the dose matrix
+		dose.Serialize(ar);
+	}
 
 	// fire a change if we have just read in a new beam
 	if (!ar.IsStoring())

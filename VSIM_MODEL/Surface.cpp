@@ -100,24 +100,14 @@ double CSurface::GetMaxSize()
 		/ sqrt(2.0); 
 }
 
-/* void CSurface::AdjustSurface()
-{
-	CVector<3> vMin = GetBoundsMin();
-	CVector<3> vMax = GetBoundsMax();
-	CVector<3> vAvg = (vMin + vMax) * 0.5;
-
-	int nVertex;
-	for (nVertex = 0; nVertex < m_arrVertex.GetSize(); nVertex++) 
-    {
-		m_arrVertex[nVertex] -= vAvg;
-    }
-}
-*/
-
-IMPLEMENT_SERIAL(CSurface, CModelObject, 3)
+#define SURFACE_SCHEMA 4
+IMPLEMENT_SERIAL(CSurface, CModelObject, VERSIONABLE_SCHEMA | SURFACE_SCHEMA)
 
 void CSurface::Serialize(CArchive &ar)
 {
+	// store the schema for the beam object
+	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : SURFACE_SCHEMA;
+
 	name.Serialize(ar);
 
 	m_arrContours.Serialize(ar);
@@ -126,6 +116,13 @@ void CSurface::Serialize(CArchive &ar)
 	m_arrVertIndex.Serialize(ar);
 	m_arrVertex.Serialize(ar);
 	m_arrNormal.Serialize(ar);
+
+	if (nSchema > 3)
+	{
+		if (region.Get() == NULL)
+			region.Set(new CVolume<int>());
+		region->Serialize(ar);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////

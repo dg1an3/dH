@@ -14,8 +14,6 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPlan
 
-IMPLEMENT_DYNCREATE(CPlan, CDocument)
-
 BEGIN_MESSAGE_MAP(CPlan, CDocument)
 	//{{AFX_MSG_MAP(CPlan)
 		// NOTE - the ClassWizard will add and remove mapping macros here.
@@ -27,7 +25,8 @@ END_MESSAGE_MAP()
 // CPlan 
 
 CPlan::CPlan()
-	: m_pSeries(NULL)
+	: m_pSeries(NULL),
+		isDoseValid(FALSE)
 {
 }
 
@@ -48,8 +47,11 @@ void CPlan::SetSeries(CSeries *pSeries)
 /////////////////////////////////////////////////////////////////////////////
 // CPlan serialization
 
+IMPLEMENT_DYNCREATE(CPlan, CDocument)
+
 void CPlan::Serialize(CArchive& ar)
 {
+	// serialize the document
 	CDocument::Serialize(ar);
 
 	if (ar.IsStoring())
@@ -68,6 +70,27 @@ void CPlan::Serialize(CArchive& ar)
 	}
 
 	beams.Serialize(ar);
+
+	// serialize the dose matrix valid flag
+	isDoseValid.Serialize(ar);
+
+	// empty the dose matrix if it is not valid
+	if (ar.IsStoring() && !isDoseValid.Get())
+	{
+		dose.width.Set(0);
+		dose.height.Set(0);
+		dose.depth.Set(0);
+	}
+
+	// serialize the dose matrix
+	dose.Serialize(ar);
+
+	// now make sure the series is loaded
+	if (ar.IsStoring())
+	{ 
+		// now save the associated series
+		GetSeries()->SaveModified();
+	}
 }
 
 CDocTemplate * CPlan::m_pSeriesDocTemplate = NULL;
