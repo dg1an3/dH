@@ -138,7 +138,7 @@ CVolume<double> *CPlan::GetDoseMatrix()
 
 
 // histogram accessor
-CHistogram *CPlan::GetHistogram(CSurface *pStructure)
+CHistogram *CPlan::GetHistogram(CMesh *pStructure)
 {
 	for (int nAt = 0; nAt < GetSeries()->GetStructureCount(); nAt++)
 	{
@@ -448,7 +448,7 @@ void CPlan::SetBeamWeights(const CVectorN<>& vWeights)
 }
 
 // DVH accessors
-const CMatrixNxM<> *CPlan::GetTargetDVH(CSurface *pStructure)
+const CMatrixNxM<> *CPlan::GetTargetDVH(CMesh *pStructure)
 {
 	CMatrixNxM<> *pmTargetDVH;
 	if (m_mapTargetDVHs.Lookup(pStructure->GetName(), (void *&) pmTargetDVH))
@@ -459,7 +459,7 @@ const CMatrixNxM<> *CPlan::GetTargetDVH(CSurface *pStructure)
 	return NULL;
 }
 
-void CPlan::SetTargetDVH(CSurface *pStructure, CMatrixNxM<> *pmTargetDVH)
+void CPlan::SetTargetDVH(CMesh *pStructure, CMatrixNxM<> *pmTargetDVH)
 {
 	CMatrixNxM<> *pmOldTargetDVH = (CMatrixNxM<> *)GetTargetDVH(pStructure);
 	delete pmOldTargetDVH;

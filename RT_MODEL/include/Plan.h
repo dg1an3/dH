@@ -46,7 +46,7 @@ public:
 	void SetSeries(CSeries *pSeries);
 
 	// histogram accessor
-	CHistogram *GetHistogram(CSurface *pSurface);
+	CHistogram *GetHistogram(CMesh *pSurface);
 
 	// the beams for this plan
 	int GetBeamCount() const;
@@ -60,8 +60,8 @@ public:
 	void SetBeamWeights(const CVectorN<>& vWeights);
 
 	// DVH accessors
-	const CMatrixNxM<> *GetTargetDVH(CSurface *pStructure);
-	void SetTargetDVH(CSurface *pStructure, CMatrixNxM<> *pmTarget);
+	const CMatrixNxM<> *GetTargetDVH(CMesh *pStructure);
+	void SetTargetDVH(CMesh *pStructure, CMatrixNxM<> *pmTarget);
 
 	// the computed dose for this plan (NULL if no dose exists)
 	CVolume<double> *GetDoseMatrix();
