@@ -107,8 +107,12 @@ CVectorN<TYPE>& CVectorN<TYPE>::operator=(const CVectorN<TYPE>& vFrom)
 	// set the dimensionality of the vector
 	SetDim(vFrom.GetDim());
 
-	// copy the elements
-	memcpy((*this), vFrom, __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+	if (GetDim() > 0)
+	{
+		// copy the elements
+		memcpy(&(*this)[0], &vFrom[0], 
+			__min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+	}
 
 	// set remainder of elements to 0
 	if (GetDim() > vFrom.GetDim())
@@ -135,7 +139,7 @@ CVectorN<TYPE>& CVectorN<TYPE>::operator=(const CVectorBase<TYPE>& vFrom)
 	SetDim(vFrom.GetDim());
 
 	// copy the elements
-	memcpy((*this), vFrom, __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+	memcpy(&(*this)[0], &vFrom[0], __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
 
 	// set remainder of elements to 0
 	if (GetDim() > vFrom.GetDim())
@@ -177,7 +181,7 @@ void CVectorN<TYPE>::SetDim(int nDim)
 			if (pOldElements)
 			{
 				// copy the elements
-				memcpy((*this), pOldElements, __min(GetDim(), nOldDim) * sizeof(TYPE));
+				memcpy(&(*this)[0], pOldElements, __min(GetDim(), nOldDim) * sizeof(TYPE));
 			}
 
 			// set remainder of elements to 0
