@@ -482,6 +482,42 @@ inline CMatrix<3> CreateRotate(const double& theta,
 }
 
 //////////////////////////////////////////////////////////////////////
+// function CreateRotate
+//
+// creates a 3D rotation matrix given two positions: a pre-rotated
+//		position and a post-rotated position. scale is a scale factor
+//		for the resulting rotation.
+//////////////////////////////////////////////////////////////////////
+inline CMatrix<3> CreateRotate(const CVector<3>& vInitPt,
+	const CVector<3>& vFinalPt, double scale)
+{
+	// compute the length of the two legs of the triangle (a & b)
+	double a = vInitPt.GetLength(); 
+	double b = vFinalPt.GetLength();
+	
+	// compute the length of the segment connecting the initial and final
+	//		point (c)
+	double c = (vFinalPt - vInitPt).GetLength();
+
+	// compute the angle theta using the law of cosines
+	double theta = 0.0;
+	if (a * b != 0.0)
+	{
+		theta = (2.0 * PI - acos((a * a + b * b - c * c) 
+			/ (2.0 * a * b)));
+	}
+
+	// compute the axis of rotation = normalized cross product of 
+	//		initial and current drag points
+	CVector<3> u = Cross(vFinalPt, vInitPt);
+	u.Normalize();
+
+	// now compute the rotation matrix
+	return CreateRotate(scale * theta, u);
+}
+
+
+//////////////////////////////////////////////////////////////////////
 // function CreateScale
 //
 // creates a scaling matrix from a vector whose element's lengths 
