@@ -8,6 +8,7 @@
 #include "stdafx.h"
 
 #include <MatrixNxM.h>
+#include <MatrixBase.inl>
 
 #include "TPSTransform.h"
 
