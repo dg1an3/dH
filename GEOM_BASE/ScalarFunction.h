@@ -28,7 +28,7 @@ inline double div(const double& l, const double& r) { return l / r; }
 // declare function factories for real arithmetic
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY2_RENAME(operator+, add, double)
-FUNCTION_FACTORY2_RENAME(operator-, sub, double)
+FUNCTION_FACTORY2_RENAME_ARG(operator-, sub, double, double, double)
 // FUNCTION_FACTORY2_RENAME(operator*, mul, double)
 FUNCTION_FACTORY2_RENAME(operator/, div, double)
 

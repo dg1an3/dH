@@ -441,8 +441,24 @@ CArchive& operator>>(CArchive &ar, CVector<DIM, TYPE>& v)
 // declare function factories for vector arithmetic
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY2(operator+, CVector<4>)
-// FUNCTION_FACTORY2(operator-, CVector<4>)
-// FUNCTION_FACTORY2(operator*, CVector<4>)
+FUNCTION_FACTORY2_ARG(operator-, CVector<3>, CVector<3>, CVector<3>)
+FUNCTION_FACTORY2_ARG(operator-, CVector<4>, CVector<4>, CVector<4>)
+// FUNCTION_FACTORY2_ARG(operator*, CVector<3>, CVector<3>, double)
+// FUNCTION_FACTORY2_ARG(operator*, CVector<3>, double, CVector<3>)
+// FUNCTION_FACTORY2_ARG(operator*, CVector<4>, CVector<4>, double)
+// FUNCTION_FACTORY2_ARG(operator*, CVector<4>, double, CVector<4>)
+
+/*
+inline 
+CValue< CVector<3> >& operator*(CValue< CVector<3> >& lVal, const double& rConst)
+{																			
+	CValue< CVector<3> > *pFunc =													
+		new CFunction2< CVector<3>, CVector<3>, double >						
+			(operator*, &lVal, rConst);	
+	lVal.AddDerivedObject((CObject *)pFunc);								
+	return (*pFunc);														
+}																			
+*/
 
 //////////////////////////////////////////////////////////////////////
 // macro TRACE_VECTOR3

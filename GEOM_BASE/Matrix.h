@@ -498,7 +498,8 @@ inline CMatrix<DIM, TYPE> Invert(const CMatrix<DIM, TYPE>& m)
 //////////////////////////////////////////////////////////////////////
 FUNCTION_FACTORY2(operator+, CMatrix<4>)
 // FUNCTION_FACTORY2(operator-, CMatrix<4>)
-FUNCTION_FACTORY2(operator*, CMatrix<4>)
+// FUNCTION_FACTORY2(operator*, CMatrix<4>)
+FUNCTION_FACTORY2_ARG(operator*, CMatrix<4>, CMatrix<4>, CMatrix<4>)
 
 //////////////////////////////////////////////////////////////////////
 // declare function factories for matrix creation from parameters
