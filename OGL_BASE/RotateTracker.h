@@ -32,7 +32,6 @@ private:
 	// stores the initial projection matrix
 	CMatrix<4> m_initProjMatrix;
 	CMatrix<4> m_initModelXform;
-	CVector<3> m_vInitDirection;
 };
 
 #endif // !defined(AFX_ROTATETRACKER_H__1369AB32_F2ED_11D4_9E3C_00B0D0609AB0__INCLUDED_)

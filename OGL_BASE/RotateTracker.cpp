@@ -49,8 +49,6 @@ CMatrix<4> ComputeRotMatrix(const CVector<3>& vInitPt,
 	return CreateRotate(theta, u);
 }
 
-FUNCTION_FACTORY2(ComputeRotMatrix, CMatrix<4>)
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -67,6 +65,8 @@ CRotateTracker::~CRotateTracker()
 
 void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
+	TRACE2("OnLButtonDown %i, %i\n", point.x, point.y);
+
 	// store the initial model transform matrix; subsequent rotations will be applied
 	//		to this matrix directly
 	m_initModelXform = m_pView->camera.modelXform.Get();
@@ -81,6 +81,8 @@ void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
+	TRACE2("OnMouseDrag %i, %i\n", point.x, point.y);
+
 	// compute the final point
 	CVector<3> vFinalPoint = 
 		m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
