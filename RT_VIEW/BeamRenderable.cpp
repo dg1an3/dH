@@ -47,6 +47,8 @@ CBeamRenderable::CBeamRenderable()
 		m_bFieldDivergenceSurfacesEnabled(FALSE),
 		m_bBlockDivergenceSurfacesEnabled(TRUE)
 {
+	SetColor(RGB(0, 255, 0));
+	SetAlpha(0.25);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -173,44 +175,6 @@ void CBeamRenderable::DescribeOpaque()
 
 	// describe field divergence as lines
 	DescribeFieldDivergenceLines();
-
-	// set up for surface rendering
-
-	// Create a Directional Light Source
-	glDisable(GL_LIGHTING);
-	glDisable(GL_LIGHT0);
-
-	// make the depth mask read-only
-	glDepthMask(GL_FALSE);
-
-	// glEnable(GL_BLEND);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	// glShadeModel(GL_FLAT);
-
-	glColor4f(0.0f, 1.0f, 0.0f, 0.25f);
-
-	// describe the field divergence surfaces
-	DescribeFieldDivergenceSurfaces();
-
-	// describe the block divergence surfaces
-	DescribeBlockDivergenceSurfaces();
-
-	glEnable(GL_COLOR_MATERIAL);
-
-	// Set the shading model
-	glShadeModel(GL_SMOOTH);
-
-	// Set the polygon mode to fill
-
-	// Create a Directional Light Source
-	glEnable(GL_LIGHT0);
-	glDisable(GL_BLEND);
-
-	// make the depth mask read-only
-	glDepthMask(GL_TRUE);
-
-	glEnable(GL_LIGHTING);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -390,6 +354,33 @@ void CBeamRenderable::DescribeFieldDivergenceLines()
 
 	glEnd();
 }
+
+//////////////////////////////////////////////////////////////////////
+// CBeamRenderable::DescribeAlpha
+// 
+// renders the beam surfaces
+//////////////////////////////////////////////////////////////////////
+void CBeamRenderable::DescribeAlpha()
+{
+	// set up for surface rendering
+
+	// Set the shading model
+	glShadeModel(GL_FLAT);
+
+	// glEnable(GL_BLEND);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// describe the field divergence surfaces
+	DescribeFieldDivergenceSurfaces();
+
+	// describe the block divergence surfaces
+	DescribeBlockDivergenceSurfaces();
+
+	// Set the shading model
+	glShadeModel(GL_SMOOTH);
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // CBeamRenderable::DescribeFieldDivergenceSurfaces

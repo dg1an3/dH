@@ -42,7 +42,7 @@ public:
 	// over-ride to the set the object to a beam
 	virtual void SetObject(CObject *pObject);
 
-	// renders the beam
+	// renders the beam with lines
 	virtual void DescribeOpaque();
 
 	// description of items on the collimator plane
@@ -53,6 +53,9 @@ public:
 	// description of divergence lines
 	void DescribeCentralAxis();
 	void DescribeFieldDivergenceLines();
+
+	// renders the beam surfaces
+	virtual void DescribeAlpha();
 
 	// description of divergence surfaces
 	void DescribeBlockDivergenceSurfaces();
