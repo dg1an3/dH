@@ -431,4 +431,21 @@ void TraceVector(const CVectorBase<TYPE>& vTrace)
 #endif
 
 
+#ifdef _DEBUG
+//////////////////////////////////////////////////////////////////////
+// function VectorValid
+//
+// asserts that the vector has valid values
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+void VectorValid(const CVectorBase<TYPE>& v)
+{
+	for (int nAt = 0; nAt < v.GetDim(); nAt++)
+	{
+		ASSERT(_finite(v[nAt]) && !_isnan(v[nAt]));
+	}
+}
+#endif
+
+
 #endif	// !defined(VECTORBASE_H)
