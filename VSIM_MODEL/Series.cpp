@@ -80,6 +80,7 @@ void CSeries::Serialize(CArchive& ar)
 {
 	CDocument::Serialize(ar);
 
+	volumeTransform.Serialize(ar);
 	volume.Serialize(ar);
 
 	if (!ar.IsStoring())
