@@ -93,6 +93,10 @@ SOURCE=.\ConjGradOptimizer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CubicInterpOptimizer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\GradDescOptimizer.cpp
 # End Source File
 # Begin Source File
@@ -127,6 +131,10 @@ SOURCE=.\include\BrentOptimizer.h
 # Begin Source File
 
 SOURCE=.\include\ConjGradOptimizer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\CubicInterpOptimizer.h
 # End Source File
 # Begin Source File
 
