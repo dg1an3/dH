@@ -119,13 +119,32 @@ int CPlan::GetBeamCount() const
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// CPlan::GetTotalBeamletCount
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+int CPlan::GetTotalBeamletCount(int nScale)
+{
+	int nBeamlets = 0;
+
+	for (int nAtBeam = 0; nAtBeam < GetBeamCount(); nAtBeam++)
+	{
+		nBeamlets += GetBeamAt(nAtBeam)->GetBeamletCount(nScale);
+	}
+
+	return nBeamlets;
+
+}	// CPlan::GetTotalBeamletCount
+
+
+///////////////////////////////////////////////////////////////////////////////
 // CPlan::GetBeamAt
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CBeam * CPlan::GetBeamAt(int nAt)
+CBeamIMRT * CPlan::GetBeamAt(int nAt)
 {
-	return (CBeam *) m_arrBeams.GetAt(nAt);
+	return m_arrBeams.GetAt(nAt);
 
 }	// CPlan::GetBeamAt
 
@@ -135,7 +154,7 @@ CBeam * CPlan::GetBeamAt(int nAt)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-int CPlan::AddBeam(CBeam *pBeam)
+int CPlan::AddBeam(CBeamIMRT *pBeam)
 {
 	int nIndex = m_arrBeams.Add(pBeam);
 	pBeam->GetChangeEvent().AddObserver(this, (ListenerFunction) OnBeamChange);
@@ -148,6 +167,34 @@ int CPlan::AddBeam(CBeam *pBeam)
 	return nIndex;
 
 }	// CPlan::AddBeam
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CPlan::SetBeamCount
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CPlan::SetBeamCount(int nCount)
+{
+	// TODO: clear current beams
+	for (int nAt = 0; nAt < m_arrBeams.GetSize(); nAt++)
+		delete m_arrBeams[nAt];
+	m_arrBeams.RemoveAll();
+
+	// create new beams
+	REAL angleDelta = atan(1.0) * 8.0 / (REAL) nCount;
+	REAL angle = 0.0; // 
+		// 2.25 * atan(1.0) * 8.0 / 7.0;
+	for (int nAngle = 0; nAngle < nCount; nAngle++)
+	{
+		CBeamIMRT *pBeam = new CBeamIMRT();
+		pBeam->SetGantryAngle(angle);
+		m_arrBeams.Add(pBeam);
+
+		angle += angleDelta;
+	}
+
+}	// CPlanIMRT::SetBeamCount
 
 
 ///////////////////////////////////////////////////////////////////////////////

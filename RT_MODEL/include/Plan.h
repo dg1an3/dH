@@ -17,7 +17,7 @@
 #include "Series.h"
 
 // beams belonging to the plan
-#include "Beam.h"
+#include "BeamIMRT.h"
 
 // histograms for the plan
 #include <Histogram.h>
@@ -32,7 +32,7 @@
 //////////////////////////////////////////////////////////////////////
 class CPlan : public CDocument
 {
-protected: // create from serialization only
+public: // create from serialization only
 	// constructor
 	CPlan();
 
@@ -50,8 +50,11 @@ public:
 
 	// the beams for this plan
 	int GetBeamCount() const;
-	CBeam * GetBeamAt(int nAt);
-	int AddBeam(CBeam *pBeam);
+	CBeamIMRT * GetBeamAt(int nAt);
+	int AddBeam(CBeamIMRT *pBeam);
+
+	int GetTotalBeamletCount(int nScale);
+	void SetBeamCount(int nCount);
 
 	int m_nFields;
 
@@ -103,7 +106,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	// the plan's beams
-	CObArray m_arrBeams;
+	CTypedPtrArray<CPtrArray, CBeamIMRT*> m_arrBeams;
 
 private:
 	// the series upon which this plan is based

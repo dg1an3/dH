@@ -11,6 +11,7 @@
 #include <Optimizer.h>
 
 #include <Histogram.h>
+#include <HistogramMatcher.h>
 
 #include <Structure.h>
 
@@ -138,14 +139,31 @@ public:
 class CPrescription : public CObjectiveFunction  
 {
 public:
-	CPrescription();
+	CPrescription(CPlan *pPlan);
 	virtual ~CPrescription();
 
 	void SetPlan(CPlan *pPlan, int nLevels = 3);
 
+	int AddStructure(CStructure *pStruct, REAL weight);
+	CHistogram * GetHistogram(CStructure *pStruct, int nScale);
+
 	void AddStructureTerm(CVOITerm *pST);
 	void RemoveStructureTerm(CStructure *pStruct);
 	CVOITerm *GetStructureTerm(CStructure *pStruct);
+
+	//////////////////////////
+
+	void GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet);
+
+	void GetStateVector(int nScale, CVectorN<>& vState);
+	void SetStateVector(int nScale, const CVectorN<>& vState);
+
+	void InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN<>& vOut, BOOL bFixNeg);
+
+	void StateVectorToBeamletWeights(int nScale, const CVectorN<>& vState, CMatrixNxM<>& mBeamletWeights);
+	void BeamletWeightsToStateVector(int nScale, const CMatrixNxM<>& mBeamletWeights, CVectorN<>& vState);
+
+	///////////////////////////////////
 
 	BOOL Optimize(CCallbackFunc func);
 
@@ -153,13 +171,18 @@ public:
 	virtual REAL operator()(const CVectorN<>& vInput, 
 		CVectorN<> *pGrad = NULL) const;
 
-protected:
+public:
+	CPlan *m_pPlan;
 	COptimizer * m_pOptimizer;
 	CPrescription *m_pNextLevel;
 
 	CVolume<double> *m_pSumVolume;
 
-	CMapPtrToPtr m_mapVOITerms;
+	CTypedPtrMap<CMapPtrToPtr, CStructure*, CVOITerm*> m_mapVOITerms;
+
+	CTypedPtrMap<CMapPtrToPtr, CStructure*, CHistogram*> m_mapHistograms[MAX_SCALES];
+
+	CTypedPtrArray<CPtrArray, CHistogramMatcher*> m_arrHistoMatchers;
 
 };	// class CPrescription
 
