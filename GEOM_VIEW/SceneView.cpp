@@ -23,6 +23,14 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+// constant for setting alpha to opaque
+const double MAX_ALPHA = 0.99;
+
+// constants for reflectance properties
+GLfloat DEFAULT_SPECULAR[] = { 0.5, 0.5, 0.5, 1.0 };
+GLfloat DEFAULT_SHININESS[] = { 20.0 };
+
+
 /////////////////////////////////////////////////////////////////////////////
 // IMPLEMENT_DYNCREATE -- implements the dynamic creation mechanism for
 //		CSceneView
@@ -498,28 +506,6 @@ int CSceneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// set depth testing for hidden line removal
 	glClearDepth(1.0f);
-	glEnable(GL_DEPTH_TEST);
-
-	// Set the shading model
-	glShadeModel(GL_SMOOTH);
-
-	// Set the polygon mode to fill
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	// Define material properties of specular color and degree of 
-	// shininess.  Since this is only done once in this particular 
-	// example, it applies to all objects.  Material properties can 
-	// be set for individual objects, individual faces of the objects,
-	// individual vertices of the faces, etc... 
-	GLfloat specular [] = { 0.5, 0.5, 0.5, 1.0 };
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-	GLfloat shininess [] = { 20.0 };
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-
-	// Set the GL_AMBIENT_AND_DIFFUSE color state variable to be the
-	// one referred to by all following calls to glColor
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	glEnable(GL_COLOR_MATERIAL);
 
 	// create the default lights for the view
 
@@ -617,9 +603,15 @@ void CSceneView::OnPaint()
 	// make sure we are using the correct rendering context
 	MakeCurrentGLRC();
 
+	//////////////////////////////////////////////////////////////////////////
+	// set up rendering
+
 	// clear the buffers
 	glClearColor(GetBackgroundColor());
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// enable depth testing
+	glEnable(GL_DEPTH_TEST);
 
 	// load the projection matrix
 	glMatrixMode(GL_PROJECTION);
@@ -634,23 +626,99 @@ void CSceneView::OnPaint()
 	// sort the renderables from furthest to nearest
 	SortRenderables();
 
+	// Set the polygon mode to fill
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// Define material properties of specular color and degree of 
+	// shininess.  
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, DEFAULT_SPECULAR);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, DEFAULT_SHININESS);
+
+	// Set the GL_AMBIENT_AND_DIFFUSE color state variable to be the
+	// one referred to by all following calls to glColor
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
+
+	//////////////////////////////////////////////////////////////////////////
+	// render opaque objects
+
 	// for each renderer, 
 	for (int nAt = 0; nAt < GetRenderableCount(); nAt++)
 	{
-		// save the current model matrix state
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
+		// enable depth buffer writing
+		glDepthMask(GL_TRUE);
 
-		// load the renderer's modelview matrix
-		glLoadMatrix(GetRenderableAt(nAt)->GetModelviewMatrix());
+		// disable blending
+		glDisable(GL_BLEND);
+
+		// set up the rendering context
+		SetupRenderable(GetRenderableAt(nAt));
 
 		// draw its scene
-		GetRenderableAt(nAt)->Render();
+		GetRenderableAt(nAt)->DescribeOpaqueDrawList();
 
 		// restore the model matrix state
 		glMatrixMode(GL_MODELVIEW);
 		glPopMatrix();
+
+		// also draw the alpha part of the renderable, 
+		//		if alpha is greater than the max
+		if (GetRenderableAt(nAt)->GetAlpha() > MAX_ALPHA)
+		{
+			// set up the rendering context
+			SetupRenderable(GetRenderableAt(nAt));
+
+			// draw its scene
+			GetRenderableAt(nAt)->DescribeAlphaDrawList();
+
+			// restore the model matrix state
+			glMatrixMode(GL_MODELVIEW);
+			glPopMatrix();
+		}
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// render alpha-blended objects
+
+	// arrays holding parameters for the four passes
+	GLenum arrFaces[] =		   { GL_FRONT, GL_FRONT, GL_BACK, GL_BACK };
+	GLboolean arrDepthMask[] = { GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE };
+
+	for (int nAtPass = 0; nAtPass < 4; nAtPass++)
+	{
+		// for each renderer, 
+		for (nAt = 0; nAt < GetRenderableCount(); nAt++)
+		{
+			if (GetRenderableAt(nAt)->GetAlpha() <= MAX_ALPHA)
+			{
+				// set up the rendering context
+				SetupRenderable(GetRenderableAt(nAt));
+
+				// enable culling
+				glEnable(GL_CULL_FACE);
+
+				// set front face culling
+				glCullFace(arrFaces[nAtPass]);
+
+				// set depth buffer writing
+				glDepthMask(arrDepthMask[nAtPass]);
+
+				// enable blending
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				// draw its scene
+				GetRenderableAt(nAt)->DescribeAlphaDrawList();
+
+				// restore the model matrix state
+				glMatrixMode(GL_MODELVIEW);
+				glPopMatrix();
+			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// finish up rendering
 
 	// finish up the rendering
 	glFinish();
@@ -837,4 +905,28 @@ void CSceneView::OnMouseMove(UINT nFlags, CPoint point)
 			return;
 		}
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CSceneView::SetupRenderable
+// 
+// sets up the rendering context for the renderable
+/////////////////////////////////////////////////////////////////////////////
+void CSceneView::SetupRenderable(CRenderable *pRenderable)
+{
+	// save the current model matrix state
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+
+	// load the renderer's modelview matrix
+	glLoadMatrix(pRenderable->GetModelviewMatrix());
+
+	// Set the shading model
+	glShadeModel(GL_SMOOTH);
+
+	// enable lighting
+	glEnable(GL_LIGHTING);
+
+	// set the drawing color
+	glColor(pRenderable->GetColor());
 }

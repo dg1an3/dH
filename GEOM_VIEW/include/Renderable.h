@@ -39,7 +39,7 @@ public:
 
 	// sets the object being rendered
 	CObject *GetObject();
-	void SetObject(CObject *pObject);
+	virtual void SetObject(CObject *pObject);
 
 	// color for the renderer (use depends on objects being rendered)
 	COLORREF GetColor() const;
@@ -76,13 +76,15 @@ protected:
 	// the view for this class
 	CSceneView *m_pView;
 
-	// Renders the scene -- called by DrawScene to create the drawlist
+	// describes the opaque part of the object
 	virtual void DescribeOpaque();
-	virtual void DescribeTransparent(double scale = 0.5);
 
-	// called to draw the scene -- don't over-ride this unless the
-	//		drawlist logic needs to be overridden
-	virtual void Render();
+	// describes the part controlled by the alpha parameter
+	virtual void DescribeAlpha();
+
+	// draw list management functions
+	void DescribeOpaqueDrawList();
+	void DescribeAlphaDrawList();
 
 private:
 	// the object being described
@@ -92,7 +94,7 @@ private:
 	COLORREF m_color;	
 
 	// the rendering transparency
-	COLORREF m_alpha;	
+	double m_alpha;	
 
 	// the centroid of the renderable; used to determine rendering order
 	CVector<3> m_vCentroid;
@@ -103,8 +105,11 @@ private:
 	// the enabled flag
 	BOOL m_bEnabled;
 
-	// the draw list for draw compilation
-	int m_nDrawList;
+	// the draw list for opaque draw compilation
+	int m_nDrawListOpaque;
+
+	// the draw list for alpha draw compilation
+	int m_nDrawListAlpha;
 };
 
 #endif // !defined(RENDERABLE_H)

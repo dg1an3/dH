@@ -35,7 +35,8 @@ static char THIS_FILE[]=__FILE__;
 CRenderable::CRenderable()
 	: m_pObject(NULL),
 		m_pView(NULL),
-		m_nDrawList(-1),
+		m_nDrawListOpaque(-1),
+		m_nDrawListAlpha(-1),
 		m_color(RGB(255, 255, 255)),
 		m_alpha(1.0),
 		m_bEnabled(TRUE)
@@ -150,7 +151,15 @@ const CVector<3>& CRenderable::GetCentroid() const
 //////////////////////////////////////////////////////////////////////
 void CRenderable::SetCentroid(const CVector<3>& vCentroid)
 {
+	// set the renderable centroid
 	m_vCentroid = vCentroid;
+
+	// invalidate if we are live
+	if (NULL != m_pView)
+	{
+		// now we need to re-sort
+		m_pView->SortRenderables();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -173,8 +182,12 @@ void CRenderable::SetModelviewMatrix(const CMatrix<4>& m)
 	// set the modelview matrix
 	m_mModelview = m;
 
-	// and invalidate the view to redraw without re-rendering
-	m_pView->Invalidate();
+	// invalidate if we are live
+	if (NULL != m_pView)
+	{
+		// and invalidate the view to redraw without re-rendering
+		m_pView->Invalidate();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -197,8 +210,12 @@ void CRenderable::SetEnabled(BOOL bEnabled)
 	// set the enabled flag
 	m_bEnabled = bEnabled;
 
-	// and invalidate the view to redraw without re-rendering
-	m_pView->Invalidate();
+	// invalidate if we are live
+	if (NULL != m_pView)
+	{
+		// and invalidate the view to redraw without re-rendering
+		m_pView->Invalidate();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -218,13 +235,23 @@ void CRenderable::Invalidate(CObservableEvent *pEvent, void *pValue)
 	m_pView->MakeCurrentGLRC();
 
 	// if the draw list exists,
-	if (m_nDrawList != -1)
+	if (-1 != m_nDrawListOpaque)
 	{
 		// delete it
-		glDeleteLists(m_nDrawList, 1);
+		glDeleteLists(m_nDrawListOpaque, 1);
 
 		// set it to -1
-		m_nDrawList = -1;
+		m_nDrawListOpaque = -1;
+	}
+
+	// if the draw list exists,
+	if (-1 != m_nDrawListAlpha)
+	{
+		// delete it
+		glDeleteLists(m_nDrawListAlpha, 1);
+
+		// set it to -1
+		m_nDrawListAlpha = -1;
 	}
 
 	// invalidate the view, which will trigger re-rendering
@@ -245,16 +272,16 @@ void CRenderable::DescribeOpaque()
 // 
 // call to describe the transparent part of the renderable
 //////////////////////////////////////////////////////////////////////
-void CRenderable::DescribeTransparent(double scale)
+void CRenderable::DescribeAlpha()
 {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// CRenderable::Render
+// CRenderable::DescribeOpaqueDrawList
 // 
-// creates a draw list for the renderable
+// forms a call list for the opaque parts, and then calls it
 //////////////////////////////////////////////////////////////////////
-void CRenderable::Render()
+void CRenderable::DescribeOpaqueDrawList()
 {
 	// only draw if enabled
 	if (!IsEnabled())
@@ -263,37 +290,66 @@ void CRenderable::Render()
 	}
 
 	// see if we need to re-create the draw list
-	if (m_nDrawList == -1)
+	if (-1 == m_nDrawListOpaque)
 	{
 		// generate a new draw list name
-		m_nDrawList = glGenLists(1);
-
-		// check for error in creating the draw list
-		ASSERT(m_nDrawList != 0);
-		ASSERT(glIsList(m_nDrawList) == GL_TRUE);
-
-		// check for other errors
-		GLenum error = glGetError();
-		ASSERT(error == GL_NO_ERROR);
+		m_nDrawListOpaque = glGenLists(1);
 
 		// create the list
-		glNewList(m_nDrawList, GL_COMPILE);
+		glNewList(m_nDrawListOpaque, GL_COMPILE);
 
 		// now populate the draw list
 		DescribeOpaque();
 
 		// finish up the list
 		glEndList();
-
-		// make sure nothing bad happened
-		error = glGetError();
-		ASSERT(error == GL_NO_ERROR);
 	}
 
 	// now actually render the scene
-	glCallList(m_nDrawList);
+	glCallList(m_nDrawListOpaque);
 
+#ifdef _DEBUG
 	// make sure nothing bad happened
 	GLenum glerror = glGetError();
 	ASSERT(glerror == GL_NO_ERROR);
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////
+// CRenderable::DescribeAlphaDrawList
+// 
+// forms a call list for the alpha parts, and then calls it
+//////////////////////////////////////////////////////////////////////
+void CRenderable::DescribeAlphaDrawList()
+{
+	// only draw if enabled
+	if (!IsEnabled())
+	{
+		return;
+	}
+
+	// see if we need to re-create the draw list
+	if (-1 == m_nDrawListAlpha)
+	{
+		// generate a new draw list name
+		m_nDrawListAlpha = glGenLists(1);
+
+		// create the list
+		glNewList(m_nDrawListAlpha, GL_COMPILE);
+
+		// now populate the draw list
+		DescribeAlpha();
+
+		// finish up the list
+		glEndList();
+	}
+
+	// now actually render the scene
+	glCallList(m_nDrawListAlpha);
+
+#ifdef _DEBUG
+	// make sure nothing bad happened
+	GLenum glerror = glGetError();
+	ASSERT(glerror == GL_NO_ERROR);
+#endif
 }

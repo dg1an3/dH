@@ -98,11 +98,13 @@ protected:
 	//		position
 	void SortRenderables();
 
+	// member function to set up the rendering context for the renderable
+	void SetupRenderable(CRenderable *pRenderable);
+
 	// friend classes can access the OpenGL rendering context
 	friend class CRenderable;
 	friend class CTexture;
 
-public:
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
