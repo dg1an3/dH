@@ -119,15 +119,15 @@ SOURCE=.\ObjectExplorer.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\ObjectExplorerControlBar.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\ObjectTreeItem.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\Renderable.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\RenderableObjectExplorer.cpp
 # End Source File
 # Begin Source File
 
@@ -208,6 +208,10 @@ SOURCE=.\include\Renderable.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\include\RenderableObjectExplorer.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\RotateTracker.h
 # End Source File
 # Begin Source File
@@ -235,6 +239,14 @@ SOURCE=.\include\Tracker.h
 SOURCE=.\include\ZoomTracker.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\res\folder_closed.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\folder_opened.bmp
+# End Source File
 # Begin Source File
 
 SOURCE=.\Readme.txt
