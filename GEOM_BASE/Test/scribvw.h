@@ -27,6 +27,7 @@ protected:
 
 // Operations
 public:
+	void DrawEdge(CDC* pDC, Edge *pEdge);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -49,6 +50,12 @@ public:
 #endif
 
 protected:
+
+	// scalars for the current window size
+	double m_cx, m_cy;
+
+	// time stamp for drawing
+	int m_nTimeStamp;
 
 // Generated message map functions
 protected:

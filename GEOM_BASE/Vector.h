@@ -3,8 +3,10 @@
 
 #include <math.h>
 
+#define EPS (1e-6)
+
 #define IS_APPROX_EQUAL(v1, v2) \
-	(fabs(v1- v2) < (1e-6))
+	(fabs(v1- v2) < (EPS))
 
 template<int DIM = 4, class TYPE = double>
 class CVector
@@ -86,6 +88,11 @@ public:
 		return CPoint((int)(*this)[0], (int)(*this)[1]);
 	}
 #endif
+
+	BOOL IsApproxEqual(const CVector& v) const
+	{
+		return ((*this - v).GetLength() < EPS);
+	}
 
 	CVector& operator+=(const CVector& vRight)
 	{

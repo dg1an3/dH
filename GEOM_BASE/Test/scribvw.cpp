@@ -22,16 +22,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-CDC *g_pDC = NULL;
-double g_cx = 100.0;
-double g_cy = 100.0;
-
-void DrawLine(double *a, double *b)
-{
-	g_pDC->MoveTo(CPoint((int) (a[0] * g_cx), (int) (a[1] * g_cy)));
-	g_pDC->LineTo(CPoint((int) (b[0] * g_cx), (int) (b[1] * g_cy)));
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // CScribbleView
 
@@ -53,6 +43,9 @@ END_MESSAGE_MAP()
 // CScribbleView construction/destruction
 
 CScribbleView::CScribbleView()
+: m_nTimeStamp(0),
+	m_cx(100.0),
+	m_cy(100.0)
 {
 }
 
@@ -70,6 +63,26 @@ BOOL CScribbleView::PreCreateWindow(CREATESTRUCT& cs)
 
 /////////////////////////////////////////////////////////////////////////////
 // CScribbleView drawing
+
+void CScribbleView::DrawEdge(CDC* pDC, Edge *pEdge)
+{
+	// pEdge->Draw(m_timeStamp);
+	if (pEdge->Qedge()->TimeStamp(m_nTimeStamp)) 
+	{
+		// Draw the edge
+		CVector<2> a = pEdge->Org2d();
+		CVector<2> b = pEdge->Dest2d();
+
+		pDC->MoveTo(CPoint((int) (a[0] * m_cx), (int) (a[1] * m_cy)));
+		pDC->LineTo(CPoint((int) (b[0] * m_cx), (int) (b[1] * m_cy)));
+
+		// visit neighbors
+		DrawEdge(pDC, pEdge->Onext());
+		DrawEdge(pDC, pEdge->Oprev());
+		DrawEdge(pDC, pEdge->Dnext());
+		DrawEdge(pDC, pEdge->Dprev());
+	}
+}
 
 void CScribbleView::OnDraw(CDC* pDC)
 {
@@ -90,12 +103,13 @@ void CScribbleView::OnDraw(CDC* pDC)
 	GetClientRect(&rect);
 
 	// now draw the mesh
-	g_cx = rect.Width();
-	g_cy = rect.Height();
+	m_cx = rect.Width();
+	m_cy = rect.Height();
 
-	g_pDC = pDC;
+	if (++m_nTimeStamp == 0)
+		m_nTimeStamp = 1;
 
-	pDoc->m_mesh.Draw();
+	DrawEdge(pDC, pDoc->m_mesh.GetStartingEdge()); 
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -151,17 +165,14 @@ void CScribbleView::OnLButtonDown(UINT, CPoint point)
 	m_pStrokeCur->m_pointArray.Add(point);
 
 #else
-	// Adding a point to the mesh
-	CRect rect;
-	GetClientRect(&rect);
 
-	double x = (double) point.x / (double) rect.Width();
-	double y = (double) point.y / (double) rect.Height();
+	double x = (double) point.x / m_cx; 
+	double y = (double) point.y / m_cy; 
 
 	x = (x < 0.01) ? 0.01 : (x > 0.99) ? 0.99 : x;
 	y = (y < 0.01) ? 0.01 : (y > 0.99) ? 0.99 : y;
 
-	GetDocument()->m_mesh.InsertSite(Point2d(x, y));
+	GetDocument()->m_mesh.InsertSite(CVector<2>(x, y));
 
 	RedrawWindow();
 #endif
@@ -227,16 +238,14 @@ void CScribbleView::OnMouseMove(UINT, CPoint point)
 	if (ptOffset.x * ptOffset.x + ptOffset.y * ptOffset.y > 10 * 10)
 	{
 		// Adding a point to the mesh
-		CRect rect;
-		GetClientRect(&rect);
 
-		double x = (double) point.x / (double) rect.Width();
-		double y = (double) point.y / (double) rect.Height();
+		double x = (double) point.x / m_cx; 
+		double y = (double) point.y / m_cy; 
 
 		x = (x < 0.01) ? 0.01 : (x > 0.99) ? 0.99 : x;
 		y = (y < 0.01) ? 0.01 : (y > 0.99) ? 0.99 : y;
 
-		GetDocument()->m_mesh.InsertSite(Point2d(x, y));
+		GetDocument()->m_mesh.InsertSite(CVector<2>(x, y));
 
 		m_ptPrev = point;
 		RedrawWindow();

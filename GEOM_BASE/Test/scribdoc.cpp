@@ -37,9 +37,9 @@ END_MESSAGE_MAP()
 // CScribbleDoc construction/destruction
 
 CScribbleDoc::CScribbleDoc()
-: m_mesh(Point2d(0, 0), Point2d(2.0, 0.0), Point2d(0.0, 2.0))
+: m_mesh(CVector<2>(0, 0), CVector<2>(2.0, 0.0), CVector<2>(0.0, 2.0))
 {
-	m_mesh.InsertPoints(2);
+//	m_mesh.InsertPoints(2);
 }
 
 CScribbleDoc::~CScribbleDoc()
