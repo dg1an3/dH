@@ -31,3 +31,17 @@ should add to or customize.
 
 
 /////////////////////////////////////////////////////////////////////////////
+TODO:
+
+1) Files to be cleaned:
+
+	Graph.h
+	Graph.cpp
+	ObjectExplorer.h
+	ObjectExplorer.cpp
+	ObjectExplorerControlBar.h
+	ObjectExplorerControlBar.cpp
+	ObjectTreeItem.h
+	ObjectTreeItem.cpp
+	TabControlBar.h
+	TabControlBar.cpp
