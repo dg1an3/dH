@@ -11,7 +11,13 @@
 
 // base class includes
 #include "Optimizer.h"
+
+// subordinate brent optimizer
 #include "BrentOptimizer.h"
+
+// the line function for the Brent optimizer
+#include "LineFunction.h"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // constants used to optimize
@@ -72,7 +78,8 @@ CVector<DIM, TYPE> CConjGradOptimizer<DIM, TYPE>::Optimize(const CVector<DIM, TY
 	TYPE fp = (*m_pFunc)(m_vFinalParam);
 	CVector<DIM, TYPE> xi = m_pFunc->Grad(m_vFinalParam);
 
-	CVector<DIM, TYPE> g = -1.0 * xi;
+	CVector<DIM, TYPE> g = xi;
+	g *= -1.0;
 	CVector<DIM, TYPE> h = xi = g;
 
 	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
@@ -115,7 +122,8 @@ CVector<DIM, TYPE> CConjGradOptimizer<DIM, TYPE>::Optimize(const CVector<DIM, TY
 
 		TYPE gam = dgg / gg;
 
-		g = -1.0 * xi;
+		g = xi;
+		g *= -1.0;
 		xi = g + gam * h;
 		h = xi;
 	}
