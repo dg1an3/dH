@@ -356,7 +356,7 @@ inline CMatrixD<DIM, TYPE> operator*(TYPE scalar,
 	return mProduct;
 }
 
-#ifdef _WINDOWS
+#ifdef __AFX_H__
 
 //////////////////////////////////////////////////////////////////////
 // function operator<<

@@ -135,7 +135,7 @@ public:
 	}
 };
 
-#ifdef _WINDOWS
+#ifdef __AFX_H__
 
 //////////////////////////////////////////////////////////////////////
 // function operator<<(CArchive &ar, CVector)
