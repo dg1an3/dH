@@ -9,7 +9,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Value.h>
+// #include <Value.h>
 #include <ModelObject.h>
 
 #include <Matrix.h>
@@ -18,23 +18,22 @@ class CTreatmentMachine : public CModelObject
 {
 public:
 	CTreatmentMachine();
+	virtual ~CTreatmentMachine();
 
 	DECLARE_SERIAL(CTreatmentMachine)
 
-	virtual ~CTreatmentMachine();
-
 	// machine identification
-	CValue< CString > manufacturer;
-	CValue< CString > model;
-	CValue< CString > serialNumber;
+	CString m_strManufacturer;
+	CString m_strModel;
+	CString m_strSerialNumber;
 
 	// machine parameters
-	CValue< double > SAD;	// source-axis distance
-	CValue< double > SCD;	// source-collimator distance
-	CValue< double > SID;	// source-image distance
+	double m_SAD;	// source-axis distance
+	double m_SCD;	// source-collimator distance
+	double m_SID;	// source-image distance
 
 	// the projection matrix for the machine
-	CValue< CMatrix<4> > projection;
+	CMatrix<4> m_projection;
 
 	// serialization
 	void Serialize(CArchive &ar);

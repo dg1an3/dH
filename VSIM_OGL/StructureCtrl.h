@@ -7,7 +7,7 @@
 // StructureCtrl.h : header file
 //
 
-#include "Value.h"
+// #include "Value.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CStructureCtrl dialog
@@ -18,7 +18,7 @@ class CStructureCtrl : public CDialogBar
 public:
 	CStructureCtrl(); // CWnd* pParent = NULL);   // standard constructor
 
-	CValue<BOOL> arrEnabled[8];
+	BOOL m_arrEnabled[8];
 
 // Dialog Data
 	//{{AFX_DATA(CStructureCtrl)

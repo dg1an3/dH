@@ -10,10 +10,6 @@
 #endif // _MSC_VER > 1000
 
 #include <ModelObject.h>
-#include <Value.h>
-#include <Association.h>
-// #include <AutoSyncValue.h>
-#include <Collection.h>
 
 #include <Vector.h>
 #include <Matrix.h>
@@ -33,48 +29,51 @@ public:
 	// serialization support
 	DECLARE_SERIAL(CBeam)
 
-private:
-	// private copy of a treatment machine; default machine for this beam
-	CTreatmentMachine m_Machine;
-
-public:
-	// association to the treatment machine for this beam
-	CAssociation< CTreatmentMachine > forMachine;
-
-	// synced copies of machine parameters
-	CAutoSyncValue< CTreatmentMachine, double > SAD;
-	CAutoSyncValue< CTreatmentMachine, CMatrix<4> > projection;
+	// returns a pointer to the treatment machine
+	CTreatmentMachine *GetTreatmentMachine();
 
 	// angle values
-	CValue< double > collimAngle;
-	CValue< double > gantryAngle;
-	CValue< double > couchAngle;
+	double GetCollimAngle() const;
+	void SetCollimAngle(double collimAngle);
+	double GetGantryAngle() const;
+	void SetGantryAngle(double gantryAngle);
+	double GetCouchAngle() const;
+	void SetCouchAngle(double couchAngle);
 
 	// table offset
-	CValue< CVector<3> > tableOffset;
+	const CVector<3>& GetTableOffset() const;
+	void SetTableOffset(const CVector<3>& vTableOffset);
 
 	// collimator jaw settings
-	CValue< CVector<2> > collimMin;
-	CValue< CVector<2> > collimMax;
+	const CVector<2>& GetCollimMin() const;
+	void SetCollimMin(const CVector<2>& vCollimMin);
+
+	const CVector<2>& GetCollimMax() const;
+	void SetCollimMax(const CVector<2>& vCollimMin);
 
 	// computed transform from patient to beam coordinates
-	CValue< CMatrix<4> > beamToPatientXform;
+	const CMatrix<4>& GetBeamToPatientXform() const;
+	void SetBeamToPatientXform(const CMatrix<4>& m);
 
 	// boolean value to indicate that shielding blocks are used
 	//		by this beam
-	CValue< BOOL > hasShieldingBlocks;
+	BOOL GetHasShieldingBlocks() const;
 
 	// collection of blocks
-	CCollection< CPolygon > blocks;
+	int GetBlockCount() const;
+	CPolygon *GetBlockAt(int nAt);
+	int AddBlock(CPolygon *pBlock);
 
 	// the weight for this beam (from 0.0 to 1.0)
-	CValue< double > weight;
+	double GetWeight() const;
+	void SetWeight(double weight);
 
 	// flag to indicate whether the plan's dose is valid
-	CValue<BOOL> isDoseValid;
+	BOOL IsDoseValid() const;
+	void SetDoseValid(BOOL bValid = TRUE);
 
 	// the computed dose for this beam (NULL if no dose exists)
-	CVolume<double> dose;
+	CVolume<double> *GetDoseMatrix();
 
 	// beam serialization
 	void Serialize(CArchive &ar);
@@ -84,14 +83,41 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-protected:
-	// change handler to re-compute the angles and table offset from a change
-	//		in the beam-to-patient transform matrix
-	void OnBeamToPatientXformChanged(CObservableObject *pFromObject, 
-		void *pOldValue);
+private:
+	// private copy of a treatment machine; default machine for this beam
+	CTreatmentMachine m_Machine;
 
-	// re-entrance sentinel for changing the BeamToPatientXform
-	BOOL m_bChangingXform;
+	// angles
+	double m_collimAngle;
+	double m_gantryAngle;
+	double m_couchAngle;
+
+	// table parameters
+	CVector<3> m_vTableOffset;
+
+	// collimator jaw settings
+	CVector<2> m_vCollimMin;
+	CVector<2> m_vCollimMax;
+
+	// stores the current xform matrix; mutable because it is recomputed
+	//		in the Get accessor
+	mutable CMatrix<4> m_beamToPatientXform;
+
+	// boolean value to indicate that shielding blocks are used
+	//		by this beam
+	BOOL m_bHasShieldingBlocks;
+
+	// collection of blocks
+	CObArray m_arrBlocks;	// CPolygon
+
+	// the weight for this beam (from 0.0 to 1.0)
+	double m_weight;
+
+	// flag to indicate whether the plan's dose is valid
+	BOOL m_bDoseValid;
+
+	// the computed dose for this beam (NULL if no dose exists)
+	CVolume<double> m_dose;
 };
 
 #endif // !defined(AFX_BEAM_H__C7A6AA30_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)

@@ -16,11 +16,9 @@ static char THIS_FILE[] = __FILE__;
 
 
 CBeamParamPosCtrl::CBeamParamPosCtrl(CWnd* pParent /*=NULL*/)
-	: CDialog(CBeamParamPosCtrl::IDD, pParent)
+	: CDialog(CBeamParamPosCtrl::IDD, pParent),
+		m_pBeam(NULL)
 {
-	// add this as a change listener on the beam
-	forBeam.AddObserver(this, (ChangeFunction) OnChange);
-
 	//{{AFX_DATA_INIT(CBeamParamPosCtrl)
 	m_nCouchAngle = 0;
 	m_nGantryAngle = 0;
@@ -36,12 +34,12 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 
 	// if loading the data into the dialog box
-	if (!pDX->m_bSaveAndValidate && forBeam.Get() != NULL)
+	if (!pDX->m_bSaveAndValidate && m_pBeam != NULL)
 	{
-		m_nGantryAngle = (int)(forBeam->gantryAngle.Get() * 180.0 / PI);
-		m_nCouchAngle  = (int)(forBeam->couchAngle.Get()  * 180.0 / PI);
+		m_nGantryAngle = (int)(m_pBeam->GetGantryAngle() * 180.0 / PI);
+		m_nCouchAngle  = (int)(m_pBeam->GetCouchAngle()  * 180.0 / PI);
 
-		const CVector<3>& vOffset = forBeam->tableOffset.Get();
+		const CVector<3>& vOffset = m_pBeam->GetTableOffset();
 		m_nTableX = (int) vOffset[0];
 		m_nTableY = (int) vOffset[1];
 		m_nTableZ = (int) vOffset[2];
@@ -60,31 +58,29 @@ void CBeamParamPosCtrl::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxInt(pDX, m_nTableZ, -200, 200);
 	//}}AFX_DATA_MAP
 
-	if (pDX->m_bSaveAndValidate && forBeam.Get() != NULL)
+	if (pDX->m_bSaveAndValidate && m_pBeam != NULL)
 	{
-		forBeam->gantryAngle.RemoveObserver(this, (ChangeFunction) OnChange);
-		forBeam->gantryAngle.Set(((double)m_nGantryAngle) * PI / 180.0);
-		forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
+		// m_pBeam->gantryAngle.RemoveObserver(this, (ChangeFunction) OnChange);
+		m_pBeam->SetGantryAngle(((double)m_nGantryAngle) * PI / 180.0);
+		//m_pBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
 
-		forBeam->couchAngle.RemoveObserver(this, (ChangeFunction) OnChange);
-		forBeam->couchAngle.Set(((double)m_nCouchAngle) * PI / 180.0);
-		forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
+		// m_pBeam->couchAngle.RemoveObserver(this, (ChangeFunction) OnChange);
+		m_pBeam->SetCouchAngle(((double)m_nCouchAngle) * PI / 180.0);
+		// m_pBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
 
 		CVector<3> vOffset(m_nTableX, m_nTableY, m_nTableZ);
-		forBeam->tableOffset.Set(vOffset);
+		m_pBeam->SetTableOffset(vOffset);
 	}
 }
 
-void CBeamParamPosCtrl::OnChange(CObservableObject *pFromObject, void *pOldValue)
+void CBeamParamPosCtrl::SetBeam(CBeam *pBeam)
 {
-	if (pFromObject == &forBeam)
-	{
-		forBeam->gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
-		forBeam->couchAngle.AddObserver(this, (ChangeFunction) OnChange);
-	}
+	m_pBeam = pBeam;
 
 	if (::IsWindow(m_hWnd))
+	{
 		UpdateData(FALSE);
+	}
 }
 
 BEGIN_MESSAGE_MAP(CBeamParamPosCtrl, CDialog)
@@ -122,7 +118,7 @@ BOOL CBeamParamPosCtrl::OnInitDialog()
 
 void CBeamParamPosCtrl::OnApplyChanges() 
 {
-	if (::IsWindow(m_hWnd) && forBeam.Get() != NULL)
+	if (::IsWindow(m_hWnd) && m_pBeam != NULL)
 	{
 		BOOL bResult = UpdateData(TRUE);
 		ASSERT(bResult);

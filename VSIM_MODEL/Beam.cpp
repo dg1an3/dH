@@ -3,14 +3,15 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-// #include "cube.h"
-#include "Beam.h"
 
-#include "math.h"
+#include <math.h>
 
-#include <Function.h>
+#include <UtilMacros.h>
+
 #include <Vector.h>
 #include <Matrix.h>
+
+#include "Beam.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -23,108 +24,282 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 
 CBeam::CBeam()
-	: forMachine(&m_Machine),
-		SAD(&forMachine, &CTreatmentMachine::SAD),
-		projection(&forMachine, &CTreatmentMachine::projection),
-		isDoseValid(FALSE),
-		m_bChangingXform(FALSE)
+	: m_collimAngle(0.0),
+		m_gantryAngle(PI),
+		m_couchAngle(0.0),
+
+		m_vTableOffset(CVector<3>(0.0, 0.0, 0.0)),
+
+		m_vCollimMin(CVector<2>(-20.0, -20.0)),
+		m_vCollimMax(CVector<2>(20.0, 20.0)),
+		m_bDoseValid(FALSE)
 {
-	forMachine.SetAutoObserver(this, (ChangeFunction) OnChange);
-
-	::AddObserver<CBeam>(&collimAngle, this, OnChange);
-	::AddObserver<CBeam>(&gantryAngle, this, OnChange);
-	::AddObserver<CBeam>(&couchAngle, this, OnChange);
-	::AddObserver<CBeam>(&tableOffset, this, OnChange);
-	::AddObserver<CBeam>(&collimMin, this, OnChange);
-	::AddObserver<CBeam>(&collimMax, this, OnChange);
-	::AddObserver<CBeam>(&blocks, this, OnChange);
-	::AddObserver<CBeam>(&beamToPatientXform, this, OnBeamToPatientXformChanged);
-
-	// set up the beam-to-patient transform computation
-	CValue< CMatrix<4> >& privBeamToPatientXform =
-		  CreateTranslate(tableOffset)
-		* CreateRotate(couchAngle,		CVector<3>(0.0, 0.0, -1.0))
-		* CreateRotate(PI - gantryAngle,	CVector<3>(0.0, -1.0, 0.0))
-		* CreateRotate(collimAngle,		CVector<3>(0.0, 0.0, -1.0))
-		* CreateTranslate(SAD, CVector<3>(0.0, 0.0, -1.0));
-	beamToPatientXform.SyncTo(&privBeamToPatientXform);
-	::AddObserver<CBeam>(&beamToPatientXform, this, OnChange);
-
-	collimAngle.Set(0.0);
-	gantryAngle.Set(PI);
-	couchAngle.Set(0.0);
-	tableOffset.Set(CVector<3>(0.0, 0.0, 0.0));
-	collimMin.Set(CVector<2>(-20.0, -20.0));
-	collimMax.Set(CVector<2>(20.0, 20.0));
 }
 
-#define BEAM_SCHEMA 2
-IMPLEMENT_SERIAL(CBeam, CModelObject, VERSIONABLE_SCHEMA | BEAM_SCHEMA)
+#define BEAM_SCHEMA 3
 	// Schema 1: geometry description, blocks
 	// Schema 2: + dose matrix
+	// Schema 3: + call to CModelObject base class serialization
+
+IMPLEMENT_SERIAL(CBeam, CModelObject, VERSIONABLE_SCHEMA | BEAM_SCHEMA)
 
 CBeam::~CBeam()
 {
+	// delete the blocks
+	for (int nAt = 0; nAt < m_arrBlocks.GetSize(); nAt++)
+	{
+		delete m_arrBlocks[nAt];
+	}
 }
+
+// returns a pointer to the treatment machine
+CTreatmentMachine *CBeam::GetTreatmentMachine()
+{
+	return &m_Machine;
+}
+
+// angle values
+double CBeam::GetCollimAngle() const
+{
+	return m_collimAngle;
+}
+
+void CBeam::SetCollimAngle(double collimAngle)
+{
+	m_collimAngle = collimAngle;
+	GetChangeEvent().Fire();
+}
+
+double CBeam::GetGantryAngle() const
+{
+	return m_gantryAngle;
+}
+
+void CBeam::SetGantryAngle(double gantryAngle)
+{
+	m_gantryAngle = gantryAngle;
+	GetChangeEvent().Fire();
+}
+
+double CBeam::GetCouchAngle() const
+{
+	return m_couchAngle;
+}
+
+void CBeam::SetCouchAngle(double couchAngle)
+{
+	m_couchAngle = couchAngle;
+	GetChangeEvent().Fire();
+}
+
+// table offset
+const CVector<3>& CBeam::GetTableOffset() const
+{
+	return m_vTableOffset;
+}
+
+void CBeam::SetTableOffset(const CVector<3>& vTableOffset)
+{
+	m_vTableOffset = vTableOffset;
+	GetChangeEvent().Fire();
+}
+
+
+// collimator jaw settings
+const CVector<2>& CBeam::GetCollimMin() const
+{
+	return m_vCollimMin;
+}
+
+void CBeam::SetCollimMin(const CVector<2>& vCollimMin)
+{
+	m_vCollimMin = vCollimMin;
+	GetChangeEvent().Fire();
+}
+
+
+const CVector<2>& CBeam::GetCollimMax() const
+{
+	return m_vCollimMax;
+}
+
+void CBeam::SetCollimMax(const CVector<2>& vCollimMax)
+{
+	m_vCollimMax = vCollimMax;
+	GetChangeEvent().Fire();
+}
+
+const CMatrix<4>& CBeam::GetBeamToPatientXform() const
+{
+	// set up the beam-to-patient transform computation
+	m_beamToPatientXform = CreateTranslate(m_vTableOffset)
+
+		* CMatrix<4>(CreateRotate(m_couchAngle,	
+												CVector<3>(0.0, 0.0, -1.0)))
+		* CMatrix<4>(CreateRotate(PI - m_gantryAngle,	
+												CVector<3>(0.0, -1.0, 0.0)))
+		* CMatrix<4>(CreateRotate(m_collimAngle,		
+												CVector<3>(0.0, 0.0, -1.0)))
+		* CreateTranslate(m_Machine.m_SAD,		CVector<3>(0.0, 0.0, -1.0));
+
+	return m_beamToPatientXform;
+}
+
+void CBeam::SetBeamToPatientXform(const CMatrix<4>& m)
+{
+	// factor the B2P matrix into the rotation components
+	double gantry = acos(m[2][2]);	// gantry in [0..PI]
+
+	double couch = 0.0;
+	double coll = 0.0;
+
+	if (gantry != 0.0)
+	{
+		double cos_couch = m[2][0] / sin(gantry);
+
+		// make sure the couch angle will be in [-PI..PI]
+		if (cos_couch < 0.0)
+		{
+			gantry = 2 * PI - gantry;
+			cos_couch = m[2][0] / sin(gantry);
+		}
+
+		double sin_couch = m[2][1] / sin(gantry);
+		couch = AngleFromSinCos(sin_couch, cos_couch);
+
+		double cos_coll =  -m[0][2] / sin(gantry);
+		double sin_coll =  m[1][2] / sin(gantry);
+		coll = AngleFromSinCos(sin_coll, cos_coll);
+	}
+
+	// set the couch angle
+	m_couchAngle = couch;
+
+	// ensure the gantry angle is in the correct range
+	double actGantry = PI - gantry;
+	actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
+	m_gantryAngle = actGantry;
+
+	// set the collimator angle
+	m_collimAngle = coll;
+
+	GetChangeEvent().Fire();
+}
+
+// boolean value to indicate that shielding blocks are used
+//		by this beam
+BOOL CBeam::GetHasShieldingBlocks() const
+{
+	return m_bHasShieldingBlocks;
+}
+
+// collection of blocks
+int CBeam::GetBlockCount() const
+{
+	return m_arrBlocks.GetSize();
+}
+
+CPolygon *CBeam::GetBlockAt(int nAt)
+{
+	return (CPolygon *) m_arrBlocks[nAt];
+}
+
+int CBeam::AddBlock(CPolygon *pBlock)
+{
+	int nAt = m_arrBlocks.Add(pBlock);
+
+	GetChangeEvent().Fire();
+
+	return nAt;
+}
+
+// the weight for this beam (from 0.0 to 1.0)
+double CBeam::GetWeight() const
+{
+	return m_weight;
+}
+
+void CBeam::SetWeight(double weight)
+{
+	m_weight = weight;
+
+	GetChangeEvent().Fire();
+}
+
+// flag to indicate whether the plan's dose is valid
+BOOL CBeam::IsDoseValid() const
+{
+	return m_bDoseValid;
+}
+
+void CBeam::SetDoseValid(BOOL bValid)
+{
+	m_bDoseValid = bValid;
+}
+
+// the computed dose for this beam (NULL if no dose exists)
+CVolume<double> *CBeam::GetDoseMatrix()
+{
+	return &m_dose;
+}
+
 
 void CBeam::Serialize(CArchive &ar)
 {
 	// store the schema for the beam object
 	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : BEAM_SCHEMA;
 
-	// serialize the beam name
-	name.Serialize(ar);
-
-	// TODO: get this right
-	forMachine->Serialize(ar);
-
-	// serialize the beam geometry
-	collimAngle.Serialize(ar);
-	gantryAngle.Serialize(ar);
-	couchAngle.Serialize(ar);
-	tableOffset.Serialize(ar);
-
-	if (ar.IsLoading())
+	// call base class for schema >= 3
+	if (nSchema >= 3)
 	{
-		collimAngle.Set(0);
-		gantryAngle.Set(0);
-		couchAngle.Set(0);
+		CModelObject::Serialize(ar);
+	}
+	else
+	{
+		SERIALIZE_VALUE(ar, m_strName);
 	}
 
-	// serialize the collimator jaw settings
-	collimMin.Serialize(ar);
-	collimMax.Serialize(ar);
+	// serialize the machine description
+	m_Machine.Serialize(ar);
 
-	// if we are reading in a new beam, clear out any existing 
-	//		blocks before serializing
-	if (!ar.IsStoring())
-		blocks.RemoveAll();	
+	// serialize angles
+	SERIALIZE_VALUE(ar, m_collimAngle);
+	SERIALIZE_VALUE(ar, m_gantryAngle);
+	SERIALIZE_VALUE(ar, m_couchAngle);
+
+	// TODO: is this really necessary?
+	if (ar.IsLoading())
+	{
+		m_collimAngle = 0.0;
+		m_gantryAngle = 0.0;
+		m_couchAngle = 0.0;
+	}
+
+	// serialize table parameters
+	SERIALIZE_VALUE(ar, m_vTableOffset);
+
+	// serialize the collimator jaw settings
+	SERIALIZE_VALUE(ar, m_vCollimMin);
+	SERIALIZE_VALUE(ar, m_vCollimMax);
 
 	// serialize the block(s)
-	blocks.Serialize(ar);
+	SERIALIZE_ARRAY(ar, m_arrBlocks);
 
 	// check the beam object's schema; only serialize the dose if 
-	//		we are storing or if we are loading with schema > 1
-	if (nSchema > 1)
+	//		we are storing or if we are loading with schema >= 2
+	if (nSchema >= 2)
 	{
-		// serialize the dose matrix valid flag
-		isDoseValid.Serialize(ar);
+		SERIALIZE_VALUE(ar, m_bDoseValid);
 
 		// empty the dose matrix if it is not valid
-		if (ar.IsStoring() && !isDoseValid.Get())
+		if (ar.IsStoring() && !m_bDoseValid)
 		{
-			dose.width.Set(0);
-			dose.height.Set(0);
-			dose.depth.Set(0);
+			m_dose.SetDimensions(0, 0, 0);
 		}
 
 		// serialize the dose matrix
-		dose.Serialize(ar);
+		m_dose.Serialize(ar);
 	}
-
-	// fire a change if we have just read in a new beam
-	if (!ar.IsStoring())
-		FireChange();		// TODO: is this necessary?
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -150,18 +325,18 @@ void CBeam::Dump(CDumpContext& dc) const
 
 	CREATE_TAB(dc.GetDepth());
 
-	DC_TAB(dc) << "Collimator Angle = " << collimAngle.Get() << "\n";
-	DC_TAB(dc) << "Gantry Angle     = " << gantryAngle.Get() << "\n";
-	DC_TAB(dc) << "Couch Angle      = " << couchAngle.Get()  << "\n";
+	DC_TAB(dc) << "Collimator Angle = " << GetCollimAngle() << "\n";
+	DC_TAB(dc) << "Gantry Angle     = " << GetGantryAngle() << "\n";
+	DC_TAB(dc) << "Couch Angle      = " << GetCouchAngle()  << "\n";
 
-	DC_TAB(dc) << "Table Offset     = <" << tableOffset.Get()[0] 
-		<< ", " << tableOffset.Get()[1] 
-		<< ", " << tableOffset.Get()[2] << ">\n";
+	DC_TAB(dc) << "Table Offset     = <" << GetTableOffset()[0] 
+		<< ", " << GetTableOffset()[1] 
+		<< ", " << GetTableOffset()[2] << ">\n";
 
-	DC_TAB(dc) << "Collimator Min X = " << collimMin.Get()[0] << "\n";
-	DC_TAB(dc) << "Collimator Max X = " << collimMax.Get()[0] << "\n";
-	DC_TAB(dc) << "Collimator Min Y = " << collimMin.Get()[1] << "\n";
-	DC_TAB(dc) << "Collimator Max Y = " << collimMax.Get()[1] << "\n";
+	DC_TAB(dc) << "Collimator Min X = " << GetCollimMin()[0] << "\n";
+	DC_TAB(dc) << "Collimator Max X = " << GetCollimMax()[0] << "\n";
+	DC_TAB(dc) << "Collimator Min Y = " << GetCollimMin()[1] << "\n";
+	DC_TAB(dc) << "Collimator Max Y = " << GetCollimMax()[1] << "\n";
 
 	PUSH_DUMP_DEPTH(dc);
 
@@ -171,55 +346,3 @@ void CBeam::Dump(CDumpContext& dc) const
 	POP_DUMP_DEPTH(dc);
 }
 #endif //_DEBUG
-
-void CBeam::OnBeamToPatientXformChanged(CObservableObject *pFromObject, 
-	void *pOldValue)
-{
-	// check if we are already changing the xform
-	if (m_bChangingXform)
-		return;
-
-	// set flag to prevent re-entrance
-	m_bChangingXform = TRUE;
-
-	// get a reference to the transform
-	const CMatrix<4>& mXform = beamToPatientXform.Get();
-
-	// now factor the B2P matrix into translation and rotation components
-	double gantry = acos(mXform[2][2]);	// gantry in [0..PI]
-
-	double couch = 0.0;
-	double coll = 0.0;
-
-	if (gantry != 0.0)
-	{
-		double cos_couch = mXform[2][0] / sin(gantry);
-		// make sure the couch angle will be in [-PI..PI]
-		if (cos_couch < 0.0)
-		{
-			gantry = 2 * PI - gantry;
-			cos_couch = mXform[2][0] / sin(gantry);
-		}
-
-		double sin_couch = mXform[2][1] / sin(gantry);
-		couch = AngleFromSinCos(sin_couch, cos_couch);
-
-		double cos_coll =  -mXform[0][2] / sin(gantry);
-		double sin_coll =  mXform[1][2] / sin(gantry);
-		coll = AngleFromSinCos(sin_coll, cos_coll);
-	}
-
-	// set the couch angle
-	couchAngle.Set(couch);
-
-	// ensure the gantry angle is in the correct range
-	double actGantry = PI - gantry;
-	actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
-	gantryAngle.Set(actGantry);
-
-	// set the collimator angle
-	collimAngle.Set(coll);
-
-	// clear re-entrance flag
-	m_bChangingXform = FALSE;
-}

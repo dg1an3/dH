@@ -11,7 +11,6 @@
 
 #include <Matrix.h>
 
-#include <Collection.h>
 #include <Volumep.h>
 
 #include "Surface.h"
@@ -28,13 +27,13 @@ protected:
 // Attributes
 public:
 	// Transform to position the volume in 3-space
-	CValue< CMatrix<4> > volumeTransform;
+	CMatrix<4> m_volumeTransform;
 
 	// Volume data for the series
 	CVolume< short > volume;
 
 	// Structures for the series
-	CCollection< CSurface > structures;
+	CObArray m_arrStructures;
 
 // Operations
 public:

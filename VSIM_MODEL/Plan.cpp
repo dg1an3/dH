@@ -3,6 +3,8 @@
 
 #include "stdafx.h"
 
+#include <UtilMacros.h>
+
 #include "Plan.h"
 
 #ifdef _DEBUG
@@ -26,12 +28,17 @@ END_MESSAGE_MAP()
 
 CPlan::CPlan()
 	: m_pSeries(NULL),
-		isDoseValid(FALSE)
+		m_bDoseValid(FALSE)
 {
 }
 
 CPlan::~CPlan()
 {
+	// delete the beams
+	for (int nAt = 0; nAt < m_arrBeams.GetSize(); nAt++)
+	{
+		delete m_arrBeams[nAt];
+	}
 }
 
 CSeries * CPlan::GetSeries()
@@ -44,6 +51,25 @@ void CPlan::SetSeries(CSeries *pSeries)
 	m_pSeries = pSeries;
 }
 
+int CPlan::GetBeamCount() const
+{
+	return m_arrBeams.GetSize();
+}
+
+CBeam * CPlan::GetBeamAt(int nAt)
+{
+	return (CBeam *) m_arrBeams.GetAt(nAt);
+}
+
+int CPlan::AddBeam(CBeam *pBeam)
+{
+	int nIndex = m_arrBeams.Add(pBeam);
+
+	// a change has occurred, so update views
+	UpdateAllViews(NULL);
+
+	return nIndex;
+}
 /////////////////////////////////////////////////////////////////////////////
 // CPlan serialization
 
@@ -66,24 +92,22 @@ void CPlan::Serialize(CArchive& ar)
 		ar >> m_strSeriesFilename;
 
 		// now clear out any existing beams
-		beams.RemoveAll();
+		m_arrBeams.RemoveAll();
 	}
 
-	beams.Serialize(ar);
+	m_arrBeams.Serialize(ar);
 
 	// serialize the dose matrix valid flag
-	isDoseValid.Serialize(ar);
+	SERIALIZE_VALUE(ar, m_bDoseValid);
 
 	// empty the dose matrix if it is not valid
-	if (ar.IsStoring() && !isDoseValid.Get())
+	if (ar.IsStoring() && !m_bDoseValid)
 	{
-		dose.width.Set(0);
-		dose.height.Set(0);
-		dose.depth.Set(0);
+		m_dose.SetDimensions(0, 0, 0);
 	}
 
 	// serialize the dose matrix
-	dose.Serialize(ar);
+	m_dose.Serialize(ar);
 
 	// now make sure the series is loaded
 	if (ar.IsStoring())
@@ -135,7 +159,7 @@ BOOL CPlan::OnNewDocument()
 		return FALSE;
 
 	// now clear out any existing beams
-	beams.RemoveAll();
+	m_arrBeams.RemoveAll();
 
 	// delete pointer to series
 	m_pSeries = NULL;

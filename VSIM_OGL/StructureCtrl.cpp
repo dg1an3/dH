@@ -37,14 +37,14 @@ void CStructureCtrl::DoDataExchange(CDataExchange* pDX)
 
 	if (!pDX->m_bSaveAndValidate)
 	{
-		m_bStructEnabled1 = arrEnabled[0].Get();
-		m_bStructEnabled2 = arrEnabled[1].Get();
-		m_bStructEnabled3 = arrEnabled[2].Get();
-		m_bStructEnabled4 = arrEnabled[3].Get();
-		m_bStructEnabled5 = arrEnabled[4].Get();
-		m_bStructEnabled6 = arrEnabled[5].Get();
-		m_bStructEnabled7 = arrEnabled[6].Get();
-		m_bStructEnabled8 = arrEnabled[7].Get();
+		m_bStructEnabled1 = m_arrEnabled[0];
+		m_bStructEnabled2 = m_arrEnabled[1];
+		m_bStructEnabled3 = m_arrEnabled[2];
+		m_bStructEnabled4 = m_arrEnabled[3];
+		m_bStructEnabled5 = m_arrEnabled[4];
+		m_bStructEnabled6 = m_arrEnabled[5];
+		m_bStructEnabled7 = m_arrEnabled[6];
+		m_bStructEnabled8 = m_arrEnabled[7];
 	}
 
 	//{{AFX_DATA_MAP(CStructureCtrl)
@@ -60,14 +60,14 @@ void CStructureCtrl::DoDataExchange(CDataExchange* pDX)
 
 	if (pDX->m_bSaveAndValidate)
 	{
-		arrEnabled[0].Set(m_bStructEnabled1);
-		arrEnabled[1].Set(m_bStructEnabled2);
-		arrEnabled[2].Set(m_bStructEnabled3);
-		arrEnabled[3].Set(m_bStructEnabled4);
-		arrEnabled[4].Set(m_bStructEnabled5);
-		arrEnabled[5].Set(m_bStructEnabled6);
-		arrEnabled[6].Set(m_bStructEnabled7);
-		arrEnabled[7].Set(m_bStructEnabled8);
+		m_arrEnabled[0] = m_bStructEnabled1;
+		m_arrEnabled[1] = m_bStructEnabled2;
+		m_arrEnabled[2] = m_bStructEnabled3;
+		m_arrEnabled[3] = m_bStructEnabled4;
+		m_arrEnabled[4] = m_bStructEnabled5;
+		m_arrEnabled[5] = m_bStructEnabled6;
+		m_arrEnabled[6] = m_bStructEnabled7;
+		m_arrEnabled[7] = m_bStructEnabled8;
 	}
 }
 

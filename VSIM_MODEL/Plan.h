@@ -28,13 +28,22 @@ public:
 	void SetSeries(CSeries *pSeries);
 
 	// the beams for this plan
-	CCollection<CBeam> beams;
+	int GetBeamCount() const;
+	CBeam * GetBeamAt(int nAt);
+	int AddBeam(CBeam *pBeam);
 
 	// flag to indicate whether the plan's dose is valid
-	CValue<BOOL> isDoseValid;
+	BOOL IsDoseValid() const;
+	void SetDoseValid(BOOL bValid = TRUE)
+	{
+		m_bDoseValid = bValid;
+	}
 
 	// the computed dose for this plan (NULL if no dose exists)
-	CVolume<double> dose;
+	CVolume<double> *GetDoseMatrix()
+	{
+		return &m_dose;
+	}
 
 // Operations
 public:
@@ -75,8 +84,12 @@ private:
 	// the series upon which this plan is based
 	CSeries * m_pSeries;
 
-	// the plan's isocenter
-	// CIsocenter m_Isocenter;
+	// the plan's beams
+	CObArray m_arrBeams;
+
+	// the dose matrix for the plan
+	BOOL m_bDoseValid;
+	CVolume<double> m_dose;
 
 	// static variable that stores a pointer to the 
 	//		CSeries document template

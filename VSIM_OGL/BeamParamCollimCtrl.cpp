@@ -16,11 +16,9 @@ static char THIS_FILE[] = __FILE__;
 
 
 CBeamParamCollimCtrl::CBeamParamCollimCtrl(CWnd* pParent /*=NULL*/)
-	: CDialog(CBeamParamCollimCtrl::IDD, pParent)
+	: CDialog(CBeamParamCollimCtrl::IDD, pParent),
+		m_pBeam(NULL)
 {
-	// add this as a change listener on the beam
-	forBeam.AddObserver(this, (ChangeFunction) OnChange);
-
 	//{{AFX_DATA_INIT(CBeamParamCollimCtrl)
 	m_nCollimAngle = 0;
 	m_nJawX1 = -20;
@@ -37,16 +35,16 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 
 	// if loading the data into the dialog box
-	if (!pDX->m_bSaveAndValidate && forBeam.Get() != NULL)
+	if (!pDX->m_bSaveAndValidate && m_pBeam != NULL)
 	{
-		m_nCollimAngle = (int)(forBeam->collimAngle.Get()
+		m_nCollimAngle = (int)(m_pBeam->GetCollimAngle()
 			* 180.0 / PI);
 
-		m_nJawX1 = (int) forBeam->collimMin.Get()[0];
-		m_nJawX2 = (int) forBeam->collimMax.Get()[0];
+		m_nJawX1 = (int) m_pBeam->GetCollimMin()[0];
+		m_nJawX2 = (int) m_pBeam->GetCollimMax()[0];
 
-		m_nJawY1 = (int) forBeam->collimMin.Get()[1];
-		m_nJawY2 = (int) forBeam->collimMax.Get()[1];
+		m_nJawY1 = (int) m_pBeam->GetCollimMin()[1];
+		m_nJawY2 = (int) m_pBeam->GetCollimMax()[1];
 	}
 	
 	//{{AFX_DATA_MAP(CBeamParamCollimCtrl)
@@ -62,34 +60,33 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxInt(pDX, m_nJawY2, -20, 20);
 	//}}AFX_DATA_MAP
 
-	if (pDX->m_bSaveAndValidate && forBeam.Get() != NULL)
+	if (pDX->m_bSaveAndValidate && m_pBeam != NULL)
 	{
 		m_bUpdatingData = TRUE;
 //		forBeam->SetAngles(((double)m_nCollimAngle) * PI / 180.0,
 //			forBeam->myGantryAngle.Get(), forBeam->myCouchAngle.Get());
 
-		forBeam->collimAngle.Set(((double)m_nCollimAngle) * PI / 180.0);
+		m_pBeam->SetCollimAngle(((double)m_nCollimAngle) * PI / 180.0);
 
 		CVector<2> vMin(m_nJawX1, m_nJawY1);
-		forBeam->collimMin.Set(vMin);
+		m_pBeam->SetCollimMin(vMin);
 
 		CVector<2> vMax(m_nJawX2, m_nJawY2);
-		forBeam->collimMax.Set(vMax);
+		m_pBeam->SetCollimMax(vMax);
 
 		m_bUpdatingData = FALSE;
 	}
 	
 }
 
-void CBeamParamCollimCtrl::OnChange(CObservableObject *pFromObject, void *pOldValue)
+void CBeamParamCollimCtrl::SetBeam(CBeam *pBeam)
 {
-	if (pFromObject == &forBeam)
-	{
-		forBeam->collimAngle.AddObserver(this, (ChangeFunction) OnChange);
-	}
+	m_pBeam = pBeam;
 
 	if (::IsWindow(m_hWnd) && !m_bUpdatingData)
+	{
 		UpdateData(FALSE);
+	}
 }
 
 BEGIN_MESSAGE_MAP(CBeamParamCollimCtrl, CDialog)
@@ -127,7 +124,7 @@ BOOL CBeamParamCollimCtrl::OnInitDialog()
 
 void CBeamParamCollimCtrl::OnApplyChanges() 
 {
-	if (::IsWindow(m_hWnd) && forBeam.Get() != NULL)
+	if (::IsWindow(m_hWnd) && m_pBeam != NULL)
 	{
 		BOOL bResult = UpdateData(TRUE);
 		ASSERT(bResult);

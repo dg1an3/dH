@@ -2,7 +2,9 @@
 //
 
 #include "stdafx.h"
-// #include "vsim_ogl.h"
+
+#include <UtilMacros.h>
+
 #include "Series.h"
 
 #ifdef _DEBUG
@@ -22,6 +24,11 @@ CSeries::CSeries()
 
 CSeries::~CSeries()
 {
+	// delete the structures
+	for (int nAt = 0; nAt < m_arrStructures.GetSize(); nAt++)
+	{
+		delete m_arrStructures[nAt];
+	}
 }
 
 CString CSeries::GetFileName()
@@ -80,15 +87,22 @@ void CSeries::Serialize(CArchive& ar)
 {
 	CDocument::Serialize(ar);
 
-	volumeTransform.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		ar >> m_volumeTransform;
+	}
+	else
+	{
+		ar << m_volumeTransform;
+	}
 	volume.Serialize(ar);
 
 	if (!ar.IsStoring())
 	{
 		// delete any existing structures
-		structures.RemoveAll();
+		m_arrStructures.RemoveAll();
 	}
-	structures.Serialize(ar);
+	m_arrStructures.Serialize(ar);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -100,7 +114,7 @@ BOOL CSeries::OnNewDocument()
 		return FALSE;
 
 	// delete any existing structures
-	structures.RemoveAll();
+	m_arrStructures.RemoveAll();
 
 	return TRUE;
 }

@@ -122,8 +122,8 @@ BOOL CVSIM_OGLApp::InitInstance()
 	CSimView *pView = (CSimView *)pMainFrame->GetActiveView();
 	if (pView)
 	{
-		pMainFrame->m_wndPosCtrl.forBeam.SyncTo(&pView->currentBeam);
-		pMainFrame->m_wndCollimCtrl.forBeam.SyncTo(&pView->currentBeam);
+		pMainFrame->m_wndPosCtrl.SetBeam(pView->m_pCurrentBeam);
+		pMainFrame->m_wndCollimCtrl.SetBeam(pView->m_pCurrentBeam);
 	}
 
 	return TRUE;

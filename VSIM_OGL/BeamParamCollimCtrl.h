@@ -6,7 +6,6 @@
 #endif // _MSC_VER > 1000
 
 #include "Beam.h"
-#include "Association.h"
 
 // BeamParamCollimCtrl.h : header file
 //
@@ -30,7 +29,8 @@ public:
 	int		m_nJawY2;
 	//}}AFX_DATA
 
-	CAssociation<CBeam> forBeam;
+	// sets the beam pointer
+	void SetBeam(CBeam *pBeam);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -38,8 +38,6 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
-
-	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
 
 // Implementation
 protected:
@@ -51,6 +49,10 @@ protected:
 	afx_msg void OnApplySpinChanges(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
+private:
+	// pointer to the beam
+	CBeam *m_pBeam;
 };
 
 //{{AFX_INSERT_LOCATION}}
