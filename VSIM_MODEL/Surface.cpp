@@ -114,7 +114,7 @@ double CSurface::GetMaxSize()
 }
 */
 
-IMPLEMENT_SERIAL(CSurface, CObject, 3)
+IMPLEMENT_SERIAL(CSurface, CModelObject, 3)
 
 void CSurface::Serialize(CArchive &ar)
 {

@@ -55,7 +55,7 @@ CBeam::CBeam()
 	collimMax.Set(CVector<2>(20.0, 20.0));
 }
 
-IMPLEMENT_SERIAL(CBeam, CObject, 1)
+IMPLEMENT_SERIAL(CBeam, CModelObject, 1)
 
 CBeam::~CBeam()
 {
