@@ -119,7 +119,9 @@ protected:
 
 	// flag to indicate whether elements should be freed
 	BOOL m_bFreeElements;
-};
+
+};	// class CMatrixBase<TYPE>
+
 
 
 //////////////////////////////////////////////////////////////////
@@ -554,6 +556,51 @@ void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE>& m)
 #else
 #define TRACE_MATRIX(strMessage, m)
 #endif
+
+
+#ifdef USE_XMLLOGGING
+//////////////////////////////////////////////////////////////////////
+// LogExprExt
+//
+// helper function for XML logging of matrices
+//////////////////////////////////////////////////////////////////////
+template<typename TYPE>
+void LogExprExt(const CMatrixBase<TYPE>& mMat, const char *pszName, const char *pszModule)
+{
+	// get the global log file
+	CXMLLogFile *pLog = CXMLLogFile::GetLogFile();
+
+	// create a new expression element
+	CXMLElement *pVarElem = pLog->NewElement("lx", pszModule);
+
+	// if there is a name,
+	if (strlen(pszName) > 0)
+	{
+		// set it.
+		pVarElem->Attribute("name", pszName);
+	}
+
+	// set type to generice "CVector"
+	pVarElem->Attribute("type", "CMatrix");
+
+	// stores each row
+	CVectorN<TYPE> vRow(mMat.GetCols());
+	for (int nAtRow = 0; nAtRow < mMat.GetRows(); nAtRow++)
+	{
+		// get each row
+		mMat.GetRow(nAtRow, vRow);
+
+		// and output as sub-element
+		LogExprExt(vRow, "", pszModule);
+	}
+
+	// close the element
+	pLog->CloseElement();
+
+}	// LogExprExt
+
+#endif	// USE_XMLLOGGING
+
 
 
 #ifdef _DEBUG
