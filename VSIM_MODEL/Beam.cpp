@@ -129,18 +129,39 @@ void CBeam::SetCollimMax(const CVector<2>& vCollimMax)
 	GetChangeEvent().Fire();
 }
 
+const CMatrix<4>& CBeam::GetBeamToFixedXform() const
+{
+	// set up the beam-to-patient transform computation
+	m_beamToFixedXform = 
+
+		// gantry rotation
+		CMatrix<4>(CreateRotate(PI - m_gantryAngle,	
+												CVector<3>(0.0, -1.0, 0.0)))
+
+		// collimator rotation
+		* CMatrix<4>(CreateRotate(m_collimAngle,		
+												CVector<3>(0.0, 0.0, -1.0)))
+
+		// SAD translation
+		* CreateTranslate(m_Machine.m_SAD,		CVector<3>(0.0, 0.0, -1.0));
+
+	return m_beamToFixedXform;
+}
+
 const CMatrix<4>& CBeam::GetBeamToPatientXform() const
 {
 	// set up the beam-to-patient transform computation
-	m_beamToPatientXform = CreateTranslate(m_vTableOffset)
+	m_beamToPatientXform = 
+		
+		// table offset translation
+		CreateTranslate(m_vTableOffset)
 
+		// couch rotation
 		* CMatrix<4>(CreateRotate(m_couchAngle,	
 												CVector<3>(0.0, 0.0, -1.0)))
-		* CMatrix<4>(CreateRotate(PI - m_gantryAngle,	
-												CVector<3>(0.0, -1.0, 0.0)))
-		* CMatrix<4>(CreateRotate(m_collimAngle,		
-												CVector<3>(0.0, 0.0, -1.0)))
-		* CreateTranslate(m_Machine.m_SAD,		CVector<3>(0.0, 0.0, -1.0));
+
+		// beam to IEC fixed xform
+		* GetBeamToFixedXform();
 
 	return m_beamToPatientXform;
 }

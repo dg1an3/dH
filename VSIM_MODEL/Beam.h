@@ -51,6 +51,9 @@ public:
 	const CVector<2>& GetCollimMax() const;
 	void SetCollimMax(const CVector<2>& vCollimMin);
 
+	// returns the beam-to-IEC fixed (room) xform
+	const CMatrix<4>& GetBeamToFixedXform() const;
+
 	// computed transform from patient to beam coordinates
 	const CMatrix<4>& GetBeamToPatientXform() const;
 	void SetBeamToPatientXform(const CMatrix<4>& m);
@@ -98,6 +101,10 @@ private:
 	// collimator jaw settings
 	CVector<2> m_vCollimMin;
 	CVector<2> m_vCollimMax;
+
+	// stores the current IEC fixed xform matrix; mutable because it is 
+	//		recomputed in the Get accessor
+	mutable CMatrix<4> m_beamToFixedXform;
 
 	// stores the current xform matrix; mutable because it is recomputed
 	//		in the Get accessor
