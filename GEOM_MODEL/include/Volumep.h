@@ -17,6 +17,7 @@
 #include <VectorN.h>
 #include <MatrixD.h>
 #include <MatrixNxM.h>
+#include <MatrixBase.inl>
 
 #include "ModelObject.h"
 
@@ -799,6 +800,124 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 	pNew->GetChangeEvent().Fire();
 
 }	// Rotate
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// ClipRaster
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+inline void ClipRaster(int nDim, 
+				int nSrcStart, int nSrcEnd, 
+				CVectorD<3> vStart, CVectorD<3> vOffset, 
+				int *pnDstStart, int *pnDstEnd)
+{
+	if (IsApproxEqual(vOffset[nDim], (REAL) 0))
+	{
+		return;
+	}
+
+	int nLambdaSrcStart = 
+		(int) ceil(((REAL) nSrcStart - vStart[nDim]) / vOffset[nDim]);
+	int nLambdaSrcEnd = 
+		(int) floor(((REAL) nSrcEnd - vStart[nDim]) / vOffset[nDim]);
+
+	(*pnDstStart) = __max(__min(nLambdaSrcStart, nLambdaSrcEnd), (*pnDstStart));
+	(*pnDstEnd) = __min(__max(nLambdaSrcStart, nLambdaSrcEnd), (*pnDstEnd));
+
+}	// ClipRaster
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Resample
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew, 
+					 BOOL bBilinear = FALSE)
+{
+	// form translation basis
+	CMatrixD<4> mXform = pOrig->GetBasis();
+	mXform.Invert();
+	mXform *= pNew->GetBasis();
+
+	// extract direction cosines
+	CVectorD<3> vX;
+	vX[0] = mXform[0][0];
+	vX[1] = mXform[0][1];
+	vX[2] = mXform[0][2];
+	ASSERT(IsApproxEqual(vX.GetLength(), (REAL) 1.0));
+
+	CVectorD<3> vY;
+	vY[0] = mXform[1][0];
+	vY[1] = mXform[1][1];
+	vY[2] = mXform[1][2];
+	ASSERT(IsApproxEqual(vY.GetLength(), (REAL) 1.0));
+
+	CVectorD<3> vOY = FromHG<3, REAL>(mXform[3]);
+
+	REAL ***pppDstVoxels = pNew->GetVoxels();
+	REAL ***pppSrcVoxels = pOrig->GetVoxels();
+	for (int nY = 0; nY < pNew->GetHeight(); nY++)
+	{
+		CVectorD<3> vOX = vOY;
+
+		// now clip
+		int nStart = 0;
+		int nEnd = pNew->GetWidth();
+		ClipRaster(0, 0, pOrig->GetWidth(), vOX, vX, &nStart, &nEnd);
+		ClipRaster(1, 0, pOrig->GetHeight(), vOX, vX, &nStart, &nEnd);
+		ASSERT(nStart >= 0);
+		ASSERT(nEnd <= pNew->GetWidth());
+
+		// adjust start
+		vOX += (REAL) nStart * vX;
+
+		if (bBilinear)
+		{
+			// now resample
+			for (int nX = nStart; nX < nEnd; nX++)
+			{
+				REAL xfrac = vOX[0] - floor(vOX[0]);
+				REAL yfrac = vOX[1] - floor(vOX[1]);
+
+				pppDstVoxels[0][nY][nX] =
+					(1.0 - yfrac) * (1.0 - xfrac)
+						* pppSrcVoxels[0][(int) floor(vOX[1])][(int) floor(vOX[0])];
+
+				pppDstVoxels[0][nY][nX] +=
+					(1.0 - yfrac) * xfrac
+						* pppSrcVoxels[0][(int) floor(vOX[1])][(int) ceil(vOX[0])];
+
+				pppDstVoxels[0][nY][nX] +=
+					yfrac * (1.0 - xfrac)
+						* pppSrcVoxels[0][(int) ceil(vOX[1])][(int) floor(vOX[0])];
+
+				pppDstVoxels[0][nY][nX] +=
+					yfrac * xfrac 
+						* pppSrcVoxels[0][(int) ceil(vOX[1])][(int) ceil(vOX[0])];
+
+				vOX += vX;
+			}
+		}
+		else
+		{
+			// now resample
+			for (int nX = nStart; nX < nEnd; nX++)
+			{
+				pppDstVoxels[0][nY][nX] =
+					pppSrcVoxels[0][(int) vOX[1]][(int) vOX[0]];
+
+				vOX += vX;
+			}
+		}
+
+		vOY += vY;
+	}
+
+}	// Resample
 
 
 ///////////////////////////////////////////////////////////////////////////////
