@@ -168,16 +168,17 @@ CHistogram *CPlan::GetHistogram(CMesh *pStructure)
 /////////////////////////////////////////////////////////////////////////////
 // CPlan serialization
 
-#define PLAN_SCHEMA 3
+#define PLAN_SCHEMA 4
 	// Schema 1: initial plan schema
 	// Schema 2: + target DVH curves
 	// Schema 3: + number of fields
+	// Schema 4: + target DVH count
 
 IMPLEMENT_SERIAL(CPlan, CDocument, VERSIONABLE_SCHEMA | PLAN_SCHEMA)
 
 void CPlan::Serialize(CArchive& ar)
 {
-	// store the schema for the beam object
+	// schema for the plan object
 	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : PLAN_SCHEMA;
 
 	// serialize the document
@@ -234,30 +235,51 @@ void CPlan::Serialize(CArchive& ar)
 		GetSeries()->OnSaveDocument(GetSeries()->GetFileName());
 	}
 
-	CString strStructureName;
-	CMatrixNxM<> *pmTargetDVH = NULL;
-	if (ar.IsLoading())
+	// for the schema 2, serialize target DVHs
+	if (nSchema >= 2)
 	{
-		ar >> strStructureName;
-		pmTargetDVH = new CMatrixNxM<>;
-		ar >> (*pmTargetDVH);
-		m_mapTargetDVHs.SetAt(strStructureName, (void *) pmTargetDVH);
-	}
-	else
-	{
-		// delete the target DVHs
-		POSITION pos = m_mapTargetDVHs.GetStartPosition();
-		while (NULL != pos)
+		CString strStructureName;
+		CMatrixNxM<> *pmTargetDVH = NULL;
+		if (ar.IsLoading())
 		{
-			m_mapTargetDVHs.GetNextAssoc(pos, strStructureName, 
-				(void *&)pmTargetDVH);
+			int nCount = 1;
+			if (nSchema >= 4)
+			{
+				ar >> nCount;
+			}
 
-			ar << strStructureName;
-			ar << (*pmTargetDVH);
+			for (int nAt = 0; nAt < nCount; nAt++)
+			{
+				ar >> strStructureName;
+				pmTargetDVH = new CMatrixNxM<>;
+				ar >> (*pmTargetDVH);
+				m_mapTargetDVHs.SetAt(strStructureName, (void *) pmTargetDVH);
+			}
+		}
+		else 
+		{
+			if (nSchema >= 4)
+			{
+				ar << m_mapTargetDVHs.GetCount();
+			}
+
+			// delete the target DVHs
+			POSITION pos = m_mapTargetDVHs.GetStartPosition();
+			while (NULL != pos)
+			{
+				m_mapTargetDVHs.GetNextAssoc(pos, strStructureName, 
+					(void *&)pmTargetDVH);
+
+				ar << strStructureName;
+				ar << (*pmTargetDVH);
+			}
 		}
 	}
 
-	SERIALIZE_VALUE(ar, m_nFields);
+	if (nSchema >= 3)
+	{
+		SERIALIZE_VALUE(ar, m_nFields);
+	}
 }
 
 CDocTemplate * CPlan::m_pSeriesDocTemplate = NULL;
