@@ -9,7 +9,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-class COpenGLCamera  
+#include <Value.h>
+
+#include <Vector.h>
+#include <Matrix.h>
+
+class COpenGLCamera : public CObject
 {
 public:
 	COpenGLCamera();
@@ -22,19 +27,22 @@ public:
 	// the direction from the camera to the the target point
 	CValue< CVector<3> > direction;
 
-	// the camera rotation about its optical axis
-	CValue< double > rotation;
-
 	// the distance along the optical axis from the camera's focal point
 	//		to the target point
 	CValue< double > distance;
 
-	// matrix representing the transform from the object space to the
+	// the camera rotation about its optical axis
+	CValue< double > rollAngle;
+
+	// matrix representing the transform from the model space to the
 	//		camera space
-	const CMatrix<4>& GetObjectToCameraTransform() const;
+	CValue< CMatrix<4> > modelToCameraXform;
 
 	// the viewing angle for the camera (0 for orthographic camera)
 	CValue< double > viewingAngle;
+
+	// the aspect ratio is usually set to the aspect ratio of the viewport
+	CValue< double > aspectRatio;
 
 	// the near clipping, distance from focal point
 	CValue< double > nearPlane;
@@ -43,7 +51,16 @@ public:
 	CValue< double > farPlane;
 
 	// matrix representing the camera projection
-	const CMatrix<4>& GetProjection() const;
+	CValue< CMatrix<4> > cameraProjection;
+
+protected:
+	// call-back to compute the object-to-camera transform
+	void OnComputeModelToCameraXform(CObservableObject *pSource, 
+		void *pOldValue);
+
+	// call-back to compute the camera projection
+	void OnComputeCameraProjection(CObservableObject *pSource, 
+		void *pOldValue);
 };
 
 #endif // !defined(AFX_OPENGLCAMERA_H__94F5EA60_85D6_11D5_ABA8_00B0D0AB90D6__INCLUDED_)
