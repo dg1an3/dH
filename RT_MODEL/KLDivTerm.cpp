@@ -235,9 +235,12 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 	const REAL EPS = (REAL) 1e-8;
 	for (nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
 	{
-		// normalize samples
-		calcGPDF[nAtBin] /= calcSum;
-		targetGPDF[nAtBin] /= targetSum;
+		if (calcSum > 0.0)
+			// normalize samples
+			calcGPDF[nAtBin] /= calcSum;
+
+		if (targetSum > 0.0)
+			targetGPDF[nAtBin] /= targetSum;
 
 #define CROSS_ENTROPY
 #ifdef CROSS_ENTROPY
