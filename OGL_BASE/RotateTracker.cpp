@@ -21,6 +21,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+// computes a rotation matrix about two points
 CMatrix<4> ComputeRotMatrix(const CVector<3>& vInitPt,
 	const CVector<3>& vFinalPt)
 {
@@ -56,8 +57,7 @@ FUNCTION_FACTORY2(ComputeRotMatrix, CMatrix<4>)
 
 CRotateTracker::CRotateTracker(COpenGLView *pView)
 	: COpenGLTracker(pView),
-		privCurrProjMatrix(privInitProjMatrix 
-			* ComputeRotMatrix(privInitPoint, privCurrPoint))
+		upDirection(CVector<3>(0.0, 0.0, 1.0))
 {
 }
 
@@ -68,23 +68,59 @@ CRotateTracker::~CRotateTracker()
 
 void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	privInitProjMatrix.Set(m_pView->projectionMatrix.Get());
+	// store the current projection matrix from the view
+	m_initProjMatrix = m_pView->projectionMatrix.Get();
 
-	privInitPoint.Set(m_pView->ModelPtFromWndPt(point, &privInitProjMatrix.Get()));
-	privCurrPoint.Set(privInitPoint.Get());
-
-	m_pView->projectionMatrix.SyncTo(&privCurrProjMatrix);
-}
-
-void CRotateTracker::OnLButtonUp(UINT nFlags, CPoint point)
-{
-	m_pView->projectionMatrix.SyncTo(NULL);
-	m_pView->projectionMatrix.Set(privCurrProjMatrix.Get());
+	// store the current mouse position in 3-d
+	m_vInitPoint = m_pView->ModelPtFromWndPt(point, &m_initProjMatrix);
 }
 
 void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 {
-	privCurrPoint.Set(m_pView->ModelPtFromWndPt(point, &privInitProjMatrix.Get()));
+	// compute the final point
+	CVector<3> vFinalPoint = 
+		m_pView->ModelPtFromWndPt(point, &m_initProjMatrix);
+
+	// compute the new projection matrix
+	CMatrix<4> mProj = m_initProjMatrix 
+		* ComputeRotMatrix(m_vInitPoint, vFinalPoint);
+
+	// see if we need to adjust for "up"
+	if (upDirection.Get().GetLength() > 0.0)
+	{
+		// need to form the rotation so that the projected "up"
+		//		vector is really up
+		CVector<3> vProjUp = 
+			FromHomogeneous<3, double>(mProj 
+				* ToHomogeneous(upDirection.Get()));
+				// - mProj * CVector<4>(0.0, 0.0, 0.0, 1.0));
+		vProjUp[2] = 0.0;
+		vProjUp.Normalize();
+		TRACE_VECTOR3("vProjUp", vProjUp);
+
+		// form the rotation of the projected vector
+		double angle = -atan2(vProjUp[0], vProjUp[1]);
+		TRACE1("angle = %lf\n", angle);
+
+		// form the camera axis
+		CVector<3> vCameraAxis = 
+			FromHomogeneous<3, double>(Invert(mProj) 
+				* CVector<4>(0.0, 0.0, 1.0, 1.0));
+		TRACE_VECTOR3("Camera axis", vCameraAxis);
+
+		// now rotate about the central axis by the angle
+		mProj = mProj * CreateRotate(angle, vCameraAxis);
+
+		// check to ensure we are straight up
+		vProjUp = FromHomogeneous<3, double>(mProj 
+			* ToHomogeneous(upDirection.Get()));
+		vProjUp[2] = 0.0;
+		vProjUp.Normalize();
+		TRACE_VECTOR3("vProjUp After Adjustment", vProjUp);
+	}
+
+	// set the new projection matrix
+	m_pView->projectionMatrix.Set(mProj);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
