@@ -316,17 +316,50 @@ CVectorN<>& CHistogram::GetBins()
 	{
 		
 		REAL *pVoxels = &m_pVolume->GetVoxels()[0][0][0];
+		REAL ***pppVoxels = m_pVolume->GetVoxels();
 		REAL *pRegionVoxel = NULL;
+		REAL ***pppRegionVoxels = NULL;
 		if (m_pRegion)
 		{
 			ASSERT(m_pVolume->GetBasis().IsApproxEqual(m_pRegion->GetBasis()));
 			pRegionVoxel = &m_pRegion->GetVoxels()[0][0][0];
+			pppRegionVoxels = m_pRegion->GetVoxels();
+
+			m_pRegion->SetThreshold(0.1);
 		}
 
 		REAL maxValue = m_pVolume->GetMax();
 		m_arrBins.SetDim(GetBinForValue(maxValue)+2);
 		m_arrBins.SetZero();
 
+		CRect rectBounds = m_pRegion->GetThresholdBounds();
+		for (int nAtZ = 0; nAtZ < m_pRegion->GetDepth(); nAtZ++)
+		{
+			for (int nAtY = rectBounds.top; nAtY <= rectBounds.bottom; nAtY++)
+			{
+				for (int nAtX = rectBounds.left; nAtX <= rectBounds.right; nAtX++)
+				{
+					// int nBin = pBinVolumeVoxels[nAtX];
+					// arr_dBins[nBin] -= p_dVoxels_x_Region[nAtX];
+					REAL bin = (pppVoxels[nAtZ][nAtY][nAtX] - m_minValue) / m_binWidth;
+					int nLowBin = floor(bin);
+					int nHighBin = nLowBin+1;
+
+					// compute the bin
+					REAL binMinValue = ((REAL) nLowBin) * m_binWidth + m_minValue;
+					m_arrBins[(int) nHighBin] += 
+						pppRegionVoxels[nAtZ][nAtY][nAtX] * (pppVoxels[nAtZ][nAtY][nAtX] - binMinValue) / m_binWidth;
+					ASSERT(m_arrBins[(int) nHighBin] >= 0.0);
+
+					REAL binMaxValue = ((REAL) nHighBin) * m_binWidth + m_minValue;
+					m_arrBins[(int) nLowBin] += 
+						pppRegionVoxels[nAtZ][nAtY][nAtX] * (binMaxValue - pppVoxels[nAtZ][nAtY][nAtX]) / m_binWidth;
+					ASSERT(m_arrBins[(int) nLowBin] >= 0.0);
+				}
+			}
+		}
+
+/*
 		for (int nAtVoxel = 0; nAtVoxel < m_pVolume->GetVoxelCount(); nAtVoxel++)
 		{
 #define _LINEAR_INTERP
@@ -368,7 +401,7 @@ CVectorN<>& CHistogram::GetBins()
 			}
 #endif
 		}
-
+*/
 		// normalize bins?
 		REAL sum = 0;
 
@@ -579,7 +612,8 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 			static CVolume<REAL> volRotate;
 			volRotate.ConformTo(Get_dVolume(nAt));
 			volRotate.ClearVoxels();
-			Resample(m_pVolume, &volRotate, TRUE);
+			Resample(m_pVolume, &volRotate, // FALSE); // 
+				TRUE);
 
 			// get the main volume voxels
 			REAL *pVoxels = &volRotate.GetVoxels()[0][0][0];
