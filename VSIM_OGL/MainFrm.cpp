@@ -40,7 +40,8 @@ static UINT indicators[] =
 
 CMainFrame::CMainFrame()
 : m_bViewBeam(TRUE),
-	m_bViewLightpatch(FALSE)
+	m_bViewLightpatch(FALSE),
+	m_pExplorerFont(NULL)
 {
 	// TODO: add member initialization code here
 	
@@ -48,6 +49,7 @@ CMainFrame::CMainFrame()
 
 CMainFrame::~CMainFrame()
 {
+	delete m_pExplorerFont;
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -102,18 +104,15 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 	m_wndExplorerCtrl.m_ExplorerCtrl.SetBkColor(RGB(196, 196, 196));
 	// m_wndExplorerCtrl.m_ExplorerCtrl.SetTextColor(RGB(255, 255, 255));
-	CFont *pFont = new CFont();
-	pFont->CreateFont(18, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, 0, 
+	m_pExplorerFont = new CFont();
+	m_pExplorerFont->CreateFont(18, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, 0, 
 		ANSI_CHARSET,
 		OUT_DEFAULT_PRECIS,
 		CLIP_DEFAULT_PRECIS,
 		DEFAULT_QUALITY,
 		DEFAULT_PITCH,
 		"Arial");
-	m_wndExplorerCtrl.m_ExplorerCtrl.SetFont(pFont);
-
-	// free the font
-	// delete pFont;
+	m_wndExplorerCtrl.m_ExplorerCtrl.SetFont(m_pExplorerFont);
 
 	EnableDocking(CBRS_ALIGN_ANY);
 

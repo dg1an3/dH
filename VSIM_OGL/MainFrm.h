@@ -5,7 +5,6 @@
 #if !defined(AFX_MAINFRM_H__3E80E028_F21B_11D4_9E3C_00B0D0609AB0__INCLUDED_)
 #define AFX_MAINFRM_H__3E80E028_F21B_11D4_9E3C_00B0D0609AB0__INCLUDED_
 
-#include "StructureCtrl.h"
 #include "ObjectExplorerControlBar.h"
 
 #include "TabControlBar.h"
@@ -26,13 +25,15 @@ protected: // create from serialization only
 // Attributes
 public:
 
-//	CStructureCtrl m_wndStructCtrl;
+	// the object explorer
 	CObjectExplorerControlBar m_wndExplorerCtrl;
+
+	// stores the explorer font
+	CFont *m_pExplorerFont;
 
 	CTabControlBar m_wndBeamParamCtrl;
 	CBeamParamPosCtrl m_wndPosCtrl;
 	CBeamParamCollimCtrl m_wndCollimCtrl;
-
 
 // Operations
 public:
