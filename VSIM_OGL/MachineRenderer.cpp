@@ -35,10 +35,24 @@ CMachineRenderer::~CMachineRenderer()
 {
 }
 
+BOOL bNoRenderWireframe = FALSE;
+
 void CMachineRenderer::OnRenderScene()
 {
+/*	if (!bNoRenderWireframe)
+	{
+		bNoRenderWireframe = TRUE;
+		
+		isWireFrame.Set(TRUE);
+		OnRenderScene();
+		isWireFrame.Set(FALSE);
+
+		bNoRenderWireframe = FALSE;
+	}
+*/
 	if (isWireFrame.Get())
 	{
+		glColor(RGB(255, 255, 255));
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 		glDisable(GL_LIGHTING);
@@ -48,6 +62,10 @@ void CMachineRenderer::OnRenderScene()
 	}
 	else
 	{
+		glColor(color.Get());
+		// set the color for the machine rendering
+		glColor(RGB(128, 128, 255));
+
 		GLfloat specular [] = { 0.0, 0.0, 0.0, 1.0 };
 		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 		GLfloat shininess [] = { 0.0 };
@@ -58,10 +76,9 @@ void CMachineRenderer::OnRenderScene()
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glShadeModel(GL_SMOOTH);
-	}
 
-	// set the color for the machine rendering
-	glColor(RGB(128, 128, 255));
+		glEnable(GL_LIGHTING);
+	}
 
 	// render the table
 
@@ -241,6 +258,14 @@ void CMachineRenderer::OnRenderScene()
 		glVertex(CVector<3>(-300.0, -250.0,  axisToCollim + 100.0) );
 
 	glEnd();
+
+	if (isWireFrame.Get())
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		glEnable(GL_LIGHTING);
+	}
+
 }
 
 void CMachineRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
