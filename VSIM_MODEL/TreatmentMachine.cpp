@@ -38,9 +38,9 @@ FUNCTION_FACTORY2(ComputeProj, CMatrix<4>)
 //////////////////////////////////////////////////////////////////////
 
 CTreatmentMachine::CTreatmentMachine()
-	: SAD(400.0),
-		SCD(240.0),
-		SID(SAD.Get() * 4.0)
+	: SAD(700.0),
+		SCD(300.0),
+		SID(SAD.Get() * 2.0)
 {
 	projection.SyncTo(&ComputeProj(SCD, SID));
 }
