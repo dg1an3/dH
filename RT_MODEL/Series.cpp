@@ -44,6 +44,8 @@ CSeries::~CSeries()
 		delete m_arrStructures[nAt];
 	}
 
+	delete m_pDens;
+
 }	// CSeries::~CSeries
 
 
