@@ -20,6 +20,7 @@ class CSeries;
 class CStructure : public CModelObject  
 {
 public:
+	COLORREF m_color;
 	CStructure(const CString& strName = "");
 	virtual ~CStructure();
 
@@ -31,7 +32,7 @@ public:
 	CPolygon *GetContour(int nAt);
 	REAL GetContourRefDist(int nIndex) const;
 
-	void AddContour(CPolygon *pPoly);
+	void AddContour(CPolygon *pPoly, REAL refDist);
 
 	CMesh * GetMesh();
 	
