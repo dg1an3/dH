@@ -120,13 +120,13 @@
 
 #else
 
-#define BEGIN_LOG_SECTION(name)
-#define BEGIN_LOG_SECTION_(name)
-#define BEGIN_LOG_ONLY(name)
-#define EXIT_LOG_SECTION()
-#define END_LOG_SECTION()
+#define BEGIN_LOG_SECTION(name) { 
+#define BEGIN_LOG_SECTION_(name) {
+#define BEGIN_LOG_ONLY(name) if (0) {
+#define EXIT_LOG_SECTION() 
+#define END_LOG_SECTION() }
 #define FLUSH_LOG()
-#define LOG(x)
+#define LOG 1 ? (void) 0 : ::AfxTrace
 #define LOG_EXPR(expr)
 #define LOG_EXPR_DESC(expr, desc)
 #define LOG_EXPR_EXT(expr)
