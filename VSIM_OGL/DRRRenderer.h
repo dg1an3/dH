@@ -16,9 +16,6 @@
 class CDRRRenderer : public COpenGLRenderer  
 {
 public:
-	int m_nShift;
-	int m_nSteps;
-	virtual void OnChange(CObservableObject *pSource);
 	CDRRRenderer(COpenGLView *pView);
 	virtual ~CDRRRenderer();
 
@@ -33,6 +30,11 @@ public:
 	virtual void OnRenderScene();
 
 	virtual void DrawScene();
+
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
+
+	int m_nShift;
+	int m_nSteps;
 
 public:
 	CArray<int, int> m_arrPixels;

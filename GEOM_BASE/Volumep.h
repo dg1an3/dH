@@ -96,7 +96,7 @@ public:
 		}
 	}
 
-	virtual void OnChange(CObservableObject *pSource)
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue)
 	{
 		SetVoxels(m_pVoxels, width.Get(), height.Get(), depth.Get());
 	}

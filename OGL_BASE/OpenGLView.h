@@ -49,7 +49,7 @@ public:
 	// compute the model point from a window coordinate
 	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj = NULL, float z = 999.0);
 
-	virtual void OnChange(CObservableObject *pSource);
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
 
 	// call to make this view's HGLRC the current one (so that future OpenGL calls
 	//		will affect its rendering state

@@ -31,7 +31,7 @@ public:
 
 	virtual void OnRenderScene();
 
-	virtual void OnChange(CObservableObject *pFromObject);
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
 
 	CValue< BOOL > isWireFrame;
 

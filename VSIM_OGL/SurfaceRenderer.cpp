@@ -208,7 +208,7 @@ void CSurfaceRenderer::OnRenderScene()
 	}
 }
 
-void CSurfaceRenderer::OnChange(CObservableObject *pFromObject)
+void CSurfaceRenderer::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
 	if (pFromObject == GetLightFieldBeam())
 	{
@@ -220,7 +220,7 @@ void CSurfaceRenderer::OnChange(CObservableObject *pFromObject)
 		}
 	}
 
-	COpenGLRenderer::OnChange(pFromObject);
+	COpenGLRenderer::OnChange(pFromObject, pOldValue);
 }
 
 COpenGLTexture * CSurfaceRenderer::GetLightfieldTexture()

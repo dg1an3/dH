@@ -77,7 +77,7 @@ void CBeamParamCollimCtrl::DoDataExchange(CDataExchange* pDX)
 	
 }
 
-void CBeamParamCollimCtrl::OnChange(CObservableObject *pFromObject)
+void CBeamParamCollimCtrl::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
 	if (::IsWindow(m_hWnd))
 		UpdateData(FALSE);

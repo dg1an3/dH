@@ -67,7 +67,7 @@ public:
 	CCollection< CPolygon > blocks;
 
 	// handles changes propagated from child objects
-	virtual void OnChange(CObservableObject *pFromObject);
+//	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
 
 	// beam serialization
 	void Serialize(CArchive &ar);

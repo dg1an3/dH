@@ -46,7 +46,7 @@ void COpenGLRenderer::Invalidate()
 	m_pView->Invalidate();
 }
 
-void COpenGLRenderer::OnChange(CObservableObject *pSource)
+void COpenGLRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
 {
 	Invalidate();
 }

@@ -61,11 +61,11 @@ CBeam::~CBeam()
 {
 }
 
-void CBeam::OnChange(CObservableObject *pSource)
-{
-	// propagate the change to any listeners on the beam
-	FireChange();
-}
+//void CBeam::OnChange(CObservableObject *pSource, void *pOldValue)
+//{
+//	// propagate the change to any listeners on the beam
+//	FireChange();
+//}
 
 void CBeam::Serialize(CArchive &ar)
 {

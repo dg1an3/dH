@@ -717,13 +717,13 @@ void CDRRRenderer::OnRenderScene()
 {
 }
 
-void CDRRRenderer::OnChange(CObservableObject *pSource)
+void CDRRRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
 {
-	COpenGLRenderer::OnChange(pSource);
 	if (pSource == &m_pView->projectionMatrix)
 	{
 		m_nSteps = RAY_TRACE_RESOLUTION;
 		m_nShift = RAY_TRACE_RES_LOG2;
 		m_bRecomputeDRR = TRUE;
 	}
+	COpenGLRenderer::OnChange(pSource, pOldValue);
 }

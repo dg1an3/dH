@@ -71,7 +71,7 @@ void CSimView::OnDraw(CDC* pDC)
 	pDC->SelectObject(pOldBrush);
 }
 
-void CSimView::OnChange(CObservableObject *pFromObject)
+void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
 	CBeam *pBeam = (CBeam *)pFromObject;
 	SetBEVPerspective(*pBeam);
@@ -216,7 +216,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CObjectTreeItem *pSeriesItem = new CObjectTreeItem();
 	pSeriesItem->label.Set("Series: " + pSeries->GetFileRoot());
 
-	pPatientItem->AddChild(pSeriesItem);
+	pPatientItem->children.Add(pSeriesItem);
 
 	for (int nAtSurf = 0; nAtSurf < pSeries->structures.GetSize(); nAtSurf++)
 	{
@@ -232,7 +232,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		pNewItem->isChecked.Set(TRUE);
 
-		pSeriesItem->AddChild(pNewItem);
+		pSeriesItem->children.Add(pNewItem);
 
 		CSurfaceRenderer *pSurfaceRenderer = new CSurfaceRenderer(&m_wndREV);
 		pSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
@@ -276,7 +276,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	CObjectTreeItem *pPlanItem = new CObjectTreeItem();
 	pPlanItem->label.Set("Plan: " + GetDocument()->GetFileRoot());
-	pPatientItem->AddChild(pPlanItem);
+	pPatientItem->children.Add(pPlanItem);
 
 	int nAtBeam;
 	for (nAtBeam = 0; nAtBeam < GetDocument()->beams.GetSize(); nAtBeam++)
@@ -290,7 +290,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pNewItem->imageResourceID.Set(IDB_BEAM_GREEN);
 		pNewItem->selectedImageResourceID.Set(IDB_BEAM_MAGENTA);
 
-		pPlanItem->AddChild(pNewItem);
+		pPlanItem->children.Add(pNewItem);
 
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
 		m_pBeamRenderer->SetBeam(pBeam);

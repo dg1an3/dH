@@ -34,7 +34,7 @@ public:
 	virtual void OnRenderScene();
 
 	// triggers invalidation
-	virtual void OnChange(CObservableObject *pSource);
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
 
 	void Invalidate();
 	virtual void DrawScene();

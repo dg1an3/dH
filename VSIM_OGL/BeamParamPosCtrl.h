@@ -39,7 +39,7 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
-	virtual void OnChange(CObservableObject *pFromObject);
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
 
 // Implementation
 protected:
