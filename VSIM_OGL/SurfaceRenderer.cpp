@@ -191,6 +191,9 @@ void CSurfaceRenderer::OnRenderScene()
 		glTexCoordPointer(3, GL_DOUBLE, 0, m_pSurface->GetVertexArray().GetData()-1);
 
 		glMatrixMode(GL_MODELVIEW);
+
+		// make sure no errors occurred
+		ASSERT(glGetError() == GL_NO_ERROR);
 	}
 
 	// now draw the surface from the arrays of data
