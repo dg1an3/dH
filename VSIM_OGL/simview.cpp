@@ -11,6 +11,7 @@
 #include "glMatrixVector.h"
 
 #include "RotateTracker.h"
+#include "ZoomTracker.h"
 #include "BeamRenderer.h"
 #include "SurfaceRenderer.h"
 #include "MachineRenderer.h"
@@ -34,7 +35,8 @@ CSimView::CSimView()
 		m_pSurfaceRenderer(NULL),
 		m_pDRRRenderer(NULL),
 		patientEnabled(TRUE),
-		isWireFrame(FALSE)
+		isWireFrame(FALSE),
+		isColorWash(FALSE)
 {
 }
 
@@ -193,14 +195,15 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	m_wndREV.SetClippingPlanes(1.0f, 200.0f);
 	m_wndREV.SetMaxObjSize(20.0f);
-	m_wndREV.AddTracker(new CRotateTracker(&m_wndREV));
+	m_wndREV.AddLeftTracker(new CRotateTracker(&m_wndREV));
+	m_wndREV.AddMiddleTracker(new CZoomTracker(&m_wndREV));
 
 	if (!m_wndBEV.Create(NULL, NULL, lpCreateStruct->style, CRect(0, 0, 0, 0), this, 0))
 		return -1;
 	
 	m_wndBEV.SetClippingPlanes(1.0f, 200.0f);
 	m_wndBEV.SetMaxObjSize(20.0f);
-	m_wndBEV.AddTracker(new CRotateTracker(&m_wndBEV));
+	m_wndBEV.AddLeftTracker(new CRotateTracker(&m_wndBEV));
 
 	return 0;
 }
@@ -300,10 +303,6 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	pPatientItem->children.Add(pSeriesItem);
 
-	// create and add the machine renderer to the REV
-	CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
-	m_wndREV.AddRenderer(pMachineRenderer);
-
 	for (int nAtSurf = 0; nAtSurf < pSeries->structures.GetSize(); nAtSurf++)
 	{
 		CSurface *pSurface = GetDocument()->GetSeries()->structures.Get(nAtSurf);
@@ -379,6 +378,11 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pNewItem->selectedImageResourceID.Set(IDB_BEAM_MAGENTA);
 
 		pPlanItem->children.Add(pNewItem);
+
+		// create and add the machine renderer to the REV
+		CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
+		pMachineRenderer->forBeam.Set(pBeam);
+		m_wndREV.AddRenderer(pMachineRenderer);
 
 		// create and add the beam renderer to the REV
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
