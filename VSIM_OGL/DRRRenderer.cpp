@@ -55,7 +55,12 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 
 CDRRRenderer::~CDRRRenderer()
 {
-
+	if (m_pThread != NULL)
+	{
+		m_pThread->SuspendThread();
+		delete m_pThread;
+		m_pThread = NULL;
+	}
 }
 
 #define CREATE_INT_VECTOR(v, vi) \
@@ -271,21 +276,24 @@ void CDRRRenderer::ComputeDRR()
 
 	short ***pppVoxels = forVolume->GetVoxels();
 
+	double start = 0.5 * (double) m_nResDiv;
+	double step = start + (double)m_nResDiv;
+
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vStart;
-	gluUnProject((GLdouble)0, (GLdouble)0, zMin,
+	gluUnProject(start, start, zMin,
 		modelMatrix, projMatrix, m_viewport, 
 		&vStart[0], &vStart[1], &vStart[2]);
 
 	CVector<3> vStartNextX;
-	gluUnProject((GLdouble)m_nResDiv, (GLdouble)0, zMin,
+	gluUnProject(step, start, zMin,
 		modelMatrix, projMatrix, m_viewport, 
 		&vStartNextX[0], &vStartNextX[1], &vStartNextX[2]);
 	CVector<3> vStartStepX = vStartNextX - vStart;
 	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
 
 	CVector<3> vStartNextY;
-	gluUnProject((GLdouble)0, (GLdouble)m_nResDiv, zMin,
+	gluUnProject(start, step, zMin,
 		modelMatrix, projMatrix, m_viewport, 
 		&vStartNextY[0], &vStartNextY[1], &vStartNextY[2]);
 	CVector<3> vStartStepY = vStartNextY - vStart;
@@ -295,19 +303,19 @@ void CDRRRenderer::ComputeDRR()
 
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vEnd;
-	gluUnProject((GLdouble)0, (GLdouble)0, zMax,
+	gluUnProject(start, start, zMax,
 		modelMatrix, projMatrix, m_viewport, 
 		&vEnd[0], &vEnd[1], &vEnd[2]);
 
 	CVector<3> vEndNextX;
-	gluUnProject((GLdouble)m_nResDiv, (GLdouble)0, zMax,
+	gluUnProject(step, start, zMax,
 		modelMatrix, projMatrix, m_viewport, 
 		&vEndNextX[0], &vEndNextX[1], &vEndNextX[2]);
 	CVector<3> vEndStepX = vEndNextX - vEnd;
 	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
 
 	CVector<3> vEndNextY;
-	gluUnProject((GLdouble)0, (GLdouble)m_nResDiv, zMax,
+	gluUnProject(start, step, zMax,
 		modelMatrix, projMatrix, m_viewport, 
 		&vEndNextY[0], &vEndNextY[1], &vEndNextY[2]);
 	CVector<3> vEndStepY = vEndNextY - vEnd;
@@ -479,7 +487,7 @@ void CDRRRenderer::DrawScene()
 			// retrieve the viewport
 			glGetIntegerv(GL_VIEWPORT, m_viewport);
 
-			m_pThread = ::AfxBeginThread(BackgroundComputeDRR, (void *)this);
+			m_pThread = ::AfxBeginThread(BackgroundComputeDRR, (void *)this, THREAD_PRIORITY_HIGHEST);
 		}
 	}
 }
