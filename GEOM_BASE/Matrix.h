@@ -185,6 +185,10 @@ public:
 	//		elimination
 	void Invert();
 
+	// Invert -- inverts the matrix using the Gauss-Jordan 
+	//		elimination
+	void Transpose();
+
 protected:
 
 	// helper functions for Invert -- defined below
@@ -284,6 +288,36 @@ void CMatrix<DIM, TYPE>::Invert()
 	}
 
 	(*this) = inv; 
+}
+
+//////////////////////////////////////////////////////////////////////
+// function CMatrix<DIM, TYPE>::Transpose
+//
+// transposes the matrix
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+void CMatrix<DIM, TYPE>::Transpose()
+{
+	for (int nCol = 0; nCol < DIM; nCol++)
+		for (int nRow = 0; nRow < DIM; nRow++)
+		{
+			TYPE temp = (*this)[nRow][nCol];
+			(*this)[nRow][nCol] = (*this)[nCol][nRow];
+			(*this)[nCol][nRow] = temp;
+		}
+}
+
+//////////////////////////////////////////////////////////////////////
+// function CMatrix<DIM, TYPE>::Transpose
+//
+// transposes the matrix
+//////////////////////////////////////////////////////////////////////
+template<int DIM, class TYPE>
+CMatrix<DIM, TYPE> Transpose(const CMatrix<DIM, TYPE>& m)
+{
+	CMatrix<DIM, TYPE> mTranspose = m;
+	mTranspose.Transpose();
+	return mTranspose;
 }
 
 //////////////////////////////////////////////////////////////////////
