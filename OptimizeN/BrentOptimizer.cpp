@@ -82,11 +82,14 @@ CBrentOptimizer::CBrentOptimizer(CObjectiveFunction *pFunc)
 //////////////////////////////////////////////////////////////////////
 const CVectorN<>& CBrentOptimizer::Optimize(const CVectorN<>& vInit)
 {
+	BEGIN_LOG_SECTION(CBrentOptimizer::Optimize);
+
 	// find three values the bracket a minimum
 	REAL ax = vInit[0];
 	REAL bx = ax + m_Bracket;
 	REAL cx;
 	BracketMinimum(ax, bx, cx);
+	LOG_EXPR(ax);  LOG_EXPR(bx);  LOG_EXPR(cx);
 
 	// find the actual minimum
 	REAL finalx;
@@ -101,10 +104,13 @@ const CVectorN<>& CBrentOptimizer::Optimize(const CVectorN<>& vInit)
 	{
 		finalx = FindMinimum(ax, bx, cx);
 	}
+	LOG_EXPR(finalx);
 
 	// set the member variable that holds the final value
 	m_vFinalParam.SetDim(1);	// 1-d for a brent optimizer
 	m_vFinalParam[0] = finalx;
+
+	END_LOG_SECTION();	// CBrentOptimizer::Optimize
 
 	// and return it
 	return m_vFinalParam;
@@ -127,6 +133,8 @@ const CVectorN<>& CBrentOptimizer::Optimize(const CVectorN<>& vInit)
 //////////////////////////////////////////////////////////////////////
 void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 {
+	BEGIN_LOG_SECTION(CBrentOptimizer::BracketMinimum);
+
 	REAL fa, fb, fc;
 
 	m_vAx[0] = ax;
@@ -150,9 +158,16 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 	m_vCx[0] = cx;
 	fc = (*m_pFunc)(m_vCx);
 
-	// Keep returning here until we bracket. 
+	LOG("f(%lf) = %lf", ax, fa);
+	LOG("f(%lf) = %lf", bx, fc);
+	LOG("f(%lf) = %lf", cx, fc);
+
+	// Keep returning here until we bracket.
+	m_nIteration = 0;
 	while (fb > fc)
 	{
+		BEGIN_LOG_SECTION_(FMT("Iteration %i", m_nIteration));
+
 		// Compute u by parabolic extrapolation from a,b,c.  TINY is used to 
 		// prevent any possible division by zero. 
 		REAL r = (bx - ax) * (fb - fc);
@@ -176,14 +191,18 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 				bx = u;
 				fa = fb;
 				fb = fu;
-				return;
+
+				EXIT_LOG_SECTION();
+				goto cleanup;
 			}
 			else if (fu > fb)
 			{
 				// Got a minimum between a and u. 
 				cx = u;
 				fc = fu;
-				return;
+
+				EXIT_LOG_SECTION();
+				goto cleanup;
 			}
 
 			// Parabolic fit was no use.  Use default magnification. 
@@ -226,7 +245,12 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 		// Eliminate oldest point and continue. 
 		SHFT(ax,bx,cx,u)
 		SHFT(fa,fb,fc,fu)
+
+		END_LOG_SECTION();		// Iteration
 	}
+
+cleanup:
+	END_LOG_SECTION();		// CBrentOptimizer::BracketMinimum
 }
 
 
@@ -250,8 +274,12 @@ void CBrentOptimizer::BracketMinimum(REAL& ax, REAL& bx, REAL& cx)
 // template<class REAL>
 REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 {
+	REAL fx, x;
+
+	BEGIN_LOG_SECTION(CBrentOptimizer::FindMinimum);
+
 	// The following are intermediate computed values. 
-	REAL a,b,d,etemp,fu,fv,fw,fx,p,q,r,tol1,tol2,u,v,w,x,xm;
+	REAL a,b,d,etemp,fu,fv,fw,p,q,r,tol1,tol2,u,v,w,xm;
 	REAL e=0.0;            // distance moved on the step before last 
 
 	// a and b must be in ascending order, but input abscissas need not be.
@@ -265,6 +293,8 @@ REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 	// Main function loop. 
 	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
 	{
+		BEGIN_LOG_SECTION_(FMT("Iteration %i", m_nIteration));
+
 		xm = (REAL) 0.5*(a+b);
 		tol1 = (REAL) (GetTolerance() * fabs(x)+ZEPS);
 		tol2 = (REAL) 2.0 * tol1;
@@ -272,8 +302,8 @@ REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 		// Test for done here. 
 		if (fabs(x - xm) <= (tol2-0.5*(b-a)))
 		{
-			m_finalValue = fx;
-			return x;
+			EXIT_LOG_SECTION();
+			goto cleanup;
 		}
 
 		// Construct a trial parabolic fit. 
@@ -314,6 +344,7 @@ REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 		// This is the one function evaluation per iteration. 
 		m_vU[0] = u;
 		fu=(*m_pFunc)(m_vU);
+		LOG("f(%lf) = %lf", u, fu);
 
 		// Now decide what to do with our function evaluation. 
 		// Housekeeping follows: 
@@ -339,8 +370,14 @@ REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 				fv=fu;
 			}
 		}
+
 		// Done with housekeeping.  Back for another iteration. 
+		END_LOG_SECTION()	// Iteration
 	}
+	LOG("Too many iterations = %i", m_nIteration);
+
+cleanup:
+	END_LOG_SECTION();	// CBrentOptimizer::BracketMinimum
 
 	m_finalValue = fx;
 	return x;

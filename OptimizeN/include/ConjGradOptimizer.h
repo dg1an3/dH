@@ -57,17 +57,15 @@ private:
 	// brent optimizer along the line function
 	CBrentOptimizer m_optimizeBrent;
 
-	// cubic interpolation optimizer
-	CCubicInterpOptimizer m_optimizeCubic;
-
 	// stores the callback info
 	OptimizerCallback *m_pCallbackFunc;
 	void *m_pCallbackParam;
 
 	// "statics" for the optimization routine
-	CVectorN<> m_vG;
-	CVectorN<> m_vXi;
-	CVectorN<> m_vH;
+	CVectorN<> m_vGrad;
+	CVectorN<> m_vGradPrev;
+	CVectorN<> m_vDir;
+	CVectorN<> m_vDirPrev;
 };
 
 #endif

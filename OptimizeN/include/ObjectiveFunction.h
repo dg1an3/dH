@@ -13,6 +13,8 @@
 // objective functions are vector-domained functions
 #include <VectorN.h>
 
+#include <MatrixNxM.h>
+
 //////////////////////////////////////////////////////////////////////
 // class CObjectiveFunction
 // 
@@ -31,11 +33,20 @@ public:
 	virtual REAL operator()(const CVectorN<>& vInput, 
 		CVectorN<> *pGrad = NULL) const = 0;
 
+	// function to evaluate gradiant at a point
+	virtual void Gradient(const CVectorN<>& vIn, CVectorN<>& vGrad_out) const { };
+
+	// function to evaluate hessian at a point
+	virtual void Hessian(const CVectorN<>& vIn, CMatrixNxM<>& mHess_out) const;
+
 	// whether gradient information is available
 	BOOL HasGradientInfo() const;
 
 	// function to test the gradient calculation
 	REAL TestGradient(const CVectorN<>& vAtParam, REAL epsilon) const;
+
+	// function to test hessian calculation
+	void TestHessian(const CVectorN<>& vAtParam, REAL epsilon) const;
 
 private:
 	// flag to indicate that gradient information is available
