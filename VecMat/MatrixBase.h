@@ -406,48 +406,44 @@ BOOL CMatrixBase<TYPE>::IsOrthogonal() const
 //////////////////////////////////////////////////////////////////////
 // function Orthogonalize
 //
-// orthogonalizes the input matrix
+// orthogonalizes the input matrix using GSO
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
 void CMatrixBase<TYPE>::Orthogonalize()
 {
-	// Gramm-Schmidt orthogonalization
-
-	// begin by setting the first orthogonal row vector
+	// make a working copy of the matrix
 	CMatrixBase<TYPE> mOrtho(*this);
 
-	// get the first column vector
-	CVectorN<TYPE> vCol = GetColumn(0);
-	vCol.Normalize();
-	mOrtho.SetColumn(0, vCol);
+	// transpose because we will normalize the column vectors, not
+	//		the row vectors
+	mOrtho.Transpose();
+
+	// normalize the first column vector
+	mOrtho[0].Normalize();
 
 	// apply to each row vector after the zero-th
 	for (int nAtCol = 1; nAtCol < GetDim(); nAtCol++)
 	{
-		vCol = GetColumn(nAtCol);
-		vCol.Normalize();
+		// normalize the next column vector
+		mOrtho[nAtCol].Normalize();
 
+		// ensure orthogonality with all previous column vectors
 		for (int nAtOrthoCol = nAtCol - 1; nAtOrthoCol >= 0; 
 				nAtOrthoCol--)
 		{
-			CVectorN<TYPE> vOrthoCol = GetColumn(nAtOrthoCol);
+			// compute the scale factor
+			double scalar = (mOrtho[nAtCol] * mOrtho[nAtOrthoCol]) 
+				/ (mOrtho[nAtOrthoCol] * mOrtho[nAtOrthoCol]);
 
-			double scalar = (vCol * vOrthoCol) 
-				/ (vOrthoCol * vOrthoCol);
-
-			vCol -= scalar * vOrthoCol;
+			mOrtho[nAtCol] -= scalar * mOrtho[nAtOrthoCol];
 		}
 
-		vCol.Normalize();
-
-		mOrtho.SetColumn(nAtCol, vCol);
+		// and normalize
+		mOrtho[nAtCol].Normalize();
 	}
 
-	// now normalize all rows
-	// for (nAtRow = 0; nAtRow < GetDim(); nAtRow++)
-	// {
-	//	mOrtho[nAtRow].Normalize();
-	// }
+	// convert row vectors to column vectors
+	mOrtho.Transpose();
 
 	// test to ensure we are orthogonal
 	ASSERT(IsOrthogonal());
