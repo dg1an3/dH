@@ -27,7 +27,8 @@ public:
 // Attributes
 public:
 
-	CValue< CMatrix<4> > myProjectionMatrix;
+	// holds the current projection matrix for the view
+	CValue< CMatrix<4> > projectionMatrix;
 
 // Operations
 public:

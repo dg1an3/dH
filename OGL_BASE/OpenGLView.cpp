@@ -26,9 +26,10 @@ IMPLEMENT_DYNCREATE(COpenGLView, CWnd)
 
 COpenGLView::COpenGLView()
 	: m_pDC(NULL),
+		m_hrc(NULL),
 		m_bDragging(FALSE)
 {
-	myProjectionMatrix.AddObserver(this);
+	projectionMatrix.AddObserver(this);
 }
 
 COpenGLView::~COpenGLView()
@@ -171,7 +172,7 @@ void COpenGLView::RecalcProjectionMatrix()
 		// move the camera back by the desired viewing distance
 		glTranslatef(0.0f, 0.0f, -m_radius);
 
-		myProjectionMatrix.Set(glGetMatrix(GL_PROJECTION_MATRIX));
+		projectionMatrix.Set(glGetMatrix(GL_PROJECTION_MATRIX));
 	}
 
 	// set back to operate on the model matrix
@@ -182,7 +183,7 @@ void COpenGLView::RecalcProjectionMatrix()
 CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj, float z)
 {
 	if (mProj == NULL)
-		mProj = &myProjectionMatrix.Get();
+		mProj = &projectionMatrix.Get();
 
 //	if (z == -999.0)
 //		z = GetNearPlane();
@@ -235,7 +236,7 @@ void COpenGLView::OnPaint()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrix(myProjectionMatrix.Get());
+	glLoadMatrix(projectionMatrix.Get());
 
 	// set the matrix mode to modelview
 	glMatrixMode(GL_MODELVIEW);
@@ -438,10 +439,10 @@ void COpenGLView::MakeCurrentGLRC()
 
 void COpenGLView::OnChange(CObservable *pSource)
 {
-	if (pSource == &myProjectionMatrix)
+	if (pSource == &projectionMatrix)
 	{
 		MakeCurrentGLRC();
 		glMatrixMode(GL_PROJECTION);
-		glLoadMatrix(myProjectionMatrix.Get());
+		glLoadMatrix(projectionMatrix.Get());
 	}
 }
