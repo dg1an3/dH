@@ -1,0 +1,26 @@
+// NodeRenderer.cpp: implementation of the CNodeRenderer class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#include "stdafx.h"
+#include "NodeRenderer.h"
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+CNodeRenderer::CNodeRenderer(COpenGLView *pView)
+	: COpenGLRenderer(pView)
+{
+
+}
+
+CNodeRenderer::~CNodeRenderer()
+{
+
+}
+
+void CNodeRenderer::OnRenderScene()
+{
+
+}
