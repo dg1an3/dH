@@ -21,7 +21,7 @@ COpenGLCamera::COpenGLCamera()
 		viewingAngle(45.0),
 		aspectRatio(1.0),
 		nearPlane(50.0),
-		farPlane(150.0) // ,
+		farPlane(150.0)
 {
 	// add the change listeners for the model-to-camera transform
 	targetPoint.AddObserver(this, (ChangeFunction) OnComputeModelXform);
@@ -65,7 +65,6 @@ void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldVa
 	// form the rotation matrix for the camera direction
 	CMatrix<4> mRotateDir = CreateRotate(phi.Get(), CVector<3>(1.0, 0.0, 0.0))
 		* CreateRotate(theta.Get(), CVector<3>(0.0, 0.0, 1.0));
-	// TRACE_MATRIX4("mRotateDir in COpenGLCamera = ", mRotateDir);
 
 	// form the camera roll rotation matrix
 	CMatrix<4> mRotateRoll = CreateRotate(rollAngle.Get(), 
@@ -86,18 +85,8 @@ void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldVa
 void COpenGLCamera::OnComputeCameraAngles(CObservableObject *pSource, void *pOldValue)
 {
 	CMatrix<4> mXform = modelXform.Get();
-/*	TRACE_MATRIX4("mXform in COpenGLCamera = ", mXform);
+	TRACE_MATRIX4("mXform in COpenGLCamera = ", mXform);
 
-	// see if the matrix is orthogonal
-	mXform[0][3] = 0.0;
-	mXform[1][3] = 0.0;
-	mXform[2][3] = 0.0;
-	CMatrix<4> mIdent = mXform * Transpose(mXform);
-	TRACE_MATRIX4("Should be identity", mIdent);
-	ASSERT(mIdent.IsApproxEqual(CMatrix<4>()));
-
-	mXform = modelXform.Get();
-*/
 	// form the rotation angles for the camera direction
 	double new_phi = acos(mXform[2][2]);
 	double sin_phi = sin(phi.Get());

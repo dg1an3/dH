@@ -29,7 +29,6 @@ public:
 	CValue< double > distance;
 
 	// the direction from the camera to the the target point
-	// CValue< CVector<3> > direction;
 	CValue< double > theta, phi;
 
 	// the camera rotation about its optical axis
