@@ -44,7 +44,7 @@ public:
 				fptt = finalValue.Get();
 
 				// set up the direction for the line minimization
-				m_lineFunction.direction = xi[i];
+				m_lineFunction.direction.Set(xi[i]);
 
 				// now launch a Brent optimization
 				TYPE lambda = m_optimizeBrent.Optimize(0.0)[0];
@@ -85,7 +85,7 @@ public:
 				if (t < 0.0)
 				{
 					// set up the direction for the line minimization
-					m_lineFunction.direction = xit;
+					m_lineFunction.direction.Set(xit);
 
 					// now launch a Brent optimization
 					TYPE lambda = m_optimizeBrent.Optimize((TYPE)0.0)[0];
