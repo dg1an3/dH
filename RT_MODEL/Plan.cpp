@@ -28,7 +28,7 @@ END_MESSAGE_MAP()
 
 CPlan::CPlan()
 	: m_pSeries(NULL),
-		m_bDoseValid(FALSE)
+		m_bRecomputeTotalDose(TRUE)
 {
 }
 
@@ -70,6 +70,39 @@ int CPlan::AddBeam(CBeam *pBeam)
 
 	return nIndex;
 }
+
+CVolume<double> *CPlan::GetDoseMatrix()
+{
+	if (m_bRecomputeTotalDose)
+	{
+		// total the dose for all beams
+		if (GetBeamCount() > 0)
+		{
+			// clear the total dose matrix
+			m_dose.SetDimensions(GetBeamAt(0)->GetDoseMatrix()->GetWidth(), 
+				GetBeamAt(0)->GetDoseMatrix()->GetHeight(),
+				GetBeamAt(0)->GetDoseMatrix()->GetDepth());
+
+			// clear the dose matrix
+			m_dose.ClearVoxels();
+
+			for (int nAt = 0; nAt < GetBeamCount(); nAt++)
+			{
+				// add this beam's dose matrix to the total
+				m_dose.Accumulate(GetBeamAt(nAt)->GetDoseMatrix(),
+					GetBeamAt(nAt)->GetWeight());
+			}
+		}
+		else
+		{
+			return NULL;
+		}
+	}
+
+	return &m_dose;
+}
+
+
 /////////////////////////////////////////////////////////////////////////////
 // CPlan serialization
 
@@ -96,6 +129,8 @@ void CPlan::Serialize(CArchive& ar)
 	}
 
 	m_arrBeams.Serialize(ar);
+
+	BOOL m_bDoseValid = m_dose.GetWidth() > 0;
 
 	// serialize the dose matrix valid flag
 	SERIALIZE_VALUE(ar, m_bDoseValid);

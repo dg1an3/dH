@@ -1,24 +1,37 @@
-// Plan.h : interface of the CPlan class
+//////////////////////////////////////////////////////////////////////
+// Plan.h: declaration of the CPlan class
 //
-/////////////////////////////////////////////////////////////////////////////
+// Copyright (C) 2000-2002  Derek G. Lane
+// $Id$
+//////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_PLAN_H__71D1495A_EE39_11D4_9E36_00B0D0609AB0__INCLUDED_)
-#define AFX_PLAN_H__71D1495A_EE39_11D4_9E36_00B0D0609AB0__INCLUDED_
+
+#if !defined(PLAN_H)
+#define PLAN_H
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+// series upon which plan is based
 #include "Series.h"
+
+// beams belonging to the plan
 #include "Beam.h"
 
-/////////////////////////////////////////////////////////////////////////////
-// CPlan document
 
+//////////////////////////////////////////////////////////////////////
+// class CPlan
+//
+// represents a treatment plan
+//////////////////////////////////////////////////////////////////////
 class CPlan : public CDocument
 {
 protected: // create from serialization only
+	// constructor
 	CPlan();
+
+	// dynamic create
 	DECLARE_DYNCREATE(CPlan)
 
 // Attributes
@@ -32,18 +45,8 @@ public:
 	CBeam * GetBeamAt(int nAt);
 	int AddBeam(CBeam *pBeam);
 
-	// flag to indicate whether the plan's dose is valid
-	BOOL IsDoseValid() const;
-	void SetDoseValid(BOOL bValid = TRUE)
-	{
-		m_bDoseValid = bValid;
-	}
-
 	// the computed dose for this plan (NULL if no dose exists)
-	CVolume<double> *GetDoseMatrix()
-	{
-		return &m_dose;
-	}
+	CVolume<double> *GetDoseMatrix();
 
 // Operations
 public:
@@ -88,8 +91,10 @@ private:
 	CObArray m_arrBeams;
 
 	// the dose matrix for the plan
-	BOOL m_bDoseValid;
 	CVolume<double> m_dose;
+
+	// flag to indicate the total dose is to be recomputed
+	BOOL m_bRecomputeTotalDose;
 
 	// static variable that stores a pointer to the 
 	//		CSeries document template
