@@ -5,7 +5,7 @@
 #include "stdafx.h"
 #include "CubicInterpOptimizer.h"
 
-#include <Matrix.h>
+#include <MatrixD.h>
 
 // holds the initial value for the brent optimization
 const CVectorN<> CCubicInterpOptimizer::m_vInit(1);
@@ -171,7 +171,7 @@ BOOL CCubicInterpOptimizer::SolveConst(REAL x1, REAL fx1, REAL dx1,
 	// solve for the cubic a, b, c, and d parameters
 
 	// set up the system matrix
-	CMatrix<4> mS;
+	CMatrixD<4> mS;
 
 	mS[0][0] = 3.0 * x1 * x1;
 	mS[0][1] = 2.0 * x1;
@@ -193,14 +193,11 @@ BOOL CCubicInterpOptimizer::SolveConst(REAL x1, REAL fx1, REAL dx1,
 	mS[3][2] = x2;
 	mS[3][3] = 1.0;
 
-	// trace out the matrix
-	TRACE_MATRIX("mS = ", mS);
-
 	// invert
 	mS.Invert();
 
 	// and solve
-	CVector<4> v;
+	CVectorD<4> v;
 	v[0] = dx1;
 	v[1] = dx2;
 	v[2] = fx1;

@@ -10,7 +10,7 @@
 #endif // _MSC_VER > 1000
 
 #include "Optimizer.h"
-#include <Vector.h>
+#include <VectorD.h>
 
 //////////////////////////////////////////////////////////////////////
 // class CCubicInterpOptimizer
@@ -48,7 +48,7 @@ private:
 	CVectorN<> m_vGrad;
 
 	// vector holding constants for cubic fit
-	CVector<4> m_vK;
+	CVectorD<4> m_vK;
 
 	// success flag
 	BOOL m_bSuccess;
