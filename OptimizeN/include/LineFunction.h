@@ -36,7 +36,7 @@ public:
 
 	// evaluates the line function
 	virtual REAL operator()(const CVectorN<>& vInput,
-		CVectorN<> *pGrad = NULL);
+		CVectorN<> *pGrad = NULL) const;
 
 private:
 	// pointer to the objective function upon which this line function
@@ -50,10 +50,10 @@ private:
 	CVectorN<> m_vDirection;
 
 	// temporary store of evaluation point
-	CVectorN<> m_vEvalPoint;
+	mutable CVectorN<> m_vEvalPoint;
 
 	// stores the gradient at the last evaluated point
-	CVectorN<> m_vGrad;
+	mutable CVectorN<> m_vGrad;
 };
 
 #endif
