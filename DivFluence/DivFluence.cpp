@@ -89,6 +89,13 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 				}
 			}
 		}
+		CMatrixD<4> mBasis;
+		mBasis[0][0] = lengthz;
+		mBasis[1][1] = lengthx;
+		mBasis[2][2] = lengthy;
+		mBasis[3][1] = -(REAL) (pDensity->GetWidth() / 2) * lengthx;
+		mBasis[3][2] = -(REAL) (pDensity->GetHeight() / 2) * lengthy;
+		pDensity->SetBasis(mBasis);
 
 		// now check fluence
 		CXMLElement *pElem = CXMLLogFile::GetLogFile()->NewElement("lo", "_tmain");
@@ -108,7 +115,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		pBeam->ymin = ymin; 
 		pBeam->ymax = ymax;
 
-		pBeam->SetDensity(pDensity, CVectorD<3>(lengthx, lengthy, lengthz), mu);
+		pBeam->SetDensity(pDensity,	mu);
 
 		pBeam->DivFluenceCalc(ray, thickness);
 

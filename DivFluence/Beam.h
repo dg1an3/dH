@@ -25,11 +25,14 @@ public:
 	virtual ~CBeam();
 
 	// accessor for density
-	void SetDensity(CVolume<double> *pDensity, CVectorD<3> vBasis, double mu);
+	void SetDensity(CVolume<double> *pDensity, double mu);
 
 	// collimated field size
 	double xmin, xmax;
 	double ymin, ymax;
+
+	// accessor for fluence 
+	CVolume<double> *GetFluence();
 
 	// fluence calc
 	void DivFluenceCalc(
@@ -37,15 +40,12 @@ public:
 		const double thickness_in
 		);
 
-	// accessor for fluence 
-	CVolume<double> *GetFluence();
+	// aceessor for energy
+	CVolume<double> *GetEnergy();
 
 	// convolve
 	void SphereConvolve(const double thickness_in);
 	void SphereTrace(const double thickness_in, int nI, int nJ, int nK);
-
-	// aceessor for energy
-	CVolume<double> *GetEnergy();
 
 protected:
 	void RayTraceSetup();
@@ -71,7 +71,6 @@ private:
 	// reference / interpretation of density
 	CVolume<double> * m_pDensity;
 	double m_mu;
-	CVectorD<3> m_vBasis;
 
 	// reference to primary fluence matrix
 	CVolume<double> *m_pFluence;

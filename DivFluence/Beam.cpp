@@ -71,14 +71,32 @@ CBeam::~CBeam()
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CBeam::SetDensity(CVolume<double> *pDensity, CVectorD<3> vBasis, double mu)
+void CBeam::SetDensity(CVolume<double> *pDensity, double mu)
 {
 	m_pDensity = pDensity;
-	m_vBasis = vBasis;
 	m_mu = mu;
 
 }	// CBeam::SetDensity
 
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetFluence
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVolume<double> *CBeam::GetFluence()
+{
+	// initialize fluence
+	if (!m_pFluence)
+	{
+		m_pFluence = new CVolume<double>();
+		m_pFluence->ConformTo(m_pDensity);
+	}
+
+	return m_pFluence;
+
+}	// CBeam::GetFluence
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -90,20 +108,17 @@ void CBeam::DivFluenceCalc(
 						   const double rays_per_voxel_in,
 						   const double thickness_in
 						   )
-{					  
+{	
 	// initialize fluence
-	if (!m_pFluence)
-	{
-		m_pFluence = new CVolume<double>();
-		m_pFluence->ConformTo(m_pDensity);
-	}
-	m_pFluence->ClearVoxels();
+	GetFluence()->ClearVoxels();
 
 	double ***pppDensity = m_pDensity->GetVoxels();
 	double ***pppFluence = m_pFluence->GetVoxels();
 
-	int nOX = m_pDensity->GetWidth() / 2;
-	int nOY = m_pDensity->GetHeight() / 2;
+	const CMatrixD<4> &mBasis = m_pDensity->GetBasis();
+
+	int nOX = nint(mBasis[3][1] / mBasis[1][1]); 
+	int nOY = nint(mBasis[3][2] / mBasis[2][2]); 
 
 	// array for normalization
 	static CVolume<double> *pNorm = NULL;
@@ -122,9 +137,9 @@ void CBeam::DivFluenceCalc(
 	double offset = 0.0;
 	
 	// the distance between the rays at the phantom surface
-	double xinc = m_vBasis[0]
+	double xinc = mBasis[1][1] 
 		/ rays_per_voxel_in;          
-	double yinc = m_vBasis[1]
+	double yinc = mBasis[2][2]
 		/ rays_per_voxel_in;
 	
 	// integers defining the rays
@@ -134,8 +149,8 @@ void CBeam::DivFluenceCalc(
 	int nLargeFieldJ = nint(ymax / yinc);
 	
 	// the depth of the surface voxels.
-	double mindepth = m_ssd - offset + 0.5 * m_vBasis[2];   	
-	int nDepthNum = nint(thickness_in / m_vBasis[2]);
+	double mindepth = m_ssd - offset + 0.5 * mBasis[0][0]; 
+	int nDepthNum = nint(thickness_in / mBasis[0][0]); 
 
 	// do for the x-direction.
 	for (int nI = nSmallFieldI; nI <= nLargeFieldI; nI++)
@@ -162,8 +177,9 @@ void CBeam::DivFluenceCalc(
 			// squared
 			double len0 = sqrt(lensquare);           // initial distance
 
-			// distance increment; recall that leninc/len0 = m_vBasis[2]/mindepth
-			double leninc = len0 * m_vBasis[2] / mindepth; 
+			// distance increment; recall that leninc/len0 = mBasis[0][0]/mindepth
+			double leninc = len0 * mBasis[0][0] 
+				/ mindepth; 
 			double distance = len0;             
 			
 			// radiological pathlength in the last voxel
@@ -181,22 +197,22 @@ void CBeam::DivFluenceCalc(
 			for (int nK = 1; nK <= nDepthNum; nK++)
 			{
 				// the relative increase in the ray divergence
-				double latscale = 1.0 + double(nK-1) * m_vBasis[2] / mindepth;        
+				double latscale = 1.0 + double(nK-1) * mBasis[0][0] / mindepth;        
 				
 				// these values are the distance from the central axis to the rays.
 				double fieldx = fieldx0*latscale;              
 				double fieldy = fieldy0*latscale;              
 				
 				// the integers describing the nearest voxel
-				int nNearI = nint(fieldx / m_vBasis[0]);   
-				int nNearJ = nint(fieldy / m_vBasis[1]);   
+				int nNearI = nint(fieldx / mBasis[1][1]);   
+				int nNearJ = nint(fieldy / mBasis[2][2]);   
 				
 				// Calculate the radiological path increment travelled in the phantom.
 				//                  the factor 0.5 in pathinc is introduced so to have 
 				//                  smaller steps and account better for inhomogeneities
 				
 				// radiological pathlength increment
-				double pathinc = 0.5 * leninc * pppDensity[nNearJ+nOY][nNearI+nOX][nK-1];
+				double pathinc = 0.5 * leninc * pppDensity[nNearJ-nOY][nNearI-nOX][nK-1];
 				double delta_path = pathinc + last_pathinc;   
 				path += delta_path;
 				last_pathinc = pathinc;
@@ -211,7 +227,7 @@ void CBeam::DivFluenceCalc(
 				// by properly scaling the field size for the divergence of the beam.
 				
 				double div_scale = 
-					(m_ssd + (double(nK) - 0.5) * m_vBasis[2]) 
+					(m_ssd + (double(nK) - 0.5) * mBasis[0][0]) 
 						/ m_ssd;
 
 				double minfieldx = xmin * div_scale;
@@ -219,40 +235,40 @@ void CBeam::DivFluenceCalc(
 				double minfieldy = ymin * div_scale;
 				double maxfieldy = ymax * div_scale;
 				
-				if (nNearI < nint(minfieldx / m_vBasis[0])) 
+				if (nNearI < nint(minfieldx / mBasis[1][1])) 
 				{
 					weightx = 0.0;
 				}
-				else if (nNearI == nint(minfieldx / m_vBasis[0]))
+				else if (nNearI == nint(minfieldx / mBasis[1][1]))
 				{
 					weightx = double(nNearI) 
-						- minfieldx / m_vBasis[0] + 0.5;
+						- minfieldx / mBasis[1][1] + 0.5;
 				}
-				else if (nNearI == nint(maxfieldx / m_vBasis[0]))
+				else if (nNearI == nint(maxfieldx / mBasis[1][1]))
 				{
-					weightx = maxfieldx / m_vBasis[0] 
+					weightx = maxfieldx / mBasis[1][1]  
 						- 0.5 - double(nNearI-1);
 				}
-				else if (nNearI > nint(maxfieldx/m_vBasis[0])) 
+				else if (nNearI > nint(maxfieldx/mBasis[1][1])) 
 				{
 					weightx = 0.0;
 				}
 				
-				if (nNearJ < nint(minfieldy / m_vBasis[1])) 
+				if (nNearJ < nint(minfieldy / mBasis[2][2])) 
 				{	
 					weighty = 0.0;
 				}
-				else if (nNearJ == nint(minfieldy / m_vBasis[1]))
+				else if (nNearJ == nint(minfieldy / mBasis[2][2]))
 				{
 					weighty = double(nNearJ) 
-						- minfieldy / m_vBasis[1] + 0.5;
+						- minfieldy / mBasis[2][2] + 0.5;
 				}
-				else if (nNearJ == nint(maxfieldy / m_vBasis[1]))
+				else if (nNearJ == nint(maxfieldy / mBasis[2][2]))
 				{
-					weighty = maxfieldy / m_vBasis[1] 
+					weighty = maxfieldy / mBasis[2][2] 
 						- 0.5 - double(nNearJ-1);
 				}
-				else if (nNearJ > nint(maxfieldy / m_vBasis[1])) 
+				else if (nNearJ > nint(maxfieldy / mBasis[2][2])) 
 				{	
 					weighty = 0.0;
 				}
@@ -263,7 +279,7 @@ void CBeam::DivFluenceCalc(
 				// that determine the relative number of photons interacting near
 				// the boundary of the field.
 				
-				if (pppDensity[nNearJ+nOY][nNearI+nOX][nK-1] != 0.0)
+				if (pppDensity[nNearJ-nOY][nNearI-nOX][nK-1] != 0.0)
 				{
 					// nmu = -alog(f_factor(nint(path)))/path
 					atten *= exp(-m_mu * delta_path);
@@ -275,17 +291,17 @@ void CBeam::DivFluenceCalc(
 					//  the divergence correction above was removed from here to be put
 					//  in new_sphere_convolve
 					
-					pppFluence[nNearJ+nOY][nNearI+nOX][nK-1] += fluinc;  // fluence
+					pppFluence[nNearJ-nOY][nNearI-nOX][nK-1] += fluinc;  // fluence
 					
 					// normalization
-					pppNorm[nNearJ+nOY][nNearI+nOX][nK-1]++;    
+					pppNorm[nNearJ-nOY][nNearI-nOX][nK-1]++;    
 				}
 				else
 				{
-					pppFluence[nNearJ+nOY][nNearI+nOX][nK-1] = 0.0;
+					pppFluence[nNearJ-nOY][nNearI-nOX][nK-1] = 0.0;
 					
 					// avoid divide by zero
-					pppNorm[nNearJ+nOY][nNearI+nOX][nK-1] = 1;	
+					pppNorm[nNearJ-nOY][nNearI-nOX][nK-1] = 1;	
 				}
 				
 				// distance from the source
@@ -321,10 +337,10 @@ void CBeam::DivFluenceCalc(
 		: ymax * bottom_scale; 
 	
 	// location of bottom voxels saves time in normalization below
-	int nMinI = nint(x_bottom_min / m_vBasis[0]);    
-	int nMaxI = nint(x_bottom_max / m_vBasis[0]);    
-	int nMinJ = nint(y_bottom_min / m_vBasis[1]);      
-	int nMaxJ = nint(y_bottom_max / m_vBasis[1]);    
+	int nMinI = nint(x_bottom_min / mBasis[1][1]);    
+	int nMaxI = nint(x_bottom_max / mBasis[1][1]);    
+	int nMinJ = nint(y_bottom_min / mBasis[2][2]);      
+	int nMaxJ = nint(y_bottom_max / mBasis[2][2]);    
 	
 	for (nI = nMinI; nI <= nMaxI; nI++)
 	{
@@ -332,11 +348,11 @@ void CBeam::DivFluenceCalc(
 		{
 			for (int nK = 1; nK <= nDepthNum; nK++)
 			{
-				if (pppNorm[nJ+nOY][nI+nOX][nK-1] != 0)
+				if (pppNorm[nJ-nOY][nI-nOX][nK-1] != 0)
 				{
 					// do normalization
-					pppFluence[nJ+nOY][nI+nOX][nK-1] 
-						/= (double) pppNorm[nJ+nOY][nI+nOX][nK-1];
+					pppFluence[nJ-nOY][nI-nOX][nK-1] 
+						/= (double) pppNorm[nJ-nOY][nI-nOX][nK-1];
 				}				
 			}
 		}
@@ -346,15 +362,144 @@ void CBeam::DivFluenceCalc(
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// CBeam::GetFluence
+// CBeam::GetEnergy
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<double> *CBeam::GetFluence()
+CVolume<double> *CBeam::GetEnergy()
 {
-	return m_pFluence;
+	// initialize energy
+	if (!m_pEnergy)
+	{
+		m_pEnergy = new CVolume<double>();
+		m_pEnergy->ConformTo(m_pDensity);
+	}
+	return m_pEnergy;
 
-}	// CBeam::GetFluence
+}	// CBeam::GetEnergy
+
+
+//////////////////////////////////////////////////////////////////////////////
+// CBeam::SphereConvolve
+//
+// spherical convolution
+//////////////////////////////////////////////////////////////////////////////
+void CBeam::SphereConvolve(const double thickness_in)
+{
+	// initialize energy
+	GetEnergy()->ClearVoxels();
+
+	// accessors for voxels
+	double ***pppDensity = m_pDensity->GetVoxels();
+	double ***pppFluence = m_pFluence->GetVoxels();
+	double ***pppEnergy = m_pEnergy->GetVoxels();
+
+	const CMatrixD<4> &mBasis = m_pDensity->GetBasis();
+
+	int nOX = nint(mBasis[3][1] / mBasis[1][1]); 
+	int nOY = nint(mBasis[3][2] / mBasis[2][2]); 
+
+	// parameters
+	const int mini_in = 
+		nint( // 8.0 * xmin 
+			-10.0 / mBasis[1][1]);
+	const int maxi_in =  
+		nint( // 8.0 * xmax 
+			10.0 / mBasis[1][1]);
+	const int minj_in = ymin / mBasis[2][2];
+	const int maxj_in = ymax / mBasis[2][2];
+	const int mink_in = 1;
+	const int maxk_in = 100;
+						 
+	// Routine sets up the ray-trace calculation.	
+	m_pSource->EnergyLookup();
+
+	// Do the convolution.
+	
+	// do for region of interest in z-dir
+	for (int nK = mink_in; nK <= maxk_in; nK++)          
+	{
+		// do for region of interest in y-dir
+		for (int nJ = minj_in; nJ <= maxj_in; nJ++)         
+		{
+			// do for region of interest in x-dir
+			for (int nI = mini_in; nI <= maxi_in; nI++)        
+			{
+				// dose at zero density?
+				if (pppDensity[nJ-nOY][nI-nOX][nK-1] != 0.0) 
+				{
+					SphereTrace(thickness_in, nI, nJ, nK);
+				}
+				
+			}	// end of z-direction loop  
+			
+		}	// end of y-direction loop
+		
+	}	// end of x-direction loop 
+	
+	// Normalize the energy deposited to take into account the
+	// summation over the azimuthal angles. Convert the energy to  
+	// dose by dividing by mass and find the position of dmax
+	// and the dose at dmax.                              
+	
+	for (nK = mink_in; nK <= maxk_in; nK++)
+	{
+		for (int nJ = minj_in; nJ <= maxj_in; nJ++)
+		{
+			for (int nI = mini_in; nI <= maxi_in; nI++)
+			{				
+				// The divergence correction is done also here (instead in div_fluence_calc)
+				// Added by Nikos
+				
+				double new_distance = sqrt(
+					(m_ssd + float(nK) * mBasis[0][0] - 0.5) 
+						* (m_ssd + float(nK) * mBasis[0][0] - 0.5)
+					+ (float(nJ) * mBasis[2][2]) 
+						* (float(nJ) * mBasis[2][2])
+					+ (float(nI) * mBasis[1][1]) 
+						* (float(nI) * mBasis[1][1]));
+				
+				// depth_distance added for the CF kernel depth hardening effect
+				double depth_distance = sqrt(
+					(float(nK) * mBasis[0][0] - 0.5)
+						* (float(nK) * mBasis[0][0] - 0.5) 
+					+ (float(nJ) * mBasis[2][2])
+						* (float(nJ) * mBasis[2][2]) 
+					+ (float(nI) * mBasis[1][1])
+						* (float(nJ) * mBasis[2][2]));
+				
+				// added to waive the CF correction for mononergetic beams	
+				const double mvalue = 0; 
+				const double bvalue = 1;
+
+				double c_factor = mvalue * depth_distance + bvalue;
+				
+				// convert to Gy cm**2 and take into account the
+				// azimuthal sum
+				pppEnergy[nJ-nOY][nI-nOX][nK-1] *= 1.602e-10 / (double) NUM_THETA;
+				pppEnergy[nJ-nOY][nI-nOX][nK-1] *= (m_ssd / new_distance) * (m_ssd / new_distance);
+				pppEnergy[nJ-nOY][nI-nOX][nK-1] *= c_factor;
+			} 
+		}
+	}
+	m_pEnergy->VoxelsChanged();
+
+	double maxx = m_pEnergy->GetMax();
+
+	// now normalize to dmax
+	for (nK = mink_in; nK <= maxk_in; nK++)
+	{
+		for (int nJ = minj_in; nJ <= maxj_in; nJ++)
+		{
+			for (int nI = mini_in; nI <= maxi_in; nI++)
+			{								
+				pppEnergy[nJ-nOY][nI-nOX][nK-1] = pppEnergy[nJ-nOY][nI-nOX][nK-1] / maxx;
+			}
+		}
+	} 
+
+}	// CBeam::SphereConvolve
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -375,8 +520,10 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 	double ***pppFluence = m_pFluence->GetVoxels();
 	double ***pppEnergy = m_pEnergy->GetVoxels();
 
-	int nOX = m_pDensity->GetWidth() / 2;
-	int nOY = m_pDensity->GetHeight() / 2;
+	const CMatrixD<4> &mBasis = m_pDensity->GetBasis();
+
+	int nOX = nint(mBasis[3][1] / mBasis[1][1]); 
+	int nOY = nint(mBasis[3][2] / mBasis[2][2]); 
 
 	// do for all azimuthal angles
 	for (int thet = 1; thet <= NUM_THETA; thet++)            
@@ -396,15 +543,15 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 				int delj = m_delta_j[rad_inc-1][phi-1][thet-1];    
 				int delk = m_delta_k[rad_inc-1][phi-1][thet-1];    
 				
-				int nDepthNum = nint(thickness_in / m_vBasis[2]);
+				int nDepthNum = nint(thickness_in / mBasis[0][0]);
 				
 				// test to see if inside field and phantom
-				if (nK-delk < 1         
-					|| nK-delk > nDepthNum 
-					|| nI-deli > nOX 
-					|| nI-deli < -nOX 
-					|| nJ-delj > nOY 
-					|| nJ-delj < -nOY) 
+				if (nK-delk-1 < 0         
+					|| nK-delk-1 >= m_pDensity->GetWidth() 
+					|| nI-deli-nOX < 0 
+					|| nI-deli-nOX >= m_pDensity->GetHeight() 
+					|| nJ-delj-nOY < 0
+					|| nJ-delj-nOY >= m_pDensity->GetDepth()) 
 				{
 					break;	
 				}
@@ -418,7 +565,7 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 																		//	(phi,nint(rad_dist*10.0));
 
 				double delta_rad = b_ray_trace 
-					? pathinc * pppDensity[nJ-delj+nOY][nI-deli+nOX][nK-delk-1] 
+					? pathinc * pppDensity[nJ-delj-nOY][nI-deli-nOX][nK-delk-1] 
 						/ kerndens
 					:pathinc * avdens 
 						/ kerndens;
@@ -446,11 +593,9 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 				double energy = tot_energy - last_energy;
 				last_energy = tot_energy;             
 				
-				GetFluence()->GetVoxelAt(nK-delk-1, nJ-delj+nOY, nI-deli+nOX);
-
 				// The energy is accumulated - superposition
-				pppEnergy[nJ+nOY][nI+nOX][nK-1] +=  
-					energy * pppFluence[nJ-delj+nOY][nI-deli+nOX][nK-delk-1];
+				pppEnergy[nJ-nOY][nI-nOX][nK-1] +=  
+					energy * pppFluence[nJ-delj-nOY][nI-deli-nOX][nK-delk-1];
 				
 			}	// end of radial path loop                
 
@@ -459,145 +604,6 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 	}	// end of azimuth angle loop 
 }
 
-
-//////////////////////////////////////////////////////////////////////////////
-// CBeam::SphereConvolve
-//
-// spherical convolution
-//////////////////////////////////////////////////////////////////////////////
-void CBeam::SphereConvolve(const double thickness_in)
-{
-	// initialize energy
-	if (!m_pEnergy)
-	{
-		m_pEnergy = new CVolume<double>();
-		m_pEnergy->ConformTo(m_pDensity);
-	}
-	m_pEnergy->ClearVoxels();
-
-	// accessors for voxels
-	double ***pppDensity = m_pDensity->GetVoxels();
-	double ***pppFluence = m_pFluence->GetVoxels();
-	double ***pppEnergy = m_pEnergy->GetVoxels();
-
-	int nOX = m_pDensity->GetWidth() / 2;
-	int nOY = m_pDensity->GetHeight() / 2;
-
-	// parameters
-	const int mini_in = 
-		nint( // 8.0 * xmin 
-			-10.0 / m_vBasis[0]);
-	const int maxi_in =  
-		nint( // 8.0 * xmax 
-			10.0 / m_vBasis[0]);
-	const int minj_in = ymin / m_vBasis[1];
-	const int maxj_in = ymax / m_vBasis[1];
-	const int mink_in = 1;
-	const int maxk_in = 100;
-						 
-	// Routine sets up the ray-trace calculation.	
-	m_pSource->EnergyLookup();
-
-	// Do the convolution.
-	
-	// do for region of interest in z-dir
-	for (int nK = mink_in; nK <= maxk_in; nK++)          
-	{
-		// do for region of interest in y-dir
-		for (int nJ = minj_in; nJ <= maxj_in; nJ++)         
-		{
-			// do for region of interest in x-dir
-			for (int nI = mini_in; nI <= maxi_in; nI++)        
-			{
-				// dose at zero density?
-				if (pppDensity[nJ+nOY][nI+nOX][nK-1] != 0.0) 
-				{
-					SphereTrace(thickness_in, nI, nJ, nK);
-				}
-				
-			}	// end of z-direction loop  
-			
-		}	// end of y-direction loop
-		
-	}	// end of x-direction loop 
-	
-	// Normalize the energy deposited to take into account the
-	// summation over the azimuthal angles. Convert the energy to  
-	// dose by dividing by mass and find the position of dmax
-	// and the dose at dmax.                              
-	
-	for (nK = mink_in; nK <= maxk_in; nK++)
-	{
-		for (int nJ = minj_in; nJ <= maxj_in; nJ++)
-		{
-			for (int nI = mini_in; nI <= maxi_in; nI++)
-			{				
-				// The divergence correction is done also here (instead in div_fluence_calc)
-				// Added by Nikos
-				
-				double new_distance = sqrt(
-					(m_ssd + float(nK) * m_vBasis[2] - 0.5) 
-						* (m_ssd + float(nK) * m_vBasis[2] - 0.5)
-					+ (float(nJ) * m_vBasis[1]) 
-						* (float(nJ) * m_vBasis[1])
-					+ (float(nI) * m_vBasis[0]) 
-						* (float(nI) * m_vBasis[0]));
-				
-				// depth_distance added for the CF kernel depth hardening effect
-				double depth_distance = sqrt(
-					(float(nK) * m_vBasis[2] - 0.5)
-						* (float(nK) * m_vBasis[2] - 0.5) 
-					+ (float(nJ) * m_vBasis[1])
-						* (float(nJ) * m_vBasis[1]) 
-					+ (float(nI) * m_vBasis[0])
-						* (float(nJ) * m_vBasis[1]));
-				
-				// added to waive the CF correction for mononergetic beams	
-				const double mvalue = 0; 
-				const double bvalue = 1;
-
-				double c_factor = mvalue * depth_distance + bvalue;
-				
-				// convert to Gy cm**2 and take into account the
-				// azimuthal sum
-				m_pEnergy->GetVoxelAt(nK-1, nJ+nOY, nI+nOX);
-				pppEnergy[nJ+nOY][nI+nOX][nK-1] *= 1.602e-10 / (double) NUM_THETA;
-				pppEnergy[nJ+nOY][nI+nOX][nK-1] *= (m_ssd / new_distance) * (m_ssd / new_distance);
-				pppEnergy[nJ+nOY][nI+nOX][nK-1] *= c_factor;
-			} 
-		}
-	}
-	m_pEnergy->VoxelsChanged();
-
-	double maxx = m_pEnergy->GetMax();
-
-	// now normalize to dmax
-	for (nK = mink_in; nK <= maxk_in; nK++)
-	{
-		for (int nJ = minj_in; nJ <= maxj_in; nJ++)
-		{
-			for (int nI = mini_in; nI <= maxi_in; nI++)
-			{								
-				ASSERT(pppEnergy[nJ+nOY][nI+nOX][nK-1] <= maxx);
-				pppEnergy[nJ+nOY][nI+nOX][nK-1] = pppEnergy[nJ+nOY][nI+nOX][nK-1] / maxx;
-			}
-		}
-	} 
-
-}	// CBeam::SphereConvolve
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CBeam::GetEnergy
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-CVolume<double> *CBeam::GetEnergy()
-{
-	return m_pEnergy;
-
-}	// CBeam::GetEnergy
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -669,6 +675,8 @@ void CBeam::RayTraceSetup()
 	
 	const int numstep_in = 64;
 
+	const CMatrixD<4> &mBasis = m_pDensity->GetBasis();
+
 	// the azimuthal angle increment is calculated
 	double ang_inc = 2.0 * PI 
 		/ double(NUM_THETA); 
@@ -699,9 +707,9 @@ void CBeam::RayTraceSetup()
 			int delta_k_x[64];	// (64)
 			
 			MakeVector(numstep_in,              
-				sphi*cthet / m_vBasis[0],   // x-dir direction cosine
-				sphi*sthet / m_vBasis[1],   // y-dir direction cosine 
-				cphi       / m_vBasis[2],   // z-dir direction cosine    
+				sphi*cthet / mBasis[1][1],   // x-dir direction cosine
+				sphi*sthet / mBasis[2][2],   // y-dir direction cosine 
+				cphi       / mBasis[0][0],   // z-dir direction cosine    
 				rx,                   // list of dist. to x-bound  
 				delta_i_x,            // x-dir voxel location      
 				delta_j_x,            // y-dir voxel location      
@@ -715,9 +723,9 @@ void CBeam::RayTraceSetup()
 			int delta_k_y[64];	// (64)
 			
 			MakeVector(numstep_in,              
-				sphi*sthet / m_vBasis[1],   // y-dir direction cosine    
-				sphi*cthet / m_vBasis[0],   // x-dir direction cosine    
-				cphi       / m_vBasis[2],   // z-dir direction cosine    
+				sphi*sthet / mBasis[2][2],   // y-dir direction cosine    
+				sphi*cthet / mBasis[1][1],   // x-dir direction cosine    
+				cphi       / mBasis[0][0],   // z-dir direction cosine    
 				ry,                   // list of dist. to y-bound  
 				delta_j_y,            // y-dir voxel location      
 				delta_i_y,            // x-dir voxel location      
@@ -730,9 +738,9 @@ void CBeam::RayTraceSetup()
 			int delta_j_z[64];	// (64)
 			int delta_k_z[64];	// (64)
 			MakeVector(numstep_in,              
-				cphi       / m_vBasis[2],   // z-dir direction cosine    
-				sphi*sthet / m_vBasis[1],   // y-dir direction cosine    
-				sphi*cthet / m_vBasis[0],   // x-dir direction cosine    
+				cphi       / mBasis[0][0],   // z-dir direction cosine    
+				sphi*sthet / mBasis[2][2],   // y-dir direction cosine    
+				sphi*cthet / mBasis[1][1],   // x-dir direction cosine    
 				rz,                   // list of dist. to z-bound  
 				delta_k_z,            // z-dir voxel location      
 				delta_j_z,            // y-dir voxel location      
