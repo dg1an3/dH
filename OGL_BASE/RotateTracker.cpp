@@ -69,8 +69,8 @@ void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// store the current projection matrix from the view
 	m_initProjMatrix = m_pView->camera.projection.Get();
-	// m_initModelXform = m_pView->camera.modelXform.Get();
-	m_vInitDirection = m_pView->camera.direction.Get();
+	m_initModelXform = m_pView->camera.modelXform.Get();
+	// m_vInitDirection = m_pView->camera.direction.Get();
 
 	// store the current mouse position in 3-d
 	m_vInitPoint = m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
@@ -82,11 +82,54 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 	CVector<3> vFinalPoint = 
 		m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
 
-	CVector<4> vNewDirection = 
-		ComputeRotMatrix(vFinalPoint, m_vInitPoint) 
-			* ToHomogeneous(m_vInitDirection);
-	m_pView->camera.direction.Set(
-		FromHomogeneous<3, double>(vNewDirection));
+	CMatrix<4> mRotate = ComputeRotMatrix(vFinalPoint, m_vInitPoint);
+
+#ifndef NONE
+	m_pView->camera.modelXform.Set(m_initModelXform * mRotate);
+
+#else
+	// mRotate.Transpose();
+	mRotate = m_initModelXform * mRotate; // * Transpose(m_initModelXform);
+
+	// now solve for the three angles
+	double new_phi = acos(mRotate[2][2]);
+	double sin_phi = sin(new_phi);
+	double new_theta = 0.0;
+	double new_kappa = 0.0;
+	if (sin_phi > EPS)
+	{
+		new_theta = AngleFromSinCos(mRotate[0][2] / sin_phi,
+			-mRotate[1][2] / sin_phi);
+		new_kappa = AngleFromSinCos(mRotate[2][0] / sin_phi,
+			mRotate[2][1] / sin_phi);
+	}
+
+	// TRACE2("Angles in CRotateTracker: phi = %lf\t theta = %lf\n",
+	//	phi, theta);
+
+	// CMatrix<4> mDirRotate = CreateRotate(phi, CVector<3>(1.0, 0.0, 0.0))
+	//	* CreateRotate(theta, CVector<3>(0.0, 0.0, 1.0));
+	// TRACE_MATRIX4("mDirRotate in RotateTracker = ", mDirRotate);
+
+	// mDirRotate.Invert();
+
+	// CVector<4> vNewDirection = mDirRotate * CVector<4>(0.0, 0.0, -1.0, 1.0);
+			// * ToHomogeneous(m_vInitDirection);
+	// m_pView->camera.direction.Set(
+	//	FromHomogeneous<3, double>(vNewDirection));
+	m_pView->camera.phi.Set(new_phi);
+	m_pView->camera.theta.Set(new_theta);
+	m_pView->camera.rollAngle.Set(-new_kappa);
+
+	// mDirRotate.Invert();
+
+	// TRACE_MATRIX4("mDirRotate in RotateTracker = ", mDirRotate);
+	// TRACE_MATRIX4("modelXform in RotateTracker = ", m_pView->camera.modelXform.Get());
+	// ASSERT(m_pView->camera.modelXform.Get().IsApproxEqual(mDirRotate));
+
+	// set the camera roll angle
+	// m_pView->camera.rollAngle.Set(kappa);
+#endif
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

@@ -31,7 +31,7 @@ private:
 
 	// stores the initial projection matrix
 	CMatrix<4> m_initProjMatrix;
-	// CMatrix<4> m_initModelXform;
+	CMatrix<4> m_initModelXform;
 	CVector<3> m_vInitDirection;
 };
 
