@@ -64,7 +64,7 @@ void CLineFunction::SetLine(const CVectorN<>& vPoint,
 // evaluates the line function
 //////////////////////////////////////////////////////////////////////
 REAL CLineFunction::operator()(const CVectorN<>& vInput, 
-							   CVectorN<> *pGrad)
+							   CVectorN<> *pGrad) const
 {
 	// ensure this is a one-dimensional input vector
 	ASSERT(vInput.GetDim() == 1);
