@@ -19,6 +19,7 @@
 #include <Matrix.h>
 
 #include <Polygon.h>
+#include <Volumep.h>
 
 #include "TreatmentMachine.h"
 
@@ -65,6 +66,15 @@ public:
 
 	// collection of blocks
 	CCollection< CPolygon > blocks;
+
+	// the weight for this beam (from 0.0 to 1.0)
+	CValue< double > weight;
+
+	// flag to indicate whether the plan's dose is valid
+	CValue<BOOL> isDoseValid;
+
+	// the computed dose for this beam (NULL if no dose exists)
+	CVolume<double> dose;
 
 	// handles changes propagated from child objects
 //	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);

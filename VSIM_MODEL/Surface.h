@@ -11,9 +11,12 @@
 
 #include <ModelObject.h>
 #include <Value.h>
+#include <Association.h>
 
 #include <Vector.h>
 #include <Polygon.h>
+
+#include <Volumep.h>
 
 class CSurface : public CModelObject
 {
@@ -25,8 +28,6 @@ public:
 	virtual ~CSurface();
 
 	CSurface& operator=(const CSurface& fromSurface);
-
-//	CValue< CString > name;
 
 	int GetContourCount() const;
 	CPolygon& GetContour(int nIndex) const;
@@ -53,6 +54,11 @@ public:
 	CArray<CVector<3>, CVector<3>&>& 
 		GetNormalArray() { return m_arrNormal; }
 
+	// accessor for the "region" -- volume with a 1.0 everywhere
+	//		that is in the structure
+	CAssociation< CVolume<int> > region;
+
+	// serialization
 	void Serialize(CArchive &ar);
 
 #ifdef _DEBUG

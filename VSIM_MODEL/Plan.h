@@ -27,7 +27,14 @@ public:
 	CSeries * GetSeries();
 	void SetSeries(CSeries *pSeries);
 
+	// the beams for this plan
 	CCollection<CBeam> beams;
+
+	// flag to indicate whether the plan's dose is valid
+	CValue<BOOL> isDoseValid;
+
+	// the computed dose for this plan (NULL if no dose exists)
+	CVolume<double> dose;
 
 // Operations
 public:
