@@ -26,8 +26,8 @@ COpenGLRenderer::COpenGLRenderer(COpenGLView *pView)
 		isEnabled(TRUE)
 {
 	color.AddObserver(this, (ChangeFunction) OnChange);
-	modelviewMatrix.AddObserver(this, (ChangeFunction) OnChange);
-	isEnabled.AddObserver(this, (ChangeFunction) OnChange);
+	modelviewMatrix.AddObserver(this, (ChangeFunction) OnChangeNoRender);
+	isEnabled.AddObserver(this, (ChangeFunction) OnChangeNoRender);
 }
 
 COpenGLRenderer::~COpenGLRenderer()
@@ -49,6 +49,11 @@ void COpenGLRenderer::Invalidate()
 void COpenGLRenderer::OnChange(CObservableObject *pSource, void *pOldValue)
 {
 	Invalidate();
+}
+
+void COpenGLRenderer::OnChangeNoRender(CObservableObject *pSource, void *pOldValue)
+{
+	m_pView->Invalidate();
 }
 
 void COpenGLRenderer::OnRenderScene()

@@ -29,14 +29,20 @@ public:
 	// turns on/off the renderer;
 	CValue< BOOL > isEnabled;
 
-	// Over-rides
-	virtual void OnRenderScene();
-
-	// triggers invalidation
+	// triggers invalidation and re-rendering
 	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
 
+	// triggers invalidation (without full re-render)
+	virtual void OnChangeNoRender(CObservableObject *pSource, void *pOldValue);
+
+	// invalidates the 
 	void Invalidate();
+
+	// called to draw the scene
 	virtual void DrawScene();
+
+	// Renders the scene -- called by DrawScene to create the drawlist
+	virtual void OnRenderScene();
 
 // protected:
 	COpenGLView * m_pView;
