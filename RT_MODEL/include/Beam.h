@@ -34,6 +34,9 @@ using namespace std;
 
 const int MAX_SCALES = 3;
 
+class CBeamDoseCalc;
+
+
 //////////////////////////////////////////////////////////////////////
 // class CBeam
 //
@@ -51,6 +54,8 @@ public:
 
 	// returns a pointer to the treatment machine
 	CTreatmentMachine *GetTreatmentMachine();
+
+	CBeamDoseCalc * m_pDoseCalc;
 
 	// angle values
 	double GetCollimAngle() const;
@@ -116,6 +121,12 @@ protected:
 	// helper function to set up filter matrix
 	const CMatrixNxM<>& GetFilterMat(int nLevel);
 
+	// CBeamDoseCalc must access this
+	friend class CBeamDoseCalc;
+
+public:
+	mutable CVolume<REAL> m_dose;
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
@@ -158,7 +169,6 @@ private:
 	// flag to indicate whether the plan's dose is valid
 //	BOOL m_bDoseValid;
 
-	mutable CVolume<REAL> m_dose;
 	mutable BOOL m_bRecalcDose;
 
 	// the beamlets for the beam

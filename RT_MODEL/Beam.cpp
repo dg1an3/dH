@@ -17,6 +17,8 @@
 // class declaration
 #include "Beam.h"
 
+#include <BeamDoseCalc.h>
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -87,6 +89,11 @@ CBeam::~CBeam()
 	for (int nAt = 0; nAt < m_arrBlocks.GetSize(); nAt++)
 	{
 		delete m_arrBlocks[nAt];
+	}
+
+	for (nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
+	{
+		delete m_arrBeamlets[0][nAt];
 	}
 
 }	// CBeam::~CBeam

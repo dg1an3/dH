@@ -66,7 +66,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\OptimizeN\include" /I "..\GEOM_MODEL\include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\OptimizeN\include" /I "..\GEOM_MODEL\include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /D "USE_IPP" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -88,6 +88,14 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=.\Beam.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\BeamDoseCalc.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\EnergyDepKernel.cpp
 # End Source File
 # Begin Source File
 
@@ -133,6 +141,14 @@ SOURCE=.\VOITerm.cpp
 # Begin Source File
 
 SOURCE=.\include\Beam.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\BeamDoseCalc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\EnergyDepKernel.h
 # End Source File
 # Begin Source File
 
