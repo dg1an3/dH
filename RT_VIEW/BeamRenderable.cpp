@@ -9,6 +9,9 @@
 // pre-compiled headers
 #include "stdafx.h"
 
+// extra inline functions for matrix
+#include <MatrixBase.inl>
+
 // render context
 #include <RenderContext.h>
 
