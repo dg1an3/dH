@@ -549,9 +549,9 @@ void CBeam::SphereTrace(const double thickness_in, int nI, int nJ, int nK)
 			for (int rad_inc = 1; rad_inc <= numstep_in; rad_inc++)       
 			{
 				// integer distances between the interaction and the dose depostion voxels
-				int deli = m_pSource->m_delta_i[rad_inc-1][phi-1][thet-1];    
-				int delj = m_pSource->m_delta_j[rad_inc-1][phi-1][thet-1];    
-				int delk = m_pSource->m_delta_k[rad_inc-1][phi-1][thet-1];    
+				int deli = m_pSource->m_delta_i[thet-1][phi-1][rad_inc-1];    
+				int delj = m_pSource->m_delta_j[thet-1][phi-1][rad_inc-1];    
+				int delk = m_pSource->m_delta_k[thet-1][phi-1][rad_inc-1];    
 
 				// CVectorD<3, int> vDelta;
 				// m_pSource->GetDelta(theta, phi, rad_inc, vDelta);

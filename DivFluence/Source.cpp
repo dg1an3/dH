@@ -322,7 +322,7 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 			int nJ = 1;
 			int nK = 1;
 			
-			m_radius[0][nPhi-1][nTheta-1] = 0.0;             // radius at origin is 0
+			m_radius[nTheta-1][nPhi-1][0] = 0.0;             // radius at origin is 0
 			double last_radius = 0.0;
 			
 			// The following sorts through the distance vectors, rx,ry,rz
@@ -336,12 +336,12 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 				if (rx[nI-1] <= ry[nJ-1] && rx[nI-1] <= rz[nK-1])
 				{
 					// length thru voxel
-					m_radius[nN][nPhi-1][nTheta-1] = rx[nI-1] - last_radius;	
+					m_radius[nTheta-1][nPhi-1][nN] = rx[nI-1] - last_radius;	
 
 					// location of voxel in x-dir / y-dir / z-dir
-					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_x[nI-1];	
-					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_x[nI-1];
-					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_x[nI-1];
+					m_delta_i[nTheta-1][nPhi-1][nN-1] = delta_i_x[nI-1];	
+					m_delta_j[nTheta-1][nPhi-1][nN-1] = delta_j_x[nI-1];
+					m_delta_k[nTheta-1][nPhi-1][nN-1] = delta_k_x[nI-1];
 
 					// radius gone at this point
 					last_radius = rx[nI-1];	
@@ -353,12 +353,12 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 				else if (ry[nJ-1] <= rx[nI-1] && ry[nJ-1] <= rz[nK-1])    
 				{
 					// length thru voxel
-					m_radius[nN][nPhi-1][nTheta-1] = ry[nJ-1]-last_radius;		
+					m_radius[nTheta-1][nPhi-1][nN] = ry[nJ-1]-last_radius;		
 
 					// location of voxel in x-dir / y-dir / z-dir
-					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_y[nJ-1];	
-					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_y[nJ-1];	
-					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_y[nJ-1];	
+					m_delta_i[nTheta-1][nPhi-1][nN-1] = delta_i_y[nJ-1];	
+					m_delta_j[nTheta-1][nPhi-1][nN-1] = delta_j_y[nJ-1];	
+					m_delta_k[nTheta-1][nPhi-1][nN-1] = delta_k_y[nJ-1];	
 
 					// radius gone at this point
 					last_radius = ry[nJ-1];								
@@ -370,12 +370,12 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 				else if (rz[nK-1] <= rx[nI-1] && rz[nK-1] <= ry[nJ-1])     
 				{
 					// length thru voxel
-					m_radius[nN][nPhi-1][nTheta-1] = rz[nK-1]-last_radius;		
+					m_radius[nTheta-1][nPhi-1][nN] = rz[nK-1]-last_radius;		
 
 					// location of voxel in x-dir / y-dir / z-dir
-					m_delta_i[nN-1][nPhi-1][nTheta-1] = delta_i_z[nK-1];	
-					m_delta_j[nN-1][nPhi-1][nTheta-1] = delta_j_z[nK-1];	
-					m_delta_k[nN-1][nPhi-1][nTheta-1] = delta_k_z[nK-1];	
+					m_delta_i[nTheta-1][nPhi-1][nN-1] = delta_i_z[nK-1];	
+					m_delta_j[nTheta-1][nPhi-1][nN-1] = delta_j_z[nK-1];	
+					m_delta_k[nTheta-1][nPhi-1][nN-1] = delta_k_z[nK-1];	
 
 					// radius gone at this point
 					last_radius = rz[nK-1];								

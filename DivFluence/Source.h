@@ -64,12 +64,12 @@ private:
 
 	bool m_bSetupRaytrace;
 
-	double m_radius[65][48][NUM_THETA];	// (0:64,48,48); 
+	double m_radius[NUM_THETA][48][65];	// (0:64,48,48); 
 	
 public:
-	int m_delta_i[64][48][NUM_THETA];	// (64,48,48);
-	int m_delta_j[64][48][NUM_THETA];	// (64,48,48);
-	int m_delta_k[64][48][NUM_THETA];	// (64,48,48);
+	int m_delta_i[NUM_THETA][48][64];	// (64,48,48);
+	int m_delta_j[NUM_THETA][48][64];	// (64,48,48);
+	int m_delta_k[NUM_THETA][48][64];	// (64,48,48);
 
 };	// class CEnergyDepKernel
 
@@ -82,14 +82,14 @@ inline int CEnergyDepKernel::GetNumPhi()
 
 inline void CEnergyDepKernel::GetDelta(int nTheta, int nPhi, int nRadInc, CVectorD<3, int> &vDelta_out)
 {
-	vDelta_out[0] =	m_delta_i[nRadInc-1][nPhi-1][nTheta-1];    
-	vDelta_out[1] = m_delta_j[nRadInc-1][nPhi-1][nTheta-1]; 
-	vDelta_out[2] = m_delta_k[nRadInc-1][nPhi-1][nTheta-1];    
+	vDelta_out[0] =	m_delta_i[nTheta-1][nPhi-1][nRadInc-1];    
+	vDelta_out[1] = m_delta_j[nTheta-1][nPhi-1][nRadInc-1];    
+	vDelta_out[2] = m_delta_k[nTheta-1][nPhi-1][nRadInc-1];    
 }
 
 inline double CEnergyDepKernel::GetRadius(int nTheta, int nPhi, int nRadInc)
 {
-	return m_radius[nRadInc][nPhi-1][nTheta-1];
+	return m_radius[nTheta-1][nPhi-1][nRadInc];
 }
 
 inline double CEnergyDepKernel::GetCumEnergy(int nPhi, double rad_dist)
