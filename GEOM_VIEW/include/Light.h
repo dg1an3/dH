@@ -13,7 +13,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#define D3D8
+#ifdef D3D8
 #include <d3d8.h>
+#endif
 
 // vector include file
 #include <VectorD.h>
@@ -23,7 +26,10 @@
 // 
 // represents a light illuminating a CSceneView
 //////////////////////////////////////////////////////////////////////
-class CLight : public CObject, public D3DLIGHT8
+class CLight : public CObject
+#ifdef D3D8
+	, public D3DLIGHT8
+#endif
 {
 public:
 	// constructor/destructor

@@ -11,7 +11,9 @@
 // OpenGL includes
 #include <gl/gl.h>
 
+#ifdef D3D8
 #include <d3dx8.h>
+#endif
 
 // class declaration
 #include "Light.h"
@@ -27,11 +29,13 @@
 //////////////////////////////////////////////////////////////////////
 CLight::CLight()
 {
+#ifdef D3D8
 	// clear the base structure
     ZeroMemory( (D3DLIGHT8 *) this, sizeof(D3DLIGHT8) );
 
 	// set to a directional light
 	Type = D3DLIGHT_DIRECTIONAL;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -50,7 +54,11 @@ CLight::~CLight()
 //////////////////////////////////////////////////////////////////////
 CVectorD<3> CLight::GetPosition() const
 {
+#ifdef D3D8
 	return CVectorD<3>(Direction.x, Direction.y, Direction.z);
+#else
+	return CVectorD<3>();
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -60,9 +68,11 @@ CVectorD<3> CLight::GetPosition() const
 //////////////////////////////////////////////////////////////////////
 void CLight::SetPosition(const CVectorD<3>& vPos)
 {
+#ifdef D3D8
 	Direction.x = vPos[0];
 	Direction.y = vPos[1];
 	Direction.z = vPos[2];
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -72,8 +82,12 @@ void CLight::SetPosition(const CVectorD<3>& vPos)
 //////////////////////////////////////////////////////////////////////
 COLORREF CLight::GetDiffuseColor() const
 {
+#ifdef D3D8
 	return RGB(255.0f * Diffuse.r, 255.0f * Diffuse.g, 
 		255.0f * Diffuse.b);
+#else
+	return RGB(255, 255, 255);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -83,7 +97,9 @@ COLORREF CLight::GetDiffuseColor() const
 //////////////////////////////////////////////////////////////////////
 void CLight::SetDiffuseColor(COLORREF color)
 {
+#ifdef D3D8
     Diffuse.r  = (float) GetRValue(color) / 255.0f; 
     Diffuse.g  = (float) GetGValue(color) / 255.0f; 
     Diffuse.b  = (float) GetBValue(color) / 255.0f;
+#endif
 }
