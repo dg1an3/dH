@@ -9,8 +9,9 @@
 #if !defined(MATHUTIL_H)
 #define MATHUTIL_H
 
-// standard math library
+// standard math libraries
 #include <math.h>
+#include <float.h>
 
 #include <complex>
 using namespace std;
@@ -19,7 +20,12 @@ using namespace std;
 // standard real representation
 //////////////////////////////////////////////////////////////////////
 #ifndef REAL_DEFINED
+#define REAL_FLOAT
+#ifdef REAL_FLOAT
+typedef float REAL;
+#else
 typedef double REAL;
+#endif
 #define REAL_DEFINED
 #endif
 
@@ -143,6 +149,77 @@ inline REAL AngleFromSinCos(REAL sin_angle, REAL cos_angle)
 
 	return angle;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Sigmoid
+// 
+// Compute Sigmoid function, with scale parameter
+///////////////////////////////////////////////////////////////////////////////
+inline REAL Sigmoid(REAL x, REAL scale /* = 1.0 */) 
+{
+	REAL res = 1.0 / (1.0 + exp(-scale * x));
+
+	if (_finite(res))
+	{
+		return res;
+	}
+
+	return (x > 0.0) ? 1.0 : 0.0;
+
+}	// Sigmoid
+
+
+///////////////////////////////////////////////////////////////////////////////
+// dSigmoid
+// 
+// Derivative of Sigmoid
+///////////////////////////////////////////////////////////////////////////////
+inline REAL dSigmoid(REAL x, REAL scale /* = 1.0 */) 
+{
+	REAL u = exp(scale * x);
+	REAL du = scale * u;
+
+	REAL v = 1.0 + exp(scale * x);
+	REAL dv = 0.0 + du;
+
+	if (_finite(u) && _finite(v))
+	{
+		return (du * v - u * dv) / (v * v);
+	}
+
+	return 0.0;
+
+}	// dSigmoid
+
+
+///////////////////////////////////////////////////////////////////////////////
+// InvSigmoid
+// 
+// inverse of sigmoid function
+///////////////////////////////////////////////////////////////////////////////
+inline REAL InvSigmoid(REAL y, REAL scale /* = 1.0 */)
+{
+	// test for bounds
+	if (y >= 1.0) 
+	{
+		y = (REAL) 1.0 - (REAL) 1e-6;
+	}
+
+	// compute value
+	REAL value = -log(1.0 / y - 1.0) 
+		/ scale;
+
+	// test result
+	ASSERT(IsApproxEqual(Sigmoid(value, scale), y));
+
+	// return
+	return value;
+
+}	// InvSigmoid
+
+
+#define ITERATE(coll, index, statement) \
+{ for (int index = 0; index < coll.GetDim(); index++) { statement; } }
 
 //////////////////////////////////////////////////////////////////////
 // functions for complex values
