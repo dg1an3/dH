@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Observer.h>
+#include <Vector.h>
 
-#include "Vector.h"
+#include "ModelObject.h"
 
 //////////////////////////////////////////////////////////////////////
 // class CPolygon
@@ -22,7 +22,7 @@
 // represents a polygon on a plane; includes change notification
 // and some computational geometry
 //////////////////////////////////////////////////////////////////////
-class CPolygon : public CObservableObject
+class CPolygon : public CModelObject
 {
 public:
 	// constructor
@@ -42,7 +42,7 @@ public:
 
 	// vertex accessors
 	int GetVertexCount();
-	const CVector<2>& GetVertex(int nIndex);
+	const CPackedVector<2>& GetVertex(int nIndex);
 	int AddVertex(CVector<2>& v);
 	void RemoveVertex(int nIndex);
 
@@ -50,7 +50,7 @@ public:
 	// WARNING: if you change the vertices through this reference, you
 	//		MUST call CPolygon::FireChange() as soon as possible to
 	//		notify observers of the change
-	CArray<CVector<2>, CVector<2>&>& GetVertexArray();
+	CArray<CPackedVector<2>, CPackedVector<2>&>& GetVertexArray();
 
 	// computes the signed area of the polygon
 	double GetSignedArea();
@@ -68,7 +68,7 @@ public:
 
 private:
 	// the polygon's vertex array
-	CArray<CVector<2>, CVector<2>&> m_arrVertex;
+	CArray<CPackedVector<2>, CPackedVector<2>&> m_arrVertex;
 };
 
 #endif // !defined(AFX_POLYGON_H__AAA9A385_F0B7_11D4_9E39_00B0D0609AB0__INCLUDED_)
