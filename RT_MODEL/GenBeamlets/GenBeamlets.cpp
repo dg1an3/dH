@@ -71,7 +71,7 @@ void ReadVolumeFile(const char *pszFilename, CVolume<VOXEL_TYPE> *pBeamlet)
 const int MARGIN = 22;
 // generate number of shifts for base scale
 const int SHIFTS = pow(2, MAX_SCALES+1) - 1;
-const int DENS_SIZE = SHIFTS * 2 + 1 + 2 * MARGIN;
+const int DENS_SIZE = 127; // SHIFTS * 2 + 1 + 2 * MARGIN;
 
 ///////////////////////////////////////////////////////////////////////////////
 // GenBeamlets
@@ -141,6 +141,8 @@ void GenBeamlets(CBeam *pBeam)
 			{
 				arrBeamlets[nAtShift + 50] = new CVolume<REAL>;
 				arrBeamlets[nAtShift + 50]->SetDimensions(127, 127, 1);
+				arrBeamlets[nAtShift + 50]->ClearVoxels();
+
 
 				// form file name
 				char pszFilename[80];
