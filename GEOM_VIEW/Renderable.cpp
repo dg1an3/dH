@@ -273,10 +273,10 @@ void CRenderable::SetupRenderingContext()
 	glShadeModel(GL_SMOOTH);
 
 	// enable lighting
-	glEnable(GL_LIGHTING);
+	// glEnable(GL_LIGHTING);
 
 	// set the drawing color
-	glColor(GetColor(), GetAlpha());
+	glColor(GetColor(), 1.0 - sqrt(1.0 - GetAlpha()));
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -350,6 +350,13 @@ void CSceneView::SortRenderables()
 	// current camera xform
 	const CMatrix<4>& mXform = GetCamera().GetXform();
 
+	// TODO: sort from front-to-back and back-to-front based on 
+	//		the bounding boxes
+
+	// TODO: clean up the calling sequence for this 
+	//		prior to rendering? -- YES
+	//		anytime a renderable changes? -- NO
+
 	// stores the distances for the renderable centroids
 	CArray<double, double> arrDistances;
 
@@ -696,8 +703,18 @@ void CSceneView::OnPaint()
 				// enable culling
 				glEnable(GL_CULL_FACE);
 
-				// set front face culling
+				// set face culling
 				glCullFace(arrFaces[nAtPass]);
+
+				// disable lighting if back faces are displayed
+				if (GL_FRONT == arrFaces[nAtPass])
+				{
+					glDisable(GL_LIGHTING);
+				}
+				else
+				{
+					glEnable(GL_LIGHTING);
+				}
 
 				// set depth buffer writing
 				glDepthMask(arrDepthMask[nAtPass]);

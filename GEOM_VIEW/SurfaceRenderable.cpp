@@ -188,7 +188,7 @@ void CSurfaceRenderable::DescribeWireframe()
 		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(1.0f);
 
-		glColor(GetColor());
+		// glColor(GetColor());
 
 		for (int nAt = 0; nAt < GetSurface()->GetContourCount(); nAt++)
 		{
@@ -250,8 +250,8 @@ void CSurfaceRenderable::DescribeSurface()
 
 	// enable blending; this is redundant but needed because
 	//		of the draw list
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// glEnable(GL_BLEND);
+	// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (GetTexture() != NULL)
 	{
@@ -312,7 +312,7 @@ void CSurfaceRenderable::DescribeSurface()
 //////////////////////////////////////////////////////////////////////
 void CSurfaceRenderable::DescribeBoundsSurface()
 {
-	if (FALSE) // m_bShowBoundsSurface)
+	if (m_bShowBoundsSurface)
 	{
 		// draw the boundary surfaces
 		glColor(RGB(0, 0, 128));
