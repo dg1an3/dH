@@ -149,11 +149,19 @@ void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows)
 
 	// allocate and set the new elements, but do not free the old
 	TYPE *pNewElements = new TYPE[nCols * nRows];
-	memset(pNewElements, 0, sizeof(TYPE) * nCols * nRows);
-	SetElements(nCols, nRows, pNewElements, FALSE);
 
+	// don't free the existing elements, as they will be copied
+	m_bFreeElements = FALSE;
+
+	// set the new elements
+	SetElements(nCols, nRows, pNewElements, TRUE);
+
+	// if there were old elements, 
 	if (pOldElements)
 	{
+		// set the new elements to 0 initially
+		memset(pNewElements, 0, sizeof(TYPE) * nCols * nRows);
+
 		// create a temporary matrix to hold the old elements
 		CMatrixNxM<> mTemp;
 		mTemp.SetElements(nOldCols, nOldRows, pOldElements, TRUE);
@@ -167,9 +175,11 @@ void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows)
 			}
 		}
 	}
-
-	// populate as an identity matrix
-	// SetIdentity();
+	else
+	{
+		// populate as an identity matrix
+		SetIdentity();
+	}
 }
 
 
