@@ -89,10 +89,10 @@ public:
 	CVectorBase& operator-=(const CVectorBase& vRight);
 	CVectorBase& operator*=(const TYPE& scalar);
 
-protected:
 	// external element management
 	void SetElements(int nDim, TYPE *pElements, BOOL bFreeElements);
 
+protected:
 	// dimension of vector
 	int m_nDim;
 
@@ -211,7 +211,8 @@ int CVectorBase<TYPE>::CopyElements(const CVectorBase<TYPE>& v,
 	int nLastDstPos = __min(nDest + nLength, GetDim());
 	nLength = __min(nLength, nLastSrcPos - nStart);
 	nLength = __min(nLength, nLastDstPos - nDest);
-	if (nLength > 0)
+	if (nLength > 0
+		&& &(*this)[nDest] != &v[nStart])
 	{
 		memcpy(&(*this)[nDest], &v[nStart], nLength * sizeof(TYPE));
 	}
