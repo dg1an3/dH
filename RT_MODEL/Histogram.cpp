@@ -200,9 +200,9 @@ void CHistogram::SetRegion(CVolume<REAL> *pRegion)
 // 
 // computes the bin for a particular intensity value
 //////////////////////////////////////////////////////////////////////
-long CHistogram::GetBinForValue(REAL value) const
+int CHistogram::GetBinForValue(REAL value) const
 {
-	return (long) floor((value - m_minValue) / m_binWidth + 0.5);
+	return (int) floor((value - m_minValue) / m_binWidth + 0.5);
 
 }	// CHistogram::GetBinForValue
 
@@ -339,8 +339,8 @@ CVectorN<>& CHistogram::GetBins()
 #define _LINEAR_INTERP
 #ifdef _LINEAR_INTERP
 			REAL bin = (pVoxels[nAtVoxel] - m_minValue) / m_binWidth;
-			long nLowBin = floor(bin);
-			long nHighBin = nLowBin+1;
+			int nLowBin = floor(bin);
+			int nHighBin = nLowBin+1;
 
 			if (!m_pRegion || pRegionVoxel[nAtVoxel] == 1.0)
 			{
@@ -365,7 +365,7 @@ CVectorN<>& CHistogram::GetBins()
 				ASSERT(m_arrBins[(int) nLowBin] >= 0.0);
 			}
 #else
-			long nBin = GetBinForValue(pVoxels[nAtVoxel]);
+			int nBin = GetBinForValue(pVoxels[nAtVoxel]);
 			ASSERT(nBin < m_arrBins.GetSize());
 
 			if (!m_pRegion || pRegionVoxel[nAtVoxel])
@@ -474,7 +474,7 @@ const CVectorN<>& CHistogram::GetGBinMeans() const
 // 
 // returns the count of dVolumes
 //////////////////////////////////////////////////////////////////////
-long CHistogram::Get_dVolumeCount() const
+int CHistogram::Get_dVolumeCount() const
 {
 	return m_arr_dVolumes.GetSize();
 
@@ -486,8 +486,13 @@ long CHistogram::Get_dVolumeCount() const
 // 
 // returns the dVolume
 //////////////////////////////////////////////////////////////////////
-CVolume<REAL> *CHistogram::Get_dVolume(long nAt) const
+CVolume<REAL> *CHistogram::Get_dVolume(int nAt, int *pnGroup) const
 {
+	if (pnGroup)
+	{
+		(*pnGroup) = m_arrVolumeGroups[nAt];
+	}
+
 	return m_arr_dVolumes[nAt];
 
 }	// CHistogram::Get_dVolume
@@ -498,9 +503,10 @@ CVolume<REAL> *CHistogram::Get_dVolume(long nAt) const
 // 
 // adds another dVolume
 //////////////////////////////////////////////////////////////////////
-long CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume)
+int CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup)
 {
-	long nNewVolumeIndex = m_arr_dVolumes.Add(p_dVolume);
+	int nNewVolumeIndex = m_arr_dVolumes.Add(p_dVolume);
+	m_arrVolumeGroups.Add(nGroup);
 
 	// set flag for computing bins for new dVolume
 	m_arr_bRecompute_dBins.Add(TRUE);
@@ -524,7 +530,7 @@ long CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume)
 // 
 // computes and returns the d/dx bins
 //////////////////////////////////////////////////////////////////////
-const CVectorBase<>& CHistogram::Get_dBins(long nAt) const
+const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 {
 	// recompute dBins if needed
 	if (m_arr_bRecompute_dBins[nAt])
@@ -651,7 +657,7 @@ const CVectorBase<>& CHistogram::Get_dBins(long nAt) const
 // 
 // computes and returns the d/dx GHistogram
 //////////////////////////////////////////////////////////////////////
-const CVectorBase<>& CHistogram::Get_dGBins(long nAt) const
+const CVectorBase<>& CHistogram::Get_dGBins(int nAt) const
 {
 	if (m_binKernelSigma == 0.0)
 	{
@@ -697,7 +703,7 @@ REAL CHistogram::Eval_GBin(REAL x) const
 // 
 // computes and returns the d/dx GHistogram
 //////////////////////////////////////////////////////////////////////
-REAL CHistogram::Eval_dGBin(long nAt_dVolume, REAL x) const
+REAL CHistogram::Eval_dGBin(int nAt_dVolume, REAL x) const
 {
 	REAL *pVoxels = &m_pVolume->GetVoxels()[0][0][0];
 	REAL *pRegionVoxel = NULL;

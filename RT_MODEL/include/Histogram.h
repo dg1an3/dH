@@ -47,7 +47,7 @@ public:
 	REAL GetBinWidth() const;
 	void SetBinning(REAL min_value, REAL width, 
 		REAL sigma_mult = 0.0);
-	long GetBinForValue(REAL value) const;
+	int GetBinForValue(REAL value) const;
 	const CVectorN<>& GetBinMeans() const;
 
 	// accessors for bin data
@@ -64,17 +64,17 @@ public:
 	const CVectorN<>& GetGBinMeans() const;
 
 	// partial derivative volumes
-	long Get_dVolumeCount() const;
-	CVolume<REAL> *Get_dVolume(long nAt) const;
-	long Add_dVolume(CVolume<REAL> *p_dVolume);
+	int Get_dVolumeCount() const;
+	CVolume<REAL> *Get_dVolume(int nAt, int *pnGroup = NULL) const;
+	int Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup);
 
 	// partial derivatives
-	const CVectorBase<>& Get_dBins(long nAt) const;
-	const CVectorBase<>& Get_dGBins(long nAt) const;
+	const CVectorBase<>& Get_dBins(int nAt) const;
+	const CVectorBase<>& Get_dGBins(int nAt) const;
 
 	// evaluation for testing
 	REAL Eval_GBin(REAL x) const;
-	REAL Eval_dGBin(long nAt_dVolume, REAL x) const;
+	REAL Eval_dGBin(int nAt_dVolume, REAL x) const;
 
 	void ConvGauss(const CVectorBase<>& buffer_in, 
 							CVectorBase<>& buffer_out) const;
@@ -127,6 +127,7 @@ private:
 
 	// array of partial derivative volumes
 	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arr_dVolumes;
+	CArray<int, int> m_arrVolumeGroups;
 
 	// array of partial derivative X region
 	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arr_dVolumes_x_Region;
