@@ -246,12 +246,16 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		cout << "Testing optimizer..." << endl;
 
 		const int LOOP_COUNT = 10;
-		for (int nAt = 0; nAt < LOOP_COUNT; nAt++)
-		{
-			CVectorN<> vInit;
-			g_pPresc->GetInitStateVector(vInit);
-			g_pPresc->Optimize(vInit, NULL);
-		}
+//		for (int nAt = 0; nAt < LOOP_COUNT; nAt++)
+//		{
+		BEGIN_TIME_LOOP("Optimize", LOOP_COUNT);
+
+		CVectorN<> vInit;
+		g_pPresc->GetInitStateVector(vInit);
+		g_pPresc->Optimize(vInit, NULL);
+
+		END_TIME_LOOP();
+		// }
 
 		FLUSH_LOG();
 

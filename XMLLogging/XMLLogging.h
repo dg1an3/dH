@@ -27,7 +27,6 @@
 	{											\
 		CXMLLogFile::GetLogFile()->NewSectionElement(#name, THIS_FILE)
 
-
 ///////////////////////////////////////////////////////////////////////////	
 // exits a section early
 ///////////////////////////////////////////////////////////////////////////	
@@ -134,6 +133,39 @@
 #define LOG_STACK_DUMP(msg)
 
 #endif	// XMLLOGGING_ON
+
+///////////////////////////////////////////////////////////////////////////	
+// log timing section
+///////////////////////////////////////////////////////////////////////////	
+#define BEGIN_TIME_LOOP(name, loop_count) \
+\
+{															\
+	CXMLLogFile::GetLogFile()->NewSectionElement(#name, THIS_FILE);	\
+																	\
+	int nLoopCount = loop_count;									\
+	LARGE_INTEGER freq;												\
+	::QueryPerformanceFrequency(&freq);								\
+																	\
+	LARGE_INTEGER time_start;										\
+	::QueryPerformanceCounter(&time_start);							\
+	for (int nTimeCount = 0; nTimeCount < loop_count; nTimeCount++)	\
+	{																\
+
+///////////////////////////////////////////////////////////////////////////	
+// log timing section
+///////////////////////////////////////////////////////////////////////////	
+#define END_TIME_LOOP() \
+	}	/* for */													\
+	LARGE_INTEGER time_end;											\
+	::QueryPerformanceCounter(&time_end);							\
+	LOG("Time for section = %lf (ms)", 1000.0 * 					\
+		(double) (time_end.QuadPart - time_start.QuadPart)			\
+			/ (double) (freq.QuadPart * nLoopCount));				\
+	cout << "Time for section = " << 1000.0 * 						\
+		(double) (time_end.QuadPart - time_start.QuadPart)			\
+			/ (double) (freq.QuadPart * nLoopCount) << "(ms)" << endl;	\
+	CXMLLogFile::GetLogFile()->CloseElement();						\
+}																	\
 
 #define USES_FMT \
 static char g_pszBuffer[1000];						\
