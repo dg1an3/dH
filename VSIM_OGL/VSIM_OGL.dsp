@@ -110,19 +110,8 @@ SOURCE=.\VSIM_OGL.cpp
 # Begin Source File
 
 SOURCE=.\VSIM_OGL.rc
-
-!IF  "$(CFG)" == "VSIM_OGL - Win32 Release"
-
-# ADD BASE RSC /l 0x409
-# ADD RSC /l 0x409 /i "..\GEOM_VIEW" /i "..\GEOM_VIEW\include"
-
-!ELSEIF  "$(CFG)" == "VSIM_OGL - Win32 Debug"
-
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409 /i "..\RT_VIEW" /i "..\RT_VIEW\include" /i "..\GEOM_VIEW" /i "..\GEOM_VIEW\include"
-
-!ENDIF 
-
 # End Source File
 # End Group
 # Begin Group "Header Files"
