@@ -59,7 +59,6 @@ public:
 
 	// computed transform from patient to beam coordinates
 	CValue< CMatrix<4> > beamToPatientXform;
-	void SetBeamToPatientXform(const CMatrix<4>& mXform);
 
 	// boolean value to indicate that shielding blocks are used
 	//		by this beam
@@ -90,6 +89,9 @@ protected:
 	//		in the beam-to-patient transform matrix
 	void OnBeamToPatientXformChanged(CObservableObject *pFromObject, 
 		void *pOldValue);
+
+	// re-entrance sentinel for changing the BeamToPatientXform
+	BOOL m_bChangingXform;
 };
 
 #endif // !defined(AFX_BEAM_H__C7A6AA30_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)
