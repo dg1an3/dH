@@ -7,7 +7,10 @@
 // OpenGLView.h : header file
 //
 
+#include <Collection.h>
+
 #include <Matrix.h>
+
 #include "OpenGLRenderer.h"
 #include "OpenGLTracker.h"
 #include "OpenGLCamera.h"
@@ -21,42 +24,27 @@ public:
 	COpenGLView();           // protected constructor used by dynamic creation
 	virtual ~COpenGLView();
 
+	// make sure we can create this window dynamically (for splitter window)
 	DECLARE_DYNCREATE(COpenGLView)
 
 // Attributes
 public:
 
+	// collection of renderers
+	CCollection< COpenGLRenderer > renderers;
+
+	// collection of trackers
+	CCollection< COpenGLTracker > leftTrackers;
+	CCollection< COpenGLTracker > middleTrackers;
+
 	// the view's camera
 	COpenGLCamera camera;
 
-	// holds the current projection matrix for the view
-	CValue< CMatrix<4> > projectionMatrix;
-
 // Operations
 public:
-	// accessors for the COpenGLRenderers for this view
-	void AddRenderer(COpenGLRenderer *pRenderer);
-
-	// accessors for the COpenGLRenderers for this view
-	void AddLeftTracker(COpenGLTracker *pTracker);
-	void AddMiddleTracker(COpenGLTracker *pTracker);
-
-	// set the maximum object size to be viewed
-	void SetMaxObjSize(float maxObjSize);
-
-	// accessors for the near and far clipping planes
-	float GetNearPlane();
-	float GetFarPlane();
-	void SetClippingPlanes(float nearPlane, float farPlane);
-
 	// compute the model point from a window coordinate
-	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj = NULL, float z = 999.0);
-
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
-
-	// call to make this view's HGLRC the current one (so that future OpenGL calls
-	//		will affect its rendering state
-	void MakeCurrentGLRC();
+	CVector<3> ModelPtFromWndPt(CPoint wndPt);
+	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -70,8 +58,16 @@ protected:
 	// helper function to set up the OpenGL pixel format
 	BOOL SetupPixelFormat(void);
 
-	// helper function to compute the projection matrix
-	void RecalcProjectionMatrix();
+	// call to make this view's HGLRC the current one (so that future OpenGL calls
+	//		will affect its rendering state
+	void MakeCurrentGLRC();
+
+	// friend classes can access the OpenGL rendering context
+	friend class COpenGLRenderer;
+	friend class COpenGLTexture;
+
+	// callback to shift the light when the camera shifts
+	void OnChangeLight(CObservableObject *pSource, void *pOldValue);
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -101,15 +97,6 @@ private:
 	// holds the OpenGL rendering context
 	HGLRC m_hrc;
 
-	// stores the near and far viewing planes
-public:
-	// list of renderers
-	CArray<COpenGLRenderer *, COpenGLRenderer *> m_arrRenderers;
-
-	// list of trackers
-	CArray<COpenGLTracker *, COpenGLTracker *> m_arrTrackers;
-	CArray<COpenGLTracker *, COpenGLTracker *> m_arrMiddleTrackers;
-	
 	// flag to indicate that the dragging is occurring
 	BOOL m_bDragging;
 	BOOL m_bMiddleDragging;

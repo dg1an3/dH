@@ -5,12 +5,12 @@
 
 #include "OpenGLView.h"
 
-#include "math.h"
+#include <math.h>
 
-#include "gl\gl.h"
-#include "gl\glu.h"
+#include <gl/glu.h>
 
-#include "Matrix.h"
+#include <Matrix.h>
+
 #include "glMatrixVector.h"
 
 #ifdef _DEBUG
@@ -30,23 +30,11 @@ COpenGLView::COpenGLView()
 		m_bDragging(FALSE),
 		m_bMiddleDragging(FALSE)
 {
-	projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
+	camera.projectionMatrix.AddObserver(this, (ChangeFunction) OnChangeLight);
 }
 
 COpenGLView::~COpenGLView()
 {
-	int nAt;
-	for (nAt = 0; nAt < m_arrRenderers.GetSize(); nAt++)
-	{
-		delete m_arrRenderers[nAt];
-	}
-	m_arrRenderers.RemoveAll();
-
-	for (nAt = 0; nAt < m_arrTrackers.GetSize(); nAt++)
-	{
-		delete m_arrTrackers[nAt];
-	}
-	m_arrTrackers.RemoveAll();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -63,53 +51,6 @@ void COpenGLView::Dump(CDumpContext& dc) const
 	CWnd::Dump(dc);
 }
 #endif //_DEBUG
-
-void COpenGLView::AddRenderer(COpenGLRenderer *pRenderer)
-{
-	m_arrRenderers.Add(pRenderer);
-
-	RedrawWindow();
-}
-
-void COpenGLView::AddLeftTracker(COpenGLTracker *pTracker)
-{
-	m_arrTrackers.Add(pTracker);
-
-	RedrawWindow();
-}
-
-void COpenGLView::AddMiddleTracker(COpenGLTracker *pTracker)
-{
-	m_arrMiddleTrackers.Add(pTracker);
-
-	RedrawWindow();
-}
-
-void COpenGLView::SetClippingPlanes(float nearPlane, float farPlane)
-{
-	camera.nearPlane.Set(nearPlane);
-	camera.farPlane.Set(farPlane);
-
-	RecalcProjectionMatrix();
-}
-
-float COpenGLView::GetNearPlane()
-{
-	return (float) camera.nearPlane.Get();
-}
-
-float COpenGLView::GetFarPlane()
-{
-	return (float) camera.farPlane.Get();
-}
-
-void COpenGLView::SetMaxObjSize(float maxObjSize)
-{
-	camera.farPlane.Set(GetNearPlane() + maxObjSize * 2.5f);
-	camera.distance.Set(GetNearPlane() + maxObjSize / 1.2f);
-
-	RecalcProjectionMatrix();
-}
 
 BOOL COpenGLView::SetupPixelFormat()
 {
@@ -151,58 +92,33 @@ BOOL COpenGLView::SetupPixelFormat()
 	return TRUE;
 }
 
-void COpenGLView::RecalcProjectionMatrix()
+CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 {
-	MakeCurrentGLRC();
-
-	// get the window's client rectangle
-	CRect rect;
-	GetClientRect(&rect);
-
-	// only change OpenGL rendering parameters if we have a valid window height
-	if (rect.Height() != 0)
-	{
-		// set the OpenGL viewport parameter
-		glViewport(0, 0, rect.Width(), rect.Height());
-
-		// calculate the aspect ratio
-		camera.aspectRatio.Set((double) rect.Width() / (double) rect.Height());
-		CMatrix<4> mCamera = camera.projection.Get() * camera.modelXform.Get();
-		projectionMatrix.Set(mCamera);
-	}
-}
-
-
-CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj, float z)
-{
-	if (mProj == NULL)
-	{
-		mProj = &projectionMatrix.Get();
-	}
-
-//	if (z == -999.0)
-//		z = GetNearPlane();
-
 	// retrieve the model and projection matrices
 	CMatrix<4> mModel;
 	GLdouble modelMatrix[16];
 	mModel.ToArray(modelMatrix);
 
 	GLdouble projMatrix[16];
-	mProj->ToArray(projMatrix);
+	mProj.ToArray(projMatrix);
 
 	// retrieve the viewport
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	CVector<3> vModelPt;
-
 	// un-project the window coordinates into the model coordinate system
-	gluUnProject((GLdouble)viewport[2] - wndPt.x, (GLdouble)wndPt.y, GetNearPlane(),
+	CVector<3> vModelPt;
+	gluUnProject((GLdouble)viewport[2] - wndPt.x, (GLdouble)wndPt.y, 
+		camera.nearPlane.Get(),
 		modelMatrix, projMatrix, viewport, 
 		&vModelPt[0], &vModelPt[1], &vModelPt[2]);
 
 	return vModelPt;
+}
+
+CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt)
+{
+	return ModelPtFromWndPt(wndPt, camera.projectionMatrix.Get());
 }
 
 
@@ -231,25 +147,25 @@ void COpenGLView::OnPaint()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrix(projectionMatrix.Get());
+	glLoadMatrix(camera.projectionMatrix.Get());
 
 	// set the matrix mode to modelview
 	glMatrixMode(GL_MODELVIEW);
 
 	// for each renderer, 
-	for (int nAt = 0; nAt < m_arrRenderers.GetSize(); nAt++)
+	for (int nAt = 0; nAt < renderers.GetSize(); nAt++)
 	{
 		// save the current model matrix state
 		glPushMatrix();
 
 		// load the renderer's modelview matrix
-		glLoadMatrix(m_arrRenderers[nAt]->modelviewMatrix.Get());
+		glLoadMatrix(renderers.Get(nAt)->modelviewMatrix.Get());
 
 		// save the current rendering attributes
 		// glPushAttrib(GL_ALL_ATTRIB_BITS);
 
 		// draw its scene
-		m_arrRenderers[nAt]->DrawScene();
+		renderers.Get(nAt)->DrawScene();
 
 		// restore the rendering attributes
 		// glPopAttrib();
@@ -367,8 +283,12 @@ void COpenGLView::OnSize(UINT nType, int cx, int cy)
 {
 	CWnd::OnSize(nType, cx, cy);
 	
-	// recalculate the projection matrix given the new window size
-	RecalcProjectionMatrix();
+	// set the OpenGL viewport parameter
+	MakeCurrentGLRC();
+	glViewport(0, 0, cx, cy);
+
+	// calculate the aspect ratio for the camera
+	camera.aspectRatio.Set((double) cx / (double) cy);
 }
 
 void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point) 
@@ -376,16 +296,15 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 	// handle base class
 	CWnd::OnLButtonDown(nFlags, point);
 
-	MakeCurrentGLRC();
-
 	// set the dragging flag to TRUE
 	m_bDragging = TRUE;
 
-	for (int nAt = 0; nAt < m_arrTrackers.GetSize(); nAt++)
+	// find the tracker which contains the point
+	for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
 	{
-		if (m_arrTrackers[nAt]->IsInside(point))
+		if (leftTrackers.Get(nAt)->IsInside(point))
 		{
-			m_arrTrackers[nAt]->OnLButtonDown(nFlags, point);
+			leftTrackers.Get(nAt)->OnLButtonDown(nFlags, point);
 			break;
 		}
 	}
@@ -395,16 +314,15 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	CWnd::OnLButtonUp(nFlags, point);
 
-	MakeCurrentGLRC();
-
 	// dragging is over -- clear flag
 	m_bDragging = FALSE;	
 	
-	for (int nAt = 0; nAt < m_arrTrackers.GetSize(); nAt++)
+	// find the tracker which contains the point
+	for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
 	{
-		if (m_arrTrackers[nAt]->IsInside(point))
+		if (leftTrackers.Get(nAt)->IsInside(point))
 		{
-			m_arrTrackers[nAt]->OnLButtonUp(nFlags, point);
+			leftTrackers.Get(nAt)->OnLButtonUp(nFlags, point);
 			break;
 		}
 	}
@@ -415,16 +333,15 @@ void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point)
 	// handle base class
 	CWnd::OnMButtonDown(nFlags, point);
 
-	MakeCurrentGLRC();
-
 	// set the dragging flag to TRUE
 	m_bMiddleDragging = TRUE;
 
-	for (int nAt = 0; nAt < m_arrMiddleTrackers.GetSize(); nAt++)
+	// find the tracker which contains the point
+	for (int nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
 	{
-		if (m_arrMiddleTrackers[nAt]->IsInside(point))
+		if (middleTrackers.Get(nAt)->IsInside(point))
 		{
-			m_arrMiddleTrackers[nAt]->OnLButtonDown(nFlags, point);
+			middleTrackers.Get(nAt)->OnLButtonDown(nFlags, point);
 			break;
 		}
 	}
@@ -434,16 +351,15 @@ void COpenGLView::OnMButtonUp(UINT nFlags, CPoint point)
 {
 	CWnd::OnMButtonUp(nFlags, point);
 
-	MakeCurrentGLRC();
-
 	// dragging is over -- clear flag
 	m_bMiddleDragging = FALSE;	
 	
-	for (int nAt = 0; nAt < m_arrMiddleTrackers.GetSize(); nAt++)
+	// find the tracker which contains the point
+	for (int nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
 	{
-		if (m_arrMiddleTrackers[nAt]->IsInside(point))
+		if (middleTrackers.Get(nAt)->IsInside(point))
 		{
-			m_arrMiddleTrackers[nAt]->OnLButtonUp(nFlags, point);
+			middleTrackers.Get(nAt)->OnLButtonUp(nFlags, point);
 			break;
 		}
 	}
@@ -453,19 +369,47 @@ void COpenGLView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	CWnd::OnMouseMove(nFlags, point);
 
-	MakeCurrentGLRC();
-
-	for (int nAt = 0; nAt < m_arrTrackers.GetSize(); nAt++)
+	if (m_bDragging)
 	{
-		if (m_arrTrackers[nAt]->IsInside(point))
+		for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
 		{
-			if (m_bDragging)
-				m_arrTrackers[nAt]->OnMouseDrag(nFlags, point);
-			else if (m_bMiddleDragging) 
-				m_arrMiddleTrackers[nAt]->OnMouseDrag(nFlags, point);
-			else
-				m_arrTrackers[nAt]->OnMouseMove(nFlags, point);
-			break;
+			if (leftTrackers.Get(nAt)->IsInside(point))
+			{
+				leftTrackers.Get(nAt)->OnMouseDrag(nFlags, point);
+				return;
+			}
+		}
+		return;
+	}
+
+	if (m_bMiddleDragging)
+	{
+		for (int nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
+		{
+			if (middleTrackers.Get(nAt)->IsInside(point))
+			{
+				middleTrackers.Get(nAt)->OnMouseDrag(nFlags, point);
+				return;
+			}
+		}
+		return;
+	}
+
+	for (int nAt = 0; nAt < leftTrackers.GetSize(); nAt++)
+	{
+		if (leftTrackers.Get(nAt)->IsInside(point))
+		{
+			leftTrackers.Get(nAt)->OnMouseMove(nFlags, point);
+			return;
+		}
+	}
+
+	for (nAt = 0; nAt < middleTrackers.GetSize(); nAt++)
+	{
+		if (middleTrackers.Get(nAt)->IsInside(point))
+		{
+			middleTrackers.Get(nAt)->OnMouseMove(nFlags, point);
+			return;
 		}
 	}
 }
@@ -475,27 +419,18 @@ void COpenGLView::MakeCurrentGLRC()
 	wglMakeCurrent(m_pDC->GetSafeHdc(), m_hrc);
 }
 
-void COpenGLView::OnChange(CObservableObject *pSource, void *pOldValue)
+void COpenGLView::OnChangeLight(CObservableObject *pSource, void *pOldValue)
 {
-	if (pSource == &projectionMatrix)
-	{
-		MakeCurrentGLRC();
+	MakeCurrentGLRC();
 
-		CMatrix<4> mProj = projectionMatrix.Get();
+	CVector<4> vLightPosition(0.0, 0.0, -500.0, 1.0);
+	CMatrix<4> mInvProj = Invert(camera.projectionMatrix.Get());
+	vLightPosition = mInvProj * vLightPosition;
 
-		CVector<4> vLightPosition(0.0, 0.0, -500.0, 1.0);
-		CMatrix<4> mInvProj = Invert(mProj);
-		vLightPosition = mInvProj * vLightPosition;
+	GLfloat position [] = { // 1.0, 1.0, 100.0, 0.0 };
+		(float) vLightPosition[0], 
+		(float) vLightPosition[1], 
+		(float) vLightPosition[2], 1.0 };
 
-		GLfloat position [] = { // 1.0, 1.0, 100.0, 0.0 };
-			(float) vLightPosition[0], 
-			(float) vLightPosition[1], 
-			(float) vLightPosition[2], 1.0 };
-
-		glLightfv(GL_LIGHT0, GL_POSITION, position);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrix(projectionMatrix.Get());
-
-	}
+	glLightfv(GL_LIGHT0, GL_POSITION, position);
 }
