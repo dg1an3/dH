@@ -25,7 +25,7 @@ public:
 		m_pAssoc->AddObserver(this);
 
 		// trigger an update
-		OnChange(m_pAssoc);
+		OnChange(m_pAssoc, NULL);
 	}
 
 	virtual ~CAutoSyncValue()
@@ -33,7 +33,7 @@ public:
 		m_pAssoc->RemoveObserver(this);
 	}
 
-	virtual void OnChange(CObservableObject *pSource)
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue)
 	{
 		if (pSource == m_pAssoc)
 		{
@@ -48,7 +48,7 @@ public:
 				SyncTo(NULL);
 		}
 		else
-			CValue<MEMBER_TYPE>::OnChange(pSource);
+			CValue<MEMBER_TYPE>::OnChange(pSource, pOldValue);
 	}
 
 private:

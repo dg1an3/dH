@@ -91,7 +91,7 @@ public:
 		}
 	}
 
-	virtual void OnChange(CObservableObject *pFromObject)
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
 		FireChange();
 	}

@@ -22,7 +22,7 @@ class CObserver
 {
 public:
 	// the call-back for changes on a CObservableObject
-	virtual void OnChange(CObservableObject *pFromObject) = 0;
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue) = 0;
 };
 
 
@@ -40,7 +40,7 @@ public:
 	void RemoveObserver(CObserver *pObserver) const;
 
 	// called to fire a change
-	void FireChange();
+	void FireChange(void *pOldValue = NULL);
 
 private:
 	// the array of observers

@@ -14,7 +14,6 @@ public:
     virtual ~CObjectExplorer();
 
 public:
-
 	// accessor for the explorer's root item
 	CObjectTreeItem * GetRootItem();
 

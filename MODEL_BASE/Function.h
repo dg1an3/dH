@@ -11,42 +11,6 @@
 
 #include "Value.h"
 
-// TODO: get rid of this class
-//template<class TYPE>
-//class CMemberFunction : public CValue<TYPE>  
-//{
-//public:
-//	CMemberFunction()
-//	{
-//	}
-//
-//	virtual ~CMemberFunction()
-//	{
-//	}
-//
-//	const TYPE& operator()() const
-//	{
-//		return Get();
-//	}
-//
-//protected:
-//	TYPE& Get() 
-//	{
-//		return CValue<TYPE>::Get();
-//	}
-//
-//	const TYPE& Get() const
-//	{
-//		return CValue<TYPE>::Get();
-//	}
-//
-//
-//	void Set(const TYPE& fromValue)
-//	{
-//		CValue<TYPE>::Set(fromValue);
-//	}
-//};
-
 template<class TYPE, class ARG_TYPE>
 class CFunction1 : public CValue<TYPE>  
 {
@@ -67,7 +31,7 @@ public:
 		m_pArg->RemoveObserver(this);
 	}
 
-	virtual void OnChange(CObservableObject *pFromObject)
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
 		Set((*m_pFunc)(m_pArg->Get()));
 	}
@@ -138,7 +102,7 @@ public:
 		m_pArg2->RemoveObserver(this);
 	}
 
-	virtual void OnChange(CObservableObject *pFromObject)
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
 	}
@@ -192,7 +156,7 @@ public:
 		m_pArg3->RemoveObserver(this);
 	}
 
-	virtual void OnChange(CObservableObject *pFromObject)
+	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
 		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get(), m_pArg3->Get()));
 	}

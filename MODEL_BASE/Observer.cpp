@@ -26,8 +26,8 @@ void CObservableObject::RemoveObserver(CObserver *pObserver) const
 			m_arrObservers.RemoveAt(nAt);
 }
 
-void CObservableObject::FireChange()
+void CObservableObject::FireChange(void *pOldValue)
 {
 	for (int nAt = 0; nAt < m_arrObservers.GetSize(); nAt++)
-		m_arrObservers[nAt]->OnChange(this);
+		m_arrObservers[nAt]->OnChange(this, pOldValue);
 }

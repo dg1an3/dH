@@ -60,6 +60,9 @@ public:
 		}
 		else if (m_value != fromValue)
 		{
+			// store the old value for sending to observers
+			TYPE *pOldValue = m_value;
+
 			// TODO: check this logic
 			if (m_pAutoObserver 
 					&& m_value 
@@ -73,7 +76,7 @@ public:
 					&& m_value->IsKindOf(RUNTIME_CLASS(CObservableObject)))
 				((CObservableObject *)m_value)->AddObserver(m_pAutoObserver);
 
-			FireChange();
+			FireChange(pOldValue);
 		}
 	}
 

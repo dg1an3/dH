@@ -44,7 +44,6 @@ public:
 	// child access -- override GetChildCount and GetChild in order to
 	//		create children from model object's contained objects
 	CCollection< CObjectTreeItem > children;
-	int AddChild(CObjectTreeItem * pChild);
 
 	// resource identifiers for the icons to be used
 	CValue<UINT> imageResourceID;
@@ -61,7 +60,7 @@ public:
 		CString *pStrToolTipMessage = NULL);
 
 	// change handler -- manages ensuring the consistency of the object's state
-	virtual void OnChange(CObservableObject *pSource);
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
 
 	// notification events for various user interactions
 	virtual void OnSelected();

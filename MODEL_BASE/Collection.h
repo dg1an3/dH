@@ -49,14 +49,35 @@ public:
 
 	int Add(TYPE *pElement)
 	{
+		// check to ensure the element is not already present
+		int nAt;
+		for (nAt = 0; nAt < m_arrElements.GetSize(); nAt++)
+			if (m_arrElements[nAt] == pElement)
+				return nAt;
+
 		// add the new element to the array
 		int nIndex = m_arrElements.Add(pElement);
 
 		// fire a change
-		FireChange();
+		FireChange(pElement);
 
 		// return the index of the newly added element
 		return nIndex;
+	}
+
+	void Release(TYPE *pElement)
+	{
+		// find the element
+		int nAt;
+		for (nAt = 0; nAt < m_arrElements.GetSize(); nAt++)
+			if (m_arrElements[nAt] == pElement)
+			{
+				// remove the array element (pointer)
+				m_arrElements.RemoveAt(nAt);
+
+				// and notify of a change
+				FireChange(); // pElement);
+			}
 	}
 
 	void Remove(TYPE *pElement)
@@ -66,14 +87,14 @@ public:
 		for (nAt = 0; nAt < m_arrElements.GetSize(); nAt++)
 			if (m_arrElements[nAt] == pElement)
 			{
-				// delete the object
-				delete m_arrElements[nAt];
-
 				// remove the array element (pointer)
 				m_arrElements.RemoveAt(nAt);
 
 				// and notify of a change
-				FireChange();
+				FireChange(); // pElement);
+
+				// delete the object
+				delete pElement;
 			}
 	}
 

@@ -33,7 +33,7 @@ public:
 	virtual void Serialize( CArchive& ar );
 
 	// handles changes from contained objects
-	virtual void OnChange(CObservableObject *pSource);
+	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
 };
 
 #endif // !defined(AFX_MODELOBJECT_H__5BF91A87_C623_11D4_BE42_005004D16DAA__INCLUDED_)

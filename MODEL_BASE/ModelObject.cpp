@@ -69,7 +69,7 @@ void CModelObject::Serialize( CArchive& ar )
 	children.Serialize(ar);
 }
 
-void CModelObject::OnChange(CObservableObject *pSource)
+void CModelObject::OnChange(CObservableObject *pSource, void *pOldValue)
 {
 	FireChange();
 }

@@ -39,22 +39,6 @@ CObjectTreeItem::~CObjectTreeItem()
 {
 }
 
-int CObjectTreeItem::AddChild(CObjectTreeItem * pNewChild)
-{
-    // set the parent-child relationship
-    pNewChild->parent.Set(this);
-    int nIndex = children.Add(pNewChild);
-
-    // create the child if this (the parent) has been created
-    if (m_pObjectExplorer != NULL)
-    {
-    	pNewChild->Create(m_pObjectExplorer);
-    }
-
-    // return the index of the newly created child
-    return nIndex;
-}
-
 BOOL CObjectTreeItem::Create(CObjectExplorer *pExplorer)
 {
     // set the local pointer to the tree control
@@ -62,12 +46,10 @@ BOOL CObjectTreeItem::Create(CObjectExplorer *pExplorer)
 
     // create the tree control
     m_hTreeItem = pExplorer->InsertItem(this);
-    
+
     // create the child items
     for (int nAtChild = 0; nAtChild < children.GetSize(); nAtChild++)
-    {
     	children.Get(nAtChild)->Create(pExplorer);
-    }
 
     // everythings OK
     return (m_hTreeItem != NULL);
@@ -78,48 +60,8 @@ CObjectTreeItem::operator HTREEITEM() const
     return m_hTreeItem;
 }
 
-//// returns the string that is the label for the object
-//CString CObjectTreeItem::GetLabel()
-//{
-// 	CString strLabel;
-//#ifdef USE_CLASS_LABEL
-//	strLabel = GetClassLabel();
-//#endif
-// 
-// 	if (forObject.Get() != NULL 
-// 		&& forObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
-// 	{
-// 		CString strName = ((CModelObject *)forObject.Get())->name.Get();
-// 		if (strName != "")
-// 		{
-// 			if (strLabel != "")
-// 			{
-// 				strLabel += ": ";
-// 			}
-// 			strLabel += strName;
-// 		}
-// 	}
-//    
-//  	// return the default label
-// 	if (strLabel != "")
-//		return strLabel;
-//	else
-//	 	return name.Get();
-//}
-
 IMPLEMENT_DYNCREATE(CObjectTreeItem, CCmdTarget)
 
-//CString CObjectTreeItem::GetClassLabel()
-//{
-//    CString strClassName = "";
-//  	if ((forObject.Get() != NULL) && (forObject->GetRuntimeClass() != RUNTIME_CLASS(CModelObject)))
-//    {
-//    	strClassName = forObject->GetRuntimeClass()->m_lpszClassName;
-//    	strClassName = strClassName.Mid(1);
-//    }
-//
-//    return strClassName;
-//}
     
 void CObjectTreeItem::OnRenameItem()
 {
@@ -131,7 +73,7 @@ void CObjectTreeItem::OnDeleteItem()
 	// TODO: delete the item
 }
     
-void CObjectTreeItem::OnChange(CObservableObject *pSource)
+void CObjectTreeItem::OnChange(CObservableObject *pSource, void *pOldValue)
 {
 	if (pSource == &forObject 
 			&& forObject->IsKindOf(RUNTIME_CLASS(CModelObject)))
@@ -143,17 +85,22 @@ void CObjectTreeItem::OnChange(CObservableObject *pSource)
 
 		if (autoCreateChildren.Get())
 		{
+			// delete existing children
+			children.RemoveAll();
+
 			// auto-create the children
 			for (int nAt = 0; nAt < pModel->children.GetSize(); nAt++)
 			{
-				TRACE2("Creating item for %s, child of %s\n", 
-					pModel->children.Get(nAt)->name.Get(),
-					pModel->name.Get());
-
 				CObjectTreeItem *pChildItem = new CObjectTreeItem();
-				pChildItem->imageResourceID.SyncTo(&imageResourceID);
-				pChildItem->selectedImageResourceID.SyncTo(&selectedImageResourceID);
-				AddChild(pChildItem);
+
+				// set the initial icons
+				pChildItem->imageResourceID.Set(imageResourceID.Get());
+				pChildItem->selectedImageResourceID.Set(selectedImageResourceID.Get());
+
+				// set the parent
+				pChildItem->parent.Set(this);
+
+				// set the object for the item
 				pChildItem->forObject.Set(pModel->children.Get(nAt));
 			}
 		}
@@ -168,19 +115,42 @@ void CObjectTreeItem::OnChange(CObservableObject *pSource)
 	}
 	else if (pSource == &parent)
 	{
-		// TODO: remove this from its current parent
+		if (pOldValue)
+		{
+			// check that the old value is a pointer to the parent
+			ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
+
+			// form a pointer to the old parent
+			CObjectTreeItem *pOldParent = (CObjectTreeItem *) pOldValue;
+
+			// remove this from its current parent
+			pOldParent->children.Release(this);
+
+			// now delete this item from the old tree view
+			if (m_pObjectExplorer)
+    			m_pObjectExplorer->DeleteItem(this);
+		}
+
 		// add this to the new parent
+		parent->children.Add(this);
 	}
 	else if (pSource == &children)
 	{
-//		// set the parent-child relationship
-//		pNewChild->parent.Set(this);
-//
-//		// create the child if this (the parent) has been created
-//		if (m_pObjectExplorer != NULL)
-//		{
-//    		pNewChild->Create(m_pObjectExplorer);
-//		}
+		if (pOldValue)
+		{
+			// check that the old value is a pointer to the parent
+			ASSERT(((CObject *)pOldValue)->IsKindOf(RUNTIME_CLASS(CObjectTreeItem)));
+
+			// form a pointer to the new child
+			CObjectTreeItem *pNewChild = (CObjectTreeItem *) pOldValue;
+
+			// set the parent parent for the new child
+			pNewChild->parent.Set(this);
+
+			// create the child if this (the parent) has been created
+			if (m_pObjectExplorer)
+    			pNewChild->Create(m_pObjectExplorer);
+		}
 	}
 }
   
@@ -191,7 +161,11 @@ void CObjectTreeItem::OnSelected()
 
 BOOL CObjectTreeItem::OnDrop(CObjectTreeItem *pDroppedItem)
 {
-    return FALSE;
+	// move the dropped item here by setting this as the parent
+	pDroppedItem->parent.Set(this);
+
+	// return TRUE
+    return TRUE;
 }
     
 BOOL CObjectTreeItem::IsDroppable(CObjectTreeItem *pPotentialDrop,
@@ -205,7 +179,7 @@ BOOL CObjectTreeItem::IsDroppable(CObjectTreeItem *pPotentialDrop,
     {
     	(*pStrToolTipMessage) = "Drop Here";
     }
-    return FALSE;
+    return TRUE;
 }
 
 CMenu * CObjectTreeItem::GetPopupMenu()
