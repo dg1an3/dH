@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////
-// Observer.cpp: implementation of the CObservableObject class
+// Observer.cpp: implementation of the CObservableEvent class
 //
 // Copyright (C) 1999-2001
 // $Id$
@@ -20,21 +20,45 @@ static char THIS_FILE[]=__FILE__;
 
 
 //////////////////////////////////////////////////////////////////////
-// declares CObservableObject as a dynamically creatable class
+// CObservableEvent::CObservableEvent
+// 
+// creates an event for the parent object
 //////////////////////////////////////////////////////////////////////
-IMPLEMENT_DYNAMIC(CObservableObject, CObject)
+CObservableEvent::CObservableEvent(CObject *pParent)
+	: m_pParent(pParent)
+{
+}
 
 //////////////////////////////////////////////////////////////////////
-// CObservableObject::AddObserver
-// 
-// member function to an observer to the CObservableObject
+// declares CObservableEvent as a dynamically creatable class
 //////////////////////////////////////////////////////////////////////
-void CObservableObject::AddObserver(CObject *pObserver, ChangeFunction func) const
+IMPLEMENT_DYNAMIC(CObservableEvent, CObject)
+
+//////////////////////////////////////////////////////////////////////
+// CObservableEvent::GetParent
+// 
+// returns the parent of this event
+//////////////////////////////////////////////////////////////////////
+CObject *CObservableEvent::GetParent()
+{
+	return m_pParent;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CObservableEvent::AddObserver
+// 
+// member function to an observer to the CEvent
+//////////////////////////////////////////////////////////////////////
+void CObservableEvent::AddObserver(CObject *pObserver, ChangeFunction func) const
 {
 	// check to ensure the observer is not already in the list
 	for (int nAt = m_arrObservers.GetSize()-1; nAt >= 0; nAt--)
+	{
 		if (m_arrObservers[nAt] == pObserver && m_arrFunctions[nAt] == func)
+		{
 			return;
+		}
+	}
 
 	// add to the list of observers
 	m_arrObservers.Add(pObserver);
@@ -42,28 +66,44 @@ void CObservableObject::AddObserver(CObject *pObserver, ChangeFunction func) con
 }
 
 //////////////////////////////////////////////////////////////////////
-// CObservableObject::RemoveObserver
+// CObservableEvent::RemoveObserver
 // 
-// member function to an observer to the CObservableObject
+// member function to an observer to the CEvent
 //////////////////////////////////////////////////////////////////////
-void CObservableObject::RemoveObserver(CObject *pObserver, ChangeFunction func) const
+void CObservableEvent::RemoveObserver(CObject *pObserver, ChangeFunction func) const
 {
 	for (int nAt = m_arrObservers.GetSize()-1; nAt >= 0; nAt--)
+	{
 		if (m_arrObservers[nAt] == pObserver && m_arrFunctions[nAt] == func)
 		{
 			m_arrObservers.RemoveAt(nAt);
 			m_arrFunctions.RemoveAt(nAt);
 		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
-// CObservableObject::FireChange
+// CObservableEvent::Fire
+// 
+// fires the event, notifying all observers that the object has 
+// changed.
+//////////////////////////////////////////////////////////////////////
+void CObservableEvent::Fire(void *pValue)
+{
+	for (int nAt = 0; nAt < m_arrObservers.GetSize(); nAt++)
+	{
+		(m_arrObservers[nAt]->*m_arrFunctions[nAt])(this, pValue);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CObservableEvent::FireChange
 // 
 // fires a change, notifying all observers that the object has 
 // changed.
 //////////////////////////////////////////////////////////////////////
-void CObservableObject::FireChange(void *pOldValue)
+/* void CObservableEvent::FireChange(void *pOldValue)
 {
-	for (int nAt = 0; nAt < m_arrObservers.GetSize(); nAt++)
-		(m_arrObservers[nAt]->*m_arrFunctions[nAt])(this, pOldValue);
+	Fire(pOldValue);
 }
+*/

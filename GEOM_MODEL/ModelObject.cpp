@@ -8,6 +8,9 @@
 // pre-compiled headers
 #include "stdafx.h"
 
+// utility macros
+#include "UtilMacros.h"
+
 // the main include for the class
 #include "ModelObject.h"
 
@@ -29,9 +32,11 @@ static char THIS_FILE[]=__FILE__;
 // constructs a model object with the given name
 //////////////////////////////////////////////////////////////////////
 CModelObject::CModelObject(const CString& strName)
-	: name(strName)
+#pragma warning(disable: 4355)
+	: m_eventChange(this),
+#pragma warning(default: 4355)
+		m_strName(strName)
 {
-	::AddObserver<CModelObject>(&name, this, OnChange);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -41,69 +46,73 @@ CModelObject::CModelObject(const CString& strName)
 //////////////////////////////////////////////////////////////////////
 CModelObject::~CModelObject()
 {
-
 }
 
 //////////////////////////////////////////////////////////////////////
 // declares CModelObject as a serializable class
 //////////////////////////////////////////////////////////////////////
-IMPLEMENT_SERIAL(CModelObject, CObservableObject, 1)
+IMPLEMENT_SERIAL(CModelObject, CObject, 1)
 
 //////////////////////////////////////////////////////////////////////
-// CModelObject::AddObserverToChildren
+// CModelObject::GetName
 // 
-// adds an observer to all of the children, grandchildren etc. to the
-// number of specified lelvels (or until the bottom is reached, if
-// the number of levels is -1)
+// returns the given name for this model object
 //////////////////////////////////////////////////////////////////////
-void CModelObject::AddObserverToChildren(CObject *pObserver, 
-		ChangeFunction func, int nLevels)
+const CString& CModelObject::GetName() const
 {
-	for (int nAt = 0; nAt < children.GetSize(); nAt++)
-	{
-		children.Get(nAt)->AddObserver(pObserver, func);
-		if (nLevels != 0)
-		{
-			children.Get(nAt)->AddObserverToChildren(pObserver, func, nLevels-1);
-		}
-	}
+	return m_strName;
 }
 
 //////////////////////////////////////////////////////////////////////
-// CModelObject::RemoveObserverFromChildren
+// CModelObject::SetName
 // 
-// removes an observer from all of the children, grandchildren etc. to 
-// the number of specified lelvels (or until the bottom is reached, if
-// the number of levels is -1)
+// sets the given name for this model object, firing a change in
+//		the process
 //////////////////////////////////////////////////////////////////////
-void CModelObject::RemoveObserverFromChildren(CObject *pObserver, 
-		ChangeFunction func, int nLevels)
+void CModelObject::SetName(const CString& strName)
 {
-	for (int nAt = 0; nAt < children.GetSize(); nAt++)
-	{
-		children.Get(nAt)->RemoveObserver(pObserver, func);
-		if (nLevels != 0)
-		{
-			children.Get(nAt)->RemoveObserverFromChildren(pObserver, func, nLevels-1);
-		}
-	}
+	// set the name
+	m_strName = strName;
+
+	// and fire the change
+	GetChangeEvent().Fire();
 }
 
 //////////////////////////////////////////////////////////////////////
-// CModelObject::FireChangeChildren
+// CModelObject::GetChildCount
 // 
-// fires a change on all of the children
+// returns the number of children of this model object
 //////////////////////////////////////////////////////////////////////
-void CModelObject::FireChangeChildren(void *pOldValue, int nLevels)
+int CModelObject::GetChildCount() const
 {
-	for (int nAt = 0; nAt < children.GetSize(); nAt++)
-	{
-		children.Get(nAt)->FireChange(pOldValue);
-		if (nLevels != 0)
-		{
-			children.Get(nAt)->FireChangeChildren(pOldValue, nLevels-1);
-		}
-	}
+	return m_arrChildren.GetSize();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CModelObject::GetChildAt
+// 
+// returns the child at the index
+//////////////////////////////////////////////////////////////////////
+CModelObject *CModelObject::GetChildAt(int nIndex)
+{
+	return (CModelObject *) m_arrChildren[nIndex];
+}
+
+//////////////////////////////////////////////////////////////////////
+// CModelObject::AddChild
+// 
+// adds a child object to this object
+//////////////////////////////////////////////////////////////////////
+int CModelObject::AddChild(CModelObject *pObject)
+{
+	// store the index
+	int nIndex = m_arrChildren.Add(pObject);
+
+	// fire a change event
+	GetChangeEvent().Fire();
+
+	// and return the index
+	return nIndex;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -117,18 +126,8 @@ void CModelObject::Serialize( CArchive& ar )
 	CObject::Serialize(ar);
 
 	// serialize the object's name
-	name.Serialize(ar);
+	SERIALIZE_VALUE(ar, m_strName);
 
 	// serialize the children
-	children.Serialize(ar);
-}
-
-//////////////////////////////////////////////////////////////////////
-// CModelObject::OnChange
-// 
-// handles changes by propagating to listeners
-//////////////////////////////////////////////////////////////////////
-void CModelObject::OnChange(CObservableObject *pSource, void *pOldValue)
-{
-	FireChange();
+	m_arrChildren.Serialize(ar);
 }

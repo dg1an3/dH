@@ -13,19 +13,17 @@
 #endif // _MSC_VER > 1000
 
 #include "Observer.h"
-#include "Value.h"
-#include "Collection.h"
 
 //////////////////////////////////////////////////////////////////////
 // class CModelObject
 // 
 // a model object:
-//		1) is observable
+//		1) fires change events observable
 //		2) has a name
 //		3) possibly has children
 //		4) can be serialized
 //////////////////////////////////////////////////////////////////////
-class CModelObject : public CObservableObject
+class CModelObject : public CObject
 {
 public:
 	// constructors/destructors
@@ -36,25 +34,39 @@ public:
 	DECLARE_SERIAL(CModelObject)
 
 	// the given name for this model object
-	CValue< CString > name;
+	const CString& GetName() const;
+	void SetName(const CString& strName);
 
 	// collection of the children of this model object
-	CCollection< CModelObject > children;
+	int GetChildCount() const;
+	CModelObject *GetChildAt(int nIndex);
+	int AddChild(CModelObject *pObject);
 
-	// member function to add observers to all children (and grand-children, etc.)
-	//	as well as firing changes on the children
-	void AddObserverToChildren(CObject *pObserver, ChangeFunction func, 
-		int nLevels = -1);
-	void RemoveObserverFromChildren(CObject *pObserver, ChangeFunction func, 
-		int nLevels = -1);
-	void FireChangeChildren(void *pOldValue = NULL, 
-		int nLevels = -1);
+	// returns a reference to this object's change event
+	CObservableEvent& GetChangeEvent();
 
 	// serialization
 	virtual void Serialize( CArchive& ar );
 
-	// handles changes from contained objects
-	virtual void OnChange(CObservableObject *pSource, void *pOldValue);
+protected:
+	// the name of the object
+	CString m_strName;
+
+	// the model object's children
+	CObArray m_arrChildren;
+
+	// the change event for this object
+	CObservableEvent m_eventChange;
 };
+
+//////////////////////////////////////////////////////////////////////
+// CModelObject::GetChangeEvent
+// 
+// returns a reference to this object's change event
+//////////////////////////////////////////////////////////////////////
+inline CObservableEvent& CModelObject::GetChangeEvent()
+{
+	return m_eventChange;
+}
 
 #endif // !defined(AFX_MODELOBJECT_H__5BF91A87_C623_11D4_BE42_005004D16DAA__INCLUDED_)

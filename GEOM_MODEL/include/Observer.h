@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////
-// Observer.h: interface for the CObservableObject class.
+// Observer.h: interface for the CObservableEvent class.
 //
 // Copyright (C) 1999-2001
 // $Id$
@@ -13,35 +13,45 @@
 #endif // _MSC_VER > 1000
 
 //////////////////////////////////////////////////////////////////////
-// forward declaration of the CObservableObject class
+// forward declaration of the CObservableEvent class
 //////////////////////////////////////////////////////////////////////
-class CObservableObject;
+class CObservableEvent;
 
 //////////////////////////////////////////////////////////////////////
 // defines the ChangeFunction which is called when a change occurs
 //////////////////////////////////////////////////////////////////////
-typedef void (CObject::*ChangeFunction)(CObservableObject *, void *);
+typedef void (CObject::*ListenerFunction)(CObservableEvent *, void *);
+typedef ListenerFunction ChangeFunction;
 
 //////////////////////////////////////////////////////////////////////
-// class CObservableObject
+// class CObservableEvent
 // 
 // a CObservableObject fires change events that can be processed by 
 // an observer
 //////////////////////////////////////////////////////////////////////
-class CObservableObject : public CObject
+class CObservableEvent : public CObject
 {
 public:
+	// creates an event for the parent object
+	CObservableEvent(CObject *pParent = NULL);
+
 	// includes dynamic type information
-	DECLARE_DYNAMIC(CObservableObject)
+	DECLARE_DYNAMIC(CObservableEvent)
+
+	// returns the parent of this event
+	CObject *GetParent();
 
 	// accessors for the observer list
-	void AddObserver(CObject *pObserver, ChangeFunction func) const;
-	void RemoveObserver(CObject *pObserver, ChangeFunction func) const;
+	void AddObserver(CObject *pObserver, ListenerFunction func) const;
+	void RemoveObserver(CObject *pObserver, ListenerFunction func) const;
 
 	// called to fire a change
-	void FireChange(void *pOldValue = NULL);
-	
+	void Fire(void *pValue = NULL);
+
 private:
+	// the parent object of this event
+	CObject *m_pParent;
+
 	// the array of observers
 	mutable CArray<CObject *, CObject *> m_arrObservers;
 
@@ -49,15 +59,19 @@ private:
 	mutable CArray<ChangeFunction, ChangeFunction> m_arrFunctions;
 };
 
+// typedef for compatibility
+typedef CObservableEvent CObservableObject;
+
+
 //////////////////////////////////////////////////////////////////////
 // template function AddObserver
 // 
 // type-safe function to add an observer to a CObservableObject
 //////////////////////////////////////////////////////////////////////
 template<class OBSERVER_TYPE>
-void AddObserver(CObservableObject *pObservable, 
+void AddObserver(CObservableEvent *pObservable, 
 				 OBSERVER_TYPE *pObserver, 
-				 void (OBSERVER_TYPE::*func)(CObservableObject *, void *))
+				 void (OBSERVER_TYPE::*func)(CObservableEvent *, void *))
 {
 	pObservable->AddObserver(pObserver, (ChangeFunction) func);
 }
@@ -68,9 +82,9 @@ void AddObserver(CObservableObject *pObservable,
 // type-safe function to remove an observer from a CObservableObject
 //////////////////////////////////////////////////////////////////////
 template<class OBSERVER_TYPE>
-void RemoveObserver(CObservableObject *pObservable, 
+void RemoveObserver(CObservableEvent *pObservable, 
 					OBSERVER_TYPE *pObserver, 
-					void (OBSERVER_TYPE::*func)(CObservableObject *, void *))
+					void (OBSERVER_TYPE::*func)(CObservableEvent *, void *))
 {
 	pObservable->RemoveObserver(pObserver, (ChangeFunction) func);
 }
