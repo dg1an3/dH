@@ -87,14 +87,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndCollimCtrl.Create(CBeamParamCollimCtrl::IDD, &m_wndBeamParamCtrl);
 	m_wndBeamParamCtrl.AddTab("Collim", &m_wndCollimCtrl);
 
-//	if (!m_wndStructCtrl.Create(this, IDD_STRUCTUREDIALOG, 
-//		WS_CHILD | WS_VISIBLE | CBRS_LEFT | CBRS_RIGHT 
-//		| CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC, 
-//		ID_VIEW_STRUCTURE))
-//	{
-//		return -1;
-//	}
-
 	if (!m_wndExplorerCtrl.Create(this, IDD_OBJECTEXPLORERCONTROLBAR, 
 		WS_CHILD | WS_VISIBLE | CBRS_LEFT | CBRS_RIGHT 
 		| CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC, 
@@ -103,7 +95,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 	}
 	m_wndExplorerCtrl.m_ExplorerCtrl.SetBkColor(RGB(196, 196, 196));
-	// m_wndExplorerCtrl.m_ExplorerCtrl.SetTextColor(RGB(255, 255, 255));
 	m_pExplorerFont = new CFont();
 	m_pExplorerFont->CreateFont(18, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, 0, 
 		ANSI_CHARSET,
@@ -123,9 +114,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndBeamParamCtrl.EnableDocking(CBRS_ALIGN_LEFT | CBRS_ALIGN_RIGHT);
 	DockControlBar(&m_wndBeamParamCtrl, AFX_IDW_DOCKBAR_RIGHT);
-
-//	m_wndStructCtrl.EnableDocking(CBRS_ALIGN_LEFT | CBRS_ALIGN_RIGHT);
-//	DockControlBar(&m_wndStructCtrl, AFX_IDW_DOCKBAR_LEFT);
 
 	m_wndExplorerCtrl.EnableDocking(CBRS_ALIGN_LEFT | CBRS_ALIGN_RIGHT);
 	DockControlBar(&m_wndExplorerCtrl, AFX_IDW_DOCKBAR_LEFT);

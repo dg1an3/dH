@@ -27,7 +27,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "VSIM_MODEL"="..\VSIM_MODEL\VSIM_MODEL.dsp" - Package Owner=<4>
+Project: "RT_MODEL"="..\RT_MODEL\RT_MODEL.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "RT_VIEW"="..\RT_VIEW\RT_VIEW.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -48,9 +60,6 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name VSIM_MODEL
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name GEOM_MODEL
     End Project Dependency
     Begin Project Dependency
@@ -58,6 +67,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name VecMat
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name RT_VIEW
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name RT_MODEL
     End Project Dependency
 }}}
 
