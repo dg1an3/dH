@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "GEOM_MODEL"="..\GEOM_MODEL\GEOM_MODEL.dsp" - Package Owner=<4>
+Project: "GEOM_MODEL"=..\GEOM_MODEL\GEOM_MODEL.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "GEOM_VIEW"="..\GEOM_VIEW\GEOM_VIEW.dsp" - Package Owner=<4>
+Project: "GEOM_VIEW"=..\GEOM_VIEW\GEOM_VIEW.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "OPTIMIZER_BASE"="..\OptimizeN\OPTIMIZER_BASE.dsp" - Package Owner=<4>
+Project: "MTL"=..\MTL\MTL.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +39,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "PenBeamEdit"=".\PenBeamEdit.dsp" - Package Owner=<4>
+Project: "OPTIMIZER_BASE"=..\OptimizeN\OPTIMIZER_BASE.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "PenBeamEdit"=.\PenBeamEdit.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -68,11 +80,26 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name OPTIMIZER_BASE
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name XMLLogging
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "RT_MODEL"="..\RT_MODEL\RT_MODEL.dsp" - Package Owner=<4>
+Project: "RT_MODEL"=..\RT_MODEL\RT_MODEL.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "XMLLogging"=..\XMLLogging\XMLLogging.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

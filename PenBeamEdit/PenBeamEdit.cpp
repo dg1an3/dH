@@ -248,9 +248,9 @@ void CPenBeamEditApp::OnFileImport()
 		&pSeries->volume, 1000.0);
 
 	// initialize the structure
-	CSurface *pStructure = new CSurface();
-	CVolume<int> *pRegion = new CVolume<int>;
-	pStructure->m_pRegion = pRegion;
+	CStructure *pStructure = new CStructure();
+	CVolume<double> *pRegion = pStructure->GetRegion(); // new CVolume<int>;
+	// pStructure->m_pRegion = pRegion;
 	pSeries->m_arrStructures.Add(pStructure);
 
 	pRegion->SetDimensions(pSeries->volume.GetWidth(),
@@ -279,7 +279,7 @@ void CPenBeamEditApp::OnFileImport()
 	pPlan->GetDoseMatrix()->SetDimensions(pSeries->volume.GetWidth(),
 		pSeries->volume.GetHeight(),
 		pSeries->volume.GetDepth());
-	pPlan->SetDoseValid(TRUE);
+//	pPlan->SetDoseValid(TRUE);
 
 	// read the pencil beams, forming the summed dose
 	double maxDose = 0.0;

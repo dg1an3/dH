@@ -198,17 +198,21 @@ void CPenBeamEditView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	m_histogram.SetVolume(pPlan->GetDoseMatrix());
 
 	// set the histogram's region
-	CVolume<int> *pRegion = 
-		((CSurface *) pPlan->GetSeries()->m_arrStructures.GetAt(0))->m_pRegion;
+	CVolume<double> *pRegion = pPlan->GetSeries()->GetStructureAt(0)->GetRegion();
+		// ((CMesh *) pPlan->GetSeries()->m_arrStructures.GetAt(0))->m_pRegion;
 	m_histogram.SetRegion(pRegion);
 
 	// now draw the histogram
-	CArray<double, double>& arrBins = m_histogram.GetCumBins();
+	const CVectorN<>& arrBins = m_histogram.GetCumBins();
 	CDataSeries *pSeries = new CDataSeries();
-	m_graph.m_arrDataSeries.RemoveAll();
-	m_graph.m_arrDataSeries.Add(pSeries);
-	for (int nAt = 0; nAt < 256; nAt++)
+	m_graph.RemoveAllDataSeries();
+	// m_graph.m_arrDataSeries.RemoveAll();
+	m_graph.AddDataSeries(pSeries);
+	// m_graph.m_arrDataSeries.Add(pSeries);
+	for (int nAt = 0; nAt < arrBins.GetDim(); nAt++)
 	{
-		pSeries->m_arrData.push_back(CVector<2>(1000 * nAt / 256, arrBins[nAt] * 100.0));
+		pSeries->AddDataPoint(CVectorD<2>
+			// pSeries->m_arrData.push_back(CVector<2>
+			(1000 * nAt / 256, arrBins[nAt] * 100.0));
 	}	
 }

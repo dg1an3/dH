@@ -25,7 +25,7 @@ CFG=PenBeamEdit - Win32 Debug
 # PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=cl.exe
+CPP=xicl6.exe
 MTL=midl.exe
 RSC=rc.exe
 
@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\RT_MODEL\include" /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\OptimizeN\include" /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\RT_MODEL\include" /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\OptimizeN\include" /I "..\MTL" /I "..\XMLLogging" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /Yu"stdafx.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
@@ -50,7 +50,7 @@ RSC=rc.exe
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
+LINK32=xilink6.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /machine:I386
 # ADD LINK32 /nologo /subsystem:windows /machine:I386
 
@@ -67,7 +67,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\RT_MODEL\include" /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\OptimizeN\include" /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /FR /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\RT_MODEL\include" /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\OptimizeN\include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /FR /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -75,7 +75,7 @@ LINK32=link.exe
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
+LINK32=xilink6.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
 
@@ -88,14 +88,6 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
-# Begin Source File
-
-SOURCE=.\Histogram.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\HistogramMatcher.cpp
-# End Source File
 # Begin Source File
 
 SOURCE=.\MainFrm.cpp
@@ -121,14 +113,6 @@ SOURCE=.\StdAfx.cpp
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=.\Histogram.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\HistogramMatcher.h
-# End Source File
 # Begin Source File
 
 SOURCE=.\MainFrm.h
@@ -188,50 +172,10 @@ SOURCE=.\TransitionPlan.txt
 # End Source File
 # End Target
 # End Project
-# Section PenBeamEdit : {E9E07504-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcSeriesMarker
-# 	2:10:HeaderFile:vcseriesmarker.h
-# 	2:8:ImplFile:vcseriesmarker.cpp
-# End Section
-# Section PenBeamEdit : {E9E074E8-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcLegend
-# 	2:10:HeaderFile:vclegend.h
-# 	2:8:ImplFile:vclegend.cpp
-# End Section
-# Section PenBeamEdit : {E9E0751B-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcAxisGrid
-# 	2:10:HeaderFile:vcaxisgrid.h
-# 	2:8:ImplFile:vcaxisgrid.cpp
-# End Section
-# Section PenBeamEdit : {E9E074D3-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcMarker
-# 	2:10:HeaderFile:vcmarker.h
-# 	2:8:ImplFile:vcmarker.cpp
-# End Section
-# Section PenBeamEdit : {E9E074EA-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcDataGrid
-# 	2:10:HeaderFile:vcdatagrid.h
-# 	2:8:ImplFile:vcdatagrid.cpp
-# End Section
-# Section PenBeamEdit : {E9E074DA-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcBrush
-# 	2:10:HeaderFile:vcbrush.h
-# 	2:8:ImplFile:vcbrush.cpp
-# End Section
-# Section PenBeamEdit : {E9E07508-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcLabel
-# 	2:10:HeaderFile:vclabel.h
-# 	2:8:ImplFile:vclabel.cpp
-# End Section
 # Section PenBeamEdit : {E9E07513-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcSeriesCollection
 # 	2:10:HeaderFile:vcseriescollection.h
 # 	2:8:ImplFile:vcseriescollection.cpp
-# End Section
-# Section PenBeamEdit : {E9E0751F-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcTick
-# 	2:10:HeaderFile:vctick.h
-# 	2:8:ImplFile:vctick.cpp
 # End Section
 # Section PenBeamEdit : {E9E07523-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcValueScale
@@ -248,11 +192,6 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vcfill.h
 # 	2:8:ImplFile:vcfill.cpp
 # End Section
-# Section PenBeamEdit : {E9E074E2-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcBackdrop
-# 	2:10:HeaderFile:vcbackdrop.h
-# 	2:8:ImplFile:vcbackdrop.cpp
-# End Section
 # Section PenBeamEdit : {E9E074EE-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcLightSources
 # 	2:10:HeaderFile:vclightsources.h
@@ -262,6 +201,11 @@ SOURCE=.\TransitionPlan.txt
 # 	2:5:Class:CVcDataPoints
 # 	2:10:HeaderFile:vcdatapoints.h
 # 	2:8:ImplFile:vcdatapoints.cpp
+# End Section
+# Section PenBeamEdit : {E9E074E2-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcBackdrop
+# 	2:10:HeaderFile:vcbackdrop.h
+# 	2:8:ImplFile:vcbackdrop.cpp
 # End Section
 # Section PenBeamEdit : {E9E074F2-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcView3d
@@ -328,20 +272,25 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vctextlayout.h
 # 	2:8:ImplFile:vctextlayout.cpp
 # End Section
-# Section PenBeamEdit : {E9E07525-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcAxis
-# 	2:10:HeaderFile:vcaxis.h
-# 	2:8:ImplFile:vcaxis.cpp
-# End Section
 # Section PenBeamEdit : {E9E07515-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcAxisTitle
 # 	2:10:HeaderFile:vcaxistitle.h
 # 	2:8:ImplFile:vcaxistitle.cpp
 # End Section
+# Section PenBeamEdit : {E9E07525-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcAxis
+# 	2:10:HeaderFile:vcaxis.h
+# 	2:8:ImplFile:vcaxis.cpp
+# End Section
 # Section PenBeamEdit : {E9E0750C-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcDataPointLabel
 # 	2:10:HeaderFile:vcdatapointlabel.h
 # 	2:8:ImplFile:vcdatapointlabel.cpp
+# End Section
+# Section PenBeamEdit : {E9E074E4-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcTitle
+# 	2:10:HeaderFile:vctitle.h
+# 	2:8:ImplFile:vctitle.cpp
 # End Section
 # Section PenBeamEdit : {E9E074F4-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcPlotBase
@@ -353,8 +302,43 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vclcoor.h
 # 	2:8:ImplFile:vclcoor.cpp
 # End Section
-# Section PenBeamEdit : {E9E074E4-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcTitle
-# 	2:10:HeaderFile:vctitle.h
-# 	2:8:ImplFile:vctitle.cpp
+# Section PenBeamEdit : {E9E07504-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcSeriesMarker
+# 	2:10:HeaderFile:vcseriesmarker.h
+# 	2:8:ImplFile:vcseriesmarker.cpp
+# End Section
+# Section PenBeamEdit : {E9E074E8-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcLegend
+# 	2:10:HeaderFile:vclegend.h
+# 	2:8:ImplFile:vclegend.cpp
+# End Section
+# Section PenBeamEdit : {E9E0751B-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcAxisGrid
+# 	2:10:HeaderFile:vcaxisgrid.h
+# 	2:8:ImplFile:vcaxisgrid.cpp
+# End Section
+# Section PenBeamEdit : {E9E074D3-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcMarker
+# 	2:10:HeaderFile:vcmarker.h
+# 	2:8:ImplFile:vcmarker.cpp
+# End Section
+# Section PenBeamEdit : {E9E074DA-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcBrush
+# 	2:10:HeaderFile:vcbrush.h
+# 	2:8:ImplFile:vcbrush.cpp
+# End Section
+# Section PenBeamEdit : {E9E074EA-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcDataGrid
+# 	2:10:HeaderFile:vcdatagrid.h
+# 	2:8:ImplFile:vcdatagrid.cpp
+# End Section
+# Section PenBeamEdit : {E9E07508-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcLabel
+# 	2:10:HeaderFile:vclabel.h
+# 	2:8:ImplFile:vclabel.cpp
+# End Section
+# Section PenBeamEdit : {E9E0751F-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcTick
+# 	2:10:HeaderFile:vctick.h
+# 	2:8:ImplFile:vctick.cpp
 # End Section
