@@ -38,14 +38,20 @@ public:
 	// Flag to indicate the bounding surfaces are to be rendered
 	CValue< BOOL > showBoundsSurface;
 
+	// Couch rotation angle
+	CValue< double > couchAngle;
+
 	// Translation vector 
-	static CVector<3> m_vXlate;
+	CValue< CVector<3> > tableOffset;
 
 	// Rendering routines
 	virtual void OnRenderScene();
 
 	// Capture changes from the surface and/or lightfield beam
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue);
+
+	// Capture changes from the couch angle or table offset
+	void OnPositionChange(CObservableObject *pFromObject, void *pOldValue);
 
 protected:
 	// Re-generates the lightfield texture, if necessary

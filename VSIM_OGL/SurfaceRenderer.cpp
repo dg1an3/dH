@@ -21,7 +21,7 @@ static char THIS_FILE[]=__FILE__;
 
 #define PEN_THICKNESS (TEX_RESOLUTION / 100)
 
-CVector<3> CSurfaceRenderer::m_vXlate;
+// CVector<3> CSurfaceRenderer::m_vXlate;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -40,6 +40,9 @@ CSurfaceRenderer::CSurfaceRenderer(COpenGLView *pView)
 	color.Set(RGB(192, 192, 192));
 	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
 	isColorWash.AddObserver(this, (ChangeFunction) OnChange);
+
+	couchAngle.AddObserver(this, (ChangeFunction) OnPositionChange);
+	tableOffset.AddObserver(this, (ChangeFunction) OnPositionChange);
 }
 
 CSurfaceRenderer::~CSurfaceRenderer()
@@ -90,7 +93,9 @@ void CSurfaceRenderer::SetLightFieldBeam(CBeam *pBeam)
 void CSurfaceRenderer::OnRenderScene()
 {
 	// now translate drawing to that center
-	glTranslate(m_vXlate);
+	// glRotated(couchAngle.Get() * 180.0 / PI, 
+	//	0.0, 0.0, 1.0);
+	// glTranslate(-1.0 * tableOffset.Get());
 
 #ifdef DRAW_CROSSHAIRS
 	// draw cross-hairs
@@ -229,7 +234,7 @@ void CSurfaceRenderer::OnRenderScene()
 		glMultMatrix(mXform);
 
 		// now translate the texture for the model center
-		glTranslate(m_vXlate);
+		// glTranslate(m_vXlate);
 
 		// enable texture coordinate mode
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -284,6 +289,15 @@ void CSurfaceRenderer::OnChange(CObservableObject *pFromObject, void *pOldValue)
 	}
 
 	COpenGLRenderer::OnChange(pFromObject, pOldValue);
+}
+
+void CSurfaceRenderer::OnPositionChange(CObservableObject *pFromObject, void *pOldValue)
+{
+	// update the modelview matrix
+	modelviewMatrix.Set(
+		CreateRotate(couchAngle.Get(), CVector<3>(0.0, 0.0, 1.0)) 
+		* CreateTranslate(-1.0 * tableOffset.Get())
+	);
 }
 
 COpenGLTexture * CSurfaceRenderer::GetLightfieldTexture()
