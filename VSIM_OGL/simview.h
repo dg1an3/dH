@@ -41,6 +41,8 @@ public:
 
 	CValue< BOOL > isWireFrame;
 
+	CValue< BOOL > isColorWash;
+
 	COpenGLView m_wndREV;
 	COpenGLView m_wndBEV;
 
@@ -82,6 +84,8 @@ protected:
 	afx_msg void OnUpdateViewLightfield(CCmdUI* pCmdUI);
 	afx_msg void OnViewWireframe();
 	afx_msg void OnUpdateViewWireframe(CCmdUI* pCmdUI);
+	afx_msg void OnViewColorwash();
+	afx_msg void OnUpdateViewColorwash(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

@@ -32,6 +32,9 @@ public:
 	// Flag to indicate wire frame mode (project contours, not mesh)
 	CValue< BOOL > isWireFrame;
 
+	// Flag to indicate wire frame mode (project contours, not mesh)
+	CValue< BOOL > isColorWash;
+
 	// Flag to indicate the bounding surfaces are to be rendered
 	CValue< BOOL > showBoundsSurface;
 

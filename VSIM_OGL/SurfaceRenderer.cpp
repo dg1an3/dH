@@ -36,10 +36,12 @@ CSurfaceRenderer::CSurfaceRenderer(COpenGLView *pView)
 		m_pLightfieldTexture(NULL),
 		m_pEndTexture(NULL),
 		isWireFrame(TRUE),
+		isColorWash(FALSE),
 		showBoundsSurface(FALSE)
 {
 	color.Set(RGB(192, 192, 192));
 	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
+	isColorWash.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 CSurfaceRenderer::~CSurfaceRenderer()
@@ -147,6 +149,18 @@ void CSurfaceRenderer::OnRenderScene()
 		return;
 	}
 
+	if (isColorWash.Get())
+	{
+		// disable lighting
+		glDisable(GL_LIGHTING);
+
+		// set the depth mask to read-only
+		glDepthMask(GL_FALSE);
+
+		// set up the accumulation buffer, using the current transparency
+		glAccum(GL_LOAD, 0.75f);
+	}
+
 	if (showBoundsSurface.Get())
 	{
 		// draw the boundary surfaces
@@ -243,6 +257,19 @@ void CSurfaceRenderer::OnRenderScene()
 	{
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		GetLightfieldTexture()->Unbind();
+	}
+
+	if (isColorWash.Get())
+	{
+		// set up the accumulation buffer, using the current transparency
+		glAccum(GL_ACCUM, 0.25f);
+		glAccum(GL_RETURN, 1.0f);
+
+		// set the depth mask to writeable
+		glDepthMask(GL_TRUE);
+
+		// re-enable lighting
+		glEnable(GL_LIGHTING);
 	}
 }
 

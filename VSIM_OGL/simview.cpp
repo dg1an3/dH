@@ -53,6 +53,8 @@ BEGIN_MESSAGE_MAP(CSimView, CView)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_LIGHTPATCH, OnUpdateViewLightfield)
 	ON_COMMAND(ID_VIEW_WIREFRAME, OnViewWireframe)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_WIREFRAME, OnUpdateViewWireframe)
+	ON_COMMAND(ID_VIEW_COLORWASH, OnViewColorwash)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_COLORWASH, OnUpdateViewColorwash)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -341,6 +343,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		{
 			CSurfaceRenderer *pBEVSurfaceRenderer = new CSurfaceRenderer(&m_wndBEV);
 			pBEVSurfaceRenderer->isWireFrame.SyncTo(&isWireFrame);
+			pBEVSurfaceRenderer->isColorWash.SyncTo(&isColorWash);
 			pBEVSurfaceRenderer->color.Set(arrColors[nAtSurf]);
 			pBEVSurfaceRenderer->SetSurface(pSurface);
 			m_wndBEV.AddRenderer(pBEVSurfaceRenderer);
@@ -538,3 +541,13 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	m_wndBEV.myProjectionMatrix.SyncTo(&mProj);
 }
 #endif
+
+void CSimView::OnViewColorwash() 
+{
+	isColorWash.Set( !isColorWash.Get() );
+}
+
+void CSimView::OnUpdateViewColorwash(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck(isColorWash.Get() ? 1 : 0);	
+}
