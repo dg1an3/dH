@@ -52,7 +52,7 @@ void CGraph::OnPaint()
 
 	dc.Rectangle(rect);
 	
-	CVector<2> vAt(m_vMin);
+	CVectorD<2> vAt(m_vMin);
 	dc.MoveTo(ToPlotCoord(vAt)); // MARGIN, rect.Height() - MARGIN);
 	int nCount = 0;
 	for (vAt[1] = m_vMin[1]; vAt[1] <= m_vMax[1]; vAt[1] += m_vMajor[1] / 10)
@@ -95,7 +95,7 @@ void CGraph::OnPaint()
 	// Do not call CWnd::OnPaint() for painting messages
 }
 
-CPoint CGraph::ToPlotCoord(CVector<2> vCoord)
+CPoint CGraph::ToPlotCoord(CVectorD<2> vCoord)
 {
 	CRect rect;
 	GetClientRect(&rect);

@@ -180,7 +180,7 @@ void CDibView::OnLButtonUp(UINT nFlags, CPoint point)
 	CWnd::OnLButtonUp(nFlags, point);
 }
 
-CVector<3> CDibView::Client2Image(const CPoint &ptClient)
+CVectorD<3> CDibView::Client2Image(const CPoint &ptClient)
 {
 	// source (DIB) image size
 	CRect rectSrc(0, 0, m_pDib->GetSize().cx, m_pDib->GetSize().cy);
@@ -192,15 +192,15 @@ CVector<3> CDibView::Client2Image(const CPoint &ptClient)
 	REAL ratio = (REAL) rectSrc.Height() / (REAL) rectDst.Height();
 
 	// offset to center and scale
-	CVector<3> vImage(ptClient);
-	vImage -= CVector<3>(rectDst.CenterPoint());
+	CVectorD<3> vImage(ptClient);
+	vImage -= CVectorD<3>(rectDst.CenterPoint());
 	vImage *= ratio;
-	vImage += CVector<3>(rectSrc.CenterPoint());
+	vImage += CVectorD<3>(rectSrc.CenterPoint());
 
 	return vImage;
 }
 
-CPoint CDibView::Image2Client(const CVector<3>&vImage)
+CPoint CDibView::Image2Client(const CVectorD<3>&vImage)
 {
 	// source (DIB) image size
 	CRect rectSrc(0, 0, m_pDib->GetSize().cx, m_pDib->GetSize().cy);
@@ -212,7 +212,7 @@ CPoint CDibView::Image2Client(const CVector<3>&vImage)
 	REAL ratio = (REAL) rectDst.Height() / (REAL) rectSrc.Height();
 
 	// offset to center and scale
-	CPoint ptClient(vImage - CVector<3>(rectSrc.CenterPoint()));
+	CPoint ptClient(vImage - CVectorD<3>(rectSrc.CenterPoint()));
 	ptClient.x = (int)(ratio * (REAL) ptClient.x); 
 	ptClient.y = (int)(ratio * (REAL) ptClient.y);
 	ptClient += rectDst.CenterPoint();

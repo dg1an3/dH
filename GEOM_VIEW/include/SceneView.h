@@ -13,7 +13,7 @@
 #endif // _MSC_VER > 1000
 
 // matrix include file
-#include <Matrix.h>
+#include <MatrixD.h>
 
 // helper classes
 #include "Renderable.h"
@@ -72,11 +72,11 @@ public:
 // Operations
 public:
 	// compute the model point from a window coordinate
-	CVector<3> ModelPtFromWndPt(CPoint wndPt);
+	CVectorD<3> ModelPtFromWndPt(CPoint wndPt);
 
 	// compute the model point from a window coordinate, using a different
 	//		projection matrix
-	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj);
+	CVectorD<3> ModelPtFromWndPt(CPoint wndPt, const CMatrixD<4>& mProj);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -97,7 +97,7 @@ protected:
 	// sorts the renderables from furthest to nearest, based on current camera
 	//		position
 	void SortRenderables(CObArray *pArray, 
-		double (CRenderable::*DistFunc)(const CVector<3>& vPoint));
+		double (CRenderable::*DistFunc)(const CVectorD<3>& vPoint));
 
 	// friend classes can access the OpenGL rendering context
 	friend class CRenderable;

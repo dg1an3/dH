@@ -51,8 +51,8 @@ public:
 
 	// computes the nearest and furthest distances to the
 	//	given point
-	virtual double GetNearestDistance(const CVector<3>& vPoint);
-	virtual double GetFurthestDistance(const CVector<3>& vPoint);
+	virtual double GetNearestDistance(const CVectorD<3>& vPoint);
+	virtual double GetFurthestDistance(const CVectorD<3>& vPoint);
 
 	// opaque rendering routines
 	virtual void DrawOpaque(CRenderContext *pRC);

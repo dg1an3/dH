@@ -22,7 +22,7 @@ public:
 	// association with a CVolume that contains the volumetric data
 	CVolume<short> *m_pVolume;
 
-	CMatrix<4> m_mVolumeTransform;
+	CMatrixD<4> m_mVolumeTransform;
 
 	void ComputeDRR();
 

@@ -13,8 +13,8 @@
 #endif // _MSC_VER > 1000
 
 // vector and matrix include file
-#include <Vector.h>
-#include <Matrix.h>
+#include <VectorD.h>
+#include <MatrixD.h>
 
 // event management
 #include <Observer.h>
@@ -54,8 +54,8 @@ public:
 
 	// matrix representing the transform from the model space to the
 	//		camera space
-	const CMatrix<4>& GetXform() const;
-	void SetXform(const CMatrix<4>& m);
+	const CMatrixD<4>& GetXform() const;
+	void SetXform(const CMatrixD<4>& m);
 
 	// the viewing angle for the camera (0 for orthographic camera)
 	double GetViewingAngle() const;
@@ -75,10 +75,10 @@ public:
 	void SetFieldOfView(double maxObjectSize);
 
 	// matrix representing the camera projection
-	const CMatrix<4>& GetPerspective() const;
+	const CMatrixD<4>& GetPerspective() const;
 
 	// the total matrix for the projection and transform
-	const CMatrix<4>& GetProjection() const;
+	const CMatrixD<4>& GetProjection() const;
 
 	// returns a reference to the change event for the camera
 	CObservableEvent& GetChangeEvent();
@@ -98,7 +98,7 @@ public:
 
 private:
 	// the point being looked at
-	CVector<3> m_vTargetPoint;
+	CVectorD<3> m_vTargetPoint;
 
 	// viewing distance
 	double m_distance;
@@ -114,7 +114,7 @@ private:
 	double m_zoom;
 
 	// the model transform
-	mutable CMatrix<4> m_mXform;
+	mutable CMatrixD<4> m_mXform;
 
 	// the viewing angle (along Y direction
 	double m_viewingAngle;
@@ -129,10 +129,10 @@ private:
 	double m_farPlane;
 
 	// perspective matrix
-	mutable CMatrix<4> m_mPerspective;
+	mutable CMatrixD<4> m_mPerspective;
 
 	// projection matrix
-	mutable CMatrix<4> m_mProjection;
+	mutable CMatrixD<4> m_mProjection;
 
 	// the change event for this object
 	CObservableEvent m_eventChange;

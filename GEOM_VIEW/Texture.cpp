@@ -240,12 +240,12 @@ void CTexture::Unbind()
 }
 
 // accessors for the texture projection
-const CMatrix<4>& CTexture::GetProjection()
+const CMatrixD<4>& CTexture::GetProjection()
 {
 	return m_mProjection;
 }
 
-void CTexture::SetProjection(const CMatrix<4>& mProjection)
+void CTexture::SetProjection(const CMatrixD<4>& mProjection)
 {
 	m_mProjection = mProjection;
 

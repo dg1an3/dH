@@ -158,10 +158,10 @@ void CSurfaceRenderable::SetObject(CObject *pObject)
 // 
 // computes the nearest distance to the given point
 //////////////////////////////////////////////////////////////////////////////
-double CSurfaceRenderable::GetNearestDistance(const CVector<3>& vPoint)
+double CSurfaceRenderable::GetNearestDistance(const CVectorD<3>& vPoint)
 {
-	CVector<3> vMin = GetSurface()->GetBoundsMin();
-	CVector<3> vMax = GetSurface()->GetBoundsMax();
+	CVectorD<3> vMin = GetSurface()->GetBoundsMin();
+	CVectorD<3> vMax = GetSurface()->GetBoundsMax();
 	
 	double nearestDist = FLT_MAX;
 	for (int nAtZ = 0; nAtZ < 2; nAtZ++)
@@ -170,7 +170,7 @@ double CSurfaceRenderable::GetNearestDistance(const CVector<3>& vPoint)
 		{
 			for (int nAtX = 0; nAtX < 2; nAtX++)
 			{
-				CVector<3> vCorner;
+				CVectorD<3> vCorner;
 				vCorner[0] = (nAtX == 0) ? vMin[0] : vMax[0];
 				vCorner[1] = (nAtY == 0) ? vMin[1] : vMax[1];
 				vCorner[2] = (nAtZ == 0) ? vMin[2] : vMax[2];
@@ -189,10 +189,10 @@ double CSurfaceRenderable::GetNearestDistance(const CVector<3>& vPoint)
 // 
 // computes the furthest distance to the given point
 //////////////////////////////////////////////////////////////////////////////
-double CSurfaceRenderable::GetFurthestDistance(const CVector<3>& vPoint)
+double CSurfaceRenderable::GetFurthestDistance(const CVectorD<3>& vPoint)
 {
-	CVector<3> vMin = GetSurface()->GetBoundsMin();
-	CVector<3> vMax = GetSurface()->GetBoundsMax();
+	CVectorD<3> vMin = GetSurface()->GetBoundsMin();
+	CVectorD<3> vMax = GetSurface()->GetBoundsMax();
 	
 	double furthestDist = 0.0;
 	for (int nAtZ = 0; nAtZ < 2; nAtZ++)
@@ -201,7 +201,7 @@ double CSurfaceRenderable::GetFurthestDistance(const CVector<3>& vPoint)
 		{
 			for (int nAtX = 0; nAtX < 2; nAtX++)
 			{
-				CVector<3> vCorner;
+				CVectorD<3> vCorner;
 				vCorner[0] = (nAtX == 0) ? vMin[0] : vMax[0];
 				vCorner[1] = (nAtY == 0) ? vMin[1] : vMax[1];
 				vCorner[2] = (nAtZ == 0) ? vMin[2] : vMax[2];
@@ -263,10 +263,10 @@ void CSurfaceRenderable::DrawWireframe(CRenderContext *pRC)
 
 			// translate to the appropriate reference distance
 			pRC->Translate(
-				CVector<3>(0.0, GetSurface()->GetContourRefDist(nAt), 0.0));
+				CVectorD<3>(0.0, GetSurface()->GetContourRefDist(nAt), 0.0));
 
 			// after we rotate the data into the X-Z plane
-			pRC->Rotate(90.0, CVector<3>(1.0, 0.0, 0.0));
+			pRC->Rotate(90.0, CVectorD<3>(1.0, 0.0, 0.0));
 
 			// render the polygon as a line loop
 			pRC->LineLoopFromPolygon(polygon);
@@ -314,15 +314,15 @@ void CSurfaceRenderable::DrawBoundsSurface(CRenderContext *pRC)
 		double yMax = GetSurface()->GetBoundsMax()[1];
 		for (int nAtTri = 0; nAtTri < GetSurface()->GetTriangleCount(); nAtTri++)
 		{
-			CPackedVector<3> vVert0 = GetSurface()->GetTriVert(nAtTri, 0);
-			CPackedVector<3> vVert1 = GetSurface()->GetTriVert(nAtTri, 1);
-			CPackedVector<3> vVert2 = GetSurface()->GetTriVert(nAtTri, 2);
+			CPackedVectorD<3> vVert0 = GetSurface()->GetTriVert(nAtTri, 0);
+			CPackedVectorD<3> vVert1 = GetSurface()->GetTriVert(nAtTri, 1);
+			CPackedVectorD<3> vVert2 = GetSurface()->GetTriVert(nAtTri, 2);
 
 			if (vVert0[1] == yMin && vVert1[1] == yMin && vVert2[1] == yMin)
 			{
-				CPackedVector<3> vNorm0 = GetSurface()->GetTriNorm(nAtTri, 0);
-				CPackedVector<3> vNorm1 = GetSurface()->GetTriNorm(nAtTri, 1);
-				CPackedVector<3> vNorm2 = GetSurface()->GetTriNorm(nAtTri, 2);
+				CPackedVectorD<3> vNorm0 = GetSurface()->GetTriNorm(nAtTri, 0);
+				CPackedVectorD<3> vNorm1 = GetSurface()->GetTriNorm(nAtTri, 1);
+				CPackedVectorD<3> vNorm2 = GetSurface()->GetTriNorm(nAtTri, 2);
 
 				pRC->BeginTriangles();
 

@@ -7,7 +7,7 @@
 
 #include "stdafx.h"
 
-#include <MatrixN.h>
+#include <MatrixNxM.h>
 
 #include "TPSTransform.h"
 
@@ -22,7 +22,7 @@ static char THIS_FILE[]=__FILE__;
 // 
 // returns the log-distance squared betweeen two landmarks
 //////////////////////////////////////////////////////////////////////
-double distance_function(const CVector<3>& vL1, const CVector<3>& vL2)
+double distance_function(const CVectorD<3>& vL1, const CVectorD<3>& vL2)
 {
 	// compute the euclidean distance
 	double r = (vL1 - vL2).GetLength();
@@ -69,7 +69,7 @@ int CTPSTransform::GetLandmarkCount()
 // 
 // returns a landmark
 //////////////////////////////////////////////////////////////////////
-const CVector<3>& CTPSTransform::GetLandmark(int nDataSet, int nIndex)
+const CVectorD<3>& CTPSTransform::GetLandmark(int nDataSet, int nIndex)
 {
 	// return the landmark at the given index
 	return m_arrLandmarks[nDataSet].at(nIndex);
@@ -80,7 +80,7 @@ const CVector<3>& CTPSTransform::GetLandmark(int nDataSet, int nIndex)
 // 
 // constructs a CTPSTransform object with the given name
 //////////////////////////////////////////////////////////////////////
-void CTPSTransform::SetLandmark(int nDataSet, int nIndex, const CVector<3>& vLandmark)
+void CTPSTransform::SetLandmark(int nDataSet, int nIndex, const CVectorD<3>& vLandmark)
 {
 	// assign the landmark
 	m_arrLandmarks[nDataSet].at(nIndex) = vLandmark;
@@ -97,7 +97,7 @@ void CTPSTransform::SetLandmark(int nDataSet, int nIndex, const CVector<3>& vLan
 // 
 // adds a new landmark to the TPS
 //////////////////////////////////////////////////////////////////////
-int CTPSTransform::AddLandmark(const CVector<3>& vLandmark)
+int CTPSTransform::AddLandmark(const CVectorD<3>& vLandmark)
 {
 	// return the index of the new landmark
 	return AddLandmark(vLandmark, vLandmark);
@@ -108,8 +108,8 @@ int CTPSTransform::AddLandmark(const CVector<3>& vLandmark)
 // 
 // adds a new landmark to the TPS
 //////////////////////////////////////////////////////////////////////
-int CTPSTransform::AddLandmark(const CVector<3>& vLandmark1, 
-							   const CVector<3>& vLandmark2)
+int CTPSTransform::AddLandmark(const CVectorD<3>& vLandmark1, 
+							   const CVectorD<3>& vLandmark2)
 {
 	// add the landmark to both data sets
 	m_arrLandmarks[0].push_back(vLandmark1);
@@ -141,7 +141,7 @@ void CTPSTransform::RemoveAllLandmarks()
 // 
 // evaluates the vector field at a point
 //////////////////////////////////////////////////////////////////////
-void CTPSTransform::Eval(const CVector<3>& vPos, CVector<3>& vPosTrans)
+void CTPSTransform::Eval(const CVectorD<3>& vPos, CVectorD<3>& vPosTrans)
 {
 	// start with transformed equal to input
 	vPosTrans = vPos;
@@ -221,10 +221,10 @@ void CTPSTransform::Resample(CDib *pImageSrc, CDib *pImageDst)
 		for (int nAtCol = 0; nAtCol < dstSize.cx; nAtCol++)
 		{
 			// position of the destination
-			CVector<3> vDstPos((double) nAtCol, (double) nAtRow);
+			CVectorD<3> vDstPos((double) nAtCol, (double) nAtRow);
 
 			// position of the source
-			CVector<3> vSrcPos;
+			CVectorD<3> vSrcPos;
 			Eval(vDstPos, vSrcPos);
 
 			// compute the destination position
@@ -268,7 +268,7 @@ void CTPSTransform::RecalcWeights()
 	}
 
 	// stores the L matrix
-	CMatrixN<> mL(GetLandmarkCount() + 3);
+	CMatrixNxM<> mL(GetLandmarkCount() + 3, GetLandmarkCount() + 3);
 
 	// iterate over the rows and columns of the L matrix
 	int nAtRow;
@@ -281,26 +281,26 @@ void CTPSTransform::RecalcWeights()
 			if (nAtRow != nAtCol)
 			{
 				// populate the K part of the matrix
-				mL[nAtRow][nAtCol] = 
+				mL[nAtCol][nAtRow] = 
 					distance_function(GetLandmark(0, nAtRow), 
 						GetLandmark(0, nAtCol));
 			}
 			else
 			{
 				// zeros on the diagonal
-				mL[nAtRow][nAtCol] = 0.0;
+				mL[nAtCol][nAtRow] = 0.0;
 			}
 
 			// populate the Q^T part of the matrix
-			mL[GetLandmarkCount() + 0][nAtCol] = 1.0;
-			mL[GetLandmarkCount() + 1][nAtCol] = GetLandmark(0, nAtCol)[0];
-			mL[GetLandmarkCount() + 2][nAtCol] = GetLandmark(0, nAtCol)[1];
+			mL[nAtCol][GetLandmarkCount() + 0] = 1.0;
+			mL[nAtCol][GetLandmarkCount() + 1] = GetLandmark(0, nAtCol)[0];
+			mL[nAtCol][GetLandmarkCount() + 2] = GetLandmark(0, nAtCol)[1];
 		}
 
 		// populate the Q part of the matrix
-		mL[nAtRow][GetLandmarkCount() + 0] = 1.0;
-		mL[nAtRow][GetLandmarkCount() + 1] = GetLandmark(0, nAtRow)[0];
-		mL[nAtRow][GetLandmarkCount() + 2] = GetLandmark(0, nAtRow)[1];
+		mL[GetLandmarkCount() + 0][nAtRow] = 1.0;
+		mL[GetLandmarkCount() + 1][nAtRow] = GetLandmark(0, nAtRow)[0];
+		mL[GetLandmarkCount() + 2][nAtRow] = GetLandmark(0, nAtRow)[1];
 	}
 
 	// fill the lower-right 3x3 with zeros
@@ -308,12 +308,12 @@ void CTPSTransform::RecalcWeights()
 	{
 		for (nAtCol = GetLandmarkCount(); nAtCol < GetLandmarkCount()+3; nAtCol++)
 		{
-			mL[nAtRow][nAtCol] = 0.0;
+			mL[nAtCol][nAtRow] = 0.0;
 		}
 	}
 
 	// form the inverse of L
-	CMatrixN<> mL_inv = mL;
+	CMatrixNxM<> mL_inv = mL;
 	mL_inv.Invert();
 
 	// compute the x- and y-direction "heights"
@@ -339,10 +339,10 @@ void CTPSTransform::RecalcWeights()
 	// now check to ensure the offsets at each landmark is correct
 	for (nAtLandmark = 0; nAtLandmark < GetLandmarkCount(); nAtLandmark++)
 	{
-		const CVector<3>& vL0 = GetLandmark(0, nAtLandmark);
-		const CVector<3>& vL1 = GetLandmark(1, nAtLandmark);
+		const CVectorD<3>& vL0 = GetLandmark(0, nAtLandmark);
+		const CVectorD<3>& vL1 = GetLandmark(1, nAtLandmark);
 
-		CVector<3> vL0_xform;
+		CVectorD<3> vL0_xform;
 		Eval(vL0, vL0_xform);
 
 		ASSERT(vL0_xform.IsApproxEqual(vL1));

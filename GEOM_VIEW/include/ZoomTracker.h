@@ -13,8 +13,8 @@
 #endif // _MSC_VER > 1000
 
 // matrix/vector include files
-#include <Vector.h>
-#include <Matrix.h>
+#include <VectorD.h>
+#include <MatrixD.h>
 
 // base class
 #include "Tracker.h"

@@ -58,16 +58,8 @@ void CRotateTracker::OnButtonDown(UINT nFlags, CPoint point)
 	m_pView->GetCamera().AssertValid();
 #endif
 
-	// store the initial model transform matrix; subsequent rotations will be applied
-	//		to this matrix directly
-	m_initXform = m_pView->GetCamera().GetXform();
-
-	// store the current projection matrix from the view, for transforming
-	//		subsequent coordinates
-	m_initProjMatrix = m_pView->GetCamera().GetProjection();
-
 	// store the current mouse position in 3-d
-	m_vInitPoint = m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
+	m_vPrevPoint = m_pView->ModelPtFromWndPt(point);
 }
 
 
@@ -84,15 +76,18 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 #endif
 
 	// compute the final point
-	CVector<3> vFinalPoint = 
-		m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
+	CVectorD<3> vCurrPoint = m_pView->ModelPtFromWndPt(point);
 
 	// compute the rotation matrix
-	CMatrix<4> mRotate = 
-		CMatrix<4>(CreateRotate(m_vInitPoint, vFinalPoint, 3.0));
+	CMatrixD<4> mRotate = 
+		CMatrixD<4>(CreateRotate(m_vPrevPoint, vCurrPoint, 3.0));
 
 	// set the new model xform to the initial composed with the rotation
-	m_pView->GetCamera().SetXform(m_initXform * mRotate);
+	CMatrixD<4> mXform = m_pView->GetCamera().GetXform();
+	m_pView->GetCamera().SetXform(mXform * mRotate);
+
+	// set the new initial point
+	m_vPrevPoint = m_pView->ModelPtFromWndPt(point);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

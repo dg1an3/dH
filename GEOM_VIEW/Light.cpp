@@ -51,7 +51,7 @@ CLight::~CLight()
 // 
 // returns the position of the light
 //////////////////////////////////////////////////////////////////////
-const CVector<3>& CLight::GetPosition() const
+const CVectorD<3>& CLight::GetPosition() const
 {
 	return m_vPosition;
 }
@@ -61,7 +61,7 @@ const CVector<3>& CLight::GetPosition() const
 // 
 // sets the position of the light
 //////////////////////////////////////////////////////////////////////
-void CLight::SetPosition(const CVector<3>& vPos)
+void CLight::SetPosition(const CVectorD<3>& vPos)
 {
 	m_vPosition = vPos;
 }

@@ -64,14 +64,14 @@ CDRRRenderable::~CDRRRenderable()
 }
 
 #define CREATE_INT_VECTOR(v, vi) \
-	CVector<3, int> vi; \
+	CVectorD<3, int> vi; \
 	vi[0] = (int)(v[0] * 65536.0); \
 	vi[1] = (int)(v[1] * 65536.0); \
 	vi[2] = (int)(v[2] * 65536.0);
 
 ///////////////////////////////////////////////////////////////////////////////
 bool ClipRaster(int& nDestLength,
-			CVector<3, int>& vSourceStart, const CVector<3, int> &vSourceStep, 
+			CVectorD<3, int>& vSourceStart, const CVectorD<3, int> &vSourceStep, 
 			int nD, int nSourceMinD, int nSourceMaxD)
 {
 	// First, adjust the raster start.
@@ -247,7 +247,7 @@ void CDRRRenderable::ComputeDRR()
 	m_pView->GetCamera().GetProjection().ToArray(projMatrix);
 
 	// compute the near and far planes containing the volume
-	CVector<3> vPt;
+	CVectorD<3> vPt;
 	double zMin = DBL_MAX, zMax = -DBL_MAX;
 
 	gluProject(0.0, 0.0, 0.0, modelMatrix, projMatrix, m_viewport, &vPt[0], &vPt[1], &vPt[2]);
@@ -284,23 +284,23 @@ void CDRRRenderable::ComputeDRR()
 	double step = start + (double)m_nResDiv;
 
 	// un-project the window coordinates into the model coordinate system
-	CVector<3> vStart;
+	CVectorD<3> vStart;
 	gluUnProject(start, start, zMin,
 		modelMatrix, projMatrix, m_viewport, 
 		&vStart[0], &vStart[1], &vStart[2]);
 
-	CVector<3> vStartNextX;
+	CVectorD<3> vStartNextX;
 	gluUnProject(step, start, zMin,
 		modelMatrix, projMatrix, m_viewport, 
 		&vStartNextX[0], &vStartNextX[1], &vStartNextX[2]);
-	CVector<3> vStartStepX = vStartNextX - vStart;
+	CVectorD<3> vStartStepX = vStartNextX - vStart;
 	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
 
-	CVector<3> vStartNextY;
+	CVectorD<3> vStartNextY;
 	gluUnProject(start, step, zMin,
 		modelMatrix, projMatrix, m_viewport, 
 		&vStartNextY[0], &vStartNextY[1], &vStartNextY[2]);
-	CVector<3> vStartStepY = vStartNextY - vStart;
+	CVectorD<3> vStartStepY = vStartNextY - vStart;
 	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
 
 	CREATE_INT_VECTOR(vStart, viStart);
@@ -309,23 +309,23 @@ void CDRRRenderable::ComputeDRR()
 	viStart[2] += 32768;
 
 	// un-project the window coordinates into the model coordinate system
-	CVector<3> vEnd;
+	CVectorD<3> vEnd;
 	gluUnProject(start, start, zMax,
 		modelMatrix, projMatrix, m_viewport, 
 		&vEnd[0], &vEnd[1], &vEnd[2]);
 
-	CVector<3> vEndNextX;
+	CVectorD<3> vEndNextX;
 	gluUnProject(step, start, zMax,
 		modelMatrix, projMatrix, m_viewport, 
 		&vEndNextX[0], &vEndNextX[1], &vEndNextX[2]);
-	CVector<3> vEndStepX = vEndNextX - vEnd;
+	CVectorD<3> vEndStepX = vEndNextX - vEnd;
 	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
 
-	CVector<3> vEndNextY;
+	CVectorD<3> vEndNextY;
 	gluUnProject(start, step, zMax,
 		modelMatrix, projMatrix, m_viewport, 
 		&vEndNextY[0], &vEndNextY[1], &vEndNextY[2]);
-	CVector<3> vEndStepY = vEndNextY - vEnd;
+	CVectorD<3> vEndStepY = vEndNextY - vEnd;
 	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
 
 	CREATE_INT_VECTOR(vEnd, viEnd);
@@ -351,16 +351,16 @@ void CDRRRenderable::ComputeDRR()
 
 	for (int nY = 0; nY < m_nImageHeight; nY++)
 	{
-		CVector<3, int> viStartOld = viStart;
-		CVector<3, int> viEndOld = viEnd;
+		CVectorD<3, int> viStartOld = viStart;
+		CVectorD<3, int> viEndOld = viEnd;
 
 		int nPixelAt = nY * m_nImageWidth;
 
 		for (int nX = 0; nX < m_nImageWidth; nX++, nPixelAt++)
 		{
-			CVector<3, int> viStartOldX = viStart;
+			CVectorD<3, int> viStartOldX = viStart;
 
-			CVector<3, int> viStep = viEnd - viStart;
+			CVectorD<3, int> viStep = viEnd - viStart;
 			viStep[0] >>= m_nShift;
 			viStep[1] >>= m_nShift;
 			viStep[2] >>= m_nShift;

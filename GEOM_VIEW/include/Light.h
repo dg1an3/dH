@@ -14,7 +14,7 @@
 #endif // _MSC_VER > 1000
 
 // vector include file
-#include <Vector.h>
+#include <VectorD.h>
 
 //////////////////////////////////////////////////////////////////////
 // class CLight
@@ -29,8 +29,8 @@ public:
 	virtual ~CLight();
 
 	// accessors for the position of the light
-	const CVector<3>& GetPosition() const;
-	void SetPosition(const CVector<3>& vPos);
+	const CVectorD<3>& GetPosition() const;
+	void SetPosition(const CVectorD<3>& vPos);
 
 	// diffuse color for the light
 	COLORREF GetDiffuseColor() const;
@@ -41,7 +41,7 @@ public:
 
 private:
 	// stores the position of the light
-	CVector<3> m_vPosition;
+	CVectorD<3> m_vPosition;
 
 	// diffuse color for the light
 	COLORREF m_diffuseColor;

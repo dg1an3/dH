@@ -80,7 +80,7 @@ int CPolygon::GetVertexCount()
 // 
 // returns the vertex at the given index.  forms the modulus index
 //////////////////////////////////////////////////////////////////////
-const CPackedVector<2>& CPolygon::GetVertex(int nIndex)
+const CPackedVectorD<2>& CPolygon::GetVertex(int nIndex)
 {
 	// form the modulus index
 	int nModIndex = nIndex;
@@ -98,10 +98,10 @@ const CPackedVector<2>& CPolygon::GetVertex(int nIndex)
 // 
 // adds a new vertex to the end of the polygon
 //////////////////////////////////////////////////////////////////////
-int CPolygon::AddVertex(CVector<2>& v)
+int CPolygon::AddVertex(CVectorD<2>& v)
 {
 	// add the vertex
-	int nIndex = m_arrVertex.Add(CPackedVector<2>(v));
+	int nIndex = m_arrVertex.Add(CPackedVectorD<2>(v));
 
 	// fire a change
 	GetChangeEvent().Fire();
@@ -136,7 +136,7 @@ void CPolygon::RemoveVertex(int nIndex)
 // 
 // returns a CHANGEABLE reference to the polygon vertices
 //////////////////////////////////////////////////////////////////////
-CArray<CPackedVector<2>, CPackedVector<2>&>& CPolygon::GetVertexArray()
+CArray<CPackedVectorD<2>, CPackedVectorD<2>&>& CPolygon::GetVertexArray()
 {
 	return m_arrVertex;
 }
@@ -154,8 +154,8 @@ double CPolygon::GetSignedArea()
 	// for each vertex, form the cross product of it with the next
 	//		vertex
 	for (int nAt = 0; nAt < GetVertexCount(); nAt++)
-		area += Cross(CVector<2>(GetVertex(nAt)), 
-			CVector<2>(GetVertex(nAt+1)));
+		area += Cross(CVectorD<2>(GetVertex(nAt)), 
+			CVectorD<2>(GetVertex(nAt+1)));
 
 	// the actual signed area is one-half of the sum
 	return area / 2.0;
@@ -179,9 +179,9 @@ void CPolygon::MakeConvexHull()
 	for (int nAt = 0; nAt <= GetVertexCount(); nAt++)
 	{
 		// compute the signed area of the current triangle
-		CVector<2> vBase = GetVertex(nAt);
-		CVector<2> v1 = CVector<2>(GetVertex(nAt+1)) - vBase;
-		CVector<2> v2 = CVector<2>(GetVertex(nAt+2)) - vBase;
+		CVectorD<2> vBase = GetVertex(nAt);
+		CVectorD<2> v1 = CVectorD<2>(GetVertex(nAt+1)) - vBase;
+		CVectorD<2> v2 = CVectorD<2>(GetVertex(nAt+2)) - vBase;
 
 		if (Cross(v1, v2) * signedArea < 0)
 		{
@@ -194,9 +194,9 @@ void CPolygon::MakeConvexHull()
 	for (nAt = GetVertexCount(); nAt >= 0; nAt--)
 	{
 		// compute the signed area of the current triangle
-		CVector<2> vBase = GetVertex(nAt);
-		CVector<2> v1 = CVector<2>(GetVertex(nAt-1)) - vBase;
-		CVector<2> v2 = CVector<2>(GetVertex(nAt-2)) - vBase;
+		CVectorD<2> vBase = GetVertex(nAt);
+		CVectorD<2> v1 = CVectorD<2>(GetVertex(nAt-1)) - vBase;
+		CVectorD<2> v2 = CVectorD<2>(GetVertex(nAt-2)) - vBase;
 
 		if (Cross(v1, v2) * signedArea > 0)
 		{

@@ -67,27 +67,27 @@ void CRenderContext::End()
 	glEnd();
 }
 
-void CRenderContext::Vertex(const CVector<2>& v)
+void CRenderContext::Vertex(const CVectorD<2>& v)
 {
 	glVertex2dv(v);
 }
 
-void CRenderContext::Vertex(const CVector<3>& v)
+void CRenderContext::Vertex(const CVectorD<3>& v)
 {
 	glVertex3dv(v);
 }
 
-void CRenderContext::Vertex(const CVector<4>& v)
+void CRenderContext::Vertex(const CVectorD<4>& v)
 {
 	glVertex4dv(v);
 }
 
-void CRenderContext::Normal(const CVector<3>& n)
+void CRenderContext::Normal(const CVectorD<3>& n)
 {
 	glNormal3dv(n);
 }
 
-void CRenderContext::Normal(const CVector<4>& n)
+void CRenderContext::Normal(const CVectorD<4>& n)
 {
 	Normal(FromHomogeneous<3, double>(n));
 }
@@ -229,13 +229,13 @@ void CRenderContext::PopMatrix()
 	glPopMatrix();
 }
 
-void CRenderContext::Translate(const CVector<3> vOffset)
+void CRenderContext::Translate(const CVectorD<3> vOffset)
 {
 	glMatrixMode(GL_MODELVIEW);
 	glTranslated(vOffset[0], vOffset[1], vOffset[2]);
 }
 
-void CRenderContext::Rotate(double angle,  const CVector<3> vAxis)
+void CRenderContext::Rotate(double angle,  const CVectorD<3> vAxis)
 {
 	glMatrixMode(GL_MODELVIEW);
 	glRotated(angle, vAxis[0], vAxis[1], vAxis[2]);
@@ -255,7 +255,7 @@ void CRenderContext::Unbind()
 }
 
 // helper functions for matrix manipulation
-void CRenderContext::LoadMatrix(const CMatrix<4, double>& m)
+void CRenderContext::LoadMatrix(const CMatrixD<4, double>& m)
 {
 	double mArray[16];
 	m.ToArray(mArray);
@@ -263,7 +263,7 @@ void CRenderContext::LoadMatrix(const CMatrix<4, double>& m)
 }
 
 
-void CRenderContext::MultMatrix(const CMatrix<4, double>& m)
+void CRenderContext::MultMatrix(const CMatrixD<4, double>& m)
 {
 	double mArray[16];
 	m.ToArray(mArray);

@@ -13,7 +13,7 @@
 #endif // _MSC_VER > 1000
 
 // vectors
-#include <Vector.h>
+#include <VectorD.h>
 
 // modelobject base class
 #include "ModelObject.h"
@@ -57,14 +57,14 @@ public:
 	int GetTriangleCount();
 
 	// accessors for triangle vertices
-	const CPackedVector<3>& GetTriVert(int nTriangle, int nVertex);
+	const CPackedVectorD<3>& GetTriVert(int nTriangle, int nVertex);
 
 	// accessors for triangle normals
-	const CPackedVector<3>& GetTriNorm(int nTriangle, int nVertex);
+	const CPackedVectorD<3>& GetTriNorm(int nTriangle, int nVertex);
 
 	// volume bounds for the surface
-	CVector<3> GetBoundsMin() const;
-	CVector<3> GetBoundsMax() const;
+	CVectorD<3> GetBoundsMin() const;
+	CVectorD<3> GetBoundsMax() const;
 
 	// returns largest dimension
 	double GetMaxSize();
@@ -74,8 +74,8 @@ public:
 	//		MUST call CSurface::FireChange() as soon as possible to
 	//		notify observers of the change
 	CArray<int, int>& GetIndexArray();
-	CArray<CPackedVector<3>, CPackedVector<3>&>& GetVertexArray();
-	CArray<CPackedVector<3>, CPackedVector<3>&>& GetNormalArray();
+	CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& GetVertexArray();
+	CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& GetNormalArray();
 
 	// function to ensure the orientation of the triangle orientations are 
 	//		consistent; returns FALSE when all are consistent
@@ -89,8 +89,8 @@ protected:
 	void ReverseTriangleOrientation(int nAt);
 
 	// helper function to find a neighbor triangle
-	int FindTriangleWithVertices(int nStart, const CVector<3>& v1, 
-			const CVector<3>& v2, BOOL *bOriented, int *pNeighborVertex);
+	int FindTriangleWithVertices(int nStart, const CVectorD<3>& v1, 
+			const CVectorD<3>& v2, BOOL *bOriented, int *pNeighborVertex);
 
 
 #ifdef _DEBUG
@@ -107,12 +107,12 @@ private:
 
 	// mesh vertices
 	CArray<int, int> m_arrVertIndex;
-	CArray<CPackedVector<3>, CPackedVector<3>&> m_arrVertex;
-	CArray<CPackedVector<3>, CPackedVector<3>&> m_arrNormal;
+	CArray<CPackedVectorD<3>, CPackedVectorD<3>&> m_arrVertex;
+	CArray<CPackedVectorD<3>, CPackedVectorD<3>&> m_arrNormal;
 
 	// surface bounding box
-	mutable CVector<3> m_vBoundsMax;
-	mutable CVector<3> m_vBoundsMin;
+	mutable CVectorD<3> m_vBoundsMax;
+	mutable CVectorD<3> m_vBoundsMin;
 
 	// flags to recompute the bounding box
 	mutable BOOL m_bRecomputeBoundsMax;
@@ -145,9 +145,9 @@ inline int CSurface::GetTriangleCount()
 ///////////////////////////////////////////////////////////////////////////////
 // CSurface::GetTriVert
 // 
-// returns the vertex for a specific triangle as a CPackedVector<3>
+// returns the vertex for a specific triangle as a CPackedVectorD<3>
 ///////////////////////////////////////////////////////////////////////////////
-inline const CPackedVector<3>& CSurface::GetTriVert(int nTriangle, int nVertex)
+inline const CPackedVectorD<3>& CSurface::GetTriVert(int nTriangle, int nVertex)
 {
 	return m_arrVertex[m_arrVertIndex[nTriangle*3 + nVertex]-1];
 }
@@ -155,9 +155,9 @@ inline const CPackedVector<3>& CSurface::GetTriVert(int nTriangle, int nVertex)
 ///////////////////////////////////////////////////////////////////////////////
 // CSurface::GetTriNorm
 // 
-// returns the normal for a specific triangle as a CPackedVector<3>
+// returns the normal for a specific triangle as a CPackedVectorD<3>
 ///////////////////////////////////////////////////////////////////////////////
-inline const CPackedVector<3>& CSurface::GetTriNorm(int nTriangle, int nVertex)
+inline const CPackedVectorD<3>& CSurface::GetTriNorm(int nTriangle, int nVertex)
 {
 	return m_arrNormal[m_arrVertIndex[nTriangle*3 + nVertex]-1];
 }
@@ -177,7 +177,7 @@ inline CArray<int, int>& CSurface::GetIndexArray()
 // 
 // returns a reference to the vertex array
 ///////////////////////////////////////////////////////////////////////////////
-inline CArray<CPackedVector<3>, CPackedVector<3>&>& CSurface::GetVertexArray() 
+inline CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& CSurface::GetVertexArray() 
 { 
 	return m_arrVertex; 
 }
@@ -187,7 +187,7 @@ inline CArray<CPackedVector<3>, CPackedVector<3>&>& CSurface::GetVertexArray()
 // 
 // returns a reference to the normal array
 ///////////////////////////////////////////////////////////////////////////////
-inline CArray<CPackedVector<3>, CPackedVector<3>&>& CSurface::GetNormalArray() 
+inline CArray<CPackedVectorD<3>, CPackedVectorD<3>&>& CSurface::GetNormalArray() 
 { 
 	return m_arrNormal; 
 }

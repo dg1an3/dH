@@ -14,7 +14,7 @@
 #endif // _MSC_VER > 1000
 
 // matrix include file
-#include <Matrix.h>
+#include <MatrixD.h>
 
 // observable events
 #include <Observer.h>
@@ -53,17 +53,17 @@ public:
 	void SetAlpha(double alpha);
 
 	// accessors for the renderable's centroid (used for sorting)
-	const CVector<3>& GetCentroid() const;
-	void SetCentroid(const CVector<3>& vCentroid);
+	const CVectorD<3>& GetCentroid() const;
+	void SetCentroid(const CVectorD<3>& vCentroid);
 
 	// computes the nearest and furthest distances to the
 	//	given point
-	virtual double GetNearestDistance(const CVector<3>& vPoint);
-	virtual double GetFurthestDistance(const CVector<3>& vPoint);
+	virtual double GetNearestDistance(const CVectorD<3>& vPoint);
+	virtual double GetFurthestDistance(const CVectorD<3>& vPoint);
 
 	// defines the modelview matrix for this renderer
-	const CMatrix<4>& GetModelviewMatrix() const;
-	void SetModelviewMatrix(const CMatrix<4>& m);
+	const CMatrixD<4>& GetModelviewMatrix() const;
+	void SetModelviewMatrix(const CMatrixD<4>& m);
 
 	// turns on/off the renderer;
 	BOOL IsEnabled() const;
@@ -108,10 +108,10 @@ private:
 	double m_alpha;	
 
 	// the centroid of the renderable; used to determine rendering order
-	CVector<3> m_vCentroid;
+	CVectorD<3> m_vCentroid;
 
 	// the modelview matrix for the object
-	CMatrix<4> m_mModelview;
+	CMatrixD<4> m_mModelview;
 
 	// the enabled flag
 	BOOL m_bEnabled;

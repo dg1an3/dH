@@ -150,12 +150,12 @@ double CSurface::GetContourRefDist(int nIndex) const
 // 
 // returns the minimum of the mesh
 //////////////////////////////////////////////////////////////////////
-CVector<3> CSurface::GetBoundsMin() const
+CVectorD<3> CSurface::GetBoundsMin() const
 {
 	if (m_bRecomputeBoundsMin)
 	{
 		// set to max originally
-		m_vBoundsMin = CVector<3>(FLT_MAX, FLT_MAX, FLT_MAX);
+		m_vBoundsMin = CVectorD<3>(FLT_MAX, FLT_MAX, FLT_MAX);
 
 		// accumulate the minimum
 		int nVertex;
@@ -181,12 +181,12 @@ CVector<3> CSurface::GetBoundsMin() const
 // 
 // returns the maximum of the mesh
 //////////////////////////////////////////////////////////////////////
-CVector<3> CSurface::GetBoundsMax() const
+CVectorD<3> CSurface::GetBoundsMax() const
 {
 	if (m_bRecomputeBoundsMax)
 	{
 		// set to -max originally
-		m_vBoundsMax = CVector<3>(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+		m_vBoundsMax = CVectorD<3>(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
 		// accumulate the maximum
 		int nVertex;
@@ -365,8 +365,8 @@ void CSurface::ReverseTriangleOrientation(int nAt)
 // 
 // helper function to find a neighbor triangle
 //////////////////////////////////////////////////////////////////////
-int CSurface::FindTriangleWithVertices(int nSkip, const CVector<3>& v1, 
-		const CVector<3>& v2, BOOL *bOriented, int *pNeighborVertex)
+int CSurface::FindTriangleWithVertices(int nSkip, const CVectorD<3>& v1, 
+		const CVectorD<3>& v2, BOOL *bOriented, int *pNeighborVertex)
 {
 	// search for the vertices
 	for (int nAt = nSkip-1; nAt >= 0; nAt--)
@@ -466,12 +466,12 @@ void CSurface::Dump(CDumpContext& dc) const
 	DC_TAB(dc) << "Number of triangles = " << m_arrVertIndex.GetSize() << "\n";
 
 	// output bounding box
-	CVector<3> vMin = GetBoundsMin();
+	CVectorD<3> vMin = GetBoundsMin();
 	DC_TAB(dc) << "Bounding box min = <" << vMin[0] 
 		<< ", " << vMin[1] 
 		<< ", " << vMin[2] << ">\n";
 
-	CVector<3> vMax = GetBoundsMax();
+	CVectorD<3> vMax = GetBoundsMax();
 	DC_TAB(dc) << "Bounding box max = <" << vMax[0] 
 		<< ", " << vMax[1] 
 		<< ", " << vMax[2] << ">\n";

@@ -12,7 +12,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Vector.h>
+#include <VectorD.h>
 #include <Dib.h>
 
 #include "TPSTransform.h"
@@ -48,8 +48,8 @@ public:
 	CRect GetDstRect();
 
 	// conversion image <-> client coordinates
-	CPoint Image2Client(const CVector<3>& vImage);
-	CVector<3> Client2Image(const CPoint& ptClient);
+	CPoint Image2Client(const CVectorD<3>& vImage);
+	CVectorD<3> Client2Image(const CPoint& ptClient);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -82,7 +82,7 @@ private:
 	int m_nDataSet;
 
 	// viewing transform
-	CVector<2> m_vOffset;
+	CVectorD<2> m_vOffset;
 	double m_scale;
 
 	// handles landmark dragging

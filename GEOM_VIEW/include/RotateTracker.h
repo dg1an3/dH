@@ -13,8 +13,8 @@
 #endif // _MSC_VER > 1000
 
 // matrix/vector include files
-#include <Vector.h>
-#include <Matrix.h>
+#include <VectorD.h>
+#include <MatrixD.h>
 
 // base class
 #include "Tracker.h"
@@ -37,13 +37,7 @@ public:
 
 private:
 	// stores the initial point (in 3-d)
-	CVector<3> m_vInitPoint;
-
-	// stores the initial projection matrix
-	CMatrix<4> m_initProjMatrix;
-
-	// stores the initial view xform
-	CMatrix<4> m_initXform;
+	CVectorD<3> m_vPrevPoint;
 };
 
 #endif // !defined(ROTATETRACKER_H)

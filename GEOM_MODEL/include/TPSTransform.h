@@ -17,7 +17,7 @@
 using namespace std;
 
 // vector includes
-#include <Vector.h>
+#include <VectorD.h>
 #include <VectorN.h>
 
 // model object base class
@@ -41,19 +41,19 @@ public:
 
 	// landmark accessors
 	int GetLandmarkCount();
-	const CVector<3>& GetLandmark(int nDataSet, int nIndex);
-	void SetLandmark(int nDataSet, int nIndex, const CVector<3>& vLandmark);
+	const CVectorD<3>& GetLandmark(int nDataSet, int nIndex);
+	void SetLandmark(int nDataSet, int nIndex, const CVectorD<3>& vLandmark);
 
 	// functions to add landmark points
-	int AddLandmark(const CVector<3>& vLandmark);
-	int AddLandmark(const CVector<3>& vLandmark1, 
-		const CVector<3>& vLandmark2);
+	int AddLandmark(const CVectorD<3>& vLandmark);
+	int AddLandmark(const CVectorD<3>& vLandmark1, 
+		const CVectorD<3>& vLandmark2);
 
 	// removes all landmarks from the transform
 	void RemoveAllLandmarks();
 
 	// evaluates the field at a point
-	void Eval(const CVector<3>& vPos, CVector<3>& vPosTrans);
+	void Eval(const CVectorD<3>& vPos, CVectorD<3>& vPosTrans);
 
 	// resamples an image based on the field
 	void Resample(CDib *pImageSrc, CDib *pImageDst);
@@ -64,7 +64,7 @@ protected:
 
 private:
 	// the array of landmarks
-	vector< CVector<3> > m_arrLandmarks[2];
+	vector< CVectorD<3> > m_arrLandmarks[2];
 
 	// the final weight vectors
 	CVectorN<> m_vWx;

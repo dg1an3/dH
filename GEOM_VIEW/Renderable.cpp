@@ -141,7 +141,7 @@ void CRenderable::SetAlpha(double alpha)
 //		order for rendering
 //////////////////////////////////////////////////////////////////////
 // accessors for the renderable's centroid (used for sorting)
-const CVector<3>& CRenderable::GetCentroid() const
+const CVectorD<3>& CRenderable::GetCentroid() const
 {
 	return m_vCentroid;
 }
@@ -152,7 +152,7 @@ const CVector<3>& CRenderable::GetCentroid() const
 // sets the centroid of this renderable, used to determine
 //		order for rendering
 //////////////////////////////////////////////////////////////////////
-void CRenderable::SetCentroid(const CVector<3>& vCentroid)
+void CRenderable::SetCentroid(const CVectorD<3>& vCentroid)
 {
 	// set the renderable centroid
 	m_vCentroid = vCentroid;
@@ -165,7 +165,7 @@ void CRenderable::SetCentroid(const CVector<3>& vCentroid)
 //		being rendered.  Default implementation returns distance
 //		from the point to the centroid
 //////////////////////////////////////////////////////////////////////
-double CRenderable::GetNearestDistance(const CVector<3>& vPoint)
+double CRenderable::GetNearestDistance(const CVectorD<3>& vPoint)
 {
 	return (vPoint - GetCentroid()).GetLength();
 }
@@ -177,7 +177,7 @@ double CRenderable::GetNearestDistance(const CVector<3>& vPoint)
 //		being rendered.  Default implementation returns distance
 //		from the point to the centroid
 //////////////////////////////////////////////////////////////////////
-double CRenderable::GetFurthestDistance(const CVector<3>& vPoint)
+double CRenderable::GetFurthestDistance(const CVectorD<3>& vPoint)
 {
 	return (vPoint - GetCentroid()).GetLength();
 }
@@ -187,7 +187,7 @@ double CRenderable::GetFurthestDistance(const CVector<3>& vPoint)
 // 
 // the modelview matrix for this renderable
 //////////////////////////////////////////////////////////////////////
-const CMatrix<4>& CRenderable::GetModelviewMatrix() const
+const CMatrixD<4>& CRenderable::GetModelviewMatrix() const
 {
 	return m_mModelview;
 }
@@ -197,7 +197,7 @@ const CMatrix<4>& CRenderable::GetModelviewMatrix() const
 // 
 // the modelview matrix for this renderable
 //////////////////////////////////////////////////////////////////////
-void CRenderable::SetModelviewMatrix(const CMatrix<4>& m)
+void CRenderable::SetModelviewMatrix(const CMatrixD<4>& m)
 {
 	// set the modelview matrix
 	m_mModelview = m;

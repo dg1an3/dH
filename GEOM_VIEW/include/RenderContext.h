@@ -9,7 +9,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Vector.h>
+#include <VectorD.h>
 
 #include <Polygon.h>
 #include <Surface.h>
@@ -36,14 +36,14 @@ public:
 	void End();
 
 	// vertex description
-	void Vertex(const CVector<2>& v);
-	void Vertex(const CVector<3>& v);
-	void Vertex(const CVector<4>& v);
+	void Vertex(const CVectorD<2>& v);
+	void Vertex(const CVectorD<3>& v);
+	void Vertex(const CVectorD<4>& v);
 	void VertexArray();
 
 	// normal description
-	void Normal(const CVector<3>& n);
-	void Normal(const CVector<4>& n);
+	void Normal(const CVectorD<3>& n);
+	void Normal(const CVectorD<4>& n);
 	void NormalArray();
 
 	// higher-level descriptions
@@ -65,11 +65,11 @@ public:
 	void SetupTransparentBackFaces();
 
 	// modelview matrix operations
-	void LoadMatrix(const CMatrix<4, double>& m);
-	void MultMatrix(const CMatrix<4, double>& m);
+	void LoadMatrix(const CMatrixD<4, double>& m);
+	void MultMatrix(const CMatrixD<4, double>& m);
 
-	void Translate(const CVector<3> vOffset);
-	void Rotate(double angle,  const CVector<3> vAxis);
+	void Translate(const CVectorD<3> vOffset);
+	void Rotate(double angle,  const CVectorD<3> vAxis);
 
 	void PushMatrix();
 	void PopMatrix();

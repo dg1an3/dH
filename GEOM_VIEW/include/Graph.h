@@ -8,7 +8,7 @@
 #include <vector>
 using namespace std;
 
-#include <Vector.h>
+#include <VectorD.h>
 
 // Graph.h : header file
 //
@@ -24,7 +24,7 @@ public:
 	COLORREF m_color;
 
 	// use a std vector instead of CArray, because CArray is bad
-	vector< CVector<2> > m_arrData;	
+	vector< CVectorD<2> > m_arrData;	
 };
 
 class CGraph : public CWnd
@@ -52,15 +52,15 @@ public:
 	void ComputeMinMax();
 
 	// converts to coordinates on the plot
-	CPoint ToPlotCoord(CVector<2> vCoord);
+	CPoint ToPlotCoord(CVectorD<2> vCoord);
 
 	// the array of data series
 	CObArray m_arrDataSeries;
 
 	// min, max, and major 
-	CVector<2> m_vMax;
-	CVector<2> m_vMin;
-	CVector<2> m_vMajor;
+	CVectorD<2> m_vMax;
+	CVectorD<2> m_vMin;
+	CVectorD<2> m_vMajor;
 
 	// Generated message map functions
 protected:

@@ -12,7 +12,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Matrix.h>
+#include <MatrixD.h>
 
 #include <Observer.h>
 
@@ -48,8 +48,8 @@ public:
 	BOOL LoadBitmap(UINT nResourceID);
 
 	// accessors for the texture projection
-	const CMatrix<4>& GetProjection();
-	void SetProjection(const CMatrix<4>& mXform);
+	const CMatrixD<4>& GetProjection();
+	void SetProjection(const CMatrixD<4>& mXform);
 
 	// returns reference to the change event
 	CObservableEvent& GetChangeEvent();
@@ -92,7 +92,7 @@ private:
 	CArray<COLORREF, COLORREF> m_arrPixels;
 
 	// the texture xform
-	CMatrix<4> m_mProjection;
+	CMatrixD<4> m_mProjection;
 
 	// the change event for this object
 	CObservableEvent m_eventChange;

@@ -344,11 +344,11 @@ void CSceneView::MakeCurrentGLRC()
 //		current camera position
 /////////////////////////////////////////////////////////////////////////////
 void CSceneView::SortRenderables(CObArray *pArray, 
-		double (CRenderable::*DistFunc)(const CVector<3>& vPoint))
+		double (CRenderable::*DistFunc)(const CVectorD<3>& vPoint))
 {
 	// current camera position
-	CVector<3> vCameraPos = CVector<3>(GetCamera().GetXform()
-		* ToHomogeneous(CVector<3>(0.0, 0.0, 0.0)));
+	CVectorD<3> vCameraPos = CVectorD<3>(GetCamera().GetXform()
+		* ToHomogeneous(CVectorD<3>(0.0, 0.0, 0.0)));
 
 	// stores the distances for the renderable centroids
 	CArray<double, double> arrDistances;
@@ -402,7 +402,7 @@ void CSceneView::SortRenderables(CObArray *pArray,
 // converts a point in viewport coordinates to a 3-d point using the
 //		current projection matrix
 /////////////////////////////////////////////////////////////////////////////
-CVector<3> CSceneView::ModelPtFromWndPt(CPoint wndPt)
+CVectorD<3> CSceneView::ModelPtFromWndPt(CPoint wndPt)
 {
 	return ModelPtFromWndPt(wndPt, GetCamera().GetProjection());
 }
@@ -413,10 +413,10 @@ CVector<3> CSceneView::ModelPtFromWndPt(CPoint wndPt)
 // converts a point in viewport coordinates to a 3-d point given 
 //		a projection matrix
 /////////////////////////////////////////////////////////////////////////////
-CVector<3> CSceneView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
+CVectorD<3> CSceneView::ModelPtFromWndPt(CPoint wndPt, const CMatrixD<4>& mProj)
 {
 	// retrieve the model and projection matrices
-	CMatrix<4> mModel;
+	CMatrixD<4> mModel;
 	GLdouble modelMatrix[16];
 	mModel.ToArray(modelMatrix);
 
@@ -428,7 +428,7 @@ CVector<3> CSceneView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj)
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
 	// un-project the window coordinates into the model coordinate system
-	CVector<3> vModelPt;
+	CVectorD<3> vModelPt;
 	gluUnProject((GLdouble)viewport[2] - wndPt.x, (GLdouble)wndPt.y, 
 		GetCamera().GetNearPlane(),
 		modelMatrix, projMatrix, viewport, 
@@ -509,17 +509,17 @@ int CSceneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	CLight *pNewLight = new CLight();
 	pNewLight->SetDiffuseColor(RGB(255, 255, 255));
-	pNewLight->SetPosition(CVector<3>(-5.0, -5.0, 3.0));
+	pNewLight->SetPosition(CVectorD<3>(-5.0, -5.0, 3.0));
 	AddLight(pNewLight);
 
 	pNewLight = new CLight();
 	pNewLight->SetDiffuseColor(RGB(128, 128, 128));
-	pNewLight->SetPosition(CVector<3>(5.0, -5.0, 3.0));
+	pNewLight->SetPosition(CVectorD<3>(5.0, -5.0, 3.0));
 	AddLight(pNewLight);
 
 	pNewLight = new CLight();
 	pNewLight->SetDiffuseColor(RGB(128, 128, 128));
-	pNewLight->SetPosition(CVector<3>(0.0, 5.0, 3.0));
+	pNewLight->SetPosition(CVectorD<3>(0.0, 5.0, 3.0));
 	AddLight(pNewLight);
 
 	glEnable(GL_LIGHTING);

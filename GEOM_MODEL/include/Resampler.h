@@ -9,7 +9,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Matrix.h>
+#include <MatrixD.h>
 
 #include "Volumep.h"
 
@@ -58,12 +58,12 @@ public:
 		Resample();
 	}
 
-	const CMatrix& GetTransform()
+	const CMatrixD& GetTransform()
 	{
 		return m_transform;
 	}
 
-	void SetTransform(const CMatrix& mTransform)
+	void SetTransform(const CMatrixD& mTransform)
 	{
 		m_transform = mTransform;
 		Resample();
@@ -85,7 +85,7 @@ private:
 	CVolume<VOXEL_TYPE> *m_pSource;
 	CVolume<VOXEL_TYPE> *m_pDest;
 
-	CMatrix<4> m_transform;
+	CMatrixD<4> m_transform;
 };
 
 #endif // !defined(AFX_RESAMPLER_H__DC5AB918_46BD_420C_AE11_14C81DAA0826__INCLUDED_)

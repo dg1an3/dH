@@ -12,7 +12,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <Vector.h>
+#include <VectorD.h>
 
 #include "ModelObject.h"
 
@@ -42,15 +42,15 @@ public:
 
 	// vertex accessors
 	int GetVertexCount();
-	const CPackedVector<2>& GetVertex(int nIndex);
-	int AddVertex(CVector<2>& v);
+	const CPackedVectorD<2>& GetVertex(int nIndex);
+	int AddVertex(CVectorD<2>& v);
 	void RemoveVertex(int nIndex);
 
 	// direct access to vertex array
 	// WARNING: if you change the vertices through this reference, you
 	//		MUST call CPolygon::FireChange() as soon as possible to
 	//		notify observers of the change
-	CArray<CPackedVector<2>, CPackedVector<2>&>& GetVertexArray();
+	CArray<CPackedVectorD<2>, CPackedVectorD<2>&>& GetVertexArray();
 
 	// computes the signed area of the polygon
 	double GetSignedArea();
@@ -68,7 +68,7 @@ public:
 
 private:
 	// the polygon's vertex array
-	CArray<CPackedVector<2>, CPackedVector<2>&> m_arrVertex;
+	CArray<CPackedVectorD<2>, CPackedVectorD<2>&> m_arrVertex;
 };
 
 #endif // !defined(AFX_POLYGON_H__AAA9A385_F0B7_11D4_9E39_00B0D0609AB0__INCLUDED_)

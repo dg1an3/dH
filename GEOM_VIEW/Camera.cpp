@@ -30,7 +30,7 @@ CCamera::CCamera()
 #pragma warning(disable: 4355)
 	: m_eventChange(this),
 #pragma warning(default: 4355)
-		m_vTargetPoint(CVector<3>(0.0, 0.0, 0.0)),
+		m_vTargetPoint(CVectorD<3>(0.0, 0.0, 0.0)),
 		m_distance(100.0),
 		m_theta(0.0),
 		m_phi(0.0),
@@ -202,7 +202,7 @@ void CCamera::SetRollAngle(double rollAngle)
 // returns matrix representing the transform from the model space to 
 //		the camera space
 //////////////////////////////////////////////////////////////////////
-const CMatrix<4>& CCamera::GetXform() const 
+const CMatrixD<4>& CCamera::GetXform() const 
 { 
 	return m_mXform;
 }
@@ -213,7 +213,7 @@ const CMatrix<4>& CCamera::GetXform() const
 // sets the matrix representing the transform from the model space to 
 //		the camera space
 //////////////////////////////////////////////////////////////////////
-void CCamera::SetXform(const CMatrix<4>& m) 
+void CCamera::SetXform(const CMatrixD<4>& m) 
 { 
 	// assign the matrix
 	m_mXform = m;
@@ -222,13 +222,13 @@ void CCamera::SetXform(const CMatrix<4>& m)
 	m_mProjection = GetPerspective() * m_mXform;
 
 	// create an orthogonal (rotation) matrix
-	CMatrix<3> mOrtho = CMatrix<3>(m);
+	CMatrixD<3> mOrtho = CMatrixD<3>(m);
 	mOrtho.Orthogonalize();
 
 	// compute the scale factor
-	CMatrix<3> mOrthoInv(mOrtho);
+	CMatrixD<3> mOrthoInv(mOrtho);
 	mOrthoInv.Invert();
-	CMatrix<3> mScale = mOrthoInv * CMatrix<3>(m);
+	CMatrixD<3> mScale = mOrthoInv * CMatrixD<3>(m);
 
 	// ensure that there is no warp in the xform
 	ASSERT(IS_APPROX_EQUAL(mScale[0][0], mScale[1][1]));
@@ -249,19 +249,19 @@ void CCamera::SetXform(const CMatrix<4>& m)
 	if (sin_phi > EPS)
 	{
 		// compute theta
-		if (mOrtho[2][0] != 0.0 && mOrtho[2][1] != 0.0)
+		if (mOrtho[0][2] != 0.0 && mOrtho[1][2] != 0.0)
 		{
 			m_theta = AngleFromSinCos(
-				mOrtho[2][0] / sin_phi,
-				mOrtho[2][1] / sin_phi);
+				mOrtho[0][2] / sin_phi,
+				mOrtho[1][2] / sin_phi);
 		}
 
 		// compute phi
-		if (mOrtho[0][2] != 0.0 && mOrtho[1][2] != 0.0)
+		if (mOrtho[2][0] != 0.0 && mOrtho[2][1] != 0.0)
 		{
 			m_rollAngle = AngleFromSinCos(
-				mOrtho[0][2] / sin_phi,
-				-mOrtho[1][2] / sin_phi);
+				mOrtho[2][0] / sin_phi,
+				-mOrtho[2][1] / sin_phi);
 		}
 	}
 
@@ -379,7 +379,7 @@ void CCamera::SetFieldOfView(double maxObjectSize)
 // 
 // returns the matrix representing the camera perspective projection
 //////////////////////////////////////////////////////////////////////
-const CMatrix<4>& CCamera::GetPerspective() const
+const CMatrixD<4>& CCamera::GetPerspective() const
 {
 	return m_mPerspective;
 }
@@ -389,7 +389,7 @@ const CMatrix<4>& CCamera::GetPerspective() const
 // 
 // the total matrix for the projection and transform
 //////////////////////////////////////////////////////////////////////
-const CMatrix<4>& CCamera::GetProjection() const
+const CMatrixD<4>& CCamera::GetProjection() const
 {
 	return m_mProjection;
 }
@@ -402,27 +402,30 @@ const CMatrix<4>& CCamera::GetProjection() const
 void CCamera::RecalcXform() const
 {
 	// form the rotation matrix for the camera direction
-	CMatrix<3> mRotateDir = 
-		CreateRotate(GetPhi(), CVector<3>(1.0, 0.0, 0.0))
-		* CreateRotate(GetTheta(), CVector<3>(0.0, 0.0, 1.0));
+	CMatrixD<3> mRotateDir = 
+		CreateRotate(GetPhi(), CVectorD<3>(1.0, 0.0, 0.0))
+		* CreateRotate(GetTheta(), CVectorD<3>(0.0, 0.0, 1.0));
 
 	// form the camera roll rotation matrix
-	CMatrix<3> mRotateRoll = CreateRotate(GetRollAngle(), 
-		CVector<3>(0.0, 0.0, 1.0));
+	CMatrixD<3> mRotateRoll = CreateRotate(GetRollAngle(), 
+		CVectorD<3>(0.0, 0.0, 1.0));
 
 	// form the translation from the target point to the focal point
-	CMatrix<4> mTranslate = CreateTranslate(GetDistance(), 
-		CVector<3>(0.0, 0.0, -1.0));
+	CMatrixD<4> mTranslate = CreateTranslate(GetDistance(), 
+		CVectorD<3>(0.0, 0.0, -1.0));
 
 	// form the scale matrix
-	CMatrix<3> mScale = 
-		CreateScale(CVector<3>(m_zoom, m_zoom, m_zoom));
+	CMatrixD<3> mScale = 
+		CreateScale(CVectorD<3>(m_zoom, m_zoom, m_zoom));
 
 	// and set the total camera transformation to all three matrices
 	m_mXform = mTranslate 
-		* CMatrix<4>(mRotateRoll) 
-		* CMatrix<4>(mRotateDir)
-		* CMatrix<4>(mScale);
+		* CMatrixD<4>(mRotateRoll) 
+		* CMatrixD<4>(mRotateDir)
+		* CMatrixD<4>(mScale);
+
+	// trace out the matrix
+	TRACE_MATRIX("m_mXform", m_mXform);
 
 	// compute the total projection
 	m_mProjection = GetPerspective() * GetXform();
@@ -443,14 +446,14 @@ void CCamera::RecalcProjection() const
 	double right = top * GetAspectRatio();
 
 	// now populate the perspective projection matrix
-	CMatrix<4> mPersp;
+	CMatrixD<4> mPersp;
 	mPersp[0][0] = 2.0 * GetNearPlane() / (2.0 * right);
 	mPersp[1][1] = 2.0 * GetNearPlane() / (2.0 * top);
 	mPersp[2][2] = -(GetFarPlane() + GetNearPlane()) 
 		/ (GetFarPlane() - GetNearPlane());
-	mPersp[2][3] = -2.0 * GetFarPlane() * GetNearPlane()
+	mPersp[3][2] = -2.0 * GetFarPlane() * GetNearPlane()
 		/ (GetFarPlane() - GetNearPlane());
-	mPersp[3][2] = -1.0;
+	mPersp[2][3] = -1.0;
 	mPersp[3][3] = 0.0;
 
 	// and set the projection
@@ -478,12 +481,12 @@ void CCamera::AssertValid() const
 	MatrixValid<REAL>(GetProjection());
 
 	// compare the model xform to the recalculated one
-	CMatrix<4> mXformPre = GetXform();
+	CMatrixD<4> mXformPre = GetXform();
 	RecalcXform();
 	ASSERT(mXformPre.IsApproxEqual(GetXform(), 1e-1));
 
 	// compare the projection to the recalculated one
-	CMatrix<4> mPerspectivePre = GetPerspective();
+	CMatrixD<4> mPerspectivePre = GetPerspective();
 	RecalcProjection();
 	ASSERT(mPerspectivePre.IsApproxEqual(GetPerspective(), 1e-1));
 
