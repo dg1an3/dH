@@ -6,9 +6,6 @@
 
 #include <math.h>
 
-#include <XMLLogging.h>
-USES_FMT;
-
 #include "Source.h"
 
 #include "Beam.h"
@@ -94,7 +91,13 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		}
 
 		// now check fluence
-		LOG_OBJECT((*pDensity));
+		CXMLElement *pElem = CXMLLogFile::GetLogFile()->NewElement("lo", "_tmain");
+		pElem->Attribute("type", "CMatrix");
+		pElem->Attribute("name", "pDensity mPlane 50");
+		pDensity->LogPlane(50, pElem);
+		CXMLLogFile::GetLogFile()->CloseElement();
+
+		// LOG_OBJECT((*pDensity));
 
 		CSource *pSource = new CSource();
 		pSource->ReadDoseSpread("lang48rad48.dat");
@@ -110,12 +113,22 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		pBeam->DivFluenceCalc(ray, thickness);
 
 		// now check fluence
-		LOG_OBJECT((*pBeam->GetFluence()));
+		pElem = CXMLLogFile::GetLogFile()->NewElement("lo", "_tmain");
+		pElem->Attribute("type", "CMatrix");
+		pElem->Attribute("name", "GetFluence mPlane 50");
+		pBeam->GetFluence()->LogPlane(50, pElem);
+		CXMLLogFile::GetLogFile()->CloseElement();
+//		LOG_OBJECT((*pBeam->GetFluence()));
 
 		pBeam->SphereConvolve(thickness);
 
 		// now check energy
-		LOG_OBJECT((*pBeam->GetEnergy()));
+		pElem = CXMLLogFile::GetLogFile()->NewElement("lo", "_tmain");
+		pElem->Attribute("type", "CMatrix");
+		pElem->Attribute("name", "GetEnergy mPlane 50");
+		pBeam->GetEnergy()->LogPlane(50, pElem);
+		CXMLLogFile::GetLogFile()->CloseElement();
+//		LOG_OBJECT((*pBeam->GetEnergy()));
 
 		delete pBeam;
 		delete pSource;
