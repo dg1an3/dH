@@ -5,11 +5,9 @@
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_VSIM_OTYPE                  129
-#define IDD_TABCONTROLBAR               130
 #define IDD_STRUCTUREDIALOG             131
 #define IDD_BEAMPARAMCOLLIM             133
 #define IDD_BEAMPARAMPOSITION           134
-#define IDD_OBJECTEXPLORERCONTROLBAR    135
 #define IDB_POINT_YELLOW                135
 #define IDB_BEAM_MAGENTA                136
 #define IDB_CONTOUR_BLUE                137
@@ -33,8 +31,6 @@
 #define IDC_EDIT_JAWX2                  1007
 #define IDC_EDIT_JAWY1                  1008
 #define IDC_EDIT_JAWY2                  1009
-#define IDC_TABCTRL                     1010
-#define IDC_CHILDRECT                   1011
 #define IDC_SPIN_TABLEX                 1012
 #define IDC_SPIN_COUCH                  1013
 #define IDC_SPIN_GANTRY                 1014
@@ -45,7 +41,6 @@
 #define IDC_CHECK2                      1018
 #define IDC_SPIN_JAWX1                  1019
 #define IDC_CHECK3                      1019
-#define IDC_TREECTRLRECT                1019
 #define IDC_SPIN_JAWX2                  1020
 #define IDC_CHECK4                      1020
 #define IDC_SPIN_JAWY1                  1021
