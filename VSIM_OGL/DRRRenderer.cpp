@@ -250,17 +250,17 @@ void CDRRRenderer::ComputeDRR()
 		modelMatrix, projMatrix, viewport, 
 		&vStartNextX[0], &vStartNextX[1], &vStartNextX[2]);
 	CVector<3> vStartStepX = vStartNextX - vStart;
-	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
+//	CREATE_INT_VECTOR(vStartStepX, viStartStepX);
 
 	CVector<3> vStartNextY;
 	gluUnProject((GLdouble)0, (GLdouble)1, zMin,
 		modelMatrix, projMatrix, viewport, 
 		&vStartNextY[0], &vStartNextY[1], &vStartNextY[2]);
 	CVector<3> vStartStepY = vStartNextY - vStart;
-	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
+//	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
 
 	vStart += CVector<3>(0.5, 0.5, 0.5);
-	CREATE_INT_VECTOR(vStart, viStart);
+//	CREATE_INT_VECTOR(vStart, viStart);
 
 	// un-project the window coordinates into the model coordinate system
 	CVector<3> vEnd;
@@ -273,17 +273,17 @@ void CDRRRenderer::ComputeDRR()
 		modelMatrix, projMatrix, viewport, 
 		&vEndNextX[0], &vEndNextX[1], &vEndNextX[2]);
 	CVector<3> vEndStepX = vEndNextX - vEnd;
-	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
+//	CREATE_INT_VECTOR(vEndStepX, viEndStepX);
 
 	CVector<3> vEndNextY;
 	gluUnProject((GLdouble)0, (GLdouble)1, zMax,
 		modelMatrix, projMatrix, viewport, 
 		&vEndNextY[0], &vEndNextY[1], &vEndNextY[2]);
 	CVector<3> vEndStepY = vEndNextY - vEnd;
-	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
+//	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
 
 	vEnd += CVector<3>(0.5, 0.5, 0.5);
-	CREATE_INT_VECTOR(vEnd, viEnd);
+//	CREATE_INT_VECTOR(vEnd, viEnd);
 
 	const int nSteps = 64;
 	const int nShift = 5;
@@ -295,49 +295,54 @@ void CDRRRenderer::ComputeDRR()
 
 	for (int nY = 0; nY < nImageHeight; nY++)
 	{
-		CVector<3, int> viStartOld = viStart;
-		CVector<3, int> viEndOld = viEnd;
+		CVector<3> vStartOld = vStart;
+		CVector<3> vEndOld = vEnd;
 
 		int nPixelAt = nY * nImageWidth;
 
 		for (int nX = 0; nX < nImageWidth; nX++, nPixelAt++)
 		{
-			CVector<3, int> viStartOldX = viStart;
-
-			CVector<3, int> viStep = viEnd - viStart;
-			viStep[0] >>= nShift;
-			viStep[1] >>= nShift;
-			viStep[2] >>= nShift;
-
 			m_arrPixels[nPixelAt] = 0;
 
-			for (int nAt = 0; nAt < nSteps; nAt++)
+			CVector<3> vStartOldX = vStart;
+
+			CVector<3> vStep = vEnd - vStart;
+			vStep[0] /= nSteps;
+			vStep[1] /= nSteps;
+			vStep[2] /= nSteps;
+
+			int nDestStart = 0;
+			int nDestLength = nSteps;
+			if (ClipRaster(nDestStart, nDestLength, vStart, vStep, 0, 0, nWidth)
+				&& ClipRaster(nDestStart, nDestLength, vStart, vStep, 1, 0, nHeight)
+				&& ClipRaster(nDestStart, nDestLength, vStart, vStep, 2, 0, nDepth))
 			{
-				int nVoxelX = viStart[0] >> 16;
-				int nVoxelY = viStart[1] >> 16;
-				int nVoxelZ = viStart[2] >> 16;
-				if (nVoxelX >= 0 && nVoxelX < nWidth
-					&& nVoxelY >= 0 && nVoxelY < nHeight
-					&& nVoxelZ >= 0 && nVoxelZ < nDepth)
+
+				for (int nAt = 0; nAt < nDestLength; nAt++)
+				{
+					int nVoxelX = (int) vStart[0]; // viStart[0] >> 16;
+					int nVoxelY = (int) vStart[1]; // >> 16;
+					int nVoxelZ = (int) vStart[2]; // >> 16;
+
+					ASSERT(nVoxelX >= 0 && nVoxelX < nWidth
+						&& nVoxelY >= 0 && nVoxelY < nHeight
+						&& nVoxelZ >= 0 && nVoxelZ < nDepth);
 
 					m_arrPixels[nPixelAt] += pppVoxels[nVoxelZ][nVoxelY][nVoxelX];
-#ifdef _DEBUG
-				else
-					nClipped++;
-#endif
 
-				viStart += viStep;
+					vStart += vStep;
+				}
 			}
 
 			nMax = max(m_arrPixels[nPixelAt], nMax);
 			nMin = min(m_arrPixels[nPixelAt], nMin);
 
-			viStart = viStartOldX + viStartStepX;
-			viEnd += viEndStepX;
+			vStart = vStartOldX + vStartStepX;
+			vEnd += vEndStepX;
 		}
 
-		viStart = viStartOld + viStartStepY;
-		viEnd = viEndOld + viEndStepY;
+		vStart = vStartOld + vStartStepY;
+		vEnd = vEndOld + vEndStepY;
 	}
 
 	for (nY = 0; nY < rect.Height(); nY++)
