@@ -107,13 +107,17 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 
 			if (nGroup == nAtGroup)
 			{
-				// TODO: check all dimensions
+				
 				if (bInitVolGroup)
 				{
-					volGroup.SetDimensions(
-						p_dVolume->GetWidth(), 
-						p_dVolume->GetHeight(),
-						p_dVolume->GetDepth());
+					// TODO: check all dimensions
+					if (volGroup.GetWidth() != p_dVolume->GetWidth())
+					{
+						volGroup.SetDimensions(
+							p_dVolume->GetWidth(), 
+							p_dVolume->GetHeight(),
+							p_dVolume->GetDepth());
+					}
 
 					volGroup.SetBasis(p_dVolume->GetBasis());
 
@@ -131,13 +135,17 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 
 		static CVolume<REAL> volGroupMain;
 		volGroupMain.SetBasis(pVolume->GetBasis());
-		volGroupMain.SetDimensions(
-			pVolume->GetWidth(), 
-			pVolume->GetHeight(),
-			pVolume->GetDepth());
+		if (volGroupMain.GetWidth() != pVolume->GetWidth())
+		{
+			volGroupMain.SetDimensions(
+				pVolume->GetWidth(), 
+				pVolume->GetHeight(),
+				pVolume->GetDepth());
+		}
 		volGroupMain.ClearVoxels();
 
-		Resample(&volGroup, &volGroupMain, TRUE);
+		Resample(&volGroup, &volGroupMain, // FALSE); // 
+			TRUE);
 		pVolume->Accumulate(&volGroupMain, 1.0, FALSE);
 	}
 
@@ -395,7 +403,8 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 	pHisto->SetVolume(&m_sumVolume);
 
 	// need to do this before initialize target bins
-	REAL binWidth = 0.0125 * pow(2, m_nLevel);
+	REAL binWidth = 0.025 // 0.0125 
+		* pow(2, m_nLevel);
 	pHisto->SetBinning(0.0, binWidth, 2.0);
 
 	for (int nAtElem = 0; nAtElem < m_pPlan->GetTotalBeamletCount(m_nLevel); nAtElem++)
@@ -405,7 +414,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		GetBeamletFromSVElem(nAtElem, m_nLevel, &nBeam, &nBeamlet);
 
 		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
-		pBeamlet->SetThreshold((REAL) 0.1); // pow(10, -(m_nLevel+1)));
+		pBeamlet->SetThreshold((REAL) 0.01); // pow(10, -(m_nLevel+1)));
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
 
@@ -524,11 +533,17 @@ void CPrescription::SetStateVectorToPlan(const CVectorN<>& vState)
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet) const
 {
+#ifdef BEAM_INTERLEAVE
 	(*pnBeam) = nElem % m_pPlan->GetBeamCount();
 
 	int nShift = (nElem / m_pPlan->GetBeamCount() + 1) / 2;
 	int nDir = pow(-1, nElem / m_pPlan->GetBeamCount());
 	(*pnBeamlet) = nShift * nDir;
+#else
+	int nBeamletCount = m_pPlan->GetBeamAt(0)->GetBeamletCount(nScale);
+	(*pnBeam) = nElem / nBeamletCount;
+	(*pnBeamlet) = nElem % nBeamletCount - nBeamletCount / 2;
+#endif
 
 }	// CPrescription::GetBeamletFromSVElem
 
