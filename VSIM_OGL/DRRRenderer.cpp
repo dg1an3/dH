@@ -32,7 +32,7 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 	m_scale(1.0f),
 	m_bias(0.0f)
 {
-	m_pView->myProjectionMatrix.AddObserver(this);
+	m_pView->projectionMatrix.AddObserver(this);
 }
 
 CDRRRenderer::~CDRRRenderer()
@@ -238,7 +238,7 @@ void CDRRRenderer::ComputeDRR()
 	volumeTransform.Get().ToArray(modelMatrix);
 
 	GLdouble projMatrix[16];
-	m_pView->myProjectionMatrix.Get().ToArray(projMatrix);
+	m_pView->projectionMatrix.Get().ToArray(projMatrix);
 
 	// retrieve the viewport
 	GLint viewport[4];
@@ -720,7 +720,7 @@ void CDRRRenderer::OnRenderScene()
 void CDRRRenderer::OnChange(CObservable *pSource)
 {
 	COpenGLRenderer::OnChange(pSource);
-	if (pSource == &m_pView->myProjectionMatrix)
+	if (pSource == &m_pView->projectionMatrix)
 	{
 		m_nSteps = RAY_TRACE_RESOLUTION;
 		m_nShift = RAY_TRACE_RES_LOG2;

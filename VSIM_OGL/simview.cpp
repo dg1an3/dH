@@ -385,7 +385,7 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	mB2P.Invert();
 	mProj *= mB2P;
 
-	m_wndBEV.myProjectionMatrix.Set(mProj);
+	m_wndBEV.projectionMatrix.Set(mProj);
 }
 
 #if defined(USE_FUNCTIONS_FOR_BEV)
