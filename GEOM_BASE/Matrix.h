@@ -31,8 +31,17 @@ public:
 	// default constructor -- initializes to an identity matrix
 	//////////////////////////////////////////////////////////////////
 	CMatrix()
+		: m_arrRows(new CVector<DIM, TYPE>[DIM])
 	{
 		SetIdentity();
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// destructor -- frees the row vectors
+	//////////////////////////////////////////////////////////////////
+	~CMatrix()
+	{
+		delete [] m_arrRows;
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -127,7 +136,8 @@ public:
 	{
 		for (int nRow = 0; nRow < DIM; nRow++)
 			for (int nCol = 0; nCol < DIM; nCol++)
-				(*this)[nRow][nCol] = (nRow == nCol) ? 1.0 : 0.0;
+				(*this)[nRow][nCol] = 
+					(TYPE)((nRow == nCol) ? 1.0 : 0.0);
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -170,7 +180,7 @@ protected:
 
 private:
 	// the row vectors of the matrix
-	CVector<DIM> m_arrRows[DIM];
+	CVector<DIM, TYPE> *m_arrRows; // [DIM];
 };
 
 //////////////////////////////////////////////////////////////////////
