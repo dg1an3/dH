@@ -119,6 +119,36 @@ public:
 	}
 
 	//////////////////////////////////////////////////////////////////
+	// GetColumn -- constructs and returns a column vector
+	//////////////////////////////////////////////////////////////////
+	CVectorN<TYPE> GetColumn(int nAtCol) const
+	{
+		// make the column vector
+		CVectorN<TYPE> vCol(GetDim());
+
+		// populate the column vector
+		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+		{
+			vCol[nAtRow] = (*this)[nAtRow][nAtCol];
+		}
+
+		// return the constructed column
+		return vCol;
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// SetColumn -- constructs and returns a column vector
+	//////////////////////////////////////////////////////////////////
+	void SetColumn(int nAtCol, const CVectorN<TYPE>& vCol)
+	{
+		// populate the column vector
+		for (int nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+		{
+			(*this)[nAtRow][nAtCol] = vCol[nAtRow];
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////
 	// IsApproxEqual -- tests for approximate equality using the EPS
 	//		defined at the top of this file
 	//////////////////////////////////////////////////////////////////
@@ -261,7 +291,10 @@ public:
 	//		elimination
 	void Transpose();
 
-	// Orthogonalize --
+	// orthogonality test
+	BOOL IsOrthogonal() const;
+
+	// Orthogonalize 
 	void Orthogonalize();
 
 	// Invert -- inverts the matrix using the Gauss-Jordan 
@@ -344,6 +377,33 @@ void CMatrixBase<TYPE>::Transpose()
 }
 
 //////////////////////////////////////////////////////////////////////
+// function IsOrthogonal
+//
+// tests for orthogonality of the matrix
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+BOOL CMatrixBase<TYPE>::IsOrthogonal() const
+{
+	// test for orthogonality
+	for (int nAtCol = 0; nAtCol < GetDim(); nAtCol++)
+	{
+		CVectorN<TYPE> vCol = GetColumn(nAtCol);
+		for (int nAtOrthoCol = nAtCol + 1; nAtOrthoCol < GetDim(); 
+				nAtOrthoCol++)
+		{
+			CVectorN<TYPE> vOrthoCol = GetColumn(nAtOrthoCol);
+			if (vCol * vOrthoCol > EPS)
+			{
+				return FALSE;
+			}
+		}
+	}
+
+	// every column vector is orthogonal
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // function Orthogonalize
 //
 // orthogonalizes the input matrix
@@ -355,37 +415,42 @@ void CMatrixBase<TYPE>::Orthogonalize()
 
 	// begin by setting the first orthogonal row vector
 	CMatrixBase<TYPE> mOrtho(*this);
-	mOrtho[0] = (*this)[0];
+
+	// get the first column vector
+	CVectorN<TYPE> vCol = GetColumn(0);
+	vCol.Normalize();
+	mOrtho.SetColumn(0, vCol);
 
 	// apply to each row vector after the zero-th
-	for (int nAtRow = 1; nAtRow < GetDim(); nAtRow++)
+	for (int nAtCol = 1; nAtCol < GetDim(); nAtCol++)
 	{
-		mOrtho[nAtRow] = (*this)[nAtRow];
-		for (int nAtOrthoRow = nAtRow-1; nAtOrthoRow >= 0; nAtOrthoRow--)
+		vCol = GetColumn(nAtCol);
+		vCol.Normalize();
+
+		for (int nAtOrthoCol = nAtCol - 1; nAtOrthoCol >= 0; 
+				nAtOrthoCol--)
 		{
-			double scalar = ((*this)[nAtRow] * mOrtho[nAtOrthoRow])
-				/ (mOrtho[nAtOrthoRow] * mOrtho[nAtOrthoRow]);
-			mOrtho[nAtRow] -= scalar * mOrtho[nAtOrthoRow];
-			TRACE("Dot product = %lf\n", (mOrtho[nAtRow] * mOrtho[nAtOrthoRow]));
+			CVectorN<TYPE> vOrthoCol = GetColumn(nAtOrthoCol);
+
+			double scalar = (vCol * vOrthoCol) 
+				/ (vOrthoCol * vOrthoCol);
+
+			vCol -= scalar * vOrthoCol;
 		}
+
+		vCol.Normalize();
+
+		mOrtho.SetColumn(nAtCol, vCol);
 	}
 
 	// now normalize all rows
-	for (nAtRow = 0; nAtRow < GetDim(); nAtRow++)
-	{
-		mOrtho[nAtRow].Normalize();
-	}
+	// for (nAtRow = 0; nAtRow < GetDim(); nAtRow++)
+	// {
+	//	mOrtho[nAtRow].Normalize();
+	// }
 
-#ifdef _DEBUG
-	// test for orthogonality
-	for (nAtRow = 1; nAtRow < GetDim(); nAtRow++)
-	{
-		for (int nAtOrthoRow = nAtRow-1; nAtOrthoRow >= 0; nAtOrthoRow--)
-		{
-			ASSERT((mOrtho[nAtRow] * mOrtho[nAtOrthoRow]) < EPS);
-		}
-	}
-#endif
+	// test to ensure we are orthogonal
+	ASSERT(IsOrthogonal());
 
 	// assign the result
 	(*this) = mOrtho;
@@ -784,5 +849,22 @@ void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m)
 #define TRACE_MATRIX(strMessage, m)
 #endif
 
+
+
+#ifdef _DEBUG
+//////////////////////////////////////////////////////////////////////
+// function MatrixValid
+//
+// asserts that the matrix elements are valid values
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+void MatrixValid(const CMatrixBase<TYPE>& m)
+{
+	for (int nAt = 0; nAt < m.GetDim(); nAt++)
+	{
+		VectorValid(m[nAt]);
+	}
+}
+#endif
 
 #endif
