@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "PenBeamEdit.h"
 
-#include "PenBeamEditDoc.h"
+// #include "PenBeamEditDoc.h"
 #include "PenBeamEditView.h"
 
 #ifdef _DEBUG
@@ -55,14 +55,20 @@ BOOL CPenBeamEditView::PreCreateWindow(CREATESTRUCT& cs)
 
 void CPenBeamEditView::OnDraw(CDC* pDC)
 {
-	CPenBeamEditDoc* pDoc = GetDocument();
-	ASSERT_VALID(pDoc);
+	CPlan* pPlan = GetDocument();
+	ASSERT_VALID(pPlan);
 
 	CRect rect;
 	GetClientRect(&rect);
 
+	if (!pPlan->GetSeries())
+		return;
+
+	CVolume<short>& density = pPlan->GetSeries()->volume;
+	CVolume<double>& totalDose = pPlan->dose;
+
 	int nDrawSize = min(rect.Width() / 2, rect.Height());
-	int nRowSize = pDoc->m_density.width.Get();
+	int nRowSize = density.width.Get();
 	int nPixelSize = nDrawSize / nRowSize;
 	if (nPixelSize % 2 == 1)
 		nPixelSize++;
@@ -73,12 +79,13 @@ void CPenBeamEditView::OnDraw(CDC* pDC)
 
 #define SHOW_DOSE
 #ifdef SHOW_DOSE
-			double dose = pDoc->m_totalDose.GetVoxels()[0][nAtY][nAtX];
+			double dose = totalDose.GetVoxels()[0][nAtY][nAtX];
 			int colorIndex = (int)(dose * (double) (m_arrColormap.GetSize()-1));
 			colorIndex = min(colorIndex, m_arrColormap.GetSize()-1);
 			COLORREF color = m_arrColormap[colorIndex];
 
-			double intensity = pDoc->m_density.GetVoxels()[0][nAtY][nAtX];		
+			double intensity = density.GetVoxels()[0][nAtY][nAtX];
+			intensity /= 1000.0;
 
 			color = RGB(intensity * GetRValue(color), 
 				intensity * GetGValue(color),
@@ -86,7 +93,7 @@ void CPenBeamEditView::OnDraw(CDC* pDC)
 
 			CBrush brush(color);
 #else
-			int nDensity = (int)(pDoc->m_density.m_arrIntensity[nAtX + nAtY * nRowSize] * 255.0);
+			int nDensity = (int)(density.GetVoxels()[0][nAtY][nAtX] * 255.0);
 			CBrush brush(RGB(nDensity, nDensity, nDensity));
 #endif
 			CBrush *pOldBrush = pDC->SelectObject(&brush);
@@ -133,10 +140,10 @@ void CPenBeamEditView::Dump(CDumpContext& dc) const
 	CView::Dump(dc);
 }
 
-CPenBeamEditDoc* CPenBeamEditView::GetDocument() // non-debug version is inline
+CPlan* CPenBeamEditView::GetDocument() // non-debug version is inline
 {
-	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CPenBeamEditDoc)));
-	return (CPenBeamEditDoc*)m_pDocument;
+	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CPlan)));
+	return (CPlan*)m_pDocument;
 }
 #endif //_DEBUG
 
@@ -181,11 +188,21 @@ void CPenBeamEditView::OnSize(UINT nType, int cx, int cy)
 
 void CPenBeamEditView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
-	CPenBeamEditDoc* pDoc = GetDocument();
-	ASSERT_VALID(pDoc);
+	CPlan* pPlan = GetDocument();
+	ASSERT_VALID(pPlan);
+
+	if (pPlan->GetSeries() == NULL)
+		return;
+
+	// set the histogram's volume
+	m_histogram.volume.Set(&pPlan->dose);
+
+	// set the histogram's region
+	CVolume<int> *pRegion = pPlan->GetSeries()->structures.Get(0)->region.Get();
+	m_histogram.region.Set(pRegion);
 
 	// now draw the histogram
-	CArray<double, double>& arrBins = pDoc->m_histogram.GetCumBins();
+	CArray<double, double>& arrBins = m_histogram.GetCumBins();
 	CDataSeries *pSeries = new CDataSeries();
 	m_graph.m_arrDataSeries.RemoveAll();
 	m_graph.m_arrDataSeries.Add(pSeries);

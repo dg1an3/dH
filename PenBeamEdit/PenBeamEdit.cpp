@@ -5,7 +5,7 @@
 #include "PenBeamEdit.h"
 
 #include "MainFrm.h"
-#include "PenBeamEditDoc.h"
+// #include "PenBeamEditDoc.h"
 #include "PenBeamEditView.h"
 
 #ifdef _DEBUG
@@ -14,14 +14,53 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+template<class VOXEL_TYPE>
+BOOL ReadAsciiImage(LPCTSTR lpszPathName, CVolume<VOXEL_TYPE> *pImage, double weight = 1.0)
+{
+	CStdioFile inFile;
+	
+	if (!inFile.Open(lpszPathName, CFile::modeRead | CFile::typeText))
+		return FALSE;
+
+	int nSize = 0;
+	CArray<VOXEL_TYPE, VOXEL_TYPE> arrIntensity;
+	CString strLine;
+	while (inFile.ReadString(strLine))
+	{
+		strLine.TrimLeft();
+		strLine.TrimRight();
+		if (strLine == "")
+		{
+			if (nSize == 0)
+				nSize = arrIntensity.GetSize();
+		}
+		else
+		{
+			double density;
+			sscanf(strLine.GetBuffer(100), "%lf", &density);
+			arrIntensity.Add((VOXEL_TYPE) (density * weight));
+		}
+	}
+
+	pImage->width.Set(nSize);
+	pImage->height.Set(nSize);
+	pImage->depth.Set(1);
+
+	int nAtVoxel = 0;
+	for (int nAtY = 0; nAtY < nSize; nAtY++)
+		for (int nAtX = 0; nAtX < nSize; nAtX++)
+			pImage->GetVoxels()[0][nAtY][nAtX] = arrIntensity[nAtVoxel++];
+
+	return TRUE;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CPenBeamEditApp
 
 BEGIN_MESSAGE_MAP(CPenBeamEditApp, CWinApp)
 	//{{AFX_MSG_MAP(CPenBeamEditApp)
 	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
-		// NOTE - the ClassWizard will add and remove mapping macros here.
-		//    DO NOT EDIT what you see in these blocks of generated code!
+	ON_COMMAND(ID_FILE_IMPORT, OnFileImport)
 	//}}AFX_MSG_MAP
 	// Standard file based document commands
 	ON_COMMAND(ID_FILE_NEW, CWinApp::OnFileNew)
@@ -73,13 +112,31 @@ BOOL CPenBeamEditApp::InitInstance()
 	//  serve as the connection between documents, frame windows and views.
 
 	CSingleDocTemplate* pDocTemplate;
+#if OLD
 	pDocTemplate = new CSingleDocTemplate(
 		IDR_MAINFRAME,
 		RUNTIME_CLASS(CPenBeamEditDoc),
 		RUNTIME_CLASS(CMainFrame),       // main SDI frame window
 		RUNTIME_CLASS(CPenBeamEditView));
 	AddDocTemplate(pDocTemplate);
+#else
+	pDocTemplate = new CSingleDocTemplate(
+		IDR_MAINFRAME,
+		RUNTIME_CLASS(CPlan),
+		RUNTIME_CLASS(CMainFrame),       // main SDI frame window
+		RUNTIME_CLASS(CPenBeamEditView));
+	AddDocTemplate(pDocTemplate);
 
+	// create the series doc template
+	//		don't add it as a template to the application, because we
+	//		don't want series to be created new
+	m_pSeriesDocTemplate = new CSingleDocTemplate(
+		IDR_MAINFRAME,
+		RUNTIME_CLASS(CSeries),
+		RUNTIME_CLASS(CMainFrame),       // main SDI frame window
+		RUNTIME_CLASS(CPenBeamEditView));
+	CPlan::SetSeriesDocTemplate(m_pSeriesDocTemplate);
+#endif
 	// Parse command line for standard shell commands, DDE, file open
 	CCommandLineInfo cmdInfo;
 	ParseCommandLine(cmdInfo);
@@ -152,3 +209,94 @@ void CPenBeamEditApp::OnAppAbout()
 /////////////////////////////////////////////////////////////////////////////
 // CPenBeamEditApp message handlers
 
+
+void CPenBeamEditApp::OnFileImport() 
+{
+	// ask the user for the import directory
+	CFileDialog dlgFile(TRUE, "dat", "density.dat");
+	if (dlgFile.DoModal() != IDOK)
+		return;
+
+	// set a pointer to the selected path
+	CString strPath = dlgFile.GetPathName();
+	strPath = strPath.Left(strPath.ReverseFind('\\'));
+
+	// get the current plan
+	POSITION pos = GetFirstDocTemplatePosition();
+	CDocTemplate *pTemplate = GetNextDocTemplate(pos);
+	pos = pTemplate->GetFirstDocPosition();
+	CPlan *pPlan = 
+		(CPlan *)pTemplate->GetNextDoc(pos);
+
+	// create an empty series
+	CSeries *pSeries = 
+		(CSeries *)m_pSeriesDocTemplate->CreateNewDocument();
+
+	// now read the data
+	BOOL bResult = ReadAsciiImage(strPath + "\\density.dat", 
+		&pSeries->volume, 1000.0);
+
+	// initialize the structure
+	CSurface *pStructure = new CSurface();
+	CVolume<int> *pRegion = new CVolume<int>;
+	pStructure->region.Set(pRegion);
+	pSeries->structures.Add(pStructure);
+
+	pRegion->width.Set(pSeries->volume.width.Get());
+	pRegion->height.Set(pSeries->volume.height.Get());
+	pRegion->depth.Set(pSeries->volume.depth.Get());
+
+	// initialize the region to all ones
+	for (int nAtY = 0; nAtY < pRegion->height.Get(); nAtY++)
+		for (int nAtX = 0; nAtX < pRegion->width.Get(); nAtX++)
+			if (nAtX > 45 && nAtX < 55)
+				pRegion->GetVoxels()[0][nAtY][nAtX] = 1;
+
+	// set the series for the plan
+	pPlan->SetSeries(pSeries);
+
+#define PI (atan(1.0) * 4.0)
+#define SIGMA 7.0
+
+	// and form the total dose
+	pPlan->dose.width.Set(pSeries->volume.width.Get());
+	pPlan->dose.height.Set(pSeries->volume.height.Get());
+	pPlan->dose.depth.Set(pSeries->volume.depth.Get());
+
+	// read the pencil beams, forming the summed dose
+	double maxDose = 0.0;
+	for (int nAt = 1; nAt < 100; nAt++)
+	{
+		CString strPencilBeamFilename;
+		strPencilBeamFilename.Format("\\dose%i.dat", nAt);
+
+		CBeam *pPencilBeam = new CBeam();
+		// CVolume<double> *pPencilBeam = new CVolume<double>();
+		bResult = bResult && ReadAsciiImage(strPath + strPencilBeamFilename, 
+			&pPencilBeam->dose);
+		pPlan->beams.Add(pPencilBeam);
+		// m_arrPencilBeams.Add(pPencilBeam);
+
+		// set the weights to a gaussian distribution
+		double weight = 1.0 / sqrt(2 * PI * SIGMA) 
+			* exp(- (double)((50 - nAt) * (50 - nAt)) / (SIGMA * SIGMA));
+		pPencilBeam->weight.Set(weight);
+		// m_arrWeights.Add(weight);
+
+		for (int nAtY = 0; nAtY < pPlan->dose.height.Get(); nAtY++)
+			for (int nAtX = 0; nAtX < pPlan->dose.width.Get(); nAtX++)
+			{
+				pPlan->dose.GetVoxels()[0][nAtY][nAtX] += 
+					weight * pPencilBeam->dose.GetVoxels()[0][nAtY][nAtX];
+				maxDose = max(maxDose, pPlan->dose.GetVoxels()[0][nAtY][nAtX]);
+			}
+	}
+
+	// normalize the total dose
+	for (nAtY = 0; nAtY < pPlan->dose.height.Get(); nAtY++)
+		for (int nAtX = 0; nAtX < pPlan->dose.width.Get(); nAtX++)
+			pPlan->dose.GetVoxels()[0][nAtY][nAtX] /= maxDose;
+
+	// update the views
+	pPlan->UpdateAllViews(NULL);
+}

@@ -34,10 +34,12 @@ public:
 // Implementation
 	//{{AFX_MSG(CPenBeamEditApp)
 	afx_msg void OnAppAbout();
-		// NOTE - the ClassWizard will add and remove member functions here.
-		//    DO NOT EDIT what you see in these blocks of generated code !
+	afx_msg void OnFileImport();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
+	// the template for series'
+	CSingleDocTemplate * m_pSeriesDocTemplate;
 };
 
 

@@ -6,12 +6,14 @@
 #define AFX_PENBEAMEDITVIEW_H__34348F48_5130_11D5_ABBE_00B0D0AB90D6__INCLUDED_
 
 #include <Dib.h>	// Added by ClassView
-#include "Graph.h"
+#include <Graph.h>
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <Histogram.h>
+#include <Plan.h>
 
 class CPenBeamEditView : public CView
 {
@@ -21,7 +23,7 @@ protected: // create from serialization only
 
 // Attributes
 public:
-	CPenBeamEditDoc* GetDocument();
+	CPlan* GetDocument();
 
 // Operations
 public:
@@ -41,8 +43,15 @@ public:
 
 // Implementation
 public:
-	CGraph m_graph;
+	// colormap for the dose display
 	CArray<COLORREF, COLORREF> m_arrColormap;
+
+	// stores the histogram itself
+	CHistogram m_histogram;
+
+	// graph to display the histogram
+	CGraph m_graph;
+
 	virtual ~CPenBeamEditView();
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -62,8 +71,8 @@ protected:
 };
 
 #ifndef _DEBUG  // debug version in PenBeamEditView.cpp
-inline CPenBeamEditDoc* CPenBeamEditView::GetDocument()
-   { return (CPenBeamEditDoc*)m_pDocument; }
+inline CPlan* CPenBeamEditView::GetDocument()
+   { return (CPlan*)m_pDocument; }
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
