@@ -55,6 +55,25 @@ inline void glColor(COLORREF forColor)
 	glColor3ub(GetRValue(forColor), GetGValue(forColor), GetBValue(forColor));
 }
 
+inline void glClearColor(COLORREF forColor)
+{
+	glClearColor(
+		(float) GetRValue(forColor) / 255.0f, 
+		(float) GetGValue(forColor) / 255.0f, 
+		(float) GetBValue(forColor) / 255.0f, 
+		1.0f);
+}
+
+inline void glLightPosition(GLenum light, CVector<3> vParam)
+{
+	GLfloat param[3];
+	param[0] = (float) vParam[0];
+	param[1] = (float) vParam[1];
+	param[2] = (float) vParam[2];
+
+	glLightfv(light, GL_POSITION, param);
+}
+
 inline CMatrix<4> glGetMatrix(GLenum pname)
 {
 	GLdouble mArray[16];
