@@ -1,5 +1,7 @@
+//////////////////////////////////////////////////////////////////////
 // Function.h: interface for the CFunction class.
 //
+// Copyright (C) 1999-2001 DGLane
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(AFX_FUNCTION_H__9ADD8ED4_FC5D_11D4_9E43_00B0D0609AB0__INCLUDED_)
@@ -11,168 +13,236 @@
 
 #include "Value.h"
 
+
+//////////////////////////////////////////////////////////////////////
+// class CFunction1<TYPE, ARG_TYPE>
+// 
+// a function object that accepts an ARG_TYPE argument and is a 
+// CValue<TYPE>.
+//
+// the argument can be synced to another CValue<ARG_TYPE> to implement
+// functional pipelines.
+//////////////////////////////////////////////////////////////////////
 template<class TYPE, class ARG_TYPE>
 class CFunction1 : public CValue<TYPE>  
 {
 public:
-	CFunction1(TYPE (*pFunc)(const ARG_TYPE&), const CValue<ARG_TYPE> *pArg)
-		: m_pFunc(pFunc),
-			m_pArg(pArg)
+	CFunction1(TYPE (*pFunc)(const ARG_TYPE&), 
+			const CValue<ARG_TYPE> *pArg = NULL)
+		: m_pFunc(pFunc)
 	{
-		ASSERT(m_pArg != NULL);
-		::AddObserver<CFunction1>((CValue<ARG_TYPE> *)m_pArg, this, OnChange);
+		// listen for changes on the argument
+		::AddObserver<CFunction1>(&argument, this, OnChange);
+
+		// sync the argument to the passed CValue
+		argument.SyncTo((CValue<ARG_TYPE> *)pArg);
 
 		// now set the initial value
-		Set((*m_pFunc)(m_pArg->Get()));
+		Set((*this)(argument.Get()));
 	}
 
-	virtual ~CFunction1()
+	// function operator overload
+	TYPE operator()(const ARG_TYPE& arg)
 	{
-		m_pArg->RemoveObserver(this, (ChangeFunction) OnChange);
+		return (*m_pFunc)(arg);
 	}
 
+	// the only argument to the function
+	CValue<ARG_TYPE> argument;
+
+	// change to the argument
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
-		Set((*m_pFunc)(m_pArg->Get()));
+		// set the new calue
+		Set((*this)(argument.Get()));
 	}
 
 protected:
+
+	// don't let outsiders change the value of this function
 	void Set(const TYPE& fromValue)
 	{
 		CValue<TYPE>::Set(fromValue);
 	}
 
 private:
+	// function pointer
 	TYPE (*m_pFunc)(const ARG_TYPE&);
-
-	const CValue<ARG_TYPE> *m_pArg;
 };
 
+
+//////////////////////////////////////////////////////////////////////
+// class CFunction2<TYPE, ARG1_TYPE, ARG2_TYPE>
+// 
+// a function object that accepts ARG1_TYPE and ARG2_TYPE arguments 
+// and is a CValue<TYPE>.
+//
+// the arguments can be synced to another CValue to implement
+// functional pipelines.
+//////////////////////////////////////////////////////////////////////
 template<class TYPE, class ARG1_TYPE, class ARG2_TYPE>
 class CFunction2 : public CValue<TYPE>  
 {
 public:
 	CFunction2(TYPE (*pFunc)(const ARG1_TYPE&, const ARG2_TYPE&), 
-				const CValue<ARG1_TYPE> *pArg1, 
-				const CValue<ARG2_TYPE> *pArg2)
-		: m_pFunc(pFunc),
-			m_pArg1(pArg1),
-			m_pArg2(pArg2)
+				const CValue<ARG1_TYPE> *pArg1 = NULL, 
+				const CValue<ARG2_TYPE> *pArg2 = NULL)
+		: m_pFunc(pFunc)
 	{
-		ASSERT(m_pArg1 != NULL);
-		::AddObserver<CFunction2>((CValue<ARG1_TYPE> *)m_pArg1, this, OnChange);
+		// listen for changes on the argument1
+		::AddObserver<CFunction2>(&argument1, this, OnChange);
 
-		ASSERT(m_pArg2 != NULL);
-		::AddObserver<CFunction2>((CValue<ARG2_TYPE> *)m_pArg2, this, OnChange);
+		// sync the argument1 to the passed CValue
+		argument1.SyncTo((CValue<ARG1_TYPE> *)pArg1);
+
+		// listen for changes on the argument2
+		::AddObserver<CFunction2>(&argument2, this, OnChange);
+
+		// sync the argument1 to the passed CValue
+		argument2.SyncTo((CValue<ARG2_TYPE> *)pArg2);
 
 		// now set the initial value
-		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
+		Set((*this)(argument1.Get(), argument2.Get()));
 	}
 
 	CFunction2(TYPE (*pFunc)(const ARG1_TYPE&, const ARG2_TYPE&), 
 				const CValue<ARG1_TYPE> *pArg1, 
 				const ARG2_TYPE& argConst2)
 		: m_pFunc(pFunc),
-			m_pArg1(pArg1),
-			m_argConst2(argConst2),
-			m_pArg2(&m_argConst2)
+			argument2(argConst2)
 	{
-		ASSERT(m_pArg1 != NULL);
-		::AddObserver<CFunction2>((CValue<ARG1_TYPE> *)m_pArg1, this, OnChange);
+		// listen for changes on the argument1
+		::AddObserver<CFunction2>(&argument1, this, OnChange);
+
+		// sync the argument1 to the passed CValue
+		argument1.SyncTo((CValue<ARG1_TYPE> *)pArg1);
+
+		// listen for changes on the argument2
+		::AddObserver<CFunction2>(&argument2, this, OnChange);
 
 		// now set the initial value
-		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
+		Set((*this)(argument1.Get(), argument2.Get()));
 	}
 
 	CFunction2(TYPE (*pFunc)(const ARG1_TYPE&, const ARG2_TYPE&), 
 				const ARG1_TYPE& argConst1, 
 				const CValue<ARG2_TYPE> *pArg2)
 		: m_pFunc(pFunc),
-			m_argConst1(argConst1),
-			m_pArg1(&m_argConst1),
-			m_pArg2(pArg2)
+			argument1(argConst1)
 	{
-		ASSERT(m_pArg2 != NULL);
-		::AddObserver<CFunction2>((CValue<ARG2_TYPE> *)m_pArg2, this, OnChange);
+		// listen for changes on the argument1
+		::AddObserver<CFunction2>(&argument1, this, OnChange);
+
+		// listen for changes on the argument2
+		::AddObserver<CFunction2>(&argument2, this, OnChange);
+
+		// sync the argument1 to the passed CValue
+		argument2.SyncTo((CValue<ARG1_TYPE> *)pArg2);
+
+		// now set the initial value
+		Set((*this)(argument1.Get(), argument2.Get()));
 	}
 
-	virtual ~CFunction2()
+	// function operator overload
+	TYPE operator()(const ARG1_TYPE& arg1, const ARG2_TYPE& arg2)
 	{
-		m_pArg1->RemoveObserver(this, (ChangeFunction) OnChange);
-		m_pArg2->RemoveObserver(this, (ChangeFunction) OnChange);
+		return (*m_pFunc)(arg1, arg2);
 	}
 
+	// The arguments for the function
+	CValue<ARG1_TYPE> argument1;
+	CValue<ARG2_TYPE> argument2;
+
+	// change to the arguments
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
-		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get()));
+		Set((*this)(argument1.Get(), argument2.Get()));
 	}
 
 protected:
+
+	// don't let outsiders change the value of this function
 	void Set(const TYPE& fromValue)
 	{
 		CValue<TYPE>::Set(fromValue);
 	}
 
 private:
+	// function pointer
 	TYPE (*m_pFunc)(const ARG1_TYPE&, const ARG2_TYPE&);
-
-	CValue<ARG1_TYPE> m_argConst1;
-	const CValue<ARG1_TYPE> *m_pArg1;
-
-	CValue<ARG2_TYPE> m_argConst2;
-	const CValue<ARG2_TYPE> *m_pArg2;
 };
 
+
+//////////////////////////////////////////////////////////////////////
+// class CFunction3<TYPE, ARG1_TYPE, ARG2_TYPE, ARG3_TYPE>
+// 
+// a function object that accepts ARG1_TYPE, ARG2_TYPE and ARG3_TYPE 
+// arguments and is a CValue<TYPE>.
+//
+// the arguments can be synced to another CValue to implement
+// functional pipelines.
+//////////////////////////////////////////////////////////////////////
 template<class TYPE, class ARG1_TYPE, class ARG2_TYPE, class ARG3_TYPE>
 class CFunction3 : public CValue<TYPE>  
 {
 public:
 	CFunction3(TYPE (*pFunc)(const ARG1_TYPE&, const ARG2_TYPE&, const ARG3_TYPE&), 
-				const CValue<ARG1_TYPE> *pArg1, 
-				const CValue<ARG2_TYPE> *pArg2,
-				const CValue<ARG3_TYPE> *pArg3)
-		: m_pFunc(pFunc),
-			m_pArg1(pArg1),
-			m_pArg2(pArg2),
-			m_pArg3(pArg3)
+				const CValue<ARG1_TYPE> *pArg1 = NULL, 
+				const CValue<ARG2_TYPE> *pArg2 = NULL,
+				const CValue<ARG3_TYPE> *pArg3 = NULL)
+		: m_pFunc(pFunc)
 	{
-		ASSERT(m_pArg1 != NULL);
-		m_pArg1->AddObserver(this, (ChangeFunction) OnChange);
+		// listen for changes on the argument1
+		::AddObserver<CFunction3>(&argument1, this, OnChange);
 
-		ASSERT(m_pArg2 != NULL);
-		m_pArg2->AddObserver(this, (ChangeFunction) OnChange);
+		// sync the argument1 to the passed CValue
+		argument1.SyncTo((CValue<ARG1_TYPE> *)pArg1);
 
-		ASSERT(m_pArg3 != NULL);
-		m_pArg3->AddObserver(this, (ChangeFunction) OnChange);
+		// listen for changes on the argument2
+		::AddObserver<CFunction3>(&argument2, this, OnChange);
+
+		// sync the argument1 to the passed CValue
+		argument2.SyncTo((CValue<ARG2_TYPE> *)pArg2);
+
+		// listen for changes on the argument2
+		::AddObserver<CFunction3>(&argument3, this, OnChange);
+
+		// sync the argument1 to the passed CValue
+		argument3.SyncTo((CValue<ARG2_TYPE> *)pArg3);
 
 		// now set the initial value
-		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get(), m_pArg3->Get()));
+		Set((*this)(argument1.Get(), argument2.Get(), argument3.Get()));
 	}
 
-	virtual ~CFunction3()
+	// function operator overload
+	TYPE operator()(const ARG1_TYPE& arg1, const ARG2_TYPE& arg2,
+			const ARG3_TYPE& arg3)
 	{
-		m_pArg1->RemoveObserver(this, (ChangeFunction) OnChange);
-		m_pArg2->RemoveObserver(this, (ChangeFunction) OnChange);
-		m_pArg3->RemoveObserver(this, (ChangeFunction) OnChange);
+		return (*m_pFunc)(arg1, arg2, arg3);
 	}
 
+	// The arguments for the function
+	CValue<ARG1_TYPE> argument1;
+	CValue<ARG2_TYPE> argument2;
+	CValue<ARG3_TYPE> argument3;
+
+	// change to the arguments
 	virtual void OnChange(CObservableObject *pFromObject, void *pOldValue)
 	{
-		Set((*m_pFunc)(m_pArg1->Get(), m_pArg2->Get(), m_pArg3->Get()));
+		Set((*this)(argument1.Get(), argument2.Get(), argument3.Get()));
 	}
 
 protected:
+
+	// don't let outsiders change the value of this function
 	void Set(const TYPE& fromValue)
 	{
 		CValue<TYPE>::Set(fromValue);
 	}
 
 private:
+	// function pointer
 	TYPE (*m_pFunc)(const ARG1_TYPE&, const ARG2_TYPE&, const ARG3_TYPE&);
-
-	const CValue<ARG1_TYPE> *m_pArg1;
-	const CValue<ARG2_TYPE> *m_pArg2;
-	const CValue<ARG3_TYPE> *m_pArg3;
 };
 
 #endif // !defined(AFX_FUNCTION_H__9ADD8ED4_FC5D_11D4_9E43_00B0D0609AB0__INCLUDED_)
