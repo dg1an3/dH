@@ -68,7 +68,7 @@ LIB32=link.exe -lib
 MTL=midl.exe
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /D "USE_IPP" /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 # ADD RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
 BSC32=bscmake.exe
@@ -109,6 +109,10 @@ SOURCE=.\Polygon.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Pyramid.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
 # End Source File
@@ -143,6 +147,10 @@ SOURCE=.\include\Observer.h
 # Begin Source File
 
 SOURCE=.\include\Polygon.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Pyramid.h
 # End Source File
 # Begin Source File
 
