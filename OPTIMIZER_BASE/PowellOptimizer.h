@@ -38,12 +38,10 @@ public:
 			m_lineFunction(pFunc),
 			m_optimizeBrent(&m_lineFunction)
 	{
-		finalValue.SyncTo(&m_optimizeBrent.finalValue);
-		tolerance.SyncTo(&m_optimizeBrent.tolerance);
+		// set the Brent optimizer to use the gradient information,
+		//		if available
+		m_optimizeBrent.SetUseGradientInfo(TRUE);
 	}
-
-	// the current direction set for the optimization
-	CValue< CMatrix<DIM, TYPE> > directionSet;
 
 	// performs the optimization
 	virtual CVector<DIM, TYPE> Optimize(const CVector<DIM, TYPE>& vInit);
@@ -54,6 +52,9 @@ private:
 
 	// brent optimizer along the line function
 	CBrentOptimizer<TYPE> m_optimizeBrent;
+
+	// the current direction set for the optimization
+	CMatrix<DIM, TYPE> m_directionSet;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -64,75 +65,80 @@ private:
 template<int DIM, class TYPE>
 CVector<DIM, TYPE> CPowellOptimizer<DIM, TYPE>::Optimize(const CVector<DIM, TYPE>& vInit)
 {
+	// set the tolerance for the Brent optimizer
+	m_optimizeBrent.SetTolerance(GetTolerance());
+
 	int i,ibig;
 	TYPE del,fp,fptt,t; //,*pt,*ptt,*xit;  
 
 	// sync the point in the line function to the current parameter value "finalParam"
-	m_lineFunction.point.SyncTo(&finalParam);
-	finalParam.Set(vInit);
+	m_vFinalParam = vInit;
 	CVector<DIM, TYPE> pt = vInit;	// save the initial point 
-	CMatrix<DIM, TYPE> xi = directionSet.Get();
+	CMatrix<DIM, TYPE> xi = m_directionSet;
 
-	finalValue.Set((*m_pFunc)(vInit));
-	for (iteration.Set(0); ; iteration.Set(iteration.Get()+1))
+	m_finalValue = (*m_pFunc)(vInit);
+	for (m_nIteration = 0; ; m_nIteration++)
 	{
-		fp = finalValue.Get();
+		fp = m_finalValue;
 		ibig = 0;
 		del = 0.0;                     /* will the biggest function decrease? */
 		for (i = 0; i < DIM; i++)             /* in each iteration, loop over all */
 		{                            /* directions in the set */ 
 			// store the current final value of the objective function
-			fptt = finalValue.Get();
+			fptt = m_finalValue;
 
 			// set up the direction for the line minimization
-			m_lineFunction.direction.Set(xi[i]);
+			m_lineFunction.SetLine(m_vFinalParam, xi[i]);
 
 			// now launch a Brent optimization
 			TYPE lambda = m_optimizeBrent.Optimize(0.0)[0];
 
-			// update the current point
-			finalParam.Set(finalParam.Get() + lambda * m_lineFunction.direction.Get());
+			// set the final value
+			m_finalValue = m_optimizeBrent.GetFinalValue();
 
-			if (fabs(fptt - finalValue.Get()) > del)
+			// update the current point
+			m_vFinalParam += lambda * m_lineFunction.GetDirection();
+
+			if (fabs(fptt - m_finalValue) > del)
 			{
-				del = (TYPE) fabs(fptt - finalValue.Get());
+				del = (TYPE) fabs(fptt - m_finalValue);
 				ibig = i;
 			}
 		}
 
 		 /* termination criterion */
-		if (2.0 * fabs(fp - finalValue.Get()) <= 
-			m_optimizeBrent.tolerance.Get() * (fabs(fp) + fabs(finalValue.Get())))
+		if (2.0 * fabs(fp - m_finalValue) <= 
+			m_optimizeBrent.GetTolerance() * (fabs(fp) + fabs(m_finalValue)))
 		{
-			directionSet.Set(xi);
+			m_directionSet = xi;
 
 			// update the final value of the objective function
-			ASSERT(finalValue.Get() == m_optimizeBrent.finalValue.Get());
+			ASSERT(GetFinalValue() == m_optimizeBrent.GetFinalValue());
 
-			return finalParam.Get();
+			return GetFinalParameter();
 		}
 
-		CVector<DIM, TYPE> ptt = (TYPE)2.0 * finalParam.Get() - pt;
-		CVector<DIM, TYPE> xit = finalParam.Get() - pt;
-		pt = finalParam.Get();
+		CVector<DIM, TYPE> ptt = (TYPE)2.0 * m_vFinalParam - pt;
+		CVector<DIM, TYPE> xit = m_vFinalParam - pt;
+		pt = m_vFinalParam;
 		fptt = (*m_pFunc)(ptt);
 
 		if (fptt < fp)
 		{
 			/*      t=2.0*(fp-2.0*finalValue.Get()+fptt)*SQR(fp-finalValue.Get()-del)-del*SQR(fp-fptt); */
-			t = (TYPE)2.0 * (fp - (TYPE)2.0 * finalValue.Get() + fptt)
-				* ( (fp-finalValue.Get() - del)*(fp-finalValue.Get() - del) ) - del
+			t = (TYPE)2.0 * (fp - (TYPE)2.0 * m_finalValue + fptt)
+				* ( (fp-m_finalValue - del)*(fp-m_finalValue - del) ) - del
 				* ( (fp-fptt) * (fp-fptt) );
 			if (t < 0.0)
 			{
 				// set up the direction for the line minimization
-				m_lineFunction.direction.Set(xit);
+				m_lineFunction.SetLine(m_vFinalParam, xit);
 
 				// now launch a Brent optimization
 				TYPE lambda = m_optimizeBrent.Optimize((TYPE)0.0)[0];
 
 				// update the current point
-				finalParam.Set(finalParam.Get() + lambda * m_lineFunction.direction.Get());
+				m_vFinalParam += lambda * m_lineFunction.GetDirection();
 
 				xi[ibig] = xi[DIM-1];
 				xi[DIM-1] = xit;

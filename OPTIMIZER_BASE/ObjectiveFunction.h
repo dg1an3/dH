@@ -10,8 +10,8 @@
 #if !defined(OBJECTIVEFUNCTION_H)
 #define OBJECTIVEFUNCTION_H
 
+// objective functions are vector-domained functions
 #include <Vector.h>
-#include <Value.h>
 
 //////////////////////////////////////////////////////////////////////
 // template<class TYPE>

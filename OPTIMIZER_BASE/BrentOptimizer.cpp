@@ -82,10 +82,10 @@ CVector<1, TYPE> CBrentOptimizer<TYPE>::Optimize(const CVector<1, TYPE>& vInit)
 		finalx = FindMinimum(ax, bx, cx);
 
 	// set the member variable that holds the final value
-	finalParam.Set(finalx);
+	m_vFinalParam[0] = finalx;
 
 	// and return it
-	return finalParam.Get();
+	return m_vFinalParam;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -223,17 +223,16 @@ TYPE CBrentOptimizer<TYPE>::FindMinimum (TYPE ax, TYPE bx, TYPE cx)
 	fw=fv=fx=(*m_pFunc)(x);
 
 	// Main function loop. 
-	for (iteration.Set(0); iteration.Get() < ITER_MAX; 
-			iteration.Set(iteration.Get()+1))
+	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
 	{
 		xm = (TYPE) 0.5*(a+b);
-		tol1 = (TYPE) (tolerance.Get() * fabs(x)+ZEPS);
+		tol1 = (TYPE) (GetTolerance() * fabs(x)+ZEPS);
 		tol2 = (TYPE) 2.0 * tol1;
 
 		// Test for done here. 
 		if (fabs(x - xm) <= (tol2-0.5*(b-a)))
 		{
-			finalValue.Set(fx);
+			m_finalValue = fx;
 			return x;
 		}
 
@@ -302,7 +301,7 @@ TYPE CBrentOptimizer<TYPE>::FindMinimum (TYPE ax, TYPE bx, TYPE cx)
 		// Done with housekeeping.  Back for another iteration. 
 	}
 
-	finalValue.Set(fx);
+	m_finalValue = fx;
 	return x;
 }
 
@@ -344,20 +343,19 @@ TYPE CBrentOptimizer<TYPE>::FindMinimumGrad(TYPE ax, TYPE bx, TYPE cx)
 	TYPE e = 0.0;           // distance moved on the step before last 
 
 	// Main function loop. 
-	for (iteration.Set(0); iteration.Get() < ITER_MAX; 
-			iteration.Set(iteration.Get()+1))
+	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
 	{
 		// computing mean x-value
 		TYPE xm = (TYPE) 0.5 * (a + b);
 
 		// computing bounding tolerances
-		TYPE tol1 = tolerance.Get() * (TYPE) fabs(x) + (TYPE) ZEPS;
+		TYPE tol1 = GetTolerance() * (TYPE) fabs(x) + (TYPE) ZEPS;
 		TYPE tol2 = (TYPE) 2.0 * tol1;
 
 		// test for convergence
 		if ((TYPE) fabs(x - xm) <= (tol2 - (TYPE) 0.5 * (b-a)))
 		{
-			finalValue.Set(fx);
+			m_finalValue = fx;
 			return x;
 		}
 
@@ -431,7 +429,7 @@ TYPE CBrentOptimizer<TYPE>::FindMinimumGrad(TYPE ax, TYPE bx, TYPE cx)
 			fu = (*m_pFunc)(u);
 			if (fu > fx)
 			{
-				finalValue.Set(fx);
+				m_finalValue = fx;
 				return x;
 			}
 		}

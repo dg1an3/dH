@@ -9,9 +9,6 @@
 #if !defined(LINEFUNCTION_H)
 #define LINEFUNCTION_H
 
-#include <Vector.h>
-#include <Value.h>
-
 // base class
 #include "ObjectiveFunction.h"
 
@@ -34,29 +31,49 @@ public:
 	{
 	}
 
-	// stores a point on the line
-	CValue< CVector<DIM, TYPE> > point;
+	// returns the point on the line
+	CVector<DIM, TYPE> GetPoint()
+	{
+		return m_vPoint;
+	}
 
-	// stores the direction of the line
-	CValue< CVector<DIM, TYPE> > direction;
+	// returns the direction of the line
+	CVector<DIM, TYPE> GetDirection()
+	{
+		return m_vDirection;
+	}
+
+	// sets the line parameters
+	void SetLine(const CVector<DIM, TYPE>& vPoint, 
+		const CVector<DIM, TYPE>& vDir)
+	{
+		m_vPoint = vPoint;
+		m_vDirection = vDir;
+	}
 
 	// evaluates the line function
 	virtual TYPE operator()(const CVector<1, TYPE>& vInput)
 	{
-		return (*m_pProjFunc)(point.Get() + vInput[0] * direction.Get());
+		return (*m_pProjFunc)(GetPoint() + vInput[0] * GetDirection());
 	}
 
 	// evaluates the gradient of the line function
 	virtual CVector<1, TYPE> Grad(const CVector<1, TYPE>& vInput)
 	{
-		return m_pProjFunc->Grad(point.Get() + vInput[0] * direction.Get())
-			* direction.Get();
+		return m_pProjFunc->Grad(GetPoint() + vInput[0] * GetDirection())
+			* GetDirection();
 	}
 
 private:
 	// pointer to the objective function upon which this line function
 	//		is based
 	CObjectiveFunction<DIM, TYPE> *m_pProjFunc;
+
+	// stores a point on the line
+	CVector<DIM, TYPE> m_vPoint;
+
+	// stores the direction of the line
+	CVector<DIM, TYPE> m_vDirection;
 };
 
 #endif
