@@ -29,7 +29,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		m_nLevel(nLevel),
 		m_pOptimizer(NULL),
 		m_pNextLevel(NULL),
-		m_totalEntropyWeight(0.5),
+		m_totalEntropyWeight(1.0),
 		m_inputScale(0.5)
 {
 	m_pOptimizer = new CConjGradOptimizer(this);
@@ -38,7 +38,8 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 	{
 		REAL GBinSigma = (REAL) 0.20;
 		int nAtSigma[] = {2, 2, 1};
-		REAL tol[] = {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
+		REAL tol[] = // {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
+			{(REAL) 1e-1, (REAL) 1e-2, (REAL) 1e-2};
 
 		CPrescription *pPresc = this;
 		pPresc->SetGBinSigma(GBinSigma / nAtSigma[0]);
@@ -87,21 +88,57 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 {
 	// get the main volume
 	CVolume<REAL> *pVolume = pHisto->GetVolume();
-
-	// clear main
 	pVolume->ClearVoxels();
 
 	// iterate over the component volumes, accumulating the weighted volumes
 	ASSERT(vInput.GetDim() == pHisto->Get_dVolumeCount());
-	for (int nAt_dVolume = 0; nAt_dVolume < pHisto->Get_dVolumeCount();
-		nAt_dVolume++)
-	{
-		CVolume<REAL> *p_dVolume = pHisto->Get_dVolume(nAt_dVolume);
-		ASSERT(p_dVolume->GetWidth() == pVolume->GetWidth());
 
-		pVolume->Accumulate(p_dVolume, 
-			Sigmoid(vInput[nAt_dVolume], m_inputScale), TRUE);
-		LOG_EXPR(pVolume->GetMax());
+	int nMaxGroup = pHisto->GetGroupCount();
+	for (int nAtGroup = 0; nAtGroup < nMaxGroup; nAtGroup++)
+	{
+		static CVolume<REAL> volGroup;
+		BOOL bInitVolGroup = TRUE;
+
+		for (int nAt_dVolume = 0; nAt_dVolume < pHisto->Get_dVolumeCount();
+			nAt_dVolume++)
+		{
+			int nGroup = 0;
+			CVolume<REAL> *p_dVolume = pHisto->Get_dVolume(nAt_dVolume, &nGroup);
+
+			if (nGroup == nAtGroup)
+			{
+				// TODO: check all dimensions
+				if (bInitVolGroup)
+				{
+					volGroup.SetDimensions(
+						p_dVolume->GetWidth(), 
+						p_dVolume->GetHeight(),
+						p_dVolume->GetDepth());
+
+					volGroup.SetBasis(p_dVolume->GetBasis());
+
+					volGroup.ClearVoxels();
+
+					bInitVolGroup = FALSE;
+				}
+				// ASSERT(p_dVolume->GetWidth() == pVolume->GetWidth());
+
+				volGroup.Accumulate(p_dVolume, 
+					Sigmoid(vInput[nAt_dVolume], m_inputScale), TRUE);
+				// LOG_EXPR(pVolume->GetMax());
+			}
+		}
+
+		static CVolume<REAL> volGroupMain;
+		volGroupMain.SetBasis(pVolume->GetBasis());
+		volGroupMain.SetDimensions(
+			pVolume->GetWidth(), 
+			pVolume->GetHeight(),
+			pVolume->GetDepth());
+		volGroupMain.ClearVoxels();
+
+		Resample(&volGroup, &volGroupMain, TRUE);
+		pVolume->Accumulate(&volGroupMain, 1.0, FALSE);
 	}
 
 }	// CPrescription::CalcSumSigmoid
@@ -335,18 +372,23 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 {
 	BEGIN_LOG_SECTION(CPrescription::AddStructure);
 
-	CVolume<REAL> *pDose 
+/*	CVolume<REAL> *pDose 
 		= m_pPlan->GetBeamAt(0)->GetBeamlet(0, m_nLevel);
 	m_sumVolume.SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
-	m_sumVolume.SetBasis(pDose->GetBasis());
+	m_sumVolume.SetBasis(pDose->GetBasis()); */
 
 #ifdef INIT_VOLUME_IN_PRESC
 	CVolume<REAL> *pRegion = pStruct->GetRegion(0);
 	pRegion->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
 	pRegion->ClearVoxels();
 #endif
-	ASSERT(pVOIT->GetVOI()->GetRegion(m_nLevel)->GetWidth() 
-		== m_sumVolume.GetWidth());
+
+//	ASSERT(pVOIT->GetVOI()->GetRegion(m_nLevel)->GetWidth() 
+//		== m_sumVolume.GetWidth());
+	CVolume<REAL> *pRegion = pVOIT->GetVOI()->GetRegion(m_nLevel);
+	m_sumVolume.SetBasis(pRegion->GetBasis());
+	m_sumVolume.SetDimensions(pRegion->GetWidth(), pRegion->GetHeight(), pRegion->GetDepth());
+	m_sumVolume.SetBasis(pRegion->GetBasis());
 
 	CHistogram *pHisto = pVOIT->GetHistogram();
 	pHisto->SetGBinSigma(m_GBinSigma);
@@ -363,7 +405,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		GetBeamletFromSVElem(nAtElem, m_nLevel, &nBeam, &nBeamlet);
 
 		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
-		pBeamlet->SetThreshold((REAL) 1e-1); // pow(10, -(m_nLevel+1)));
+		pBeamlet->SetThreshold((REAL) 0.1); // pow(10, -(m_nLevel+1)));
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
 
