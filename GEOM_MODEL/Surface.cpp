@@ -3,9 +3,12 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#include "Surface.h"
 
 #include <float.h>
+
+#include <UtilMacros.h>
+
+#include "Surface.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -17,57 +20,122 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::CSurface
+// 
+// constructs a new surface object
+//////////////////////////////////////////////////////////////////////
 CSurface::CSurface()
 {
-
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::CSurface
+// 
+// copy constructor
+//////////////////////////////////////////////////////////////////////
 CSurface::CSurface(const CSurface& fromSurface)
 {
+	// assign the surface
 	(*this) = fromSurface;
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::~CSurface
+// 
+// destructor
+//////////////////////////////////////////////////////////////////////
 CSurface::~CSurface()
 {
+	// delete the contours
 	for (int nAt = 0; nAt < m_arrContours.GetSize(); nAt++)
+	{
 		delete m_arrContours[nAt];
+	}
+
+	// and remove the items from the array
 	m_arrContours.RemoveAll();
 }
 
+
+#define SURFACE_SCHEMA 4
+	// 4 - added the region
+	// 3
+	// 2
+	// 1
+
+IMPLEMENT_SERIAL(CSurface, CModelObject, VERSIONABLE_SCHEMA | SURFACE_SCHEMA)
+
+
+//////////////////////////////////////////////////////////////////////
+// CSurface::operator=
+// 
+// assignment operator
+//////////////////////////////////////////////////////////////////////
 CSurface& CSurface::operator=(const CSurface& fromSurface)
 {
-	name.Set(fromSurface.name.Get());
+	// set the name of the surface
+	SetName(fromSurface.GetName());
 
+	// copy the contours
 	for (int nAt = 0; nAt < fromSurface.GetContourCount(); nAt++)
+	{
 		m_arrContours.Add(new CPolygon(fromSurface.GetContour(nAt)));
+	}
+
+	// copy the reference distances for the contours
 	m_arrRefDist.Copy(fromSurface.m_arrRefDist);
 
+	// copy the mesh vertices
 	m_arrVertIndex.Copy(fromSurface.m_arrVertIndex);
 	m_arrVertex.Copy(fromSurface.m_arrVertex);
 	m_arrNormal.Copy(fromSurface.m_arrNormal);
 
+	// return a reference to this
 	return (*this);
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::GetContourCount
+// 
+// returns the number of contours in the mesh
+//////////////////////////////////////////////////////////////////////
 int CSurface::GetContourCount() const
 {
 	return m_arrContours.GetSize();
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::GetContour
+// 
+// returns the contour at the given index
+//////////////////////////////////////////////////////////////////////
 CPolygon& CSurface::GetContour(int nIndex) const
 {
 	return *(CPolygon *)m_arrContours[nIndex];
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::GetContourRefDist
+// 
+// returns the reference distance of the indicated contour
+//////////////////////////////////////////////////////////////////////
 double CSurface::GetContourRefDist(int nIndex) const
 {
 	return m_arrRefDist[nIndex];
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::GetBoundsMin
+// 
+// returns the minimum of the mesh
+//////////////////////////////////////////////////////////////////////
 CVector<3> CSurface::GetBoundsMin() const
 {
+	// set to max originally
 	CVector<3> vMin(FLT_MAX, FLT_MAX, FLT_MAX);
 
+	// accumulate the minimum
 	int nVertex;
 	for (nVertex = 0; nVertex < m_arrVertex.GetSize(); nVertex++) 
     {
@@ -76,13 +144,21 @@ CVector<3> CSurface::GetBoundsMin() const
 		vMin[2] = min(m_arrVertex[nVertex][2], vMin[2]);
     }
 
+	// return the min vector
 	return vMin;
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::GetBoundsMax
+// 
+// returns the maximum of the mesh
+//////////////////////////////////////////////////////////////////////
 CVector<3> CSurface::GetBoundsMax() const
 {
+	// set to -max originally
 	CVector<3> vMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+	// accumulate the maximum
 	int nVertex;
 	for (nVertex = 0; nVertex < m_arrVertex.GetSize(); nVertex++)
     {
@@ -91,37 +167,64 @@ CVector<3> CSurface::GetBoundsMax() const
 		vMax[2] = max(m_arrVertex[nVertex][2], vMax[2]);
     }
 
+	// return the max vector
 	return vMax;
 }
 
+//////////////////////////////////////////////////////////////////////
+// CSurface::GetMaxSize
+// 
+// returns the largest dimension of the bounding box
+//////////////////////////////////////////////////////////////////////
 double CSurface::GetMaxSize()
 {
 	return (GetBoundsMax() - GetBoundsMin()).GetLength() 
 		/ sqrt(2.0); 
 }
 
-#define SURFACE_SCHEMA 4
-IMPLEMENT_SERIAL(CSurface, CModelObject, VERSIONABLE_SCHEMA | SURFACE_SCHEMA)
-
+//////////////////////////////////////////////////////////////////////
+// CSurface::Serialize
+// 
+// returns the number of triangles in the mesh
+//////////////////////////////////////////////////////////////////////
 void CSurface::Serialize(CArchive &ar)
 {
 	// store the schema for the beam object
 	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : SURFACE_SCHEMA;
 
-	name.Serialize(ar);
+	// serialize the surface name
+	// name.Serialize(ar);
+	if (ar.IsLoading())
+	{
+		CString strName;
+		ar >> strName;
+		SetName(strName);
+	}
+	else
+	{
+		ar << GetName();
+	}
 
+	// serialize the contours
 	m_arrContours.Serialize(ar);
+
+	// serialize the reference distance
 	m_arrRefDist.Serialize(ar);
 
+	// serialize vertices
 	m_arrVertIndex.Serialize(ar);
 	m_arrVertex.Serialize(ar);
 	m_arrNormal.Serialize(ar);
 
-	if (nSchema > 3)
+	// if schema >= 4
+	if (nSchema >= 4)
 	{
-		if (region.Get() == NULL)
-			region.Set(new CVolume<int>());
-		region->Serialize(ar);
+		// serialize the region also
+		if (m_pRegion == NULL)
+		{
+			m_pRegion = new CVolume<int>();
+		}
+		m_pRegion->Serialize(ar);
 	}
 }
 
