@@ -23,18 +23,37 @@ static char THIS_FILE[]=__FILE__;
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CPrescription::CPrescription(CPlan *pPlan)
+CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 	: CObjectiveFunction(FALSE),
 		m_pPlan(pPlan),
+		m_nLevel(nLevel),
 		m_pOptimizer(NULL),
-		m_pNextLevel(NULL)
+		m_pNextLevel(NULL),
+		m_totalEntropyWeight(0.5),
+		m_inputScale(0.5)
 {
-	for (int nAtScale = 0; nAtScale < MAX_SCALES; nAtScale++)
-	{
-		m_arrHistoMatchers.Add(new CHistogramMatcher(this, nAtScale));
-	}
-
 	m_pOptimizer = new CConjGradOptimizer(this);
+
+	if (m_nLevel == 0)
+	{
+		REAL GBinSigma = (REAL) 0.20;
+		int nAtSigma[] = {2, 2, 1};
+		REAL tol[] = {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
+
+		CPrescription *pPresc = this;
+		pPresc->SetGBinSigma(GBinSigma / nAtSigma[0]);
+		pPresc->m_tolerance = tol[0];
+
+		for (int nAtLevel = 1; nAtLevel < MAX_SCALES; nAtLevel++)
+		{
+			pPresc->m_pNextLevel = new CPrescription(pPlan, nAtLevel);
+
+			pPresc = pPresc->m_pNextLevel;
+			pPresc->SetGBinSigma(GBinSigma / nAtSigma[nAtLevel]);
+
+			pPresc->m_tolerance = tol[nAtLevel];
+		}
+	}
 
 }	// CPrescription::CPrescription
 
@@ -45,24 +64,109 @@ CPrescription::CPrescription(CPlan *pPlan)
 ///////////////////////////////////////////////////////////////////////////////
 CPrescription::~CPrescription()
 {
-	for (int nAtScale = 0; nAtScale < MAX_SCALES; nAtScale++)
+	CStructure *pStruct = NULL;
+	CVOITerm *pVOIT = NULL;
+	POSITION pos = m_mapVOITs.GetStartPosition();
+	while (pos != NULL)
 	{
-		delete m_arrHistoMatchers[nAtScale];
+		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		delete pVOIT;
 	}
+
+	delete m_pOptimizer; 
 
 }	// CPrescription::~CPrescription
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// CPrescription::Optimize
+// CPrescription::CalcSumSigmoid
 // 
-// <description>
+// computes the sum of weights from an input vector
 ///////////////////////////////////////////////////////////////////////////////
-BOOL CPrescription::Optimize(CCallbackFunc func)
+void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput) const
 {
-	return TRUE;
+	// get the main volume
+	CVolume<REAL> *pVolume = pHisto->GetVolume();
 
-}	// CPrescription::Optimize
+	// clear main
+	pVolume->ClearVoxels();
+
+	// iterate over the component volumes, accumulating the weighted volumes
+	ASSERT(vInput.GetDim() == pHisto->Get_dVolumeCount());
+	for (int nAt_dVolume = 0; nAt_dVolume < pHisto->Get_dVolumeCount();
+		nAt_dVolume++)
+	{
+		CVolume<REAL> *p_dVolume = pHisto->Get_dVolume(nAt_dVolume);
+		ASSERT(p_dVolume->GetWidth() == pVolume->GetWidth());
+
+		pVolume->Accumulate(p_dVolume, Sigmoid(vInput[nAt_dVolume], m_inputScale));
+	}
+
+}	// CPrescription::CalcSumSigmoid
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CPrescription::Eval_TotalEntropy
+// 
+// Evaluates the total entropy and gradient for the input vector
+///////////////////////////////////////////////////////////////////////////////
+REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput, 
+											   CVectorN<> *pGrad) const
+{
+	static CVectorN<> vBeamWeights;
+	vBeamWeights.SetDim(m_pPlan->GetBeamCount());
+	vBeamWeights.SetZero();
+
+	double sum = 0.0;
+	for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
+	{
+		int nBeam;
+		int nBeamlet;
+		GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
+
+		vBeamWeights[nBeam] += Sigmoid(vInput[nAt], m_inputScale);
+		sum += Sigmoid(vInput[nAt], m_inputScale);
+	}
+
+	// to accumulate total entropy
+	double totalEntropy = 0.0;
+
+	// for each beamlet
+	for (int nAtBeam = 0; nAtBeam < vBeamWeights.GetDim(); nAtBeam++)
+	{
+		// p is probability of intensity of this beamlet
+		double p = vBeamWeights[nAtBeam] / sum;
+
+		// contribution to total is entropy of the probability
+		totalEntropy += - p * log(p);
+	}
+
+	// do we evaluate gradient?
+	if (pGrad)
+	{
+		for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
+		{
+			int nBeam;
+			int nBeamlet;
+			GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
+
+			// p is probability of intensity of this beamlet
+			double p = vBeamWeights[nBeam] / sum;
+
+			// derivative of prob is found by applying ratio rule
+			double d_p = dSigmoid(vInput[nAt], m_inputScale) 
+				* (sum - vBeamWeights[nBeam]) 
+					/ (sum * sum);
+
+			// apply chain rule to compute the derivative
+			(*pGrad)[nAt] = -d_p * (1 + log(p));
+		}
+	}
+
+	// return total entropy scaled by number of beamlets
+	return totalEntropy;	
+
+}	// CPrescription::Eval_TotalEntropy
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,56 +177,149 @@ BOOL CPrescription::Optimize(CCallbackFunc func)
 REAL CPrescription::operator()(const CVectorN<>& vInput, 
 	CVectorN<> *pGrad ) const
 {
-	return 0.0;
+	// initialize total sum of objective function
+	REAL totalSum = 0.0;
 
-}	// CPrescription::operator
-
-
-int CPrescription::AddStructure(CStructure *pStruct, REAL weight)
-{
-	int nIndex = 0;
-
-	BEGIN_LOG_SECTION(CPrescription::AddStructure);
-
-/*	CVolume<double> *pDose = m_pPlan->GetDoseMatrix(0);
-	CVolume<double> *pRegion = pStruct->GetRegion(0);
-	pRegion->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
-	pRegion->ClearVoxels();
-*/
-	ASSERT(pStruct->GetRegion(0)->GetWidth() == m_pPlan->GetDoseMatrix(0)->GetWidth());
-
-	REAL binWidth = 0.0125;
-	for (int nAtScale = 0; nAtScale < MAX_SCALES; nAtScale++)
+	// initialize gradient vector
+	if (pGrad)
 	{
-		LOG_OBJECT((*pStruct->GetRegion(nAtScale))); 
-
-		CHistogram *pHisto = new CHistogram();
-		pHisto->SetVolume(m_pPlan->GetDoseMatrix(nAtScale));
-		pHisto->SetRegion(pStruct->GetRegion(nAtScale));
-
-		pHisto->SetBinning(0.0, binWidth, 2.0);
-		binWidth *= 2.0;
-
-		for (int nAtElem = 0; nAtElem < m_pPlan->GetTotalBeamletCount(nAtScale); nAtElem++)
-		{
-			int nBeam;
-			int nBeamlet;
-			GetBeamletFromSVElem(nAtElem, nAtScale, &nBeam, &nBeamlet);
-
-			pHisto->Add_dVolume(m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, nAtScale));
-		}
-
-		m_mapHistograms[nAtScale].SetAt(pStruct, pHisto);
-
-		// add to the histogram matchers
-		nIndex = m_arrHistoMatchers[nAtScale]->AddHistogram(pHisto, weight);
+		pGrad->SetDim(vInput.GetDim());
+		pGrad->SetZero();
 	}
 
-	END_LOG_SECTION();
+	BEGIN_LOG_SECTION(CPrescription::operator());
 
-	return nIndex; // m_mapHistograms[0].GetCount();
+	//
+	// Compute match of target bins to histo bins
+	//
 
-}	// CPlanIMRT::AddStructure
+	bool bCalcSum = true;
+
+	POSITION pos = m_mapVOITs.GetStartPosition();
+	while (pos != NULL)
+	{
+		CStructure *pStruct = NULL;
+		CVOITerm *pVOIT = NULL;
+		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+
+		// calculate the summed volume, if this is the first VOIT
+		if (bCalcSum)
+		{
+			CalcSumSigmoid(pVOIT->GetHistogram(), vInput);
+			bCalcSum = false;
+		}
+
+		if (pGrad)
+		{
+			static CVectorN<> vPartGrad;
+			vPartGrad.SetDim(vInput.GetDim());
+			vPartGrad.SetZero();
+
+			totalSum += pVOIT->Eval(&vPartGrad);
+
+			// apply the chain rule for the sigmoid
+			for (int nAt = 0; nAt < vPartGrad.GetDim(); nAt++)
+			{
+				vPartGrad[nAt] *= dSigmoid(vInput[nAt], m_inputScale);
+			}
+
+			(*pGrad) += vPartGrad;
+		}
+		else
+		{
+			totalSum += pVOIT->Eval();
+		}
+	}
+
+	//
+	// now evalute total entropy
+	//
+
+	if (pGrad)
+	{
+		static CVectorN<> vPartGrad;
+		vPartGrad.SetDim(vInput.GetDim());
+		vPartGrad.SetZero();
+
+		totalSum -=  m_totalEntropyWeight * Eval_TotalEntropy(vInput, &vPartGrad);
+
+		(*pGrad) -= vPartGrad;
+	}
+	else
+	{
+		totalSum -=  m_totalEntropyWeight * Eval_TotalEntropy(vInput);
+	}
+
+	END_LOG_SECTION();	// CPrescription::operator()
+
+	return totalSum;
+
+}	// CPrescription::operator()
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CPrescription::Optimize
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+BOOL CPrescription::Optimize(CVectorN<>& vInit, CCallbackFunc func)
+{
+	if (m_pNextLevel)
+	{
+		// FilterStateVector(vInit, m_nLevel, vInit);
+		m_pNextLevel->Optimize(vInit, func);
+		InvFilterStateVector(vInit, m_nLevel+1, vInit, TRUE);
+	}
+
+	BEGIN_LOG_SECTION(FMT("Optimizing scale %n", m_nLevel));
+
+	for (int nAt = 0; nAt < vInit.GetDim(); nAt++)
+	{
+		vInit[nAt] = InvSigmoid(vInit[nAt], m_inputScale);
+	}
+
+	m_pOptimizer->SetTolerance(m_tolerance);
+	CVectorN<> vRes = m_pOptimizer->Optimize(vInit);
+	LOG_EXPR(m_pOptimizer->GetIterations());
+	cout << "Iterations for S" << m_nLevel << " = " 
+		<< m_pOptimizer->GetIterations() << endl;
+
+	// compute final state vector (add a small amount if zero)
+	for (nAt = 0; nAt < vRes.GetDim(); nAt++)
+	{
+		vInit[nAt] = __max(Sigmoid(vRes[nAt], m_inputScale), 1e-4);
+	}
+
+	//
+	// output logging information
+	// 
+
+	CHistogram *pHisto = NULL;
+	POSITION pos = m_mapVOITs.GetStartPosition();
+	while (pos != NULL)
+	{
+		CStructure *pStruct = NULL;
+		CVOITerm *pVOIT = NULL;
+		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		pHisto = pVOIT->GetHistogram();
+
+		LOG_EXPR_EXT_DESC(pHisto->GetBins(), pStruct->GetName() + " Bins");
+	}
+	LOG_EXPR_EXT_DESC(pHisto->GetBinMeans(), "Bin Mean")
+
+	LOG_OBJECT(m_sumVolume);
+
+	//
+	// end output logging information
+	//
+
+	END_LOG_SECTION(); // FMT("Optimizing scale %n", nAtLevel)
+
+	FLUSH_LOG();
+
+	return TRUE;
+
+}	// CPrescription::Optimize
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -132,14 +329,46 @@ int CPrescription::AddStructure(CStructure *pStruct, REAL weight)
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 {
-	pVOIT->GetHistogram()->SetVolume(m_pSumVolume);
-	m_mapVOITerms[pVOIT->GetVOI()] = pVOIT;
+	BEGIN_LOG_SECTION(CPrescription::AddStructure);
 
-	// set up structure terms for sub-levels
+	CVolume<REAL> *pDose 
+		= m_pPlan->GetBeamAt(0)->GetBeamlet(0, m_nLevel);
+	m_sumVolume.SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
+
+#ifdef INIT_VOLUME_IN_PRESC
+	CVolume<REAL> *pRegion = pStruct->GetRegion(0);
+	pRegion->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), pDose->GetDepth());
+	pRegion->ClearVoxels();
+#endif
+	ASSERT(pVOIT->GetVOI()->GetRegion(m_nLevel)->GetWidth() 
+		== m_sumVolume.GetWidth());
+
+	CHistogram *pHisto = pVOIT->GetHistogram();
+	pHisto->SetGBinSigma(m_GBinSigma);
+	pHisto->SetVolume(&m_sumVolume);
+
+	// need to do this before initialize target bins
+	REAL binWidth = 0.0125 * pow(2, m_nLevel);
+	pHisto->SetBinning(0.0, binWidth, 2.0);
+
+	for (int nAtElem = 0; nAtElem < m_pPlan->GetTotalBeamletCount(m_nLevel); nAtElem++)
+	{
+		int nBeam;
+		int nBeamlet;
+		GetBeamletFromSVElem(nAtElem, m_nLevel, &nBeam, &nBeamlet);
+
+		pHisto->Add_dVolume(m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel));
+	}
+
+	// add to the current prescription
+	m_mapVOITs[pVOIT->GetVOI()] = pVOIT;
+
 	if (m_pNextLevel)
 	{
 		m_pNextLevel->AddStructureTerm(pVOIT->Subcopy());
 	}
+
+	END_LOG_SECTION();
 
 }	// CPrescription::AddStructureTerm
 
@@ -152,9 +381,9 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 void CPrescription::RemoveStructureTerm(CStructure *pStruct)
 {
 	CVOITerm *pVOIT = NULL;
-	if (m_mapVOITerms.Lookup(pStruct, pVOIT))
+	if (m_mapVOITs.Lookup(pStruct, pVOIT))
 	{
-		m_mapVOITerms.RemoveKey(pStruct);
+		m_mapVOITs.RemoveKey(pStruct);
 		delete pVOIT;
 
 		// set up structure terms for sub-levels
@@ -168,264 +397,75 @@ void CPrescription::RemoveStructureTerm(CStructure *pStruct)
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// CPrescription::SetPlan
+// CPrescription::SetGBinSigma
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CPrescription::SetPlan(CPlan *pPlan, int nLevels)
+void CPrescription::SetGBinSigma(REAL GBinSigma)
 {
-	m_pPlan = pPlan;
+	m_GBinSigma = GBinSigma;
 
-/*	if (nLevels-1 > 1)
+	POSITION pos = m_mapVOITs.GetStartPosition();
+	while (pos != NULL)
 	{
-		m_pNextLevel = new CPrescription();
-		m_pNextLevel->SetPlan(pPlan, nLevels-1);
-	} */
+		CStructure *pStruct = NULL;
+		CVOITerm *pVOIT = NULL;
+		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
 
-}	// CPrescription::SetPlan
-
-
-//////////////////////////////////////////////////////////////////////
-// CKLDivTerm::SetInterval
-// 
-// sets the target histgram to an interval
-//////////////////////////////////////////////////////////////////////
-void CKLDivTerm::SetInterval(long nAt, 
-									double low, double high, 
-									double fraction)
-{
-	BEGIN_LOG_SECTION(CKLDivTerm::SetInterval);
-	LOG("Setting interval for histogram");
-	LOG_EXPR(low);
-	LOG_EXPR(high);
-	LOG_EXPR(fraction);
-
-	// get the main volume
-	CVolume<double> *pVolume = GetHistogram()->GetVolume();
-	CVectorN<>& targetBins = GetTargetBins();
-	targetBins.SetDim(GetHistogram()->GetBinForValue(high)+1);
-	targetBins.SetZero();
-
-	double sum = 0.0;
-	for (int nAtBin = GetHistogram()->GetBinForValue(low); 
-		nAtBin <= GetHistogram()->GetBinForValue(high); nAtBin++)
-	{
-		targetBins[nAtBin] = 1.0;
-		sum += 1.0;
+		pVOIT->GetHistogram()->SetGBinSigma(m_GBinSigma);
 	}
 
-	double totalVolume = pVolume->GetVoxelCount();
-	if (NULL != GetHistogram()->GetRegion())
-	{
-		totalVolume = GetHistogram()->GetRegion()->GetSum();
-	}
-
-	if (sum > 0.0)
-	{
-		for (nAtBin = 0; nAtBin < targetBins.GetDim(); nAtBin++)
-		{
-			// re-normalize bins
-			targetBins[nAtBin] *= fraction * totalVolume / sum;
-		}
-	}
-
-	LOG_EXPR_EXT(targetBins);
-	LOG_EXPR_EXT_DESC(GetHistogram()->GetBinMeans(), "Bin Means");
-
-	END_LOG_SECTION();	// CKLDivTerm::SetInterval
-
-}	// CKLDivTerm::SetInterval
-
-
-//////////////////////////////////////////////////////////////////////
-// CKLDivTerm::SetRamp
-// 
-// sets the target histgram to a ramp
-//////////////////////////////////////////////////////////////////////
-void CKLDivTerm::SetRamp(long nAt, 
-									double low, double low_frac,
-									double high, double high_frac)
-{
-	BEGIN_LOG_SECTION(CKLDivTerm::SetRamp);
-	LOG("Setting ramp for histogram");
-	LOG_EXPR(low);
-	LOG_EXPR(low_frac);
-	LOG_EXPR(high);
-	LOG_EXPR(high_frac);
-
-	// get the main volume
-	CVolume<double> *pVolume = GetHistogram()->GetVolume();
-	CVectorN<>& targetBins = GetTargetBins();
-	targetBins.SetZero();
-
-	double sum = 0.0;
-	double step = (high_frac - low_frac) 
-		/ (GetHistogram()->GetBinForValue(high)
-			- GetHistogram()->GetBinForValue(low));
-	double bin_value = low_frac;
-	for (int nAtBin = GetHistogram()->GetBinForValue(low); 
-		nAtBin <= GetHistogram()->GetBinForValue(high); nAtBin++)
-	{
-		targetBins[nAtBin] = bin_value;
-		bin_value += step;
-	}
-
-	LOG_EXPR_EXT(targetBins);
-	LOG_EXPR_EXT_DESC(GetHistogram()->GetBinMeans(), "Bin Means");
-
-	END_LOG_SECTION();	// CKLDivTerm::SetRamp
-
-}	// CKLDivTerm::SetRamp
-
-
-
-
-REAL CKLDivTerm::Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad)
-{
-	REAL sum = 0.0;
-
-	BEGIN_LOG_SECTION(CKLDivTerm::Eval);
-
-	// get the calculated histogram bins
-	CVectorN<> calcGPDF = GetHistogram()->GetGBins();
-	LOG_EXPR_EXT(calcGPDF);
-
-	// get the target bins
-	CVectorN<> targetGPDF = GetTargetGBins();
-	LOG_EXPR_EXT(targetGPDF);
-
-	const long n_dVolCount = GetHistogram()->Get_dVolumeCount();
-	std::vector< CVectorN<> > arrCalc_dGPDF;
-
-	// if a gradient is needed
-	if (pvGrad)
-	{
-		pvGrad->SetDim(n_dVolCount);
-		pvGrad->SetZero();
-
-		for (int nAt_dVol = 0; nAt_dVol < n_dVolCount; nAt_dVol++)
-		{
-			arrCalc_dGPDF.push_back(GetHistogram()->Get_dGBins(nAt_dVol));
-			LOG_EXPR_EXT_DESC(arrCalc_dGPDF.back(), FMT("arrCalc_dGPDF %i", nAt_dVol));
-		}
-	} 
-
-	// must normalize both distributions
-	REAL calcSum = 0.0; 
-	REAL targetSum = 0.0;
-	for (int nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
-	{
-		// form sum of bins values
-		calcSum += calcGPDF[nAtBin];
-		targetSum += targetGPDF[nAtBin];
-	}
-	LOG_EXPR(calcSum);
-	LOG_EXPR(targetSum);
-
-	// form the sum of the sq. difference for target - calc
-	const REAL EPS = 1e-12;
-	for (nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
-	{
-		// normalize samples
-		calcGPDF[nAtBin] /= calcSum;
-		targetGPDF[nAtBin] /= targetSum;
-
-		// form sum of relative entropy termA
-		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin]
-			/ (targetGPDF[nAtBin] + EPS) + EPS);
-
-#ifdef SWAP
-		sum += targetGPDF[nAtBin] * log(targetGPDF[nAtBin]
-			/ (calcGPDF[nAtBin] + EPS) + EPS);
-#endif
-		// if a gradient is needed
-		if (pvGrad)
-		{
-			// iterate over the dVolumes
-			for (int nAt_dVol = 0; nAt_dVol < n_dVolCount; nAt_dVol++)
-			{
-				// normalize this bin
-				arrCalc_dGPDF[nAt_dVol][nAtBin] /= calcSum;
-
-				// add to the proper gradient element
-				(*pvGrad)[nAt_dVol] += m_weight
-					* (log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS) + 1.0)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]
-						* d_vInput[nAt_dVol];
-						// * dSigmoid(vInput[nAt_dVol]);
-						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
-#ifdef SWAP		
-				(*pvGrad)[nAt_dVol] += 
-					- targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]
-						* dSigmoid(vInput[nAt_dVol]);
-						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
-#endif
-#ifdef _FULL_DERIV
-					- (targetGPDF[nAtBin] * targetGPDF[nAtBin]) 
-						/ ((calcGPDF[nAtBin] + EPS) * (calcGPDF[nAtBin] + EPS))
-					/ (targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS) + EPS)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]
-						* dSigmoid(vInput[nAt_dVol]);
-						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
-#endif
-
-			}
-		}
-	}
-
-	sum /= (REAL) calcGPDF.GetDim();
-
-	LOG_EXPR(sum);
-	END_LOG_SECTION();	// CHistogramMatcher::Eval_RelativeEntropy
-
-	return m_weight * sum;
-}
-
-CHistogram * CPrescription::GetHistogram(CStructure *pStruct, int nScale)
-{
-	CHistogram *pHisto = NULL;
-	m_mapHistograms[nScale].Lookup(pStruct, pHisto);
-
-	return pHisto;
-}
-
-
+}	// CPrescription::SetGBinSigma
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// CPrescription::GetStateVector
+// CPrescription::GetInitStateVector
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CPrescription::GetStateVector(int nScale, CVectorN<>& vState)
+void CPrescription::GetInitStateVector(CVectorN<>&vInit)
+{
+	vInit.SetDim(m_pPlan->GetTotalBeamletCount(2));
+	for (int nAt = 0; nAt < vInit.GetDim(); nAt++)
+	{
+		vInit[nAt] = 0.01 / (REAL) vInit.GetDim();
+	}
+
+}	// CPrescription::GetInitStateVector
+
+///////////////////////////////////////////////////////////////////////////////
+// CPrescription::GetStateVectorFromPlan
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+void CPrescription::GetStateVectorFromPlan(CVectorN<>& vState)
 {
 	CMatrixNxM<> mBeamletWeights(m_pPlan->GetBeamCount(), 
-		m_pPlan->GetBeamAt(0)->GetBeamletCount(nScale));
+		m_pPlan->GetBeamAt(0)->GetBeamletCount(0));
 	for (int nAtBeam = 0; nAtBeam < m_pPlan->GetBeamCount(); nAtBeam++)
 	{
-		mBeamletWeights[nAtBeam] = m_pPlan->GetBeamAt(nAtBeam)->GetIntensityMap(nScale);
+		mBeamletWeights[nAtBeam] = m_pPlan->GetBeamAt(nAtBeam)->GetIntensityMap();
 	}
-	BeamletWeightsToStateVector(nScale, mBeamletWeights, vState);
+	BeamletWeightsToStateVector(0, mBeamletWeights, vState);
 
-}	// CPrescription::GetStateVector
+}	// CPrescription::GetStateVectorFromPlan
 
 ///////////////////////////////////////////////////////////////////////////////
-// CPrescription::SetStateVector
+// CPrescription::SetStateVectorToPlan
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CPrescription::SetStateVector(int nScale, const CVectorN<>& vState)
+void CPrescription::SetStateVectorToPlan(const CVectorN<>& vState)
 {
 	CMatrixNxM<> mBeamletWeights;
-	StateVectorToBeamletWeights(nScale, vState, mBeamletWeights);
+	StateVectorToBeamletWeights(0, vState, mBeamletWeights);
 
 	for (int nAtBeam = 0; nAtBeam < m_pPlan->GetBeamCount(); nAtBeam++)
 	{
-		m_pPlan->GetBeamAt(nAtBeam)->SetIntensityMap(nScale, mBeamletWeights[nAtBeam]);
+		m_pPlan->GetBeamAt(nAtBeam)->SetIntensityMap(mBeamletWeights[nAtBeam]);
 	}
 
-}	// CPrescription::SetStateVector
+}	// CPrescription::SetStateVectorToPlan
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -433,7 +473,7 @@ void CPrescription::SetStateVector(int nScale, const CVectorN<>& vState)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CPrescription::GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet)
+void CPrescription::GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet) const
 {
 	(*pnBeam) = nElem % m_pPlan->GetBeamCount();
 
@@ -518,3 +558,6 @@ void CPrescription::BeamletWeightsToStateVector(int nScale, const CMatrixNxM<>& 
 	}
 
 }	// CPrescription::BeamletWeightsToStateVector
+
+
+
