@@ -78,6 +78,7 @@ CVolume<REAL> * CStructure::GetRegion(int nScale)
 			CVolume<REAL> *pPrevRegion = GetRegion(nScale - 1);
 
 			CVolume<REAL> convRegion;
+			convRegion.SetBasis(pPrevRegion->GetBasis());
 			Convolve(pPrevRegion, &m_kernel, &convRegion);
 
 			Decimate(&convRegion, pNewRegion);
