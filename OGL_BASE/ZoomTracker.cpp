@@ -24,7 +24,7 @@ static char THIS_FILE[]=__FILE__;
 CMatrix<4> ComputeScaleMatrix(const double& initY, const double& finalY)
 {
 	// compute the difference
-	double scale = exp(2.0 * (initY - finalY));
+	double scale = exp(4.0 * (initY - finalY));
 	TRACE1("Scale = %lf\n", scale);
 
 	// now compute the rotation matrix
