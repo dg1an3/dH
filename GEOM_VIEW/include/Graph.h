@@ -5,6 +5,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <vector>
+using namespace std;
+
 #include <Vector.h>
 
 // Graph.h : header file
@@ -17,10 +20,11 @@ class CDataSeries : public CObject
 {
 public:
 	CDataSeries() : m_color(RGB(255, 0, 0)) { }
-//	virtual ~CDataSeries();
 
 	COLORREF m_color;
-	CArray< CVector<2>, CVector<2> > m_arrData;
+
+	// use a std vector instead of CArray, because CArray is bad
+	vector< CVector<2> > m_arrData;	
 };
 
 class CGraph : public CWnd
@@ -28,6 +32,7 @@ class CGraph : public CWnd
 // Construction
 public:
 	CGraph();
+	virtual ~CGraph();
 
 // Attributes
 public:
@@ -42,15 +47,20 @@ public:
 
 // Implementation
 public:
+
+	// computes the min and max values for the graph
 	void ComputeMinMax();
+
+	// converts to coordinates on the plot
 	CPoint ToPlotCoord(CVector<2> vCoord);
+
+	// the array of data series
 	CObArray m_arrDataSeries;
 
+	// min, max, and major 
 	CVector<2> m_vMax;
 	CVector<2> m_vMin;
 	CVector<2> m_vMajor;
-
-	virtual ~CGraph();
 
 	// Generated message map functions
 protected:
