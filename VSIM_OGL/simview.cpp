@@ -80,10 +80,10 @@ void CSimView::OnDraw(CDC* pDC)
 
 void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
-	if (pFromObject == &m_wndBEV.projectionMatrix)
+	if (pFromObject == &m_wndBEV.camera.projectionMatrix)
 	{
 		// determine the new beam parameters from the BEV viewing matrix
-		CMatrix<4> mProjMatrix = m_wndBEV.projectionMatrix.Get();
+		CMatrix<4> mProjMatrix = m_wndBEV.camera.projectionMatrix.Get();
 
 		// first, retrieve the projection matrix for the beam
 		CMatrix<4> mPerspProj = ComputeProjection(*currentBeam.Get());
@@ -164,20 +164,21 @@ int CSimView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if (!m_wndREV.Create(NULL, NULL, lpCreateStruct->style, CRect(0, 0, 0, 0), this, 0))
 		return -1;
-	
-	m_wndREV.SetClippingPlanes(1.0f, 200.0f);
-	m_wndREV.SetMaxObjSize(20.0f);
-	m_wndREV.AddLeftTracker(new CRotateTracker(&m_wndREV));
-	m_wndREV.AddMiddleTracker(new CZoomTracker(&m_wndREV));
+
+	m_wndREV.camera.nearPlane.Set(1.0);
+	m_wndREV.camera.farPlane.Set(200.0);
+	m_wndREV.camera.SetFieldOfView(20.0f);
+	m_wndREV.leftTrackers.Add(new CRotateTracker(&m_wndREV));
+	m_wndREV.middleTrackers.Add(new CZoomTracker(&m_wndREV));
 
 	if (!m_wndBEV.Create(NULL, NULL, lpCreateStruct->style, CRect(0, 0, 0, 0), this, 0))
 		return -1;
 	
-	m_wndBEV.SetClippingPlanes(1.0f, 200.0f);
-	m_wndBEV.SetMaxObjSize(20.0f);
+	m_wndBEV.camera.nearPlane.Set(1.0);
+	m_wndBEV.camera.farPlane.Set(200.0);
+	m_wndBEV.camera.SetFieldOfView(20.0f);
 	CRotateTracker *pBEVRotateTracker = new CRotateTracker(&m_wndBEV);
-	pBEVRotateTracker->upDirection.Set(CVector<3>(0.0, 0.0, 0.0));
-	m_wndBEV.AddLeftTracker(pBEVRotateTracker);
+	m_wndBEV.leftTrackers.Add(pBEVRotateTracker);
 
 
 	return 0;
@@ -254,12 +255,12 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_pDRRRenderer = new CDRRRenderer(&m_wndBEV);
 		m_pDRRRenderer->forVolume.Set(&GetDocument()->GetSeries()->volume);
 		m_pDRRRenderer->volumeTransform.Set(GetDocument()->GetSeries()->volumeTransform.Get());
-		m_wndBEV.AddRenderer(m_pDRRRenderer);
+		m_wndBEV.renderers.Add(m_pDRRRenderer);
 
 		CBeamRenderer *pBEVBeamRenderer = new CBeamRenderer(&m_wndBEV);
 		pBEVBeamRenderer->SetBeam(&beam);
 		pBEVBeamRenderer->isGraticuleEnabled.Set(TRUE);
-		m_wndBEV.AddRenderer(pBEVBeamRenderer);
+		m_wndBEV.renderers.Add(pBEVBeamRenderer);
 
 		beam.AddObserver(this, (ChangeFunction) OnChange);
 	}
@@ -303,7 +304,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pSurfaceRenderer->SetSurface(pSurface);
 		pSurfaceRenderer->tableOffset.SyncTo(&pMainBeam->tableOffset);
 		pSurfaceRenderer->couchAngle.SyncTo(&pMainBeam->couchAngle);
-		m_wndREV.AddRenderer(pSurfaceRenderer);
+		m_wndREV.renderers.Add(pSurfaceRenderer);
 
 		pSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 
@@ -317,9 +318,8 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			CVector<3> vMax = pSurface->GetBoundsMax();
 			// CSurfaceRenderer::m_vXlate = (vMin + vMax) * -0.5; 
 
-			m_wndREV.SetMaxObjSize((float) (8.5 * pSurface->GetMaxSize())); 
-
-			m_wndBEV.SetMaxObjSize((float) (2.5 * pSurface->GetMaxSize())); 
+			m_wndREV.camera.SetFieldOfView((float) (8.5 * pSurface->GetMaxSize())); 
+			m_wndBEV.camera.SetFieldOfView((float) (2.5 * pSurface->GetMaxSize())); 
 		}
 
 		if (nAtSurf > 0)
@@ -329,7 +329,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			pBEVSurfaceRenderer->isColorWash.SyncTo(&isColorWash);
 			pBEVSurfaceRenderer->color.Set(arrColors[nAtSurf]);
 			pBEVSurfaceRenderer->SetSurface(pSurface);
-			m_wndBEV.AddRenderer(pBEVSurfaceRenderer);
+			m_wndBEV.renderers.Add(pBEVSurfaceRenderer);
 			pBEVSurfaceRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 		}
 	}
@@ -361,14 +361,14 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		// create and add the machine renderer to the REV
 		CMachineRenderer *pMachineRenderer = new CMachineRenderer(&m_wndREV);
 		pMachineRenderer->forBeam.Set(pBeam);
-		m_wndREV.AddRenderer(pMachineRenderer);
+		m_wndREV.renderers.Add(pMachineRenderer);
 
 		// create and add the beam renderer to the REV
 		m_pBeamRenderer = new CBeamRenderer(&m_wndREV);
 		m_pBeamRenderer->SetBeam(pBeam);
 		m_pBeamRenderer->SetREVBeam();
 
-		m_wndREV.AddRenderer(m_pBeamRenderer);
+		m_wndREV.renderers.Add(m_pBeamRenderer);
 		m_pBeamRenderer->isEnabled.SyncTo(&pNewItem->isChecked);
 	}
 
@@ -471,9 +471,9 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	mB2P.Invert();
 	mProj *= mB2P;
 
-	m_wndBEV.projectionMatrix.RemoveObserver(this, (ChangeFunction) OnChange);
-	m_wndBEV.projectionMatrix.Set(mProj);
-	m_wndBEV.projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
+	m_wndBEV.camera.projectionMatrix.RemoveObserver(this, (ChangeFunction) OnChange);
+	m_wndBEV.camera.projectionMatrix.Set(mProj);
+	m_wndBEV.camera.projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 #if defined(USE_FUNCTIONS_FOR_BEV)
