@@ -25,9 +25,6 @@ public:
 	virtual void OnLButtonDown(UINT nFlags, CPoint point);
 	virtual void OnMouseDrag(UINT nFlags, CPoint point);
 
-	// vector to indicate the camera up direction to be maintained
-	CValue< CVector<3> > upDirection;
-
 private:
 	// stores the initial point (in 3-d)
 	CVector<3> m_vInitPoint;
