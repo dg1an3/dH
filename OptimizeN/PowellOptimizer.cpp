@@ -96,12 +96,9 @@ const CVectorN<>& CPowellOptimizer::Optimize(const CVectorN<>& vInit)
 
 			// update the current point
 			// m_vFinalParam += lambda * m_lineFunction.GetDirection();
-			static CVectorN<> m_vScaledDir;
+			// static CVectorN<> m_vScaledDir;
 			m_vScaledDir = m_lineFunction.GetDirection();
-			if (fabs(lambda) > EPS)
-				m_vScaledDir *= lambda;
-			else
-				m_vScaledDir *= EPS;
+			m_vScaledDir *= (fabs(lambda) > EPS) ? lambda : EPS;
 			m_vFinalParam += m_vScaledDir;
 
 			if (fabs(fptt - m_finalValue) > del)
@@ -152,7 +149,7 @@ const CVectorN<>& CPowellOptimizer::Optimize(const CVectorN<>& vInit)
 				// update the current point
 				// m_vFinalParam += lambda * m_lineFunction.GetDirection();
 				m_vScaledDir = m_lineFunction.GetDirection();
-				m_vScaledDir *= lambda;
+				m_vScaledDir *= (fabs(lambda) > EPS) ? lambda : EPS;
 				m_vFinalParam += m_vScaledDir;
 
 				m_pDirections[nBigDir] = m_pDirections[nDim - 1];
