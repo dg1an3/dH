@@ -65,7 +65,8 @@ void CScribbleDoc::Serialize(CArchive& ar)
 	else
 	{
 	}
-	m_strokeList.Serialize(ar);
+	m_polygon.Serialize(ar);
+//	m_strokeList.Serialize(ar);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -96,10 +97,12 @@ BOOL CScribbleDoc::OnOpenDocument(LPCTSTR lpszPathName)
 
 void CScribbleDoc::DeleteContents()
 {
-	while (!m_strokeList.IsEmpty())
-	{
-		delete m_strokeList.RemoveHead();
-	}
+	m_polygon.GetVertexArray().RemoveAll();
+
+//	while (!m_strokeList.IsEmpty())
+//	{
+//		delete m_strokeList.RemoveHead();
+//	}
 	CDocument::DeleteContents();
 }
 
@@ -110,6 +113,7 @@ void CScribbleDoc::InitDocument()
 	m_penCur.CreatePen(PS_SOLID, m_nPenWidth, RGB(0,0,0));
 }
 
+/*
 CStroke* CScribbleDoc::NewStroke()
 {
 	CStroke* pStrokeItem = new CStroke(m_nPenWidth);
@@ -118,14 +122,14 @@ CStroke* CScribbleDoc::NewStroke()
 						// purposes of confirming File Close.
 	return pStrokeItem;
 }
-
+*/
 
 
 
 /////////////////////////////////////////////////////////////////////////////
 // CStroke
 
-IMPLEMENT_SERIAL(CStroke, CObject, 1)
+/*IMPLEMENT_SERIAL(CStroke, CObject, 1)
 CStroke::CStroke()
 {
 	// This empty constructor should be used by serialization only
@@ -167,3 +171,4 @@ BOOL CStroke::DrawStroke(CDC* pDC)
 	pDC->SelectObject(pOldPen);
 	return TRUE;
 }
+*/

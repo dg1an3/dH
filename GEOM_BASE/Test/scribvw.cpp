@@ -95,21 +95,13 @@ void CScribbleView::OnDraw(CDC* pDC)
 	ASSERT_VALID(pDoc);
 
 	// The view delegates the drawing of individual strokes to
-	// CStroke::DrawStroke().
-/*	CTypedPtrList<CObList,CStroke*>& strokeList = pDoc->m_strokeList;
-	POSITION pos = strokeList.GetHeadPosition();
-	while (pos != NULL)
-	{
-		CStroke* pStroke = strokeList.GetNext(pos);
-		pStroke->DrawStroke(pDC);
-	}
-*/
-
 	DrawPolygon(pDC, pDoc->m_polygon);
 
+	// make the convex hull of the polygon
 	CPolygon convexHull(pDoc->m_polygon);
 	convexHull.MakeConvexHull();
 
+	// and draw it in a different color
 	DrawPolygon(pDC, convexHull, RGB(255, 0, 0));
 }
 

@@ -19,6 +19,7 @@
 // A stroke is a series of connected points in the scribble drawing.
 // A scribble document may have multiple strokes.
 
+/*
 class CStroke : public CObject
 {
 public:
@@ -41,7 +42,7 @@ public:
 public:
 	virtual void Serialize(CArchive& ar);
 };
-
+*/
 
 
 class CScribbleDoc : public CDocument
@@ -62,7 +63,7 @@ protected:
 	CPen            m_penCur;           // pen created according to
 										// user-selected pen style (width)
 public:
-	CTypedPtrList<CObList,CStroke*>     m_strokeList;
+//	CTypedPtrList<CObList,CStroke*>     m_strokeList;
 	CPen*           GetCurrentPen() { return &m_penCur; }
 
 	// holds the Delaunay triangulation
@@ -70,7 +71,7 @@ public:
 
 // Operations
 public:
-	CStroke* NewStroke();
+//	CStroke* NewStroke();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
