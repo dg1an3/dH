@@ -141,7 +141,9 @@ void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 		}
 
 		currentBeam->couchAngle.Set(couch);
-		currentBeam->gantryAngle.Set(PI - gantry);
+		double actGantry = PI - gantry;
+		actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
+		currentBeam->gantryAngle.Set(actGantry);
 		currentBeam->collimAngle.Set(coll);
 
 		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
