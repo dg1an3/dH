@@ -146,7 +146,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 
 	// Too many iterations
 	TRACE0("Too many iterations\n");
-	ASSERT(FALSE);
+	// ASSERT(FALSE);
 
 	// return the last parameter vector
 	return m_vFinalParam;
