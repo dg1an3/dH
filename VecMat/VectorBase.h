@@ -77,7 +77,7 @@ public:
 	void Normalize();
 
 	// approximate equality using the epsilon
-	BOOL IsApproxEqual(const CVectorBase& v, TYPE epsilon = EPS) const;
+	BOOL IsApproxEqual(const CVectorBase& v, TYPE epsilon = DEFAULT_EPSILON) const;
 
 	// in-place vector arithmetic
 	CVectorBase& operator+=(const CVectorBase& vRight);
@@ -121,7 +121,7 @@ CVectorBase<TYPE>::CVectorBase<TYPE>()
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
 CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>& vFrom)
-	: m_nDim(0),
+	: m_nDim(vFrom.GetDim()),
 		m_pElements(NULL),
 		m_bFreeElements(TRUE)
 {
@@ -161,10 +161,16 @@ CVectorBase<TYPE>::~CVectorBase<TYPE>()
 template<class TYPE>
 CVectorBase<TYPE>& CVectorBase<TYPE>::operator=(const CVectorBase<TYPE>& vFrom)
 {
-	for (int nAt = 0; nAt < GetDim(); nAt++)
+	// copy the elements
+	ASSERT(m_pElements == (*this));
+	ASSERT(vFrom == (vFrom.m_pElements));
+	memcpy((*this), vFrom, __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+
+	// set remainder of elements to 0
+	if (GetDim() > vFrom.GetDim())
 	{
-		(*this)[nAt] = 
-			(nAt < vFrom.GetDim()) ? vFrom[nAt] : (TYPE) 0.0;
+		memset(&(*this)[vFrom.GetDim()], 0, 
+			(GetDim() - vFrom.GetDim()) * sizeof(TYPE));
 	}
 
 	return (*this);
@@ -181,10 +187,7 @@ template<class TYPE>
 void CVectorBase<TYPE>::SetZero() 
 {
 	// zero all elements
-	for (int nAt = 0; nAt < GetDim(); nAt++)
-	{
-		(*this)[nAt] = (TYPE) 0.0;
-	}
+	memset((*this), 0, GetDim() * sizeof(TYPE));
 
 }	// CVectorBase<TYPE>::SetZero
 
