@@ -79,11 +79,11 @@ inline double AngleFromSinCos(double sin_angle, double cos_angle)
 
 	// ensure the angle is in range [0..2*PI];
 	if (angle < 0.0)
-		angle += 2 * PI;
+		angle += 2.0 * PI;
 
 	// now check
-	// ASSERT(fabs(sin(angle) - sin_angle) < 1e-6);
-	// ASSERT(fabs(cos(angle) - cos_angle) < 1e-6);
+	ASSERT(fabs(sin(angle) - sin_angle) < 1e-6);
+	ASSERT(fabs(cos(angle) - cos_angle) < 1e-6);
 
 	return angle;
 }
