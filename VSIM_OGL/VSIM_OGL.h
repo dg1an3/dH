@@ -12,7 +12,7 @@
 	#error include 'stdafx.h' before including this file for PCH
 #endif
 
-#include "GUI_BASE_resource.h"	// GUI_BASE symbols
+#include <GUI_BASE_resource.h>	// GUI_BASE symbols
 #include "resource.h"       // main symbols
 
 /////////////////////////////////////////////////////////////////////////////
