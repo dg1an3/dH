@@ -9,3 +9,4 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+// IMPLEMENT_SERIAL_TEMPLATE1(CVolume< short >, short, CObject, 0);

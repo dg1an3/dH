@@ -11,8 +11,22 @@
 
 #include "Value.h"
 
+#define DECLARE_SERIAL_TEMPLATE1(class_name, template_arg_name) \
+	_DECLARE_DYNCREATE(class_name##template_arg_name) \
+	AFX_API friend CArchive& AFXAPI operator>>(CArchive& ar, class_name* &pOb);
+
+#define IMPLEMENT_SERIAL_TEMPLATE1(class_name, template_arg_name, base_class_name, wSchema) \
+	CObject* PASCAL class_name::CreateObject() \
+		{ return new class_name; } \
+	_IMPLEMENT_RUNTIMECLASS(class_name##template_arg_name, base_class_name, wSchema, \
+		class_name::CreateObject) \
+	AFX_CLASSINIT _init_##class_name##template_arg_name(RUNTIME_CLASS(class_name##template_arg_name)); \
+	CArchive& AFXAPI operator>>(CArchive& ar, class_name* &pOb) \
+		{ pOb = (class_name*) ar.ReadObject(RUNTIME_CLASS(class_name##template_arg_name)); \
+			return ar; } \
+
 template<class VOXEL_TYPE>
-class CVolume : public CObject, public CObserver
+class CVolume : public CObject, public CObservable, public CObserver
 {
 public:
 	CVolume()
@@ -29,6 +43,8 @@ public:
 	virtual ~CVolume()
 	{
 	}
+
+//	DECLARE_SERIAL_TEMPLATE1(CVolume, VOXEL_TYPE)
 
 	CValue< int > width;
 	CValue< int > height;
@@ -112,5 +128,13 @@ private:
 	CArray<VOXEL_TYPE *, VOXEL_TYPE *&> m_arrpVoxels;
 	CArray<VOXEL_TYPE **, VOXEL_TYPE **&> m_arrppVoxels;
 };
+
+template<class VOXEL_TYPE>
+CArchive& operator>>(CArchive& ar, CVolume<VOXEL_TYPE>* &pOb) 
+{ 
+	pOb->Serialize(ar);
+//	pOb = (class_name*) ar.ReadObject();
+	return ar; 
+} 
 
 #endif // !defined(AFX_VOLUME_H__82547A50_0C10_11D5_9E4E_00B0D0609AB0__INCLUDED_)
