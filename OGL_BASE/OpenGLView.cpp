@@ -87,26 +87,26 @@ void COpenGLView::AddMiddleTracker(COpenGLTracker *pTracker)
 
 void COpenGLView::SetClippingPlanes(float nearPlane, float farPlane)
 {
-	m_nearPlane = nearPlane;
-	m_farPlane = farPlane;
+	camera.nearPlane.Set(nearPlane);
+	camera.farPlane.Set(farPlane);
 
 	RecalcProjectionMatrix();
 }
 
 float COpenGLView::GetNearPlane()
 {
-	return m_nearPlane;
+	return (float) camera.nearPlane.Get();
 }
 
 float COpenGLView::GetFarPlane()
 {
-	return m_farPlane;
+	return (float) camera.farPlane.Get();
 }
 
 void COpenGLView::SetMaxObjSize(float maxObjSize)
 {
-	m_farPlane = m_nearPlane + maxObjSize * 2.5f;
-	m_radius = m_nearPlane + maxObjSize / 1.2f;
+	camera.farPlane.Set(GetNearPlane() + maxObjSize * 2.5f);
+	camera.distance.Set(GetNearPlane() + maxObjSize / 1.2f);
 
 	RecalcProjectionMatrix();
 }
@@ -172,13 +172,15 @@ void COpenGLView::RecalcProjectionMatrix()
 		glViewport(0, 0, rect.Width(), rect.Height());
 
 		// calculate the aspect ratio
-		float aspect = (float) rect.Width() / (float) rect.Height();
+		camera.aspectRatio.Set((double) rect.Width() / (double) rect.Height());
 
 		// set a perspective projection with the given aspect ratio and clipping planes
-		gluPerspective(45.0f, aspect, m_nearPlane, m_farPlane);
+		gluPerspective(45.0f, camera.aspectRatio.Get(), 
+			camera.nearPlane.Get(), 
+			camera.farPlane.Get());
 
 		// move the camera back by the desired viewing distance
-		glTranslatef(0.0f, 0.0f, -m_radius);
+		glTranslatef(0.0f, 0.0f, (float) -camera.distance.Get());
 
 		projectionMatrix.Set(glGetMatrix(GL_PROJECTION_MATRIX));
 	}

@@ -7,9 +7,10 @@
 // OpenGLView.h : header file
 //
 
-#include "Matrix.h"
+#include <Matrix.h>
 #include "OpenGLRenderer.h"
 #include "OpenGLTracker.h"
+#include "OpenGLCamera.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenGLView view
@@ -24,6 +25,9 @@ public:
 
 // Attributes
 public:
+
+	// the view's camera
+	COpenGLCamera camera;
 
 	// holds the current projection matrix for the view
 	CValue< CMatrix<4> > projectionMatrix;
@@ -99,13 +103,6 @@ private:
 
 	// stores the near and far viewing planes
 public:
-	float m_farPlane;
-	float m_nearPlane;
-
-	// stores the "radius" of the viewed objects; used
-	//		to determine default perspective projection
-	float m_radius;
-
 	// list of renderers
 	CArray<COpenGLRenderer *, COpenGLRenderer *> m_arrRenderers;
 
