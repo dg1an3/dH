@@ -27,6 +27,7 @@ IMPLEMENT_DYNCREATE(COpenGLView, CWnd)
 COpenGLView::COpenGLView()
 	: m_pDC(NULL),
 		m_hrc(NULL),
+		backgroundColor(RGB(0, 0, 0)),
 		m_bDragging(FALSE),
 		m_bMiddleDragging(FALSE)
 {
