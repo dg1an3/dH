@@ -1,5 +1,8 @@
-// Polygon.h: interface for the CPolygon class.
+//////////////////////////////////////////////////////////////////////
+// Polygon.h: declaration of the CPolygon class
 //
+// Copyright (C) 2000-2001
+// $Id$
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(AFX_POLYGON_H__AAA9A385_F0B7_11D4_9E39_00B0D0609AB0__INCLUDED_)
@@ -9,9 +12,16 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Observer.h"
+#include <Observer.h>
+
 #include "Vector.h"
 
+//////////////////////////////////////////////////////////////////////
+// class CPolygon
+//
+// represents a polygon on a plane; includes change notification
+// and some computational geometry
+//////////////////////////////////////////////////////////////////////
 class CPolygon : public CObservableObject
 {
 public:
@@ -36,6 +46,12 @@ public:
 	int AddVertex(CVector<2>& v);
 	void RemoveVertex(int nIndex);
 
+	// direct access to vertex array
+	// WARNING: if you change the vertices through this reference, you
+	//		MUST call CPolygon::FireChange() as soon as possible to
+	//		notify observers of the change
+	CArray<CVector<2>, CVector<2>&>& GetVertexArray();
+
 	// computes the signed area of the polygon
 	double GetSignedArea();
 
@@ -44,12 +60,6 @@ public:
 
 	// serializes the polygon
 	void Serialize(CArchive &ar);
-
-	// direct access to vertex array
-	// WARNING: if you change the vertices through this reference, you
-	//		MUST call CPolygon::FireChange() as soon as possible to
-	//		notify observers of the change
-	CArray<CVector<2>, CVector<2>&>& GetVertexArray();
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
