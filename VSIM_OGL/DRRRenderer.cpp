@@ -47,30 +47,6 @@ CDRRRenderer::~CDRRRenderer()
 	vi[2] = (int)(v[2] * 65536.0);
 
 ///////////////////////////////////////////////////////////////////////////////
-//  Function clipRaster(int *pnDestStart, int *pnDestLength,
-//			Vector *pvSourceStart, const Vector &vSourceStep, int nD, 
-//			int nSourceMinD, int nSourceMaxD)
-//
-//  Helper function to clip a raster associated with a 3-D chain of regularly 
-//  spaced positions, to the given "source min" and "source max" values, for 
-//  the given dimension.
-//
-//  Parameters:
-//		pnDestStart - the starting value, which is possibly modified by the 
-//			clipping
-//		pnDestLength - the length of the raster, which is possibly modified
-//			by the clipping
-//		pvSourceStart - the starting source value
-//		vSourceStep - the source step value
-//		nD - the dimension to clip
-//		nSourceMinD - the min for the dimension (in source coordinates)
-//		nSourceMaxD - the max for the dimension (in source coordinates
-//  Returns:
-//		true if the clipping results in a valid raster
-//	Exceptions/Errors:
-//		none
-//
-///////////////////////////////////////////////////////////////////////////////
 bool ClipRaster(int& nDestLength,
 			CVector<3, int>& vSourceStart, const CVector<3, int> &vSourceStep, 
 			int nD, int nSourceMinD, int nSourceMaxD)
@@ -322,7 +298,6 @@ void CDRRRenderer::ComputeDRR()
 	CVector<3> vStartStepY = vStartNextY - vStart;
 	CREATE_INT_VECTOR(vStartStepY, viStartStepY);
 
-//	vStart += CVector<3>(0.5, 0.5, 0.5);
 	CREATE_INT_VECTOR(vStart, viStart);
 
 	// un-project the window coordinates into the model coordinate system
@@ -345,7 +320,6 @@ void CDRRRenderer::ComputeDRR()
 	CVector<3> vEndStepY = vEndNextY - vEnd;
 	CREATE_INT_VECTOR(vEndStepY, viEndStepY);
 
-//	vEnd += CVector<3>(0.5, 0.5, 0.5);
 	CREATE_INT_VECTOR(vEnd, viEnd);
 
 	int nImageHeight = rect.Height();
