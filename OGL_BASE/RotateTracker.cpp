@@ -68,7 +68,8 @@ CRotateTracker::~CRotateTracker()
 void CRotateTracker::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// store the current projection matrix from the view
-	m_initProjMatrix = m_pView->camera.projectionMatrix.Get();
+	m_initProjMatrix = m_pView->camera.projection.Get();
+	m_initModelXform = m_pView->camera.modelXform.Get();
 
 	// store the current mouse position in 3-d
 	m_vInitPoint = m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
@@ -81,11 +82,12 @@ void CRotateTracker::OnMouseDrag(UINT nFlags, CPoint point)
 		m_pView->ModelPtFromWndPt(point, m_initProjMatrix);
 
 	// compute the new projection matrix
-	CMatrix<4> mProj = m_initProjMatrix 
+	CMatrix<4> mProj = m_initModelXform
 		* ComputeRotMatrix(m_vInitPoint, vFinalPoint);
 
 	// set the new projection matrix
-	m_pView->camera.projectionMatrix.Set(mProj);
+	m_pView->camera. // projectionMatrix.Set(mProj);
+		modelXform.Set(mProj);
 
 	// redraw the window
 	m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
