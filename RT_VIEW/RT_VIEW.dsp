@@ -97,6 +97,10 @@ SOURCE=.\BeamRenderable.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\LightfieldTexture.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MachineRenderable.cpp
 # End Source File
 # Begin Source File
@@ -118,10 +122,6 @@ SOURCE=.\RT_VIEW.rc
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
 # End Source File
-# Begin Source File
-
-SOURCE=.\SurfaceRenderable.cpp
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -140,15 +140,15 @@ SOURCE=.\include\BeamRenderable.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\include\LightfieldTexture.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\MachineRenderable.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\StdAfx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\include\SurfaceRenderable.h
 # End Source File
 # End Group
 # Begin Source File
