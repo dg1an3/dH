@@ -71,6 +71,8 @@ protected:
 	afx_msg void OnViewColorwash();
 	afx_msg void OnUpdateViewColorwash(CCmdUI* pCmdUI);
 	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnExportFieldcom();
+	afx_msg void OnExportNuages();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

@@ -56,6 +56,9 @@ BOOL CVSIM_OGLApp::InitInstance()
 	//  of your final executable, you should remove from the following
 	//  the specific initialization routines you do not need.
 
+	if (CoInitialize(NULL) != S_OK)
+		return FALSE;
+
 #ifdef _AFXDLL
 	Enable3dControls();			// Call this when using MFC in a shared DLL
 #else
@@ -187,6 +190,9 @@ void CVSIM_OGLApp::OnAppAbout()
 
 int CVSIM_OGLApp::ExitInstance() 
 {
+	// uninitialize COM
+	CoUninitialize();
+
 	// exit the application
 	int nResult = CWinApp::ExitInstance();
 

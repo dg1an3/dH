@@ -56,6 +56,8 @@
 #define ID_VIEW_WIREFRAME               32776
 #define ID_VIEW_COLORWASH               32777
 #define ID_BUTTON32778                  32778
+#define ID_EXPORT_FIELDCOM              32779
+#define ID_EXPORT_NUAGES                32780
 
 // Next default values for new objects
 // 
@@ -63,7 +65,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        152
-#define _APS_NEXT_COMMAND_VALUE         32779
+#define _APS_NEXT_COMMAND_VALUE         32781
 #define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

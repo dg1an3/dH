@@ -137,6 +137,9 @@ BEGIN
         MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
         MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
         MENUITEM SEPARATOR
+        MENUITEM "Export to FieldCOM",          ID_EXPORT_FIELDCOM
+        MENUITEM "Export to Nuages .cnt",       ID_EXPORT_NUAGES
+        MENUITEM SEPARATOR
         MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
