@@ -14,7 +14,7 @@
 
 COpenGLCamera::COpenGLCamera()
 	: targetPoint(CVector<3>(0.0, 0.0, 0.0)),
-		direction(CVector<3>(0.0, 0.0, 1.0)),
+		direction(CVector<3>(0.0, 0.0, -1.0)),
 		distance(100.0),
 		rollAngle(0.0),
 		viewingAngle(45.0),
@@ -23,38 +23,31 @@ COpenGLCamera::COpenGLCamera()
 		farPlane(150.0)
 {
 	// add the change listeners for the model-to-camera transform
-	targetPoint.AddObserver(this, 
-		(ChangeFunction) OnComputeModelToCameraXform);
-	direction.AddObserver(this, 
-		(ChangeFunction) OnComputeModelToCameraXform);
-	distance.AddObserver(this, 
-		(ChangeFunction) OnComputeModelToCameraXform);
-	rollAngle.AddObserver(this, 
-		(ChangeFunction) OnComputeModelToCameraXform);
+	targetPoint.AddObserver(this, (ChangeFunction) OnComputeModelXform);
+	direction.AddObserver(this, (ChangeFunction) OnComputeModelXform);
+	distance.AddObserver(this, (ChangeFunction) OnComputeModelXform);
+	rollAngle.AddObserver(this, (ChangeFunction) OnComputeModelXform);
 
 	// add the change listeners for the camera projection
-	viewingAngle.AddObserver(this, 
-		(ChangeFunction) OnComputeCameraProjection);
-	aspectRatio.AddObserver(this, 
-		(ChangeFunction) OnComputeCameraProjection);
-	nearPlane.AddObserver(this, 
-		(ChangeFunction) OnComputeCameraProjection);
-	farPlane.AddObserver(this, 
-		(ChangeFunction) OnComputeCameraProjection);
+	viewingAngle.AddObserver(this, (ChangeFunction) OnComputeProjection);
+	aspectRatio.AddObserver(this, (ChangeFunction) OnComputeProjection);
+	nearPlane.AddObserver(this, (ChangeFunction) OnComputeProjection);
+	farPlane.AddObserver(this, (ChangeFunction) OnComputeProjection);
 }
 
 COpenGLCamera::~COpenGLCamera()
 {
 }
 
-void COpenGLCamera::OnComputeModelToCameraXform(CObservableObject *pSource, void *pOldValue)
+void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldValue)
 {
 	// form the rotation angles for the camera direction
 	double phi = acos(-direction.Get()[2]);
 	double sin_phi = sin(phi);
-	double theta = AngleFromSinCos(
-		 direction.Get()[0] / sin_phi,
-		-direction.Get()[1] / sin_phi);
+	double theta = 0.0;
+	if (sin_phi > EPS)
+		theta = AngleFromSinCos(direction.Get()[0] / sin_phi,
+			-direction.Get()[1] / sin_phi);
 
 	// form the rotation matrix for the camera direction
 	CMatrix<4> mRotateDir = CreateRotate(phi, CVector<3>(1.0, 0.0, 0.0))
@@ -68,14 +61,17 @@ void COpenGLCamera::OnComputeModelToCameraXform(CObservableObject *pSource, void
 		CVector<3>(0.0, 0.0, -1.0));
 
 	// and set the total camera transformation to all three matrices
-	modelToCameraXform.Set(mTranslate * mRotateRoll * mRotateDir);
+	modelXform.Set(mTranslate); // * mRotateRoll * mRotateDir);
+
+	// notify listeners that the camera has changed
+	FireChange();
 }
 
-void COpenGLCamera::OnComputeCameraProjection(CObservableObject *pSource, void *pOldValue)
+void COpenGLCamera::OnComputeProjection(CObservableObject *pSource, void *pOldValue)
 {
 	// compute the top edge of the viewing frustum from the nearPlane 
 	//		and viewingAngle
-	double top = nearPlane.Get() * tan(viewingAngle.Get() / 2.0);
+	double top = nearPlane.Get() * tan(viewingAngle.Get() * PI / 360.0);
 
 	// compute the right edge from the top edge and the aspect ratio
 	double right = top * aspectRatio.Get();
@@ -94,5 +90,8 @@ void COpenGLCamera::OnComputeCameraProjection(CObservableObject *pSource, void *
 	mPersp[3][3] = 0.0;
 
 	// and set the projection
-	cameraProjection.Set(mPersp);
+	projection.Set(mPersp);
+
+	// notify listeners that the camera has changed
+	FireChange();
 }

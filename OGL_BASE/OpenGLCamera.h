@@ -14,7 +14,7 @@
 #include <Vector.h>
 #include <Matrix.h>
 
-class COpenGLCamera : public CObject
+class COpenGLCamera : public CObservableObject
 {
 public:
 	COpenGLCamera();
@@ -36,7 +36,7 @@ public:
 
 	// matrix representing the transform from the model space to the
 	//		camera space
-	CValue< CMatrix<4> > modelToCameraXform;
+	CValue< CMatrix<4> > modelXform;
 
 	// the viewing angle for the camera (0 for orthographic camera)
 	CValue< double > viewingAngle;
@@ -51,15 +51,15 @@ public:
 	CValue< double > farPlane;
 
 	// matrix representing the camera projection
-	CValue< CMatrix<4> > cameraProjection;
+	CValue< CMatrix<4> > projection;
 
 protected:
 	// call-back to compute the object-to-camera transform
-	void OnComputeModelToCameraXform(CObservableObject *pSource, 
+	void OnComputeModelXform(CObservableObject *pSource, 
 		void *pOldValue);
 
 	// call-back to compute the camera projection
-	void OnComputeCameraProjection(CObservableObject *pSource, 
+	void OnComputeProjection(CObservableObject *pSource, 
 		void *pOldValue);
 };
 
