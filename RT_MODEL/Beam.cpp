@@ -471,6 +471,9 @@ void CBeam::SetIntensityMap(const CVectorN<>& vWeights)
 	m_vBeamletWeights = vWeights;
 	m_bRecalcDose = TRUE;
 
+	// fire change
+	GetChangeEvent().Fire();
+
 }	// CBeam::SetIntensityMap
 
 
@@ -511,20 +514,8 @@ CVolume<REAL> *CBeam::GetDoseMatrix()
 {
 	if (m_bRecalcDose)
 	{ 
-		// check dose matrix size
-		CVolume<REAL> *pBeamlet = m_arrBeamlets[0][0];
-		if (m_dose.GetWidth() != pBeamlet->GetWidth())
-		{
-			// TODO: take this from plan dose, not beamlets
-			m_dose.SetDimensions(pBeamlet->GetWidth(), 
-				pBeamlet->GetHeight(), pBeamlet->GetDepth());
-
-			CMatrixD<4> mBasis;
-			mBasis[3][0] = -(m_dose.GetWidth() - 1) / 2;
-			mBasis[3][1] = -(m_dose.GetHeight() - 1) / 2;
-			m_dose.SetBasis(mBasis);
-
-		}
+		// set dose matrix size
+		m_dose.ConformTo(m_arrBeamlets[0][0]);
 
 		// clear voxels for accumulation
 		m_dose.ClearVoxels();
@@ -532,7 +523,7 @@ CVolume<REAL> *CBeam::GetDoseMatrix()
 		for (int nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
 		{
 			CVolume<REAL> *pBeamlet = m_arrBeamlets[0][nAt];
-			// m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
+			m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
 		}
 
 		m_bRecalcDose = FALSE;

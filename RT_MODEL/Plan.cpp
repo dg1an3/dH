@@ -88,6 +88,8 @@ void CPlan::SetSeries(CSeries *pSeries)
 {
 	m_pSeries = pSeries;
 
+	m_dose.ConformTo(m_pSeries->m_pDens);
+
 }	// CPlan::SetSeries
 
 
@@ -154,34 +156,6 @@ int CPlan::AddBeam(CBeam *pBeam)
 }	// CPlan::AddBeam
 
 
-/*
-///////////////////////////////////////////////////////////////////////////////
-// CPlan::SetBeamCount
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-void CPlan::SetBeamCount(int nCount)
-{
-	// TODO: clear current beams
-	for (int nAt = 0; nAt < m_arrBeams.GetSize(); nAt++)
-		delete m_arrBeams[nAt];
-	m_arrBeams.RemoveAll();
-
-	// create new beams
-	REAL angleDelta = atan(1.0) * 8.0 / (REAL) nCount;
-	REAL angle = 0.0; // 
-		// 2.25 * atan(1.0) * 8.0 / 7.0;
-	for (int nAngle = 0; nAngle < nCount; nAngle++)
-	{
-		CBeam *pBeam = new CBeam();
-		pBeam->SetGantryAngle(angle);
-		m_arrBeams.Add(pBeam);
-
-		angle += angleDelta;
-	}
-
-}	// CPlanIMRT::SetBeamCount
-*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPlan::GetDoseMatrix
@@ -195,8 +169,7 @@ CVolume<REAL> *CPlan::GetDoseMatrix()
 		// total the dose for all beams
 		if (GetBeamCount() > 0)
 		{
-			CVolume<REAL> *pBeamDose = GetBeamAt(0)->GetDoseMatrix();
-
+/*			CVolume<REAL> *pBeamDose = GetBeamAt(0)->GetDoseMatrix();
 			// TODO: move this to SetSeries
 			m_dose.SetDimensions(pBeamDose->GetWidth(), 
 				pBeamDose->GetHeight(),
@@ -205,16 +178,20 @@ CVolume<REAL> *CPlan::GetDoseMatrix()
 			CMatrixD<4> mBasis;
 			mBasis[3][0] = -(m_dose.GetWidth() - 1) / 2;
 			mBasis[3][1] = -(m_dose.GetHeight() - 1) / 2;
-			m_dose.SetBasis(mBasis);
+			m_dose.SetBasis(mBasis); */
 
 			// clear the dose matrix
 			m_dose.ClearVoxels();
 
 			for (int nAt = 0; nAt < GetBeamCount(); nAt++)
 			{
+				static CVolume<REAL> beamDoseRot;
+				beamDoseRot.ConformTo(&m_dose);
+
+				Resample(GetBeamAt(nAt)->GetDoseMatrix(), &beamDoseRot);
+
 				// add this beam's dose matrix to the total
-				m_dose.Accumulate(GetBeamAt(nAt)->GetDoseMatrix(),
-					GetBeamAt(nAt)->GetWeight());
+				m_dose.Accumulate(&beamDoseRot, GetBeamAt(nAt)->GetWeight());
 			}
 		}
 
@@ -285,6 +262,8 @@ void CPlan::Serialize(CArchive& ar)
 	// schema for the plan object
 	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : PLAN_SCHEMA;
 
+	CModelObject::Serialize(ar);
+
 	if (ar.IsLoading())
 	{
 		// now clear out any existing beams
@@ -312,7 +291,7 @@ void CPlan::Serialize(CArchive& ar)
 	// empty the dose matrix if it is not valid
 	// if (ar.IsStoring() && !m_bDoseValid)
 	{
-		m_dose.SetDimensions(0, 0, 0);
+	//	m_dose.SetDimensions(0, 0, 0);
 	}
 
 	// serialize the dose matrix
