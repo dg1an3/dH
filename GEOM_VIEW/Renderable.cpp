@@ -101,6 +101,29 @@ void CRenderable::SetAlpha(double alpha)
 }
 
 ///////////////////////////////////////////////////////////////////////
+// CRenderable::GetCentroid
+// 
+// returns the centroid of this renderable, used to determine
+//		order for rendering
+//////////////////////////////////////////////////////////////////////
+// accessors for the renderable's centroid (used for sorting)
+const CVector<3>& CRenderable::GetCentroid() const
+{
+	return m_vCentroid;
+}
+
+///////////////////////////////////////////////////////////////////////
+// CRenderable::SetCentroid
+// 
+// sets the centroid of this renderable, used to determine
+//		order for rendering
+//////////////////////////////////////////////////////////////////////
+void CRenderable::SetCentroid(const CVector<3>& vCentroid)
+{
+	m_vCentroid = vCentroid;
+}
+
+///////////////////////////////////////////////////////////////////////
 // CRenderable::GetModelviewMatrix
 // 
 // the modelview matrix for this renderable

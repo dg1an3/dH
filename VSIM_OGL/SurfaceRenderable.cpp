@@ -95,16 +95,24 @@ void CSurfaceRenderable::SetSurface(CSurface *pSurface)
 {
 	if (m_pSurface != NULL)
 	{
-		m_pSurface->GetChangeEvent().RemoveObserver(this, (ChangeFunction) OnChange);
+		// remove this as an observer of surface changes
+		::RemoveObserver<CSurfaceRenderable>(&m_pSurface->GetChangeEvent(),
+			this, OnChange);
 	}
 
 	m_pSurface = pSurface;
 
 	if (m_pSurface != NULL)
 	{
-		m_pSurface->GetChangeEvent().AddObserver(this, (ChangeFunction) OnChange);
+		// add this as an observer of surface changes
+		::AddObserver<CSurfaceRenderable>(&m_pSurface->GetChangeEvent(),
+			this, OnChange);
+
+		// set the renderables centroid to the center of the bounding box
+		SetCentroid(0.5 * (m_pSurface->GetBoundsMin() + m_pSurface->GetBoundsMax()));
 	}
 
+	// trigger re-rendering
 	Invalidate();
 }
 
