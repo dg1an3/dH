@@ -246,4 +246,101 @@ private:
 	TYPE (*m_pFunc)(const ARG1_TYPE&, const ARG2_TYPE&, const ARG3_TYPE&);
 };
 
+
+//////////////////////////////////////////////////////////////////////
+// macro FUNCTION_FACTORY1
+// 
+// macro that expands into a template function that returns a CValue
+// of a given type for the given function.
+//////////////////////////////////////////////////////////////////////
+#define FUNCTION_FACTORY1(FUNCTION, TYPE) \
+template<class ARG_TYPE>													\
+CValue< TYPE >& FUNCTION(CValue< ARG_TYPE >& val)							\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction1< TYPE, ARG_TYPE >(FUNCTION, &val);					\
+	val.AddDerivedObject((CObject *)pFunc);									\
+	return (*pFunc);														\
+} 
+
+
+//////////////////////////////////////////////////////////////////////
+// macro FUNCTION_FACTORY2
+// 
+// macro that expands into three template functions that return a 
+// CValue of a given type for the given function.  Variants for
+// constants are also provided.
+//////////////////////////////////////////////////////////////////////
+#define FUNCTION_FACTORY2(FUNCTION, TYPE)	\
+template<class ARG1_TYPE, class ARG2_TYPE>									\
+CValue< TYPE >& FUNCTION(CValue< ARG1_TYPE >& lVal,							\
+		CValue< ARG2_TYPE >& rVal)											\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >(FUNCTION,				\
+			&lVal, &rVal);													\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+template<class ARG1_TYPE, class ARG2_TYPE>									\
+CValue< TYPE >& FUNCTION(CValue< ARG1_TYPE >& lVal, const ARG2_TYPE& rConst)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION, &lVal, rConst);\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+template<class ARG1_TYPE, class ARG2_TYPE>									\
+CValue< TYPE >& FUNCTION(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)	\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION, lConst, &rVal);\
+	rVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+} 
+
+
+//////////////////////////////////////////////////////////////////////
+// macro FUNCTION_FACTORY2_RENAME
+// 
+// macro that expands into three template functions that return a 
+// CValue of a given type for the given function.  Variants for
+// constants are also provided.
+// 
+// this is a version of FUNCTION_FACTORY2 that allows the function
+// operator's name to differ from the underlying function.  this
+// allows for global operator functions.
+//////////////////////////////////////////////////////////////////////
+#define FUNCTION_FACTORY2_RENAME(FUNCTION1, FUNCTION2, TYPE)	\
+template<class ARG1_TYPE, class ARG2_TYPE>									\
+CValue< TYPE >& FUNCTION1(CValue< ARG1_TYPE >& lVal,						\
+		CValue< ARG2_TYPE >& rVal)											\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >(FUNCTION2,				\
+			&lVal, &rVal);													\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+template<class ARG1_TYPE, class ARG2_TYPE>									\
+CValue< TYPE >& FUNCTION1(CValue< ARG1_TYPE >& lVal, const ARG2_TYPE& rConst)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION2, &lVal, rConst);\
+	lVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+}																			\
+																			\
+template<class ARG1_TYPE, class ARG2_TYPE>									\
+CValue< TYPE >& FUNCTION1(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)\
+{																			\
+	CValue< TYPE > *pFunc =													\
+		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION2, lConst, &rVal);\
+	rVal.AddDerivedObject((CObject *)pFunc);								\
+	return (*pFunc);														\
+} 
+
 #endif // !defined(AFX_FUNCTION_H__9ADD8ED4_FC5D_11D4_9E43_00B0D0609AB0__INCLUDED_)
