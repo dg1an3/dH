@@ -82,21 +82,14 @@ void CSimView::OnDraw(CDC* pDC)
 
 void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 {
-	if (pFromObject == &m_wndBEV.camera.projection)
+	if (pFromObject == &m_wndBEV.camera.modelXform)
 	{
-/*		// determine the new beam parameters from the BEV viewing matrix
-		CMatrix<4> mProjMatrix = m_wndBEV.camera.projection.Get();
-
-		// first, retrieve the projection matrix for the beam
-		CMatrix<4> mPerspProj = ComputeProjection(*currentBeam.Get());
-
-		// now, annihilate the projection matrix
-		CMatrix<4> mNewB2P = Invert(Invert(mPerspProj) * mProjMatrix);
-		if (mNewB2P[2][2] < -1.0 || mNewB2P[2][2] > 1.0)
-			return;
+		currentBeam->beamToPatientXform.Set(m_wndBEV.camera.modelXform.Get());
+#ifdef NONE
+		CMatrix<4> mNewB2P = m_wndBEV.camera.modelXform.Get();
 
 		// now factor the B2P matrix into translation and rotation components
-		double gantry = acos(mNewB2P[2][2]);	// gantry in [0..PI]
+		double gantry = 2.0 * PI - acos(mNewB2P[2][2]);	// gantry in [0..PI]
 
 		double couch = 0.0;
 		double coll = 0.0;
@@ -124,11 +117,10 @@ void CSimView::OnChange(CObservableObject *pFromObject, void *pOldValue)
 		actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
 		currentBeam->gantryAngle.Set(actGantry);
 		currentBeam->collimAngle.Set(coll);
+#endif
 		m_wndREV.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-		*/
-
 	}
-	else
+	else if (pFromObject != &m_wndBEV.camera.projection)
 	{
 		CBeam *pBeam = (CBeam *)pFromObject;
 		SetBEVPerspective(*pBeam);
@@ -469,9 +461,25 @@ CMatrix<4> CSimView::ComputeProjection(CBeam& beam)
 
 void CSimView::SetBEVPerspective(CBeam& beam)
 {
+#define NEW
+#ifdef NEW
 	// compute the projection
 	CMatrix<4> mProj = ComputeProjection(beam);
+	m_wndBEV.camera.perspective.Set(mProj);
 
+	// and inverse transform from beam to patient
+	CMatrix<4> mB2P = beam.beamToPatientXform.Get();
+	mB2P.Invert();
+
+	m_wndBEV.camera.modelXform.RemoveObserver(this, (ChangeFunction) OnChange);
+	m_wndBEV.camera.modelXform.Set(mB2P);
+
+	// m_wndBEV.camera.modelXform.Set(beam.beamToPatientXform.Get()); // mProj);
+	m_wndBEV.camera.modelXform.AddObserver(this, (ChangeFunction) OnChange); 
+#else
+	// compute the projection
+	CMatrix<4> mProj = ComputeProjection(beam);
+	
 	// and inverse transform from beam to patient
 	CMatrix<4> mB2P = beam.beamToPatientXform.Get();
 	mB2P.Invert();
@@ -480,6 +488,7 @@ void CSimView::SetBEVPerspective(CBeam& beam)
 	m_wndBEV.camera.projection.RemoveObserver(this, (ChangeFunction) OnChange);
 	m_wndBEV.camera.projection.Set(mProj);
 	m_wndBEV.camera.projection.AddObserver(this, (ChangeFunction) OnChange);
+#endif
 }
 
 #if defined(USE_FUNCTIONS_FOR_BEV)

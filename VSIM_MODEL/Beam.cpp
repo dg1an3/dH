@@ -37,6 +37,7 @@ CBeam::CBeam()
 	::AddObserver<CBeam>(&collimMin, this, OnChange);
 	::AddObserver<CBeam>(&collimMax, this, OnChange);
 	::AddObserver<CBeam>(&blocks, this, OnChange);
+	::AddObserver<CBeam>(&beamToPatientXform, this, OnBeamToPatientXformChanged);
 
 	// set up the beam-to-patient transform computation
 	CValue< CMatrix<4> >& privBeamToPatientXform =
@@ -169,3 +170,49 @@ void CBeam::Dump(CDumpContext& dc) const
 	POP_DUMP_DEPTH(dc);
 }
 #endif //_DEBUG
+
+BOOL m_bChangingXform = FALSE;
+
+void CBeam::OnBeamToPatientXformChanged(CObservableObject *pFromObject, 
+	void *pOldValue)
+{
+	if (m_bChangingXform)
+		return;
+
+	// get a reference to the transform
+	const CMatrix<4>& mXform = beamToPatientXform.Get();
+
+	// now factor the B2P matrix into translation and rotation components
+	double gantry = 2 * PI - acos(mXform[2][2]);	// gantry in [0..PI]
+
+	double couch = 0.0;
+	double coll = 0.0;
+
+	if (gantry > 0.0)
+	{
+		double cos_couch = mXform[2][0] / sin(gantry);
+		// make sure the couch angle will be in [-PI..PI]
+/*		if (cos_couch < 0.0)
+		{
+			gantry = 2 * PI - gantry;
+			cos_couch = mXform[2][0] / sin(gantry);
+		}
+*/
+		double sin_couch = mXform[2][1] / sin(gantry);
+		couch = AngleFromSinCos(sin_couch, cos_couch);
+
+		double cos_coll =  mXform[0][2] / -sin(gantry);
+		double sin_coll =  mXform[1][2] / sin(gantry);
+		coll = AngleFromSinCos(sin_coll, cos_coll);
+	}
+
+	m_bChangingXform = TRUE;
+
+	couchAngle.Set(couch);
+	double actGantry = PI - gantry;
+	actGantry = (actGantry < 0.0) ? (2 * PI + actGantry) : actGantry;
+	gantryAngle.Set(actGantry);
+	collimAngle.Set(coll);
+
+	m_bChangingXform = FALSE;
+}

@@ -83,6 +83,12 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+
+protected:
+	// change handler to re-compute the angles and table offset from a change
+	//		in the beam-to-patient transform matrix
+	void OnBeamToPatientXformChanged(CObservableObject *pFromObject, 
+		void *pOldValue);
 };
 
 #endif // !defined(AFX_BEAM_H__C7A6AA30_E5D9_11D4_9E2F_00B0D0609AB0__INCLUDED_)

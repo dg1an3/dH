@@ -59,22 +59,16 @@ public:
 	CValue< CMatrix<4> > perspective;
 
 	// the total matrix for the projection and transform
-private:
-	// CValue< CMatrix<4> > privProjection;
-public:
-	// const CValue< CMatrix<4> >& projection;
 	CValue< CMatrix<4> > projection;
 
 protected:
 	// call-back to compute the object-to-camera transform
 	void OnComputeModelXform(CObservableObject *pSource, 
 		void *pOldValue);
-	void OnComputeModelXformAngles(CObservableObject *pSource, 
-		void *pOldValue);
 
 	// call-back to compute the camera direction and roll from the transform
 	//		matrix
-	void OnComputeCameraDir(CObservableObject *pSource, 
+	void OnComputeCameraAngles(CObservableObject *pSource, 
 		void *pOldValue);
 
 	// call-back to compute the camera projection
