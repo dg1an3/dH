@@ -74,9 +74,6 @@ void COpenGLCamera::OnComputeModelXform(CObservableObject *pSource, void *pOldVa
 	// and set the total camera transformation to all three matrices
 	modelXform.Set(mTranslate * mRotateRoll * mRotateDir);
 
-	// set the total projection matrix
-	projection.Set(projection.Get() * modelXform.Get());
-
 	// notify listeners that the camera has changed
 	FireChange();
 }
