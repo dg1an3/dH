@@ -599,7 +599,7 @@ inline CMatrixD<2> CreateRotate(const double& theta)
 //
 // creates a 3D rotation matrix given an angle and an axis of rotation
 //////////////////////////////////////////////////////////////////////
-template<class TYPE = REAL>
+template<class TYPE>
 inline CMatrixD<3, TYPE> CreateRotate(const TYPE& theta, 
 							   const CVectorD<3, TYPE>& vAxis)
 {
@@ -641,7 +641,7 @@ inline CMatrixD<3, TYPE> CreateRotate(const TYPE& theta,
 //		position and a post-rotated position. scale is a scale factor
 //		for the resulting rotation.
 //////////////////////////////////////////////////////////////////////
-template<class TYPE = REAL>
+template<class TYPE>
 inline CMatrixD<3, TYPE> CreateRotate(const CVectorD<3, TYPE>& vInitPt,
 	const CVectorD<3, TYPE>& vFinalPt, TYPE scale)
 {
