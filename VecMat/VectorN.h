@@ -2,7 +2,7 @@
 // VectorN.h: declaration and definition of the CVectorN dynamic 
 //		vector template class.
 //
-// Copyright (C) 1999-2001
+// Copyright (C) 1999-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
@@ -107,11 +107,14 @@ CVectorN<TYPE>& CVectorN<TYPE>::operator=(const CVectorN<TYPE>& vFrom)
 	// set the dimensionality of the vector
 	SetDim(vFrom.GetDim());
 
-	// set the given elements
-	for (int nAt = 0; nAt < GetDim(); nAt++)
+	// copy the elements
+	memcpy((*this), vFrom, __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+
+	// set remainder of elements to 0
+	if (GetDim() > vFrom.GetDim())
 	{
-		(*this)[nAt] = 
-			(nAt < vFrom.GetDim()) ? vFrom[nAt] : (TYPE) 0.0;
+		memset(&(*this)[vFrom.GetDim()], 0, 
+			(GetDim() - vFrom.GetDim()) * sizeof(TYPE));
 	}
 
 	// return a reference to this
@@ -131,11 +134,14 @@ CVectorN<TYPE>& CVectorN<TYPE>::operator=(const CVectorBase<TYPE>& vFrom)
 	// set the dimensionality of the vector
 	SetDim(vFrom.GetDim());
 
-	// set the given elements
-	for (int nAt = 0; nAt < GetDim(); nAt++)
+	// copy the elements
+	memcpy((*this), vFrom, __min(GetDim(), vFrom.GetDim()) * sizeof(TYPE));
+
+	// set remainder of elements to 0
+	if (GetDim() > vFrom.GetDim())
 	{
-		(*this)[nAt] = 
-			(nAt < vFrom.GetDim()) ? vFrom[nAt] : (TYPE) 0.0;
+		memset(&(*this)[vFrom.GetDim()], 0, 
+			(GetDim() - vFrom.GetDim()) * sizeof(TYPE));
 	}
 
 	// return a reference to this
@@ -153,30 +159,39 @@ template<class TYPE>
 void CVectorN<TYPE>::SetDim(int nDim)
 {
 	// do nothing if the dim is already correct
-	if (m_nDim == nDim)
+	if (m_nDim != nDim)
 	{
-		return;
-	}
-
-	// free the elements, if needed
-	// EXTENSION: retain elements in resized vector
-	if (m_pElements != NULL)
-	{
-		delete [] m_pElements;
+		// store pointer to old elements
+		TYPE *pOldElements = m_pElements;
 		m_pElements = NULL;
-	}
 
-	// set the new dimensionality
-	m_nDim = nDim;
+		// set the new dimensionality
+		int nOldDim = m_nDim;
+		m_nDim = nDim;
 
-	// allocate new elements, if needed
-	if (nDim > 0)
-	{
-		m_pElements = new TYPE[m_nDim];
-
-		for (int nAt = 0; nAt < m_nDim; nAt++)
+		// allocate new elements, if needed
+		if (m_nDim > 0)
 		{
-			m_pElements[nAt] = (TYPE) 0.0;
+			m_pElements = new TYPE[m_nDim];
+
+			if (pOldElements)
+			{
+				// copy the elements
+				memcpy((*this), pOldElements, __min(GetDim(), nOldDim) * sizeof(TYPE));
+			}
+
+			// set remainder of elements to 0
+			if (GetDim() > nOldDim)
+			{
+				memset(&(*this)[nOldDim], 0, 
+					(GetDim() - nOldDim) * sizeof(TYPE));
+			}
+		}
+
+		// free the elements, if needed
+		if (pOldElements != NULL)
+		{
+			delete [] pOldElements;
 		}
 	}
 
