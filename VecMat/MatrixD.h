@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////
 // MatrixD.h: declaration and definition of the CMatrixD template class.
 //
-// Copyright (C) 1999-2001
+// Copyright (C) 1999-2003 Derek G Lane
 // $Id$
 //////////////////////////////////////////////////////////////////////
 
@@ -61,6 +61,10 @@ private:
 template<int DIM, class TYPE>
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 {
+	// we have to assign the columns before calling 
+	//		CMatrixBase::SetElements, because otherwise
+	//		SetElements will allocate the column vectors
+	//		(and ours are part of the CMatrixD)
 	m_pColumns = &m_arrColumns[0];
 	m_nCols = DIM;
 
@@ -81,6 +85,10 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 template<int DIM, class TYPE>
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 {
+	// we have to assign the columns before calling 
+	//		CMatrixBase::SetElements, because otherwise
+	//		SetElements will allocate the column vectors
+	//		(and ours are part of the CMatrixD)
 	m_pColumns = &m_arrColumns[0];
 	m_nCols = DIM;
 
@@ -104,6 +112,10 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 template<int DIM, class TYPE>
 CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixBase<TYPE>& fromMatrix)
 {
+	// we have to assign the columns before calling 
+	//		CMatrixBase::SetElements, because otherwise
+	//		SetElements will allocate the column vectors
+	//		(and ours are part of the CMatrixD)
 	m_pColumns = &m_arrColumns[0];
 	m_nCols = DIM;
 
@@ -168,7 +180,9 @@ template<int DIM, class TYPE>
 CVectorD<DIM, TYPE>& CMatrixD<DIM,TYPE>::operator[](int nAtCol)
 {
 	// return a reference to the row vector
-	return (CVectorD<DIM, TYPE>&) m_arrColumns[nAtCol];
+	// NOTE: this is a really terrible thing to do, to down-cast
+	//		the column vectors
+	return static_cast<CVectorD<DIM, TYPE>&>(m_arrColumns[nAtCol]);
 
 }	// CMatrixD<DIM,TYPE>::operator[]
 
@@ -182,7 +196,9 @@ template<int DIM, class TYPE>
 const CVectorD<DIM, TYPE>& CMatrixD<DIM,TYPE>::operator[](int nAtCol) const
 {
 	// return a reference to the row vector
-	return (const CVectorD<DIM, TYPE>&) m_arrColumns[nAtCol];
+	// NOTE: this is a really terrible thing to do, to down-cast
+	//		the column vectors
+	return static_cast<const CVectorD<DIM, TYPE>&>(m_arrColumns[nAtCol]);
 
 }	// CMatrixD<DIM,TYPE>::operator[] const
 
