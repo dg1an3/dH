@@ -1,0 +1,138 @@
+//////////////////////////////////////////////////////////////////////
+// Matrix.h: declaration and definition of the CMatrixN template class.
+//
+// Copyright (C) 1999-2001
+// $Id$
+//////////////////////////////////////////////////////////////////////
+
+#if !defined(MATRIXN_H)
+#define MATRIXN_H
+
+#include "MathUtil.h"
+
+#include "MatrixBase.h"
+#include "VectorN.h"
+
+//////////////////////////////////////////////////////////////////////
+// class CMatrixN<TYPE>
+//
+// represents a square matrix with GetDim()ension and type given.
+//////////////////////////////////////////////////////////////////////
+template<class TYPE = double>
+class CMatrixN : public CMatrixBase<TYPE>
+{
+public:
+	//////////////////////////////////////////////////////////////////
+	// default constructor -- initializes to 0x0 matrix
+	//////////////////////////////////////////////////////////////////
+	CMatrixN()
+	{
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// constructs a specific-dimensioned matrix
+	//////////////////////////////////////////////////////////////////
+	CMatrixN(int nDim)
+	{
+		SetDim(nDim);
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// copy constructor
+	//////////////////////////////////////////////////////////////////
+	CMatrixN(const CMatrixN& fromMatrix)
+	{
+		// sets the dimensions
+		SetDim(fromMatrix.GetDim());
+
+		// copy the elements
+		(*this) = fromMatrix;
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// copy constructor
+	//////////////////////////////////////////////////////////////////
+	CMatrixN(const CMatrixBase<TYPE>& fromMatrix)
+	{
+		// sets the dimensions
+		SetDim(fromMatrix.GetDim());
+
+		// copy the elements
+		(*this) = fromMatrix;
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// assignment operator
+	//////////////////////////////////////////////////////////////////
+	CMatrixN& operator=(const CMatrixBase<TYPE>& fromMatrix)
+	{
+		// sets the dimensions
+		SetDim(fromMatrix.GetDim());
+
+		// SetIdentity to fill unoccupied parts of matrix
+		SetIdentity();
+
+		// copy the elements
+		int nDim = min(GetDim(), fromMatrix.GetDim());
+		for (int nAt = 0; nAt < nDim; nAt++)
+		{
+			(*this)[nAt] = fromMatrix[nAt];
+		}
+
+		return (*this);
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// SetDim -- sets the dimension of the matrix
+	//////////////////////////////////////////////////////////////////
+	void SetDim(int nDim)
+	{
+		CMatrixBase<TYPE>::SetDim(nDim);
+	}
+};
+
+//////////////////////////////////////////////////////////////////////
+// function operator<<
+//
+// matrix serialization
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+CArchive& operator<<(CArchive &ar, CMatrixN<TYPE> m)
+{
+	// serialize the dimension
+	ar << m.GetDim();
+
+	// serialize the individual row vectors
+	for (int nAt = 0; nAt < m.GetDim(); nAt++)
+	{
+		ar << m[nAt];
+	}
+
+	// return the archive object
+	return ar;
+}
+
+//////////////////////////////////////////////////////////////////////
+// function operator>>
+//
+// matrix serialization
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+CArchive& operator>>(CArchive &ar, CMatrixN<TYPE>& m)
+{
+	// serialize the dimension
+	int nDim;
+	ar >> nDim;
+	m.SetDim(nDim);
+
+	// serialize the individual row vectors
+	for (int nAt = 0; nAt < m.GetDim(); nAt++)
+	{
+		ar >> m[nAt];
+	}
+
+	// return the archive object
+	return ar;
+}
+
+#endif
