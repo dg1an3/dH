@@ -18,7 +18,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // maximum iterations
-const int ITER_MAX = 1500;		
+const int ITER_MAX = 100;		
 
 // z-epsilon -- small number to protect against fractional accuracy for 
 //		a minimum that happens to be exactly zero.

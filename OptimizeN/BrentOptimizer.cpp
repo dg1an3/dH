@@ -46,7 +46,7 @@ const double BRACKET = 10.0;		// initial bracket size
 
 const double GLIMIT = 100.0;	// parameter needed by function BracketMinimum  
 
-const int ITER_MAX = 1500;		// maximum iteration
+const int ITER_MAX = 100;		// maximum iteration
 
 
 // holds the initial value for the brent optimization
