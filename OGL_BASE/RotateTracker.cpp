@@ -8,14 +8,12 @@
 
 #include "OpenGLView.h"
 
-#include "Matrix.h"
+#include <Matrix.h>
 
 #include "gl/gl.h"
 #include "gl/glu.h"
 
 #include "glMatrixVector.h"
-
-#include "MatrixFunction.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
