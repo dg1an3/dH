@@ -10,6 +10,7 @@
 #include <iostream>
 using namespace std;
 
+
 #include <VectorN.h>
 #include <VectorD.h>
 #include <MatrixNxM.h>
@@ -35,6 +36,25 @@ void InitVector< CVectorN<> >(CVectorN<>& v, int nDim)
 	v.SetDim(nDim);
 }
 
+template<class TYPE>
+TYPE GenRand(TYPE range)
+{
+	return range - 2.0 * range * (REAL) rand() 
+			/ (REAL) RAND_MAX;
+}
+
+#ifdef USE_COMPLEX
+template<>
+complex<double> GenRand(complex<double> range)
+{
+	return complex<double>(
+		range.real() - 2.0 * range.real() * (REAL) rand() 
+			/ (REAL) RAND_MAX,
+		range.imag() - 2.0 * range.imag() * (REAL) rand() 
+			/ (REAL) RAND_MAX );
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////
 // template<class VECTOR_CLASS, int DIM>
 // TestVectorClass(REAL scale)
@@ -42,8 +62,8 @@ void InitVector< CVectorN<> >(CVectorN<>& v, int nDim)
 // tests the specified vector class, creating random vectors with
 //		elements scaled by scale
 //////////////////////////////////////////////////////////////////////
-template<class VECTOR_CLASS>
-void TestVectorClass(int nDim, REAL scale)
+template<class VECTOR_CLASS, class ELEM_TYPE>
+void TestVectorClass(int nDim, ELEM_TYPE range)
 {
 	// construction
 	VECTOR_CLASS v1;
@@ -52,8 +72,7 @@ void TestVectorClass(int nDim, REAL scale)
 	// element accessors
 	for (int nAt = 0; nAt < v1.GetDim(); nAt++)
 	{
-		v1[nAt] = scale - 2.0 * scale * (REAL) rand() 
-			/ (REAL) RAND_MAX;
+		v1[nAt] = GenRand<ELEM_TYPE>(range);
 	}
 	TRACE_VECTOR("v1 = ", v1);
 
