@@ -25,23 +25,24 @@ using namespace std;
 template<class TYPE = double>
 class CVectorBase
 {
-protected:
+public:
 	//////////////////////////////////////////////////////////////////
 	// default constructor -- public can not construct a CVectorBase
 	//////////////////////////////////////////////////////////////////
 	CVectorBase()
 		: m_nDim(0),
-			m_pElements(NULL)
+			m_pElements(NULL),
+			m_bFreeElements(TRUE)
 	{
 	}
 
-public:
 	//////////////////////////////////////////////////////////////////
 	// copy constructor
 	//////////////////////////////////////////////////////////////////
 	CVectorBase(const CVectorBase& vFrom)
 		: m_nDim(0),
-			m_pElements(NULL)
+			m_pElements(NULL),
+			m_bFreeElements(TRUE)
 	{
 		// set up the elements
 		m_nDim = vFrom.GetDim();
@@ -56,7 +57,7 @@ public:
 	//////////////////////////////////////////////////////////////////
 	~CVectorBase()
 	{
-		if (NULL != m_pElements)
+		if (m_bFreeElements && NULL != m_pElements)
 		{
 			// free elements
 			delete [] m_pElements;
@@ -231,12 +232,25 @@ public:
 		return (*this);
 	}
 
+	//////////////////////////////////////////////////////////////////
+	// from a TYPE pointer
+	//////////////////////////////////////////////////////////////////
+	void SetElements(int nDim, TYPE *pElements)
+	{
+		m_nDim = nDim;
+		m_pElements = pElements;
+		m_bFreeElements = FALSE;
+	}
+
 protected:
 	// dimension of vector
 	int m_nDim;
 
 	// vector elements
 	TYPE *m_pElements;
+
+	// flag to indicate whether the elements should be freed
+	BOOL m_bFreeElements;
 };
 
 
