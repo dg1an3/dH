@@ -111,6 +111,9 @@ public:
 	const CMatrixD<4>& GetBasis() const;
 	void SetBasis(const CMatrixD<4>& mBasis);
 
+	// helper for pixel spacing
+	CVectorD<3> GetPixelSpacing() const;
+
 	// serializes the volume
 	virtual void Serialize(CArchive& ar);
 
@@ -618,23 +621,23 @@ inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds() const
 }	// GetThresholdBounds
 
 
-// basis for volume
 ///////////////////////////////////////////////////////////////////////////////
-// GetBasis
+// CVolume<VOXEL_TYPE>::GetBasis
 // 
-// <description>
+// basis for volume
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 const CMatrixD<4>& CVolume<VOXEL_TYPE>::GetBasis() const
 {
 	return m_mBasis;
 
-}	// GetBasis
+}	// CVolume<VOXEL_TYPE>::GetBasis
+
 
 ///////////////////////////////////////////////////////////////////////////////
-// SetBasis
+// CVolume<VOXEL_TYPE>::SetBasis
 // 
-// <description>
+// sets volume's basis matrix
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 void CVolume<VOXEL_TYPE>::SetBasis(const CMatrixD<4>& mBasis)
@@ -642,7 +645,33 @@ void CVolume<VOXEL_TYPE>::SetBasis(const CMatrixD<4>& mBasis)
 	m_mBasis = mBasis;
 	GetChangeEvent().Fire();
 
-}	// SetBasis
+}	// CVolume<VOXEL_TYPE>::SetBasis
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::GetPixelSpacing
+// 
+// Helper function to calculate the pixel spacing for the volume
+///////////////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+CVectorD<3> CVolume<VOXEL_TYPE>::GetPixelSpacing() const
+{
+	CMatrixD<4> mUnit;
+	mUnit[0][3] = 1.0;
+	mUnit[1][3] = 1.0;
+	mUnit[2][3] = 1.0;
+
+	CMatrixD<4> mXformUnit = GetBasis() * mUnit;
+
+	CVectorD<3> vSpacing;
+	vSpacing[0] = (FromHG<3, REAL>(mXformUnit[0]) - FromHG<3, REAL>(mXformUnit[3])).GetLength();
+	vSpacing[1] = (FromHG<3, REAL>(mXformUnit[1]) - FromHG<3, REAL>(mXformUnit[3])).GetLength();
+	vSpacing[2] = (FromHG<3, REAL>(mXformUnit[2]) - FromHG<3, REAL>(mXformUnit[3])).GetLength();
+
+	return vSpacing;
+
+}	// CVolume<VOXEL_TYPE>::GetPixelSpacing
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -827,15 +856,18 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 template<class VOXEL_TYPE>
 inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 {
-	int nBase = pVol->GetWidth() / 2 + 1;
-
+	// set new dimensions
+	int nBase = pVol->GetWidth() / 2;
 	pRes->SetDimensions(nBase, nBase, 1);
 
+	// set up basis matrix
 	CMatrixD<4> mBasis = pVol->GetBasis();
 	mBasis[0] *= 2.0;
 	mBasis[1] *= 2.0;
 	mBasis[2] *= 2.0;
 	pRes->SetBasis(mBasis);
+
+	// now copy voxels
 	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
 	VOXEL_TYPE ***pppRes = pRes->GetVoxels();
 	for (int nAtRow = 0; nAtRow < pRes->GetHeight(); nAtRow++)
