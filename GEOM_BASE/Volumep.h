@@ -12,7 +12,7 @@
 #include "Value.h"
 
 template<class VOXEL_TYPE>
-class CVolume : public CObservableObject // , public CObserver
+class CVolume : public CObservableObject
 {
 public:
 	CVolume()
@@ -59,17 +59,18 @@ public:
 		m_arrpVoxels.SetSize(nDepth * nHeight);
 		m_arrppVoxels.SetSize(nDepth);
 
-		for (int nAtZ = 0; nAtZ < nDepth; nAtZ++)
-		{
-			// set the elements in the outer indirection array
-			m_arrppVoxels[nAtZ] = &m_arrpVoxels[nAtZ * height.Get()];
+		if (nDepth > 0 && nHeight > 0 && nWidth > 0)
+			for (int nAtZ = 0; nAtZ < nDepth; nAtZ++)
+			{
+				// set the elements in the outer indirection array
+				m_arrppVoxels[nAtZ] = &m_arrpVoxels[nAtZ * height.Get()];
 
 
-			for (int nAtY = 0; nAtY < nHeight; nAtY++)
-				// set the elements in the inner indirection array
-				m_arrpVoxels[nAtZ * nHeight + nAtY] =
-					&m_pVoxels[nAtZ * nHeight * nWidth + nAtY * nHeight];
-		}
+				for (int nAtY = 0; nAtY < nHeight; nAtY++)
+					// set the elements in the inner indirection array
+					m_arrpVoxels[nAtZ * nHeight + nAtY] =
+						&m_pVoxels[nAtZ * nHeight * nWidth + nAtY * nHeight];
+			}
 
 		// now set the dimension member variables
 		width.Set(nWidth);

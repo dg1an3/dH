@@ -10,6 +10,7 @@
 #endif // _MSC_VER > 1000
 
 #include <Association.h>
+#include <Collection.h>
 #include "Volumep.h"
 
 class CHistogram : public CObject  
@@ -26,8 +27,20 @@ public:
 	//		within the region, 0.0 elsewhere
 	CAssociation< CVolume<int> > region;
 
+	// accessor for the binning kernel -- set to zero for a traditional
+	//		histogram
+	CValue< double > binKernelSigma;
+
+	// accessors for bin data
 	CArray<double, double>& GetBins();
 	CArray<double, double>& GetCumBins();
+
+	// collection of the differential volumes
+	CCollection< CVolume<double> > diffVolumes;
+
+	// accessor for the differential bins
+	CArray<double, double>& GetDiffBins(CVolume<double> *pWrt);
+	CArray<double, double>& GetCumDiffBins(CVolume<double> *pWrt);
 
 	// change handler for when the volume or region changes
 	virtual void OnChange(CObservableObject *pSource, void *);
@@ -44,6 +57,9 @@ private:
 
 	// cumulative bins
 	CArray<double, double> m_arrCumBins;
+
+	// map of differential histograms
+	CMapPtrToPtr m_mapDiffHistograms;
 };
 
 #endif // !defined(AFX_HISTOGRAM_H__B8400D13_5462_11D5_ABBE_00B0D0AB90D6__INCLUDED_)

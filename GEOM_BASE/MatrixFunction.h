@@ -9,7 +9,7 @@ CValue< TYPE >& FUNCTION(CValue< ARG_TYPE >& val)							\
 {																			\
 	CValue< TYPE > *pFunc =													\
 		new CFunction1< TYPE, ARG_TYPE >(FUNCTION, &val);					\
-	val.AddFunction((CObject *)pFunc);													\
+	val.AddDerivedObject((CObject *)pFunc);													\
 	return (*pFunc);														\
 } 
 
@@ -21,7 +21,7 @@ CValue< TYPE >& FUNCTION(CValue< ARG1_TYPE >& lVal,							\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >(FUNCTION,				\
 			&lVal, &rVal);													\
-	lVal.AddFunction((CObject *)pFunc);												\
+	lVal.AddDerivedObject((CObject *)pFunc);												\
 	return (*pFunc);														\
 }																			\
 																			\
@@ -30,7 +30,7 @@ CValue< TYPE >& FUNCTION(CValue< ARG1_TYPE >& lVal, const ARG2_TYPE& rConst) \
 {																			\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION, &lVal, rConst); \
-	lVal.AddFunction((CObject *)pFunc);												\
+	lVal.AddDerivedObject((CObject *)pFunc);												\
 	return (*pFunc);														\
 }																			\
 																			\
@@ -39,7 +39,7 @@ CValue< TYPE >& FUNCTION(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)	\
 {																			\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION, lConst, &rVal); \
-	rVal.AddFunction((CObject *)pFunc);												\
+	rVal.AddDerivedObject((CObject *)pFunc);												\
 	return (*pFunc);														\
 } 
 
@@ -51,7 +51,7 @@ CValue< TYPE >& FUNCTION1(CValue< ARG1_TYPE >& lVal,							\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE >(FUNCTION2,				\
 			&lVal, &rVal);													\
-	lVal.AddFunction((CObject *)pFunc);												\
+	lVal.AddDerivedObject((CObject *)pFunc);												\
 	return (*pFunc);														\
 }																			\
 																			\
@@ -60,7 +60,7 @@ CValue< TYPE >& FUNCTION1(CValue< ARG1_TYPE >& lVal, const ARG2_TYPE& rConst) \
 {																			\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION2, &lVal, rConst); \
-	lVal.AddFunction((CObject *)pFunc);												\
+	lVal.AddDerivedObject((CObject *)pFunc);												\
 	return (*pFunc);														\
 }																			\
 																			\
@@ -69,7 +69,7 @@ CValue< TYPE >& FUNCTION1(const ARG1_TYPE& lConst, CValue< ARG2_TYPE>& rVal)	\
 {																			\
 	CValue< TYPE > *pFunc =													\
 		new CFunction2< TYPE, ARG1_TYPE, ARG2_TYPE>(FUNCTION2, lConst, &rVal); \
-	rVal.AddFunction((CObject *)pFunc);												\
+	rVal.AddDerivedObject((CObject *)pFunc);												\
 	return (*pFunc);														\
 } 
 
