@@ -176,61 +176,27 @@ SOURCE=.\TransitionPlan.txt
 # 	2:5:Class:CVcTextLayout
 # 	2:10:HeaderFile:vctextlayout.h
 # 	2:8:ImplFile:vctextlayout.cpp
-# End Section
-# Section PenBeamEdit : {E9E0751D-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcIntersection
-# 	2:10:HeaderFile:vcintersection.h
-# 	2:8:ImplFile:vcintersection.cpp
-# End Section
-# Section PenBeamEdit : {E9E07511-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcSeries
-# 	2:10:HeaderFile:vcseries.h
-# 	2:8:ImplFile:vcseries.cpp
-# End Section
-# Section PenBeamEdit : {E9E074FC-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcWall
-# 	2:10:HeaderFile:vcwall.h
-# 	2:8:ImplFile:vcwall.cpp
-# End Section
-# Section PenBeamEdit : {E9E074EC-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcLightSource
-# 	2:10:HeaderFile:vclightsource.h
-# 	2:8:ImplFile:vclightsource.cpp
-# End Section
-# Section PenBeamEdit : {E9E074DC-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcShadow
-# 	2:10:HeaderFile:vcshadow.h
-# 	2:8:ImplFile:vcshadow.cpp
-# End Section
-# Section PenBeamEdit : {E9E07521-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcAxisScale
-# 	2:10:HeaderFile:vcaxisscale.h
-# 	2:8:ImplFile:vcaxisscale.cpp
-# End Section
-# Section PenBeamEdit : {E9E074E0-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcFrame
-# 	2:10:HeaderFile:vcframe.h
-# 	2:8:ImplFile:vcframe.cpp
-# End Section
-# Section PenBeamEdit : {E9E074F0-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcLight
-# 	2:10:HeaderFile:vclight.h
-# 	2:8:ImplFile:vclight.cpp
-# End Section
-# Section PenBeamEdit : {E9E07525-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcAxis
-# 	2:10:HeaderFile:vcaxis.h
-# 	2:8:ImplFile:vcaxis.cpp
+
 # End Section
 # Section PenBeamEdit : {E9E07515-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcAxisTitle
 # 	2:10:HeaderFile:vcaxistitle.h
 # 	2:8:ImplFile:vcaxistitle.cpp
 # End Section
-# Section PenBeamEdit : {E9E074C9-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcCoor
-# 	2:10:HeaderFile:vccoor.h
-# 	2:8:ImplFile:vccoor.cpp
+# Section PenBeamEdit : {E9E07525-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcAxis
+# 	2:10:HeaderFile:vcaxis.h
+# 	2:8:ImplFile:vcaxis.cpp
+# End Section
+# Section PenBeamEdit : {E9E074E4-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcTitle
+# 	2:10:HeaderFile:vctitle.h
+# 	2:8:ImplFile:vctitle.cpp
+# End Section
+# Section PenBeamEdit : {E9E074F4-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcPlotBase
+# 	2:10:HeaderFile:vcplotbase.h
+# 	2:8:ImplFile:vcplotbase.cpp
 # End Section
 # Section PenBeamEdit : {E9E0750C-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcDataPointLabel
@@ -242,15 +208,15 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vclcoor.h
 # 	2:8:ImplFile:vclcoor.cpp
 # End Section
-# Section PenBeamEdit : {E9E074F4-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcPlotBase
-# 	2:10:HeaderFile:vcplotbase.h
-# 	2:8:ImplFile:vcplotbase.cpp
+# Section PenBeamEdit : {E9E074CF-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcColor
+# 	2:10:HeaderFile:vccolor.h
+# 	2:8:ImplFile:vccolor.cpp
 # End Section
-# Section PenBeamEdit : {E9E074E4-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcTitle
-# 	2:10:HeaderFile:vctitle.h
-# 	2:8:ImplFile:vctitle.cpp
+# Section PenBeamEdit : {E9E074D8-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcFont
+# 	2:10:HeaderFile:vcfont.h
+# 	2:8:ImplFile:vcfont.cpp
 # End Section
 # Section PenBeamEdit : {E9E07504-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcSeriesMarker
@@ -282,19 +248,20 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vcmarker.h
 # 	2:8:ImplFile:vcmarker.cpp
 # End Section
-# Section PenBeamEdit : {E9E074EA-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcDataGrid
-# 	2:10:HeaderFile:vcdatagrid.h
-# 	2:8:ImplFile:vcdatagrid.cpp
+# Section PenBeamEdit : {E9E074FA-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcWeighting
+# 	2:10:HeaderFile:vcweighting.h
+# 	2:8:ImplFile:vcweighting.cpp
 # End Section
 # Section PenBeamEdit : {E9E074DA-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcBrush
 # 	2:10:HeaderFile:vcbrush.h
 # 	2:8:ImplFile:vcbrush.cpp
 # End Section
-# Section PenBeamEdit : {3A2B370C-BA0A-11D1-B137-0000F8753F5D}
-# 	2:21:DefaultSinkHeaderFile:mschart.h
-# 	2:16:DefaultSinkClass:CMSChart
+# Section PenBeamEdit : {E9E074EA-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcDataGrid
+# 	2:10:HeaderFile:vcdatagrid.h
+# 	2:8:ImplFile:vcdatagrid.cpp
 # End Section
 # Section PenBeamEdit : {E9E074FA-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcWeighting
@@ -406,3 +373,4 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vcstatline.h
 # 	2:8:ImplFile:vcstatline.cpp
 # End Section
+
