@@ -106,7 +106,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		// LOG_OBJECT((*pDensity));
 
-		CSource *pSource = new CSource();
+		CEnergyDepKernel *pSource = new CEnergyDepKernel();
 		pSource->ReadDoseSpread("lang48rad48.dat");
 
 		CBeam *pBeam = new CBeam(pSource, ssd);
@@ -114,6 +114,9 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		pBeam->xmax = xmax; 
 		pBeam->ymin = ymin; 
 		pBeam->ymax = ymax;
+
+		pBeam->SetDoseCalcRegion(CVectorD<3>(0.2, -10.0, -5.0),
+			CVectorD<3>(20.0, 10.0, 5.0));
 
 		pBeam->SetDensity(pDensity,	mu);
 
