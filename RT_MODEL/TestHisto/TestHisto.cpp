@@ -130,7 +130,7 @@ void InitVolumes()
 {
 	BEGIN_LOG_SECTION(InitVolumes);
 
-	CVolume<REAL> *pDose = g_pPlan->GetDoseMatrix(); // 0); // 1);
+	CVolume<REAL> *pDose = g_pPlan->GetDoseMatrix();
 
 	g_pStructTarget = new CStructure("Target");
 	g_pSeries->m_arrStructures.Add(g_pStructTarget);
@@ -139,27 +139,25 @@ void InitVolumes()
 	mBasis[3][0] = -pDose->GetWidth() / 2;
 	mBasis[3][1] = -pDose->GetHeight() / 2;
 	CVolume<REAL> *pRegionTarget = g_pStructTarget->GetRegion(0);
-	pRegionTarget->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), 1);
-	pRegionTarget->SetBasis(mBasis);
+	pRegionTarget->ConformTo(pDose);
 	pRegionTarget->ClearVoxels();
 
 	g_pStructAvoid = new CStructure("Avoid");
 	g_pSeries->m_arrStructures.Add(g_pStructAvoid);
 
 	CVolume<REAL> *pRegionAvoid = g_pStructAvoid->GetRegion(0);
-	pRegionAvoid->SetDimensions(pDose->GetWidth(), pDose->GetHeight(), 1);
-	pRegionAvoid->SetBasis(mBasis);
+	pRegionAvoid->ConformTo(pDose);
 	pRegionAvoid->ClearVoxels();
 
 	InitUTarget(pRegionTarget, pRegionAvoid);
 
-	CKLDivTerm *pKLDT_Target = new CKLDivTerm(g_pStructTarget, 10.0);
+	CKLDivTerm *pKLDT_Target = new CKLDivTerm(g_pStructTarget, 5.0);
 	g_pPresc->AddStructureTerm(pKLDT_Target);
 
 	// need to call after adding to prescription (so that binning has been set)
-	pKLDT_Target->SetInterval(MAX_DOSE, MAX_DOSE * 1.05, 1.0);
+	pKLDT_Target->SetInterval(MAX_DOSE, MAX_DOSE * /* 1.05 */ 1.01, 1.0);
 
-	CKLDivTerm *pKLDT_Avoid = new CKLDivTerm(g_pStructAvoid, 1.0);
+	CKLDivTerm *pKLDT_Avoid = new CKLDivTerm(g_pStructAvoid, 0.5);
 	g_pPresc->AddStructureTerm(pKLDT_Avoid);
 	pKLDT_Avoid->SetInterval((REAL) 0.0, (REAL) 0.30,
 		/* MAX_DOSE * 0.50 */ (REAL) 1.0);
@@ -245,7 +243,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		cout << "*************************************" << endl;
 		cout << "Testing optimizer..." << endl;
 
-		const int LOOP_COUNT = 10;
+		const int LOOP_COUNT = 1;
 //		for (int nAt = 0; nAt < LOOP_COUNT; nAt++)
 //		{
 		BEGIN_TIME_LOOP("Optimize", LOOP_COUNT);
