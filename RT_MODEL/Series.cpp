@@ -118,3 +118,8 @@ BOOL CSeries::OnNewDocument()
 
 	return TRUE;
 }
+
+CSurface *CSeries::CreateSphereStructure(const CString &strName)
+{
+	return NULL;
+}

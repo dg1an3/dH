@@ -48,6 +48,7 @@ public:
 
 // Implementation
 public:
+	CSurface * CreateSphereStructure(const CString& strName);
 	CString GetFileRoot();
 	CString GetFileName();
 	BOOL OnNewDocument();
