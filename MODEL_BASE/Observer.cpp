@@ -19,9 +19,12 @@ void CObservable::AddObserver(CObserver *pObserver) const
 	// add to the list of observers
 	m_arrObservers.Add(pObserver);
 
+#define FIRECHANGE_ON_ADDOBSERVER
+#ifdef FIRECHANGE_ON_ADDOBSERVER
 	// notify the new observer of a change to allow it to update 
 	//		itself
 	pObserver->OnChange(const_cast<CObservable *>(this));
+#endif
 }
 
 void CObservable::RemoveObserver(CObserver *pObserver) const
