@@ -821,15 +821,25 @@ void TraceMatrix(const char *pszMessage, const CMatrixBase<TYPE> m)
 {
 	TRACE("%s = \n", pszMessage);
 
+	// MATLAB output
+	TRACE("\t[");
+
 	for (int nAtRow = 0; nAtRow < m.GetDim(); nAtRow++)
 	{
-		TRACE("\t<");
 		for (int nAtCol = 0; nAtCol < m.GetDim(); nAtCol++)
 		{
 			TRACE("%10.4lf\t", (double) m[nAtRow][nAtCol]);
 		}
-		TRACE(">\n");
+
+		if (nAtRow < m.GetDim()-1)
+		{
+			// MATLAB output
+			TRACE(";\n\t");
+		}
 	} 
+
+	// MATLAB output
+	TRACE("]\n");
 }
 
 
