@@ -31,7 +31,7 @@ public:
 	CValue< CMatrix<4> > volumeTransform;
 
 	// Volume data for the series
-	CVolume< int > volume;
+	CVolume< short > volume;
 
 	// Structures for the series
 	CCollection< CSurface > structures;
