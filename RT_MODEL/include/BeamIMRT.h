@@ -32,6 +32,9 @@ public:
 	const CVectorN<>& GetIntensityMap(int nScale = 0) const;
 	void SetIntensityMap(int nScale, const CVectorN<>& vWeights);
 
+	void InvFiltIntensityMap(int nScale, const CVectorN<>& vWeights, 
+		CVectorBase<>& vFiltWeights);
+
 	// over-ride to accumulate beamlets
 	CVolume<double> *GetDoseMatrix(int nScale = 0);
 
