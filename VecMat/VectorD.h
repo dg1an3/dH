@@ -261,6 +261,9 @@ CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 	// ensure no monkey business has occurred
 	ASSERT(m_pElements == &m_arrElements[0]);
 
+	// ensure we don't delete anything
+	m_pElements = NULL;
+
 }	// CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 
 
