@@ -8,6 +8,10 @@
 
 IMPLEMENT_DYNAMIC(CObservableObject, CObject)
 
+#ifdef _DEBUG
+int CObservableObject::m_nNumObservers = 0;
+#endif
+
 void CObservableObject::AddObserver(CObject *pObserver, ChangeFunction func) const
 {
 	// check to ensure the observer is not already in the list
@@ -18,6 +22,11 @@ void CObservableObject::AddObserver(CObject *pObserver, ChangeFunction func) con
 	// add to the list of observers
 	m_arrObservers.Add(pObserver);
 	m_arrFunctions.Add(func);
+
+#ifdef _DEBUG
+	m_nNumObservers++;
+	TRACE1("Number of observers = %i\n", m_nNumObservers);
+#endif
 }
 
 void CObservableObject::RemoveObserver(CObject *pObserver, ChangeFunction func) const
@@ -28,6 +37,10 @@ void CObservableObject::RemoveObserver(CObject *pObserver, ChangeFunction func) 
 			m_arrObservers.RemoveAt(nAt);
 			m_arrFunctions.RemoveAt(nAt);
 		}
+
+#ifdef _DEBUG
+	m_nNumObservers--;	
+#endif
 }
 
 void CObservableObject::FireChange(void *pOldValue)

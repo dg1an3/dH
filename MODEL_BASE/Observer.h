@@ -35,6 +35,11 @@ private:
 	// the array of observers
 	mutable CArray<CObject *, CObject *> m_arrObservers;
 	mutable CArray<ChangeFunction, ChangeFunction> m_arrFunctions;
+
+#ifdef _DEBUG
+	// counts the total number of observers in the system
+	static int m_nNumObservers;
+#endif
 };
 
 template<class OBSERVER_TYPE>
