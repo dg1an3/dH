@@ -31,8 +31,15 @@ class CRenderable : public CObject
 {
 public:
 	// constructor/destructor
-	CRenderable(CSceneView *pView);
+	CRenderable();
 	virtual ~CRenderable();
+
+	// allow for dynamic creation
+	DECLARE_DYNCREATE(CRenderable)
+
+	// sets the object being rendered
+	CObject *GetObject();
+	void SetObject(CObject *pObject);
 
 	// color for the renderer (use depends on objects being rendered)
 	COLORREF GetColor() const;
@@ -78,6 +85,9 @@ protected:
 	virtual void Render();
 
 private:
+	// the object being described
+	CObject *m_pObject;
+
 	// the rendering color
 	COLORREF m_color;	
 
