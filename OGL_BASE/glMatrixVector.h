@@ -64,13 +64,13 @@ inline void glClearColor(COLORREF forColor)
 		1.0f);
 }
 
-inline void glLightPosition(GLenum light, CVector<3> vParam)
+inline void glLightDirection(GLenum light, CVector<3> vParam)
 {
 	GLfloat param[4];
 	param[0] = (float) vParam[0];
 	param[1] = (float) vParam[1];
 	param[2] = (float) vParam[2];
-	param[3] = 1.0f;
+	param[3] = 0.0f;
 
 	glLightfv(light, GL_POSITION, param);
 }
