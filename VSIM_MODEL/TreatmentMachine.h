@@ -35,7 +35,7 @@ public:
 	CValue< double > SID;	// source-image distance
 
 	// the projection matrix for the machine
-	CMemberFunction< CMatrix<4> > GetProjection;
+	CValue< CMatrix<4> > projection;
 
 	// serialization
 	void Serialize(CArchive &ar);

@@ -42,7 +42,7 @@ CTreatmentMachine::CTreatmentMachine()
 		SCD(240.0),
 		SID(SAD.Get() * 4.0)
 {
-	GetProjection.SyncTo(&ComputeProj(SCD, SID));
+	projection.SyncTo(&ComputeProj(SCD, SID));
 }
 
 IMPLEMENT_SERIAL(CTreatmentMachine, CObject, 1)

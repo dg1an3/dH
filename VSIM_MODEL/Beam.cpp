@@ -25,8 +25,7 @@ static char THIS_FILE[]=__FILE__;
 CBeam::CBeam()
 	: forMachine(&m_Machine),
 		SAD(&forMachine, &CTreatmentMachine::SAD),
-		projection(&forMachine, 
-			(CValue< CMatrix<4> > CTreatmentMachine::*) &CTreatmentMachine::GetProjection)
+		projection(&forMachine, &CTreatmentMachine::projection)
 {
 	forMachine.SetAutoObserver(this);
 
@@ -39,14 +38,14 @@ CBeam::CBeam()
 	blocks.AddObserver(this);
 
 	// set up the beam-to-patient transform computation
-	CValue< CMatrix<4> >& beamToPatientXform =
+	CValue< CMatrix<4> >& privBeamToPatientXform =
 		  CreateTranslate(tableOffset)
 		* CreateRotate(couchAngle,		CVector<3>(0.0, 0.0, -1.0))
 		* CreateRotate(PI - gantryAngle,	CVector<3>(0.0, -1.0, 0.0))
 		* CreateRotate(collimAngle,		CVector<3>(0.0, 0.0, -1.0))
 		* CreateTranslate(SAD, CVector<3>(0.0, 0.0, -1.0));
-	GetBeamToPatientXform.SyncTo(&beamToPatientXform);
-	GetBeamToPatientXform.AddObserver(this);
+	beamToPatientXform.SyncTo(&privBeamToPatientXform);
+	beamToPatientXform.AddObserver(this);
 
 	collimAngle.Set(0.0);
 	gantryAngle.Set(PI);
@@ -62,7 +61,7 @@ CBeam::~CBeam()
 {
 }
 
-void CBeam::OnChange(CObservable *pSource)
+void CBeam::OnChange(CObservableObject *pSource)
 {
 	// propagate the change to any listeners on the beam
 	FireChange();

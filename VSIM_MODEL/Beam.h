@@ -57,7 +57,7 @@ public:
 	CValue< CVector<2> > collimMax;
 
 	// computed transform from patient to beam coordinates
-	CMemberFunction< CMatrix<4> > GetBeamToPatientXform;
+	CValue< CMatrix<4> > beamToPatientXform;
 
 	// boolean value to indicate that shielding blocks are used
 	//		by this beam
@@ -67,7 +67,7 @@ public:
 	CCollection< CPolygon > blocks;
 
 	// handles changes propagated from child objects
-	virtual void OnChange(CObservable *pFromObject);
+	virtual void OnChange(CObservableObject *pFromObject);
 
 	// beam serialization
 	void Serialize(CArchive &ar);
