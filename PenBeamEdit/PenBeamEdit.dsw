@@ -45,19 +45,19 @@ Package=<4>
     Project_Dep_Name MODEL_BASE
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name VSIM_MODEL
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name GEOM_MODEL
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name GEOM_VIEW
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name RT_MODEL
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "VSIM_MODEL"="..\VSIM_MODEL\VSIM_MODEL.dsp" - Package Owner=<4>
+Project: "RT_MODEL"="..\RT_MODEL\RT_MODEL.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -77,7 +77,6 @@ Package=<5>
 
 Package=<3>
 {{{
-    {3A2B370C-BA0A-11D1-B137-0000F8753F5D}
 }}}
 
 ###############################################################################

@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\VSIM_MODEL" /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\RT_MODEL\include" /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\VecMat" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /Yu"stdafx.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
@@ -67,7 +67,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\VSIM_MODEL" /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /FR /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\RT_MODEL\include" /I "..\GEOM_VIEW\include" /I "..\GEOM_MODEL\include" /I "..\VecMat" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /FR /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -88,6 +88,10 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Source File
+
+SOURCE=.\Histogram.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=.\MainFrm.cpp
@@ -113,6 +117,10 @@ SOURCE=.\StdAfx.cpp
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\Histogram.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\MainFrm.h
@@ -172,46 +180,6 @@ SOURCE=.\TransitionPlan.txt
 # End Source File
 # End Target
 # End Project
-# Section PenBeamEdit : {E9E074D6-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcLocation
-# 	2:10:HeaderFile:vclocation.h
-# 	2:8:ImplFile:vclocation.cpp
-# End Section
-# Section PenBeamEdit : {E9E07502-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcSeriesPosition
-# 	2:10:HeaderFile:vcseriesposition.h
-# 	2:8:ImplFile:vcseriesposition.cpp
-# End Section
-# Section PenBeamEdit : {E9E074CD-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcRect
-# 	2:10:HeaderFile:vcrect.h
-# 	2:8:ImplFile:vcrect.cpp
-# End Section
-# Section PenBeamEdit : {E9E074E6-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcFootnote
-# 	2:10:HeaderFile:vcfootnote.h
-# 	2:8:ImplFile:vcfootnote.cpp
-# End Section
-# Section PenBeamEdit : {E9E0750E-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcDataPoint
-# 	2:10:HeaderFile:vcdatapoint.h
-# 	2:8:ImplFile:vcdatapoint.cpp
-# End Section
-# Section PenBeamEdit : {E9E074D1-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcPen
-# 	2:10:HeaderFile:vcpen.h
-# 	2:8:ImplFile:vcpen.cpp
-# End Section
-# Section PenBeamEdit : {3A2B370A-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CMSChart
-# 	2:10:HeaderFile:mschart.h
-# 	2:8:ImplFile:mschart.cpp
-# End Section
-# Section PenBeamEdit : {E9E07506-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcStatLine
-# 	2:10:HeaderFile:vcstatline.h
-# 	2:8:ImplFile:vcstatline.cpp
-# End Section
 # Section PenBeamEdit : {E9E074D5-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcTextLayout
 # 	2:10:HeaderFile:vctextlayout.h
@@ -222,20 +190,15 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vcaxistitle.h
 # 	2:8:ImplFile:vcaxistitle.cpp
 # End Section
-# Section PenBeamEdit : {E9E0750C-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcDataPointLabel
-# 	2:10:HeaderFile:vcdatapointlabel.h
-# 	2:8:ImplFile:vcdatapointlabel.cpp
+# Section PenBeamEdit : {E9E07525-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcAxis
+# 	2:10:HeaderFile:vcaxis.h
+# 	2:8:ImplFile:vcaxis.cpp
 # End Section
 # Section PenBeamEdit : {E9E074E4-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcTitle
 # 	2:10:HeaderFile:vctitle.h
 # 	2:8:ImplFile:vctitle.cpp
-# End Section
-# Section PenBeamEdit : {E9E07525-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcAxis
-# 	2:10:HeaderFile:vcaxis.h
-# 	2:8:ImplFile:vcaxis.cpp
 # End Section
 # Section PenBeamEdit : {E9E074CB-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcLCoor
@@ -246,6 +209,16 @@ SOURCE=.\TransitionPlan.txt
 # 	2:5:Class:CVcPlotBase
 # 	2:10:HeaderFile:vcplotbase.h
 # 	2:8:ImplFile:vcplotbase.cpp
+# End Section
+# Section PenBeamEdit : {E9E0750C-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcDataPointLabel
+# 	2:10:HeaderFile:vcdatapointlabel.h
+# 	2:8:ImplFile:vcdatapointlabel.cpp
+# End Section
+# Section PenBeamEdit : {E9E0751B-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcAxisGrid
+# 	2:10:HeaderFile:vcaxisgrid.h
+# 	2:8:ImplFile:vcaxisgrid.cpp
 # End Section
 # Section PenBeamEdit : {E9E074E8-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcLegend
@@ -262,30 +235,30 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vcbrush.h
 # 	2:8:ImplFile:vcbrush.cpp
 # End Section
+# Section PenBeamEdit : {E9E074EA-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcDataGrid
+# 	2:10:HeaderFile:vcdatagrid.h
+# 	2:8:ImplFile:vcdatagrid.cpp
+# End Section
 # Section PenBeamEdit : {E9E074D3-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcMarker
 # 	2:10:HeaderFile:vcmarker.h
 # 	2:8:ImplFile:vcmarker.cpp
-# End Section
-# Section PenBeamEdit : {E9E0751B-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcAxisGrid
-# 	2:10:HeaderFile:vcaxisgrid.h
-# 	2:8:ImplFile:vcaxisgrid.cpp
 # End Section
 # Section PenBeamEdit : {E9E07508-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcLabel
 # 	2:10:HeaderFile:vclabel.h
 # 	2:8:ImplFile:vclabel.cpp
 # End Section
-# Section PenBeamEdit : {E9E074EA-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcDataGrid
-# 	2:10:HeaderFile:vcdatagrid.h
-# 	2:8:ImplFile:vcdatagrid.cpp
-# End Section
 # Section PenBeamEdit : {E9E0751F-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcTick
 # 	2:10:HeaderFile:vctick.h
 # 	2:8:ImplFile:vctick.cpp
+# End Section
+# Section PenBeamEdit : {E9E07513-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcSeriesCollection
+# 	2:10:HeaderFile:vcseriescollection.h
+# 	2:8:ImplFile:vcseriescollection.cpp
 # End Section
 # Section PenBeamEdit : {E9E0752A-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcDataPoints
@@ -297,6 +270,11 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vclightsources.h
 # 	2:8:ImplFile:vclightsources.cpp
 # End Section
+# Section PenBeamEdit : {E9E074E2-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcBackdrop
+# 	2:10:HeaderFile:vcbackdrop.h
+# 	2:8:ImplFile:vcbackdrop.cpp
+# End Section
 # Section PenBeamEdit : {E9E074DE-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcFill
 # 	2:10:HeaderFile:vcfill.h
@@ -306,11 +284,6 @@ SOURCE=.\TransitionPlan.txt
 # 	2:5:Class:CVcLabels
 # 	2:10:HeaderFile:vclabels.h
 # 	2:8:ImplFile:vclabels.cpp
-# End Section
-# Section PenBeamEdit : {E9E07513-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcSeriesCollection
-# 	2:10:HeaderFile:vcseriescollection.h
-# 	2:8:ImplFile:vcseriescollection.cpp
 # End Section
 # Section PenBeamEdit : {E9E07523-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcValueScale
@@ -327,10 +300,10 @@ SOURCE=.\TransitionPlan.txt
 # 	2:10:HeaderFile:vcview3d.h
 # 	2:8:ImplFile:vcview3d.cpp
 # End Section
-# Section PenBeamEdit : {E9E074E2-BA0A-11D1-B137-0000F8753F5D}
-# 	2:5:Class:CVcBackdrop
-# 	2:10:HeaderFile:vcbackdrop.h
-# 	2:8:ImplFile:vcbackdrop.cpp
+# Section PenBeamEdit : {E9E0750E-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcDataPoint
+# 	2:10:HeaderFile:vcdatapoint.h
+# 	2:8:ImplFile:vcdatapoint.cpp
 # End Section
 # Section PenBeamEdit : {E9E07527-BA0A-11D1-B137-0000F8753F5D}
 # 	2:5:Class:CVcPlot
@@ -341,4 +314,39 @@ SOURCE=.\TransitionPlan.txt
 # 	2:5:Class:CVcCategoryScale
 # 	2:10:HeaderFile:vccategoryscale.h
 # 	2:8:ImplFile:vccategoryscale.cpp
+# End Section
+# Section PenBeamEdit : {E9E074CD-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcRect
+# 	2:10:HeaderFile:vcrect.h
+# 	2:8:ImplFile:vcrect.cpp
+# End Section
+# Section PenBeamEdit : {E9E074E6-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcFootnote
+# 	2:10:HeaderFile:vcfootnote.h
+# 	2:8:ImplFile:vcfootnote.cpp
+# End Section
+# Section PenBeamEdit : {E9E074D6-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcLocation
+# 	2:10:HeaderFile:vclocation.h
+# 	2:8:ImplFile:vclocation.cpp
+# End Section
+# Section PenBeamEdit : {E9E07502-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcSeriesPosition
+# 	2:10:HeaderFile:vcseriesposition.h
+# 	2:8:ImplFile:vcseriesposition.cpp
+# End Section
+# Section PenBeamEdit : {3A2B370A-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CMSChart
+# 	2:10:HeaderFile:mschart.h
+# 	2:8:ImplFile:mschart.cpp
+# End Section
+# Section PenBeamEdit : {E9E074D1-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcPen
+# 	2:10:HeaderFile:vcpen.h
+# 	2:8:ImplFile:vcpen.cpp
+# End Section
+# Section PenBeamEdit : {E9E07506-BA0A-11D1-B137-0000F8753F5D}
+# 	2:5:Class:CVcStatLine
+# 	2:10:HeaderFile:vcstatline.h
+# 	2:8:ImplFile:vcstatline.cpp
 # End Section
