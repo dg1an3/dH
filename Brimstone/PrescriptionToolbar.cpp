@@ -92,7 +92,26 @@ void CPrescriptionToolbar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 		m_pDoc->m_pOptThread->m_evtParamChanged = TRUE;
 		m_pDoc->m_pOptThread->m_csPrescParam.Unlock();
 
+		// m_pDoc->m_pOptThread->Immediate();
 		m_pDoc->m_pOptThread->ResumeThread();
+
+		do
+		{
+			Sleep(0);	
+
+		} while (!m_pDoc->m_pOptThread->m_evtNewResult);
+
+		m_pDoc->UpdateFromOptimizer();
+		POSITION pos = m_pDoc->GetFirstViewPosition();
+		while (pos != NULL)
+		{
+			CView *pView = m_pDoc->GetNextView(pos);
+			pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+		}
+		
+		// m_graph.Invalidate(TRUE);
+
+		// m_pDoc->UpdateAllViews(NULL);
 	}
 }
 
@@ -111,7 +130,25 @@ void CPrescriptionToolbar::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 	m_pDoc->m_pOptThread->m_evtParamChanged = TRUE;
 	m_pDoc->m_pOptThread->m_csPrescParam.Unlock();
 
+	// m_pDoc->m_pOptThread->Immediate();
 	m_pDoc->m_pOptThread->ResumeThread();
+
+	do
+	{
+		Sleep(0);	
+
+	} while (!m_pDoc->m_pOptThread->m_evtNewResult);
+
+	m_pDoc->UpdateFromOptimizer();
+	POSITION pos = m_pDoc->GetFirstViewPosition();
+	while (pos != NULL)
+	{
+		CView *pView = m_pDoc->GetNextView(pos);
+		pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+	// m_graph.Invalidate(TRUE);
+
+	// m_pDoc->UpdateAllViews(NULL);
 }
 
 

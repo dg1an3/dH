@@ -212,7 +212,7 @@ int CBrimstoneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	// set timer to update plan
-	SetTimer(7, 50, NULL);
+	SetTimer(7, 20, NULL);
 
 	return 0;
 }
@@ -287,7 +287,7 @@ void CBrimstoneView::OnHistogramChange(CObservableEvent *, void *)
 
 void CBrimstoneView::OnTimer(UINT nIDEvent) 
 {
-	GetDocument()->UpdateFromOptimizer();
+//	GetDocument()->UpdateFromOptimizer();
 
 	m_graph.Invalidate(TRUE);
 
