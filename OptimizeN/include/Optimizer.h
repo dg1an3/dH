@@ -16,6 +16,10 @@
 // include for the objective function
 #include "ObjectiveFunction.h"
 
+// callback function
+typedef BOOL OptimizerCallback(REAL value, 
+		const CVectorN<>& vRes, void *pParam);
+
 //////////////////////////////////////////////////////////////////////
 // class COptimizer
 // 
@@ -29,6 +33,9 @@ public:
 
 	// destroy the optimizer
 	virtual ~COptimizer();
+
+	// sets the callback function
+	void SetCallback(OptimizerCallback *pCallback, void *pParam = NULL);
 
 	// the flag to indicate that gradient information should
 	//		be used
@@ -55,6 +62,10 @@ protected:
 	// the objective function over which optimization is to occur
 	CObjectiveFunction *m_pFunc;
 
+	// stores the callback info
+	OptimizerCallback *m_pCallbackFunc;
+	void *m_pCallbackParam;
+
 	// holds the tolerance for the optimization
 	REAL m_tolerance;
 
@@ -71,6 +82,8 @@ protected:
 private:
 	// flag to indicate whether gradient information should be used
 	BOOL m_bUseGradientInfo;
-};
+
+};	// class COptimizer
+
 
 #endif // !defined(OPTIMIZER_H)

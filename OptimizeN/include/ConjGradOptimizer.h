@@ -22,9 +22,6 @@
 #include "LineFunction.h"
 
 
-typedef void OptimizerCallback(REAL lambda, const CVectorN<>& vDir, 
-							 void *pParam);
-
 //////////////////////////////////////////////////////////////////////
 // class CConjGradOptimizer
 // 
@@ -40,9 +37,6 @@ public:
 	// returns a reference to the embedded Brent optimizer
 	CBrentOptimizer& GetBrentOptimizer();
 
-	// sets the callback function
-	void SetCallback(OptimizerCallback *pCallback, void *pParam = NULL);
-
 	// optimize the objective function
 	virtual const CVectorN<>& Optimize(const CVectorN<>& vInit);
 
@@ -57,15 +51,13 @@ private:
 	// brent optimizer along the line function
 	CBrentOptimizer m_optimizeBrent;
 
-	// stores the callback info
-	OptimizerCallback *m_pCallbackFunc;
-	void *m_pCallbackParam;
-
 	// "statics" for the optimization routine
 	CVectorN<> m_vGrad;
 	CVectorN<> m_vGradPrev;
 	CVectorN<> m_vDir;
 	CVectorN<> m_vDirPrev;
-};
+
+};	// class CConjGradOptimizer
+
 
 #endif

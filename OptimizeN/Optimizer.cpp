@@ -21,9 +21,12 @@ COptimizer::COptimizer(CObjectiveFunction *pFunc)
 	: m_tolerance(0.5f),
 		m_nIteration(0),
 		m_pFunc(pFunc),
+		m_pCallbackFunc(NULL),
+		m_pCallbackParam(NULL),
 		m_bUseGradientInfo(FALSE)
 {
-}
+}	// COptimizer::COptimizer
+
 
 //////////////////////////////////////////////////////////////////////
 // COptimizer::~COptimizer
@@ -32,7 +35,21 @@ COptimizer::COptimizer(CObjectiveFunction *pFunc)
 //////////////////////////////////////////////////////////////////////
 COptimizer::~COptimizer()
 {
-}
+}	// COptimizer::~COptimizer
+
+
+///////////////////////////////////////////////////////////////////////////////
+// COptimizer::SetCallback
+// 
+// sets the callback function
+///////////////////////////////////////////////////////////////////////////////
+void COptimizer::SetCallback(OptimizerCallback *pCallback, void *pParam)
+{
+	m_pCallbackFunc = pCallback;
+	m_pCallbackParam = pParam;
+
+}	// COptimizer::SetCallback
+
 
 //////////////////////////////////////////////////////////////////////
 // COptimizer::UseGradientInfo
@@ -43,7 +60,9 @@ COptimizer::~COptimizer()
 BOOL COptimizer::UseGradientInfo() const
 {
 	return m_bUseGradientInfo;
-}
+
+}	// COptimizer::UseGradientInfo
+
 
 //////////////////////////////////////////////////////////////////////
 // COptimizer::SetUseGradientInfo
@@ -54,7 +73,9 @@ BOOL COptimizer::UseGradientInfo() const
 void COptimizer::SetUseGradientInfo(BOOL bUseGradientInfo)
 {
 	m_bUseGradientInfo = bUseGradientInfo;
-}
+
+}	// COptimizer::SetUseGradientInfo
+
 
 //////////////////////////////////////////////////////////////////////
 // COptimizer::GetTolerance
@@ -64,17 +85,21 @@ void COptimizer::SetUseGradientInfo(BOOL bUseGradientInfo)
 REAL COptimizer::GetTolerance() const
 {
 	return m_tolerance;
-}
+
+}	// COptimizer::GetTolerance
+
 
 //////////////////////////////////////////////////////////////////////
-// COptimizer::GetTolerance
+// COptimizer::SetTolerance
 // 
 // sets the tolerance for exit from optimization loop
 //////////////////////////////////////////////////////////////////////
 void COptimizer::SetTolerance(REAL tol)
 {
 	m_tolerance = tol;
-}
+
+}	// COptimizer::SetTolerance
+
 
 //////////////////////////////////////////////////////////////////////
 // COptimizer::GetIterations
@@ -85,17 +110,21 @@ void COptimizer::SetTolerance(REAL tol)
 int COptimizer::GetIterations() const
 {
 	return m_nIteration;
-}
+
+}	// COptimizer::GetIterations
+
 
 //////////////////////////////////////////////////////////////////////
-// COptimizer::GetIterations
+// COptimizer::GetFinalValue
 // 
 // holds the final value of the optimization
 //////////////////////////////////////////////////////////////////////
 REAL COptimizer::GetFinalValue() const
 {
 	return m_finalValue;
-}
+
+}	// COptimizer::GetFinalValue
+
 
 //////////////////////////////////////////////////////////////////////
 // COptimizer::GetFinalParameter
@@ -105,5 +134,6 @@ REAL COptimizer::GetFinalValue() const
 const CVectorN<>& COptimizer::GetFinalParameter() const
 {
 	return m_vFinalParam;
-}
+
+}	// COptimizer::GetFinalParameter
 

@@ -32,9 +32,7 @@ CConjGradOptimizer::CConjGradOptimizer(CObjectiveFunction *pFunc)
 	: COptimizer(pFunc),
 		m_lineFunction(pFunc),
 		m_pLineOptimizer(&m_optimizeBrent),
-		m_optimizeBrent(&m_lineFunction),
-		m_pCallbackFunc(NULL),
-		m_pCallbackParam(NULL)
+		m_optimizeBrent(&m_lineFunction)
 {
 	// set the Brent optimizer to use the gradient information
 	m_optimizeBrent.SetUseGradientInfo(FALSE);
@@ -52,19 +50,6 @@ CBrentOptimizer& CConjGradOptimizer::GetBrentOptimizer()
 	return m_optimizeBrent;
 
 }	// CConjGradOptimizer::GetBrentOptimizer
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CConjGradOptimizer::SetCallback
-// 
-// sets the callback function
-///////////////////////////////////////////////////////////////////////////////
-void CConjGradOptimizer::SetCallback(OptimizerCallback *pCallback, void *pParam)
-{
-	m_pCallbackFunc = pCallback;
-	m_pCallbackParam = pParam;
-
-}	// CConjGradOptimizer::SetCallback
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -121,11 +106,6 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		REAL lambda = m_pLineOptimizer->Optimize(CBrentOptimizer::GetInitZero())[0];
 		LOG_EXPR(lambda);
 
-		if (m_pCallbackFunc)
-		{
-			(*m_pCallbackFunc)(lambda, m_vDir, m_pCallbackParam);
-		}
-
 		// update the final parameter value
 		m_vFinalParam += lambda * m_lineFunction.GetDirection();
 		LOG_EXPR_EXT(m_vFinalParam);
@@ -142,6 +122,17 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		LOG_EXPR(m_finalValue);
 
 		END_LOG_SECTION();	// Line Minimization
+
+		// need to call-back?
+		if (m_pCallbackFunc)
+		{
+			if (!(*m_pCallbackFunc)(m_finalValue, m_vFinalParam, m_pCallbackParam)) 
+			{
+				// request to terminate
+				m_nIteration = -1;
+				return m_vFinalParam;
+			}
+		}
 
 		///////////////////////////////////////////////////////////////////////////////
 		// Update Direction
@@ -200,6 +191,8 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	{
 		// Too many iterations
 		LOG("Too many iterations");
+
+		m_nIteration = -1;
 	}
 
 	END_LOG_SECTION();	// CConjGradOptimizer
