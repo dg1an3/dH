@@ -546,7 +546,8 @@ inline CMatrix<4> CreateProjection(const double& n, const double& f)
 // order is either 1 or 2, depending on whether the principle or
 //		remaining eigenvector is wanted
 //////////////////////////////////////////////////////////////////////
-inline CVector<2> Eigenvector(CMatrix<2> m, int nOrder = 1)
+inline REAL Eigen(CMatrix<2> m, int nOrder = 1, 
+				  CVector<2> *pVector = NULL)
 {
 	// compute factors of the characteristic quadratic equation
 	REAL b = -(m[0][0] + m[1][1]);
@@ -555,8 +556,8 @@ inline CVector<2> Eigenvector(CMatrix<2> m, int nOrder = 1)
 	// check to see if characteristic equation has real roots
 	if (b * b < 4.0 * c)
 	{
-		// if not, return a <0.0, 0.0> vector
-		return CVector<2>();
+		// if not, return 0.0 to indicate no eigenvalue computed
+		return 0.0;
 	}
 
 	// and find the roots of the equation
@@ -567,32 +568,29 @@ inline CVector<2> Eigenvector(CMatrix<2> m, int nOrder = 1)
 	REAL r = ((fabs(r1) > fabs(r2)) && (nOrder <= 1)) 
 		? r1 : r2;
 
-	// now find eigenvector for this eigenvalue
-	CVector<2> vEigen;
-
 	// find the larger off-diagonal element
 	if (fabs(m[0][1]) > fabs(m[1][0]))
 	{
 		// and solve for the vector 
-		vEigen[0] = 1.0;
-		vEigen[1] = (r - m[0][0]) / m[0][1];
+		(*pVector)[0] = 1.0;
+		(*pVector)[1] = (r - m[0][0]) / m[0][1];
 	}
 	// otherwise use the other element if it is non-zero
 	else if (fabs(m[1][0]) > 0.0)
 	{
 		// and solve for the vector 
-		vEigen[0] = (r - m[1][1]) / m[1][0];
-		vEigen[1] = 1.0;
+		(*pVector)[0] = (r - m[1][1]) / m[1][0];
+		(*pVector)[1] = 1.0;
 	}
 	// otherwise,
 	else
 	{
-		// no eigenvectors found, so return a <0.0, 0.0> vector
-		return CVector<2>();
+		// if not, return 0.0 to indicate no eigenvalue computed
+		return 0.0;
 	}
 
 	// normalize the computed eigenvector
-	vEigen.Normalize();
+	pVector->Normalize();
 
 #ifdef _DEBUG
 	// assert that our eigenvector is really an eigenvector
@@ -602,6 +600,7 @@ inline CVector<2> Eigenvector(CMatrix<2> m, int nOrder = 1)
 	ASSERT(vLeft.IsApproxEqual(vRight));
 #endif
 
-	return vEigen;
+	// return the computed eigenvalue
+	return r;
 }
 #endif
