@@ -1,11 +1,16 @@
+//////////////////////////////////////////////////////////////////////
+// OpenGLView.h: declaration of the COpenGLView class
+//
+// Copyright (C) 2000-2001
+// $Id$
+//////////////////////////////////////////////////////////////////////
+
 #if !defined(AFX_OPENGLVIEW_H__0C017CB0_E5B8_11D4_9E2E_00B0D0609AB0__INCLUDED_)
 #define AFX_OPENGLVIEW_H__0C017CB0_E5B8_11D4_9E2E_00B0D0609AB0__INCLUDED_
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
-// OpenGLView.h : header file
-//
 
 #include <Collection.h>
 
@@ -16,9 +21,11 @@
 #include "OpenGLLight.h"
 #include "OpenGLTracker.h"
 
-/////////////////////////////////////////////////////////////////////////////
-// COpenGLView view
-
+//////////////////////////////////////////////////////////////////////
+// class COpenGLView
+//
+// represents a window with an OpenGL rendering context.
+//////////////////////////////////////////////////////////////////////
 class COpenGLView : public CWnd
 {
 public:
@@ -51,6 +58,9 @@ public:
 public:
 	// compute the model point from a window coordinate
 	CVector<3> ModelPtFromWndPt(CPoint wndPt);
+
+	// compute the model point from a window coordinate, using a different
+	//		projection matrix
 	CVector<3> ModelPtFromWndPt(CPoint wndPt, const CMatrix<4>& mProj);
 
 // Overrides
