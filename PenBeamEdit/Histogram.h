@@ -15,7 +15,7 @@
 class CHistogram : public CObject  
 {
 public:
-	CHistogram(CVolume<double> *pImage, CVolume<double> *pRegion);
+	CHistogram(CVolume<double> *pImage = NULL, CVolume<int> *pRegion = NULL);
 	virtual ~CHistogram();
 
 	// association to the volume over which the histogram is formed
@@ -24,7 +24,7 @@ public:
 	// association to a congruent volume describing the region over
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
-	CAssociation< CVolume<double> > region;
+	CAssociation< CVolume<int> > region;
 
 	CArray<double, double>& GetBins();
 	CArray<double, double>& GetCumBins();

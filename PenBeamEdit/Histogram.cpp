@@ -15,7 +15,7 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CHistogram::CHistogram(CVolume<double> *pVolume, CVolume<double> *pRegion)
+CHistogram::CHistogram(CVolume<double> *pVolume, CVolume<int> *pRegion)
 : m_bRecomputeBins(TRUE),
 	m_bRecomputeCumBins(TRUE)
 {
@@ -46,7 +46,7 @@ CArray<double, double>& CHistogram::GetBins()
 
 					// compute the bin
 					m_arrBins[(int)(intensity * 255.0)] += 
-						region->GetVoxels()[nAtZ][nAtY][nAtX];
+						(double) region->GetVoxels()[nAtZ][nAtY][nAtX];
 				}
 
 		// normalize by the volume
