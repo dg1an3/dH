@@ -135,6 +135,10 @@ CRenderable *CSceneView::GetRenderableAt(int nAt)
 /////////////////////////////////////////////////////////////////////////////
 int CSceneView::AddRenderable(CRenderable *pRenderer) 
 { 
+	// set this as the scene view
+	pRenderer->m_pView = this;
+
+	// add to the renderable array
 	return m_arrRenderables.Add(pRenderer);
 }
 
