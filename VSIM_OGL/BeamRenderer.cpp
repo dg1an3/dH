@@ -29,7 +29,7 @@ CBeamRenderer::CBeamRenderer(COpenGLView *pView)
 		privMachineProjection(&forBeam, 
 			(CValue< CMatrix<4> > CBeam::*) &CBeam::projection)
 {
-	forBeam.AddObserver(this);
+	forBeam.AddObserver(this, (ChangeFunction) OnChange);
 
 	// set up the modelview matrix for the beam
 	CValue< CMatrix<4> >& modelviewMatrix =
@@ -52,13 +52,13 @@ CBeam *CBeamRenderer::GetBeam()
 void CBeamRenderer::SetBeam(CBeam *pBeam)
 {
 	if (forBeam.Get() != NULL)
-		forBeam->RemoveObserver(this);
+		forBeam->RemoveObserver(this, (ChangeFunction) OnChange);
 
 	forBeam.Set(pBeam);
 
 	if (forBeam.Get() != NULL)
 	{
-		forBeam->AddObserver(this);
+		forBeam->AddObserver(this, (ChangeFunction) OnChange);
 		CValue< CMatrix<4> > *pProjValue = 
 			(CValue< CMatrix<4> > *)&forBeam->forMachine->projection;
 		privMachineProjection.SyncTo(pProjValue);

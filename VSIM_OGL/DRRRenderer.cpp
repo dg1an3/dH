@@ -32,7 +32,7 @@ CDRRRenderer::CDRRRenderer(COpenGLView *pView)
 	m_scale(1.0f),
 	m_bias(0.0f)
 {
-	m_pView->projectionMatrix.AddObserver(this);
+	m_pView->projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 CDRRRenderer::~CDRRRenderer()

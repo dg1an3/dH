@@ -19,7 +19,7 @@ CBeamParamPosCtrl::CBeamParamPosCtrl(CWnd* pParent /*=NULL*/)
 	: CDialog(CBeamParamPosCtrl::IDD, pParent)
 {
 	// add this as a change listener on the beam
-	forBeam.AddObserver(this);
+	forBeam.AddObserver(this, (ChangeFunction) OnChange);
 
 	//{{AFX_DATA_INIT(CBeamParamPosCtrl)
 	m_nCouchAngle = 0;

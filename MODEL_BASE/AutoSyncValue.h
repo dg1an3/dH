@@ -22,7 +22,7 @@ public:
 		: m_pAssoc(pAssoc),
 			m_pMember(pMember)
 	{
-		m_pAssoc->AddObserver(this);
+		m_pAssoc->AddObserver(this, (ChangeFunction) OnChange);
 
 		// trigger an update
 		OnChange(m_pAssoc, NULL);
@@ -30,7 +30,7 @@ public:
 
 	virtual ~CAutoSyncValue()
 	{
-		m_pAssoc->RemoveObserver(this);
+		m_pAssoc->RemoveObserver(this, (ChangeFunction) OnChange);
 	}
 
 	virtual void OnChange(CObservableObject *pSource, void *pOldValue)

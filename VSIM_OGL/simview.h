@@ -19,7 +19,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CSimView view
 
-class CSimView : public CView, public CObserver
+class CSimView : public CView //, public CObserver
 {
 protected:
 	CSimView();           // protected constructor used by dynamic creation

@@ -199,7 +199,7 @@ void CSimView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pBEVBeamRenderer->SetBeam(&beam);
 		m_wndBEV.AddRenderer(pBEVBeamRenderer);
 
-		beam.AddObserver(this);
+		beam.AddObserver(this, (ChangeFunction) OnChange);
 	}
 
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();

@@ -14,7 +14,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CBeamParamCollimCtrl dialog
 
-class CBeamParamCollimCtrl : public CDialog, public CObserver
+class CBeamParamCollimCtrl : public CDialog // , public CObserver
 {
 // Construction
 public:

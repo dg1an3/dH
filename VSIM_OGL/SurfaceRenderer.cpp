@@ -38,7 +38,7 @@ CSurfaceRenderer::CSurfaceRenderer(COpenGLView *pView)
 		isWireFrame(TRUE)
 {
 	myColor.Set(RGB(192, 192, 192));
-	isWireFrame.AddObserver(this);
+	isWireFrame.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 CSurfaceRenderer::~CSurfaceRenderer()
@@ -58,12 +58,12 @@ CSurface * CSurfaceRenderer::GetSurface()
 void CSurfaceRenderer::SetSurface(CSurface *pSurface)
 {
 	if (m_pSurface != NULL)
-		m_pSurface->RemoveObserver(this);
+		m_pSurface->RemoveObserver(this, (ChangeFunction) OnChange);
 
 	m_pSurface = pSurface;
 
 	if (m_pSurface != NULL)
-		m_pSurface->AddObserver(this);
+		m_pSurface->AddObserver(this, (ChangeFunction) OnChange);
 
 	Invalidate();
 }
@@ -76,12 +76,12 @@ CBeam * CSurfaceRenderer::GetLightFieldBeam()
 void CSurfaceRenderer::SetLightFieldBeam(CBeam *pBeam)
 {
 	if (m_pBeam != NULL)
-		m_pBeam->RemoveObserver(this);
+		m_pBeam->RemoveObserver(this, (ChangeFunction) OnChange);
 
 	m_pBeam = pBeam;
 
 	if (m_pBeam != NULL)
-		m_pBeam->AddObserver(this);
+		m_pBeam->AddObserver(this, (ChangeFunction) OnChange);
 
 	Invalidate();
 }

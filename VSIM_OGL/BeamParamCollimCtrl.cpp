@@ -19,7 +19,7 @@ CBeamParamCollimCtrl::CBeamParamCollimCtrl(CWnd* pParent /*=NULL*/)
 	: CDialog(CBeamParamCollimCtrl::IDD, pParent)
 {
 	// add this as a change listener on the beam
-	forBeam.AddObserver(this);
+	forBeam.AddObserver(this, (ChangeFunction) OnChange);
 
 	//{{AFX_DATA_INIT(CBeamParamCollimCtrl)
 	m_nCollimAngle = 0;

@@ -7,16 +7,14 @@
 // OpenGLView.h : header file
 //
 
-#include "Vector.h"
+#include "Matrix.h"
 #include "OpenGLRenderer.h"
 #include "OpenGLTracker.h"
-
-// #include "Beam.h"	// TODO: remove this
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenGLView view
 
-class COpenGLView : public CWnd, public CObserver
+class COpenGLView : public CWnd
 {
 public:
 	COpenGLView();           // protected constructor used by dynamic creation

@@ -9,23 +9,22 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "Observer.h"
 #include "Value.h"
 #include "Matrix.h"
 
 class COpenGLView;
 
-class COpenGLRenderer : public CObject, public CObserver  
+class COpenGLRenderer : public CObject
 {
 public:
 	COpenGLRenderer(COpenGLView *pView);
 	virtual ~COpenGLRenderer();
 
 	// color for the renderer (use depends on objects being rendered)
-	CValue< COLORREF > myColor;
+	CValue< COLORREF > myColor;		// TODO: change this name
 
 	// defines the modelview matrix for this renderer
-	CValue< CMatrix<4> > myModelviewMatrix;
+	CValue< CMatrix<4> > myModelviewMatrix;		// TODO: change this name
 
 	// turns on/off the renderer;
 	CValue< BOOL > isEnabled;

@@ -12,8 +12,8 @@
 
 // forward declaration of the CObservableObject class
 class CObservableObject;
-typedef void (CObject::*ChangeFunction)(CObservableObject *, void *);
 
+typedef void (CObject::*ChangeFunction)(CObservableObject *, void *);
 
 //////////////////////////////////////////////////////////////////////
 // a CObservableObject fires change events that can be processed by a CObserver
@@ -39,10 +39,18 @@ private:
 
 template<class OBSERVER_TYPE>
 void AddObserver(CObservableObject *pObservable, 
-				 OBSERVER_TYPE *pObserver, ChangeFunction func);
+				 OBSERVER_TYPE *pObserver, 
+				 void (OBSERVER_TYPE::*func)(CObservableObject *, void *))
+{
+	pObservable->AddObserver(pObserver, (ChangeFunction) func);
+}
 
 template<class OBSERVER_TYPE>
 void RemoveObserver(CObservableObject *pObservable, 
-					OBSERVER_TYPE *pObserver, ChangeFunction func);
+					OBSERVER_TYPE *pObserver, 
+					void (OBSERVER_TYPE::*func)(CObservableObject *, void *))
+{
+	pObservable->RemoveObserver(pObserver, (ChangeFunction) func);
+}
 
 #endif // !defined(AFX_OBSERVER_H__AAA9A381_F0B7_11D4_9E39_00B0D0609AB0__INCLUDED_)

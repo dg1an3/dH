@@ -27,15 +27,15 @@ CBeam::CBeam()
 		SAD(&forMachine, &CTreatmentMachine::SAD),
 		projection(&forMachine, &CTreatmentMachine::projection)
 {
-	forMachine.SetAutoObserver(this);
+	forMachine.SetAutoObserver(this, (ChangeFunction) OnChange);
 
-	collimAngle.AddObserver(this);
-	gantryAngle.AddObserver(this);
-	couchAngle.AddObserver(this);
-	tableOffset.AddObserver(this);
-	collimMin.AddObserver(this);
-	collimMax.AddObserver(this);
-	blocks.AddObserver(this);
+	collimAngle.AddObserver(this, (ChangeFunction) OnChange);
+	gantryAngle.AddObserver(this, (ChangeFunction) OnChange);
+	couchAngle.AddObserver(this, (ChangeFunction) OnChange);
+	tableOffset.AddObserver(this, (ChangeFunction) OnChange);
+	collimMin.AddObserver(this, (ChangeFunction) OnChange);
+	collimMax.AddObserver(this, (ChangeFunction) OnChange);
+	blocks.AddObserver(this, (ChangeFunction) OnChange);
 
 	// set up the beam-to-patient transform computation
 	CValue< CMatrix<4> >& privBeamToPatientXform =
@@ -45,7 +45,7 @@ CBeam::CBeam()
 		* CreateRotate(collimAngle,		CVector<3>(0.0, 0.0, -1.0))
 		* CreateTranslate(SAD, CVector<3>(0.0, 0.0, -1.0));
 	beamToPatientXform.SyncTo(&privBeamToPatientXform);
-	beamToPatientXform.AddObserver(this);
+	beamToPatientXform.AddObserver(this, (ChangeFunction) OnChange);
 
 	collimAngle.Set(0.0);
 	gantryAngle.Set(PI);

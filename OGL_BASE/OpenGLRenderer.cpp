@@ -25,9 +25,9 @@ COpenGLRenderer::COpenGLRenderer(COpenGLView *pView)
 		myColor(RGB(255, 255, 255)),
 		isEnabled(TRUE)
 {
-	myColor.AddObserver(this);
-	myModelviewMatrix.AddObserver(this);
-	isEnabled.AddObserver(this);
+	myColor.AddObserver(this, (ChangeFunction) OnChange);
+	myModelviewMatrix.AddObserver(this, (ChangeFunction) OnChange);
+	isEnabled.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 COpenGLRenderer::~COpenGLRenderer()

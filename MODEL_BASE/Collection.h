@@ -10,7 +10,6 @@
 #endif // _MSC_VER > 1000
 
 #include "Observer.h"
-#include "Value.h"
 
 template<class TYPE>
 class CCollection : public CObservableObject

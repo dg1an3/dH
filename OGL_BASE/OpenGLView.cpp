@@ -29,7 +29,7 @@ COpenGLView::COpenGLView()
 		m_hrc(NULL),
 		m_bDragging(FALSE)
 {
-	projectionMatrix.AddObserver(this);
+	projectionMatrix.AddObserver(this, (ChangeFunction) OnChange);
 }
 
 COpenGLView::~COpenGLView()

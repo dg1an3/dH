@@ -10,7 +10,6 @@
 #endif // _MSC_VER > 1000
 
 #include <Value.h>
-#include <Function.h>
 #include <ModelObject.h>
 
 #include <Matrix.h>

@@ -14,7 +14,6 @@
 #include "Matrix.h"
 
 #include "Value.h"
-#include "Function.h"
 
 class CRotateTracker : public COpenGLTracker  
 {
