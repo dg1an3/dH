@@ -124,9 +124,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndExplorer.SetFont(m_pExplorerFont);
 
-	m_wndExplorer.RegisterClass(RUNTIME_CLASS(CSurface), 
+	CObjectTreeItem::RegisterClass(RUNTIME_CLASS(CSurface), 
 		RUNTIME_CLASS(CSurfaceRenderable));
-	m_wndExplorer.RegisterClass(RUNTIME_CLASS(CBeam), 
+	CObjectTreeItem::RegisterClass(RUNTIME_CLASS(CBeam), 
 		RUNTIME_CLASS(CBeamRenderable));
 
 	EnableDocking(CBRS_ALIGN_ANY);

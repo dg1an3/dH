@@ -6,7 +6,7 @@
 #define AFX_MAINFRM_H__3E80E028_F21B_11D4_9E3C_00B0D0609AB0__INCLUDED_
 
 #include <TabControlBar.h>
-#include <RenderableObjectExplorer.h>
+#include <ObjectExplorer.h>
 
 #include <BeamParamPosCtrl.h>
 #include <BeamParamCollimCtrl.h>
@@ -27,7 +27,7 @@ public:
 
 	// the object explorer
 	CDialogBar m_wndExplorerCtrl;
-	CRenderableObjectExplorer m_wndExplorer;
+	CObjectExplorer m_wndExplorer;
 
 	// stores the explorer font
 	CFont *m_pExplorerFont;

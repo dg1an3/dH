@@ -8,7 +8,6 @@
 #include <math.h>
 
 #include <gl/gl.h>
-#include <glMatrixVector.h>
 
 #include <RotateTracker.h>
 #include <ZoomTracker.h>
@@ -310,7 +309,7 @@ void CSimView::OnInitialUpdate()
 
 	// pointer to the object explorer
 	CMainFrame *pFrame = (CMainFrame *)AfxGetMainWnd();
-	CRenderableObjectExplorer *pExplorer = &pFrame->m_wndExplorer;
+	CObjectExplorer *pExplorer = &pFrame->m_wndExplorer;
 
 	///////////////////////////////////////////////////////////////////////////
 	// structures
@@ -331,12 +330,16 @@ void CSimView::OnInitialUpdate()
 			CSurface *pSurface = 
 				(CSurface *) pSeries->GetStructureAt(nAtSurf);
 
-			// create the renderable, adding an item in the process
-			CSurfaceRenderable *pSurfaceRenderable = (CSurfaceRenderable *)
-				pExplorer->CreateItemForObject(pSurface, &m_wndREV, 
-					pSeriesItem, 
-					arrIconResourceIDs[nAtSurf % 13], 
-					arrIconResourceIDs[nAtSurf % 13]);
+			// create the object tree item
+			CObjectTreeItem *pNewItem = new CObjectTreeItem();
+			pNewItem->SetObject(pSurface);
+			pNewItem->SetImages(arrIconResourceIDs[nAtSurf % 13], 
+				arrIconResourceIDs[nAtSurf % 13]);
+			pSeriesItem->AddChild(pNewItem);
+
+			// create the renderable for the structure
+			CSurfaceRenderable *pSurfaceRenderable = (CSurfaceRenderable *) 
+				pNewItem->CreateRenderableForObject(&m_wndREV);
 
 			// set the renderable's color
 			pSurfaceRenderable->SetColor(arrColors[nAtSurf]);
@@ -372,10 +375,15 @@ void CSimView::OnInitialUpdate()
 		// get a pointer to the current beam
 		CBeam *pBeam = GetDocument()->GetBeamAt(nAtBeam);
 
-		// and create the renderable
+		// create the object tree item
+		CObjectTreeItem *pNewItem = new CObjectTreeItem();
+		pNewItem->SetObject(pBeam);
+		pNewItem->SetImages(IDB_BEAM_GREEN, IDB_BEAM_MAGENTA);
+		pPlanItem->AddChild(pNewItem);
+
+		// create the renderable for the structure
 		CBeamRenderable *pBeamRenderable = (CBeamRenderable *)
-			pExplorer->CreateItemForObject(pBeam, &m_wndREV, pPlanItem, 
-				IDB_BEAM_GREEN, IDB_BEAM_MAGENTA);
+			pNewItem->CreateRenderableForObject(&m_wndREV);
 
 		// set the current beam
 		if (nAtBeam == 0)
@@ -399,18 +407,31 @@ void CSimView::OnInitialUpdate()
 	m_wndREV.AddRenderable(pMachineRenderable);	
 }
 
+int nAtStructure = 0;
+
 void CSimView::OnTimer(UINT nIDEvent) 
 {
 	CView::OnTimer(nIDEvent);
 
 	return;
-	if (NULL != m_pSurfaceRenderable)
-	{
-		for (int nAt = 0; nAt < 50; nAt++)
-			m_pSurfaceRenderable->GetSurface()->OrientFaces();
 
-		m_pSurfaceRenderable->GetSurface()->GetChangeEvent().Fire();
-		m_pSurfaceRenderable->Invalidate();
+	if (nAtStructure < GetDocument()->GetSeries()->GetStructureCount())
+	{
+		// get structure pointer
+		CSurface *pStructure = GetDocument()->GetSeries()->GetStructureAt(nAtStructure);
+
+		// orient 50 faces
+		for (int nAt = 0; nAt < 50; nAt++)
+		{
+			pStructure->OrientNextFace();
+		}
+
+		if (!pStructure->OrientNextFace())
+		{
+			nAtStructure++;
+		}
+
+		pStructure->GetChangeEvent().Fire();
 	}
 	
 }
