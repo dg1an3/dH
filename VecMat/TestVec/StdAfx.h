@@ -20,7 +20,7 @@
 
 // ASSERT maps to assert
 #include <assert.h>
-#define ASSERT assert
+#define ASSERT(x) assert(x)
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

@@ -10,10 +10,13 @@
 #include <iostream>
 using namespace std;
 
-#include "VectorN.h"
-#include "VectorD.h"
-#include "MatrixNxM.h"
-#include "MatrixD.h"
+#include <VectorN.h>
+#include <VectorD.h>
+#include <MatrixNxM.h>
+#include <MatrixD.h>
+
+// include for MatrixBase implementation
+#include <MatrixBase.inl>
 
 //////////////////////////////////////////////////////////////////////
 // template<class VECTOR_CLASS>
@@ -215,8 +218,118 @@ void TestMatrixClass(int nDim, REAL scale)
 	mI.SetIdentity();
 
 	// assert approximate equality
+	TRACE("ASSERT(mI.IsApproxEqual(m1 * m2));\n");
 	ASSERT(mI.IsApproxEqual(m1 * m2));
 }
+
+
+//////////////////////////////////////////////////////////////////////
+// template<class TYPE>
+// TestSVD(REAL scale)
+//
+// tests the singular-valued decomposition
+//////////////////////////////////////////////////////////////////////
+template<class TYPE>
+void TestSVD(int nCols, int nRows, BOOL bHomogeneous)
+{
+	// generate a matrix for SVD test
+	CMatrixNxM<TYPE> m(nCols, nRows);
+	for (int nAtRow = 0; nAtRow < nRows; nAtRow++)
+	{
+		for (int nAtCol = 0; nAtCol < nCols; nAtCol++)
+		{
+			m[nAtCol][nAtRow] = 
+				10.0 - 20.0 * (double) rand() / (double) RAND_MAX;
+
+			if (bHomogeneous && nCols > nRows)
+				m[nAtCol][nRows-1] = 1.0;
+		}
+		if (bHomogeneous && nCols <= nRows)
+			m[nCols-1][nAtRow] = 1.0;
+	}
+
+	// store the original
+	CMatrixNxM<TYPE> mOrig = m;
+
+	// trace out the original
+	TRACE_MATRIX("M_orig", m);
+
+	// create the singular value vector
+	CVectorN<TYPE> w(nCols);
+
+	// create the orthogonal matrix
+	CMatrixNxM<TYPE> v(nCols,nCols);
+
+	// perform SVD
+	m.SVD(w, v);
+
+	// output the U matrix (stored in m)
+	TRACE_MATRIX("U", m);
+
+	// check orthogonality of U
+	m.Transpose();
+	CMatrixNxM<TYPE> uIdent = m;
+	m.Transpose();
+	uIdent *= m;
+	TRACE_MATRIX("U * U^T", uIdent);
+
+	CMatrixNxM<TYPE> mI(nCols,nCols);
+	mI.SetIdentity();
+
+	if (nCols < nRows)
+	{
+		TRACE("ASSERT(mI.IsApproxEqual(U * U^T));\n");
+		ASSERT(mI.IsApproxEqual(uIdent));
+	}
+	else
+	{
+		uIdent.Reshape(nRows, nRows);
+		mI.Reshape(nRows, nRows);
+		TRACE("ASSERT(mI.IsApproxEqual(U * U^T));\n");
+		ASSERT(mI.IsApproxEqual(uIdent));
+	}
+
+	// form the S matrix
+	CMatrixNxM<TYPE> s(w.GetDim(), w.GetDim());
+	for (int nAt = 0; nAt < w.GetDim(); nAt++)
+	{
+		s[nAt][nAt] = w[nAt];
+	}
+	TRACE_MATRIX("S", s);
+
+	// output V matrix
+	TRACE("\n");
+	TRACE_MATRIX("V", v);
+
+	// check orthogonality of V
+	CMatrixNxM<TYPE> vIdent = v;
+	v.Transpose();
+	vIdent *= v;
+	TRACE_MATRIX("V * V^T", vIdent);
+
+	mI.Reshape(nCols,nCols);
+	mI.SetIdentity();
+	TRACE("ASSERT(mI.IsApproxEqual(V * V^T));\n");
+	ASSERT(mI.IsApproxEqual(vIdent));
+
+	// reform M
+	CMatrixNxM<TYPE> mNew = m * s * v;
+	TRACE_MATRIX("M_new", mNew);
+
+	// assert equality with original
+	TRACE("ASSERT(mNew.IsApproxEqual(mOrig));\n");
+	ASSERT(mNew.IsApproxEqual(mOrig));
+
+	if (nRows >= nCols)
+	{
+		// test pseudo-inverse
+		CMatrixNxM<> mPsinv = mOrig;
+		mPsinv.Pseudoinvert();
+		ASSERT(mOrig.IsApproxEqual(mOrig * mPsinv * mOrig));
+		ASSERT(mPsinv.IsApproxEqual(mPsinv * mOrig * mPsinv));
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // main
@@ -337,6 +450,16 @@ int main(int argc, char* argv[])
 	TestMatrixClass< CMatrixNxM<> >(7, 100.0);
 	TestMatrixClass< CMatrixNxM<> >(8, 100.0);
 	TestMatrixClass< CMatrixNxM<> >(9, 100.0);
+
+	// test the SVD
+	for (int nRows = 2; nRows < 20; nRows++)
+	{
+		for (int nCols = 2; nCols < 20; nCols++)
+		{
+			TestSVD<REAL>(nCols, nRows, FALSE);
+			TestSVD<REAL>(nCols, nRows, TRUE);
+		}
+	}
 
 	return 0;
 }
