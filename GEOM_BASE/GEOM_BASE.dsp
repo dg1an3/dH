@@ -110,6 +110,10 @@ SOURCE=.\Polygon.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\ScalarFunction.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\StdAfx.h
 # End Source File
 # Begin Source File
