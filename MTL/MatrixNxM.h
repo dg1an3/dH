@@ -13,10 +13,13 @@
 #include "MatrixBase.h"
 #include "VectorN.h"
 
+// constant for pseudo-inverse
+const REAL PSEUDO_EPS = 1e-8;
+
 //////////////////////////////////////////////////////////////////////
 // class CMatrixNxM<TYPE>
 //
-// represents a square matrix with GetDim()ension and type given.
+// represents a non-square matrix with type given.
 //////////////////////////////////////////////////////////////////////
 template<class TYPE = double>
 class CMatrixNxM : public CMatrixBase<TYPE>
@@ -31,8 +34,9 @@ public:
 	// assignment operator
 	CMatrixNxM& operator=(const CMatrixBase<TYPE>& fromMatrix);
 
-	// Reshape -- sets the dimension of the matrix
-	void Reshape(int nCols, int nRows);
+	// sets the dimension of the matrix -- optional preserves
+	//		elements
+	void Reshape(int nCols, int nRows, BOOL bPreserve = TRUE);
 
 	// in-place operators
 	CMatrixNxM& operator*=(const TYPE& scale);
@@ -42,27 +46,38 @@ public:
 	// Pseudoinvert -- in-place Moore-Penrose pseudoinversion
 	//////////////////////////////////////////////////////////////////
 	BOOL Pseudoinvert();
-};
+
+};	// class CMatrixNxM
 
 
 //////////////////////////////////////////////////////////////////
+// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>
+//
 // default constructor -- initializes to 0x0 matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
 CMatrixNxM<TYPE>::CMatrixNxM<TYPE>()
 {
-}
+}	// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>
+
 
 //////////////////////////////////////////////////////////////////
+// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
+//
 // constructs a specific-dimensioned matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
 CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
 {
 	Reshape(nCols, nRows);
-}
+
+}	// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
+
 
 //////////////////////////////////////////////////////////////////
+// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(
+//		const CMatrixNxM<TYPE>& fromMatrix)
+//
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
@@ -82,9 +97,15 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixNxM<TYPE>& fromMatrix)
 			(*this)[nCol][nRow] = fromMatrix[nCol][nRow];
 		}
 	}
-}
+
+}	// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(
+	//		const CMatrixNxM<TYPE>& fromMatrix)
+
 
 //////////////////////////////////////////////////////////////////
+// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(
+//		const CMatrixBase<TYPE>& fromMatrix)
+//
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
@@ -104,9 +125,14 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixBase<TYPE>& fromMatrix)
 			(*this)[nCol][nRow] = fromMatrix[nCol][nRow];
 		}
 	}
-}
+
+}	// CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(
+	//		const CMatrixBase<TYPE>& fromMatrix)
+
 
 //////////////////////////////////////////////////////////////////
+// CMatrixNxM<TYPE>::operator=
+//
 // assignment operator
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
@@ -128,23 +154,42 @@ CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator=(const CMatrixBase<TYPE>& fromMatri
 	}
 
 	return (*this);
-}
+
+}	// CMatrixNxM<TYPE>::operator=
+
 
 //////////////////////////////////////////////////////////////////
-// Reshape -- sets the dimension of the matrix
+// CMatrixNxM<TYPE>::Reshape
+//
+// sets the dimension of the matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows)
+void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows, BOOL bPreserve)
 {
+	// check if we need to reshape
 	if (GetRows() == nRows 
 		&& GetCols() == nCols)
 	{
+		// no reshape, but if we aren't preserving elements
+		if (!bPreserve)
+		{
+			// then set to identity
+			SetIdentity();
+		}
+
 		return;
 	}
 
 	// preserve existing elements
 	int nOldRows = GetRows();
 	int nOldCols = GetCols();
+
+	// store pointer to old elements, if we are preserving
+	if (!bPreserve)
+	{
+		delete m_pElements;
+		m_pElements = NULL;
+	}
 	TYPE *pOldElements = m_pElements;
 
 	// allocate and set the new elements, but do not free the old
@@ -180,7 +225,8 @@ void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows)
 		// populate as an identity matrix
 		SetIdentity();
 	}
-}
+
+}	// CMatrixNxM<TYPE>::Reshape
 
 
 //////////////////////////////////////////////////////////////////
@@ -247,7 +293,7 @@ BOOL CMatrixNxM<TYPE>::Pseudoinvert()
 	CMatrixNxM<TYPE> s(GetCols(), GetCols());
 	for (int nAt = 0; nAt < GetCols(); nAt++)
 	{
-		s[nAt][nAt] = (w[nAt] > 1e-8) ? 1.0 / w[nAt] : 0.0;
+		s[nAt][nAt] = (w[nAt] > PSEUDO_EPS) ? 1.0 / w[nAt] : 0.0;
 	}
 	(*this) *= s;
 
@@ -413,7 +459,7 @@ inline CMatrixNxM<TYPE> operator*(const CMatrixNxM<TYPE>& mLeft,
 
 }	// operator*(const CMatrixNxM<TYPE>&, const CMatrixNxM<TYPE>&)
 
-
+// operator overloads for serialization
 #ifdef __AFX_H__
 
 //////////////////////////////////////////////////////////////////////
@@ -456,6 +502,6 @@ CArchive& operator>>(CArchive &ar, CMatrixNxM<TYPE>& m)
 	return ar;
 }
 
-#endif
+#endif	// __AFX_H__
 
-#endif
+#endif	// MATRIXNXM_H
