@@ -42,8 +42,8 @@ public:
 
 	// the distance along the optical axis from the camera's focal point
 	//		to the target point
-	double GetDistance() const;
-	void SetDistance(double dist);
+	REAL GetDistance() const;
+	void SetDistance(REAL dist);
 
 	// sets the "up" direction for the camera
 	const CVectorD<3>& GetUpDirection() const;
