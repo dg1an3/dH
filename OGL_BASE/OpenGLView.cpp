@@ -318,10 +318,14 @@ void COpenGLView::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		if (leftTrackers.Get(nAt)->IsInside(point))
 		{
+			// found one
 			leftTrackers.Get(nAt)->OnLButtonDown(nFlags, point);
 			break;
 		}
 	}
+
+	// set the capture for this window
+	SetCapture();
 }
 
 void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point) 
@@ -340,6 +344,9 @@ void COpenGLView::OnLButtonUp(UINT nFlags, CPoint point)
 			break;
 		}
 	}
+
+	// release the capture
+	::ReleaseCapture();
 }
 
 void COpenGLView::OnMButtonDown(UINT nFlags, CPoint point) 
