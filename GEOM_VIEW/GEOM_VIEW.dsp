@@ -95,6 +95,10 @@ SOURCE=.\GUI_BASE.rc
 # End Source File
 # Begin Source File
 
+SOURCE=.\MPRRenderer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ObjectExplorer.cpp
 # End Source File
 # Begin Source File
@@ -161,6 +165,10 @@ SOURCE=.\include\Graph.h
 # Begin Source File
 
 SOURCE=.\include\GUI_BASE_resource.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\MPRRenderer.h
 # End Source File
 # Begin Source File
 
