@@ -155,12 +155,6 @@ void COpenGLView::RecalcProjectionMatrix()
 {
 	MakeCurrentGLRC();
 
-	// operate on the projection matrix
-	glMatrixMode(GL_PROJECTION);
-
-	// load an identity matrix
-	glLoadIdentity();
-
 	// get the window's client rectangle
 	CRect rect;
 	GetClientRect(&rect);
@@ -173,27 +167,18 @@ void COpenGLView::RecalcProjectionMatrix()
 
 		// calculate the aspect ratio
 		camera.aspectRatio.Set((double) rect.Width() / (double) rect.Height());
-
-		// set a perspective projection with the given aspect ratio and clipping planes
-		gluPerspective(45.0f, camera.aspectRatio.Get(), 
-			camera.nearPlane.Get(), 
-			camera.farPlane.Get());
-
-		// move the camera back by the desired viewing distance
-		glTranslatef(0.0f, 0.0f, (float) -camera.distance.Get());
-
-		projectionMatrix.Set(glGetMatrix(GL_PROJECTION_MATRIX));
+		CMatrix<4> mCamera = camera.projection.Get() * camera.modelXform.Get();
+		projectionMatrix.Set(mCamera);
 	}
-
-	// set back to operate on the model matrix
-	glMatrixMode(GL_MODELVIEW);
 }
 
 
 CVector<3> COpenGLView::ModelPtFromWndPt(CPoint wndPt, const CMatrix<4> *mProj, float z)
 {
 	if (mProj == NULL)
+	{
 		mProj = &projectionMatrix.Get();
+	}
 
 //	if (z == -999.0)
 //		z = GetNearPlane();
@@ -496,8 +481,10 @@ void COpenGLView::OnChange(CObservableObject *pSource, void *pOldValue)
 	{
 		MakeCurrentGLRC();
 
+		CMatrix<4> mProj = projectionMatrix.Get();
+
 		CVector<4> vLightPosition(0.0, 0.0, -500.0, 1.0);
-		CMatrix<4> mInvProj = Invert(projectionMatrix.Get());
+		CMatrix<4> mInvProj = Invert(mProj);
 		vLightPosition = mInvProj * vLightPosition;
 
 		GLfloat position [] = { // 1.0, 1.0, 100.0, 0.0 };
