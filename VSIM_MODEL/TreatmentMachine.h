@@ -13,7 +13,7 @@
 #include "Function.h"
 #include "Matrix.h"
 
-class CTreatmentMachine : public CObject, public CObservable  
+class CTreatmentMachine : public CObservable  
 {
 public:
 	CTreatmentMachine();

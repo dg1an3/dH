@@ -14,7 +14,7 @@
 #include "Value.h"
 #include "Polygon.h"
 
-class CSurface : public CObject, /* public CObserver, */ public CObservable  
+class CSurface : public CObservable  /* public CObject, /* public CObserver, */ 
 {
 public:
 	CSurface();

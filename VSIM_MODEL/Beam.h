@@ -22,7 +22,7 @@
 #include "AutoSyncValue.h"
 #include "Collection.h"
 
-class CBeam : public CObject, public CObserver, public CObservable  
+class CBeam : public CObservable, public CObserver
 {
 public:
 	// constructur/destructor
