@@ -135,6 +135,41 @@ public:
 	}
 
 	//////////////////////////////////////////////////////////////////
+	// sets all voxels to zero
+	//////////////////////////////////////////////////////////////////
+	void ClearVoxels()
+	{
+		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+		{
+			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+			{
+				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+				{
+					GetVoxels()[nAtZ][nAtY][nAtX] = (VOXEL_TYPE) 0;
+				}
+			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////
+	// sets all voxels to zero
+	//////////////////////////////////////////////////////////////////
+	void Accumulate(CVolume *pVolume, double weight = 1.0)
+	{
+		for (int nAtZ = 0; nAtZ < m_nDepth; nAtZ++)
+		{
+			for (int nAtY = 0; nAtY < m_nHeight; nAtY++)
+			{
+				for (int nAtX = 0; nAtX < m_nWidth; nAtX++)
+				{
+					GetVoxels()[nAtZ][nAtY][nAtX] += weight * 
+						pVolume->GetVoxels()[nAtZ][nAtY][nAtX];
+				}
+			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////
 	// forms the sum of the volume
 	//////////////////////////////////////////////////////////////////
 	VOXEL_TYPE GetSum()
