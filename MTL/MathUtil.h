@@ -18,7 +18,10 @@ using namespace std;
 //////////////////////////////////////////////////////////////////////
 // standard real representation
 //////////////////////////////////////////////////////////////////////
-typedef float REAL;
+#ifndef REAL_DEFINED
+typedef double REAL;
+#define REAL_DEFINED
+#endif
 
 
 //////////////////////////////////////////////////////////////////////
@@ -30,7 +33,7 @@ const REAL PI = (atan(1.0) * 4.0);
 //////////////////////////////////////////////////////////////////////
 // macros to assist in approximate evaluation of vectors
 //////////////////////////////////////////////////////////////////////
-const REAL DEFAULT_EPSILON = 1e-5;
+const REAL DEFAULT_EPSILON = (REAL) 1e-5;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -62,7 +65,16 @@ inline TYPE Gauss(TYPE x, TYPE s)
 
 	// return the exponential
 	return (TYPE) exp(-d)
-		/ (TYPE) (sqrt((TYPE) 2.0 * PI * s));
+		/ (TYPE) (sqrt((TYPE) 2.0 * PI) * s);
+}
+
+template<class TYPE>
+inline TYPE dGauss(TYPE x, TYPE s)
+{
+	// compute the factor
+	TYPE dx = -(x) / (s * s);
+
+	return dx * Gauss(x, s);
 }
 
 template<class TYPE>
