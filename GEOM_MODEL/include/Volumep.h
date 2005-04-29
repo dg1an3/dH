@@ -17,7 +17,7 @@
 #include <VectorN.h>
 #include <MatrixD.h>
 #include <MatrixNxM.h>
-#include <MatrixBase.inl>
+//#include <MatrixBase.inl>
 
 #include <ippi.h>
 
@@ -65,15 +65,9 @@ public:
 	{
 		SetBasis(pVolume->GetBasis());
 
-		if (GetWidth() != pVolume->GetWidth()
-			|| GetHeight() != pVolume->GetHeight()
-			|| GetDepth() != pVolume->GetDepth())
-		{
-			SetDimensions(
-				pVolume->GetWidth(), 
-				pVolume->GetHeight(),
-				pVolume->GetDepth());
-		}
+		SetDimensions(pVolume->GetWidth(), 
+			pVolume->GetHeight(),
+			pVolume->GetDepth());
 
 	}	// CVolume<VOXEL_TYPE>::ConformTo
 
@@ -130,8 +124,8 @@ private:
 	// pointer to raw voxels
 	VOXEL_TYPE *m_pVoxels;
 
-	// array of raw voxels (if no replacement is set)
-	CArray<VOXEL_TYPE, VOXEL_TYPE&> m_arrVoxels;
+	// flag to indicate ownership of voxels
+	BOOL m_bFreeVoxels;
 
 	// Iliffe vectors for voxels
 	CArray<VOXEL_TYPE *, VOXEL_TYPE *&> m_arrpVoxels;
@@ -167,7 +161,8 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
 	: m_nWidth(0), 
 		m_nHeight(0), 
 		m_nDepth(0),
-		m_pVoxels(NULL)
+		m_pVoxels(NULL),
+		m_bFreeVoxels(TRUE)
 #if defined(USE_IPP)
 		, m_pAccumBuffer(NULL)
 #endif
@@ -185,7 +180,8 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
 	: m_nWidth(0), 
 		m_nHeight(0), 
 		m_nDepth(0),
-		m_pVoxels(NULL)
+		m_pVoxels(NULL),
+		m_bFreeVoxels(TRUE)
 #if defined(USE_IPP)
 		, m_pAccumBuffer(NULL)
 #endif
@@ -205,10 +201,14 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
 template<class VOXEL_TYPE>
 inline CVolume<VOXEL_TYPE>::~CVolume<VOXEL_TYPE>()
 {
+	if (m_bFreeVoxels)
+	{
+		FreeValues(m_pVoxels);
+	}
+
 #if defined(USE_IPP)
 	delete m_pAccumBuffer;
 #endif
-
 }	// CVolume<VOXEL_TYPE>::~CVolume<VOXEL_TYPE>
 
 
@@ -273,7 +273,15 @@ template<class VOXEL_TYPE>
 inline void CVolume<VOXEL_TYPE>::SetDimensions(int nWidth, 
 										int nHeight, int nDepth)
 {
-	SetVoxels(NULL, nWidth, nHeight, nDepth);
+	// make sure divisible by 4
+	nWidth = (((nWidth - 1) / 16) + 1) * 16;
+
+	if (nWidth != GetWidth()
+		|| nHeight != GetHeight()
+		|| nDepth != GetDepth())
+	{
+		SetVoxels(NULL, nWidth, nHeight, nDepth);
+	}
 
 }	// CVolume<VOXEL_TYPE>::SetDimensions
 
@@ -350,17 +358,23 @@ template<class VOXEL_TYPE>
 inline void CVolume<VOXEL_TYPE>::SetVoxels(VOXEL_TYPE *pVoxels, 
 								int nWidth, int nHeight, int nDepth)
 {
-	// set the default array of voxels
-	m_arrVoxels.SetSize(nDepth * nHeight * nWidth);
+	// check width
+	// ASSERT(nWidth % (32 / sizeof(VOXEL_TYPE)) == 0);
 
 	// set the raw voxel pointer
 	if (pVoxels == NULL)
 	{
-		m_pVoxels = (m_arrVoxels.GetSize() > 0) ? &m_arrVoxels[0] : NULL;
+		if (m_bFreeVoxels)
+		{
+			FreeValues(m_pVoxels);
+		}
+		AllocValues(nWidth * nHeight * nDepth, m_pVoxels);
+		m_bFreeVoxels = TRUE;
 	}
 	else
 	{
 		m_pVoxels = pVoxels;
+		m_bFreeVoxels = FALSE;
 	}
 
 	// now set the size of the Iliffe vectors
@@ -404,7 +418,8 @@ template<class VOXEL_TYPE>
 inline void CVolume<VOXEL_TYPE>::ClearVoxels()
 {
 	// clear the memory
-	memset(m_arrVoxels.GetData(), 0, 
+	memset(m_pVoxels, // m_arrVoxels.GetData(), 
+			0, 
 			GetVoxelCount() * sizeof(VOXEL_TYPE));
 
 	VoxelsChanged();
@@ -777,10 +792,11 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 	pRes->SetDimensions(pVol->GetWidth(), pVol->GetHeight(), pVol->GetDepth());
 	pRes->ClearVoxels();
 
-	ASSERT(pKernel->GetWidth() % 2 == 1);
+	// TODO: fix this (caused by memory alignment
+	// ASSERT(pKernel->GetWidth() % 2 == 1);
 	ASSERT(pKernel->GetHeight() % 2 == 1);
 
-	int nKernelBase = pKernel->GetWidth() / 2;
+	int nKernelBase = pKernel->GetHeight() / 2;
 
 	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
 	VOXEL_TYPE ***pppKernel = pKernel->GetVoxels();
@@ -791,11 +807,11 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 		{
 			for (int nAtKernRow = -nKernelBase; nAtKernRow <= nKernelBase; nAtKernRow++)
 			{
-				for (int nAtKernCol = -nKernelBase; nAtKernCol < nKernelBase; nAtKernCol++)
+				for (int nAtKernCol = -nKernelBase; nAtKernCol <= nKernelBase; nAtKernCol++)
 				{
-					if (nAtRow + nAtKernRow > 0 
+					if (nAtRow + nAtKernRow >= 0 
 						&& nAtRow + nAtKernRow < pRes->GetHeight()
-						&& nAtCol + nAtKernCol > 0
+						&& nAtCol + nAtKernCol >= 0
 						&& nAtCol + nAtKernCol < pRes->GetWidth())
 					{
 						pppRes[0][nAtRow + nAtKernRow][nAtCol + nAtKernCol] += 
@@ -823,7 +839,9 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 {
 	// find largest dimension
 	int nMaxDim = __max(pVol->GetDepth(), 
-		__max(pVol->GetWidth(), pVol->GetHeight()));
+		// TODO: fix for with (always / 4)
+		// __max(pVol->GetWidth(), 
+		pVol->GetHeight());
 
 	// calc coeffecients
 	CVectorN<TYPE> vCoeff;
@@ -832,10 +850,11 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 	TYPE norm = (TYPE) pow(2, 2 * (vCoeff.GetDim()-1));
 
 	// populate volume
+	pVol->ClearVoxels();
 	TYPE ***pppVoxels = pVol->GetVoxels();
 	for (int nAtRow = 0; nAtRow < pVol->GetHeight(); nAtRow++)
 	{
-		for (int nAtCol = 0; nAtCol < pVol->GetWidth(); nAtCol++)
+		for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); /* pVol->GetWidth(); */nAtCol++)
 		{
 			pppVoxels[0][nAtRow][nAtCol] = vCoeff[nAtRow] * vCoeff[nAtCol] 
 				/ norm;
@@ -859,6 +878,7 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 	// set new dimensions
 	int nBase = pVol->GetWidth() / 2;
 	pRes->SetDimensions(nBase, nBase, 1);
+	pRes->ClearVoxels();
 
 	// set up basis matrix
 	CMatrixD<4> mBasis = pVol->GetBasis();
@@ -870,9 +890,9 @@ inline void Decimate(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pRes)
 	// now copy voxels
 	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
 	VOXEL_TYPE ***pppRes = pRes->GetVoxels();
-	for (int nAtRow = 0; nAtRow < pRes->GetHeight(); nAtRow++)
+	for (int nAtRow = 0; nAtRow < pVol->GetHeight() / 2; nAtRow++)
 	{
-		for (int nAtCol = 0; nAtCol < pRes->GetWidth(); nAtCol++)
+		for (int nAtCol = 0; nAtCol < pVol->GetWidth() / 2; nAtCol++)
 		{
 			pppRes[0][nAtRow][nAtCol] = 
 				pppVoxels[0][nAtRow*2][nAtCol*2];
