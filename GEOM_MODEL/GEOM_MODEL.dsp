@@ -126,7 +126,19 @@ SOURCE=.\TPSTransform.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\include\BufferIndex.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\BufferND.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\include\Dib.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\Field.h
 # End Source File
 # Begin Source File
 
@@ -135,6 +147,10 @@ SOURCE=.\include\LookupFunction.h
 # Begin Source File
 
 SOURCE=.\include\Mesh.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\MeshND.h
 # End Source File
 # Begin Source File
 
