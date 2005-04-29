@@ -106,7 +106,8 @@ const CVectorD<2>& CPolygon::GetVertexAt(int nIndex) const
 	nModIndex %= GetVertexCount();
 
 	// return the desired vertex
-	return static_cast< const CVectorD<2>& >(m_mVertex[nModIndex]);
+	const REAL *pElem = &m_mVertex[nModIndex][0];
+	return reinterpret_cast< const CVectorD<2>& >(*pElem);
 
 }	// CPolygon::GetVertexAt
 

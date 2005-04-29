@@ -12,7 +12,7 @@
 #include <float.h>
 
 // matrix base class
-#include <MatrixBase.inl>
+// #include <MatrixBase.inl>
 
 // utility macros
 #include <UtilMacros.h>
