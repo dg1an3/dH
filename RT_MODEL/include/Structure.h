@@ -20,6 +20,7 @@ class CSeries;
 class CStructure : public CModelObject  
 {
 public:
+	BOOL m_bVisible;
 	COLORREF m_color;
 	CStructure(const CString& strName = "");
 	virtual ~CStructure();

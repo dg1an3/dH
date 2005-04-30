@@ -12,7 +12,11 @@ CVolume<REAL> CStructure::m_kernel;
 /////////////////////////////////////////////////////////////////////////////
 // CSeries
 
-IMPLEMENT_SERIAL(CStructure, CModelObject, 1)
+#define STRUCTURE_SCHEMA 2
+	// Schema 1: initial structure schema
+	// Schema 2: + structure color
+
+IMPLEMENT_SERIAL(CStructure, CModelObject, VERSIONABLE_SCHEMA | STRUCTURE_SCHEMA)
 
 
 //////////////////////////////////////////////////////////////////////
@@ -27,7 +31,8 @@ IMPLEMENT_SERIAL(CStructure, CModelObject, 1)
 CStructure::CStructure(const CString& strName)
 	: CModelObject(strName),
 		m_pSeries(NULL),
-		m_pMesh(NULL)
+		m_pMesh(NULL),
+		m_bVisible(TRUE)
 {
 	if (m_kernel.GetWidth() == 0)
 	{
@@ -155,6 +160,9 @@ REAL CStructure::GetContourRefDist(int nIndex) const
 ///////////////////////////////////////////////////////////////////////////////
 void CStructure::Serialize(CArchive& ar)
 {
+	// schema for the plan object
+	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : STRUCTURE_SCHEMA;
+
 	CModelObject::Serialize(ar);
 
 	if (ar.IsLoading())
@@ -168,6 +176,18 @@ void CStructure::Serialize(CArchive& ar)
 
 	m_arrContours.Serialize(ar);
 	m_arrRefDist.Serialize(ar);
+
+	if (nSchema >= 2)
+	{
+		if (ar.IsLoading())
+		{
+			ar >> m_color;	
+		}
+		else
+		{
+			ar << m_color;
+		}
+	}
 
 }	// CStructure::Serialize
 
