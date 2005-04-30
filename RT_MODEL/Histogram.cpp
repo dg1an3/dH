@@ -7,7 +7,7 @@
 
 #include <MathUtil.h>
 
-#include <MatrixBase.inl>
+// #include <MatrixBase.inl>
 
 #include <ipps.h>
 #include <ippcv.h>
@@ -26,8 +26,8 @@ const REAL GBINS_KERNEL_WIDTH = 4.0;
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CHistogram::ConvGauss(const CVectorBase<>& buffer_in, 
-						   CVectorBase<>& buffer_out) const
+void CHistogram::ConvGauss(const CVectorN<>& buffer_in, 
+						   CVectorN<>& buffer_out) const
 {
 #ifdef USE_IPP
 	static __declspec(thread) REAL *pArrElements = NULL;
@@ -77,8 +77,8 @@ void CHistogram::ConvGauss(const CVectorBase<>& buffer_in,
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CHistogram::Conv_dGauss(const CVectorBase<>& buffer_in, 
-				 CVectorBase<>& buffer_out) const
+void CHistogram::Conv_dGauss(const CVectorN<>& buffer_in, 
+				 CVectorN<>& buffer_out) const
 {
 #ifdef USE_IPP
 	static __declspec(thread) REAL *pArrElements = NULL;
@@ -414,7 +414,7 @@ CVectorN<>& CHistogram::GetBins()
 			pRegionVoxel = &m_pRegion->GetVoxels()[0][0][0];
 			pppRegionVoxels = m_pRegion->GetVoxels();
 
-			m_pRegion->SetThreshold((REAL) 0.1);
+			m_pRegion->SetThreshold((REAL) 0.05);
 		}
 
 		REAL maxValue = m_pVolume->GetMax();
@@ -727,7 +727,7 @@ int CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup)
 		m_arrRegionRotate[nGroup]->ConformTo(p_dVolume);
 		m_arrRegionRotate[nGroup]->ClearVoxels();
 		Resample(m_pRegion, m_arrRegionRotate[nGroup], TRUE);
-		m_arrRegionRotate[nGroup]->SetThreshold(m_pRegion->GetThreshold() / 2.0);
+		m_arrRegionRotate[nGroup]->SetThreshold(m_pRegion->GetThreshold()); //  / 2.0);
 	}
 
 	// set flag for computing bins for new dVolume
@@ -751,7 +751,7 @@ int CHistogram::Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup)
 // 
 // computes and returns the d/dx bins
 //////////////////////////////////////////////////////////////////////
-const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
+const CVectorN<>& CHistogram::Get_dBins(int nAt) const
 {
 	// recompute dBins if needed
 	if (m_arr_bRecompute_dBins[nAt])
@@ -857,7 +857,7 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 		}
 
 		// initialize reference to proper dBins and zero
-		CVectorBase<>& arr_dBins = m_arr_dBins[(int) nAt];
+		CVectorN<>& arr_dBins = m_arr_dBins[(int) nAt];
 		arr_dBins.SetZero();
 
 		// now compute bins
@@ -939,7 +939,7 @@ const CVectorBase<>& CHistogram::Get_dBins(int nAt) const
 // 
 // computes and returns the d/dx GHistogram
 //////////////////////////////////////////////////////////////////////
-const CVectorBase<>& CHistogram::Get_dGBins(int nAt) const
+const CVectorN<>& CHistogram::Get_dGBins(int nAt) const
 {
 	if (m_binKernelSigma == 0.0)
 	{

@@ -262,19 +262,19 @@ void CBeam::SetCollimMax(const CVectorD<2>& vCollimMax)
 const CMatrixD<4>& CBeam::GetBeamToFixedXform() const
 {
 	// set up the beam-to-patient transform computation
-	m_beamToFixedXform = 
+/*	m_beamToFixedXform = 
 
 		// gantry rotation
-		CMatrixD<4>( CreateRotate( ((REAL) (PI - m_gantryAngle)),	
+		CCastMatrixD<4>( CreateRotate( ((REAL) (PI - m_gantryAngle)),	
 			CVectorD<3>(0.0, -1.0, 0.0)) )
 
 		// collimator rotation
-		* CMatrixD<4>( CreateRotate( ((REAL) m_collimAngle),		
+		* CCastMatrixD<4>( CreateRotate( ((REAL) m_collimAngle),		
 			CVectorD<3>(0.0, 0.0, -1.0)) )
 
 		// SAD translation
 		* CreateTranslate(m_Machine.GetSAD(),		
-			CVectorD<3>(0.0, 0.0, -1.0));
+			CVectorD<3>(0.0, 0.0, -1.0)); */
 
 	return m_beamToFixedXform;
 
@@ -288,17 +288,17 @@ const CMatrixD<4>& CBeam::GetBeamToFixedXform() const
 const CMatrixD<4>& CBeam::GetBeamToPatientXform() const
 {
 	// set up the beam-to-patient transform computation
-	m_beamToPatientXform = 
+/*	m_beamToPatientXform = 
 		
 		// table offset translation
 		CreateTranslate(m_vTableOffset)
 
 		// couch rotation
-		* CMatrixD<4>(CreateRotate( ((REAL) m_couchAngle),	
+		* CCastMatrixD<4>(CreateRotate( ((REAL) m_couchAngle),	
 			CVectorD<3>(0.0, 0.0, -1.0)))
 
 		// beam to IEC fixed xform
-		* GetBeamToFixedXform();
+		* GetBeamToFixedXform(); */
 
 	return m_beamToPatientXform;
 
@@ -475,6 +475,7 @@ void CBeam::SetIntensityMap(const CVectorN<>& vWeights)
 {
 	ASSERT(m_arrBeamlets[0].GetSize() == vWeights.GetDim());
 
+	m_vBeamletWeights.SetDim(vWeights.GetDim());
 	m_vBeamletWeights = vWeights;
 	m_bRecalcDose = TRUE;
 
@@ -489,8 +490,8 @@ void CBeam::SetIntensityMap(const CVectorN<>& vWeights)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CBeam::InvFiltIntensityMap(int nLevel, const CVectorBase<>& vWeights,
-								CVectorBase<>& vFiltWeights)
+void CBeam::InvFiltIntensityMap(int nLevel, const CVectorN<>& vWeights,
+								CVectorN<>& vFiltWeights)
 {
 	BEGIN_LOG_SECTION(CBeam::InvFiltIntensityMap);
 	LOG_EXPR(nLevel);
@@ -519,7 +520,8 @@ void CBeam::InvFiltIntensityMap(int nLevel, const CVectorBase<>& vWeights,
 //////////////////////////////////////////////////////////////////////
 CVolume<REAL> *CBeam::GetDoseMatrix()
 {
-	if (m_bRecalcDose)
+	if (m_bRecalcDose 
+		 && m_vBeamletWeights.GetDim() == m_arrBeamlets[0].GetSize())
 	{ 
 		// set dose matrix size
 		m_dose.ConformTo(m_arrBeamlets[0][0]);

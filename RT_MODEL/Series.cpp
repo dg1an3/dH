@@ -5,7 +5,7 @@
 
 #include <UtilMacros.h>
 
-#include <MatrixBase.inl>
+// #include <MatrixBase.inl>
 
 #include <Series.h>
 

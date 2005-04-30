@@ -70,17 +70,17 @@ public:
 	int Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup);
 
 	// partial derivatives
-	const CVectorBase<>& Get_dBins(int nAt) const;
-	const CVectorBase<>& Get_dGBins(int nAt) const;
+	const CVectorN<>& Get_dBins(int nAt) const;
+	const CVectorN<>& Get_dGBins(int nAt) const;
 
 	// evaluation for testing
 	REAL Eval_GBin(REAL x) const;
 	REAL Eval_dGBin(int nAt_dVolume, REAL x) const;
 
-	void ConvGauss(const CVectorBase<>& buffer_in, 
-							CVectorBase<>& buffer_out) const;
-	void Conv_dGauss(const CVectorBase<>& buffer_in, 
-							CVectorBase<>& buffer_out) const;
+	void ConvGauss(const CVectorN<>& buffer_in, 
+							CVectorN<>& buffer_out) const;
+	void Conv_dGauss(const CVectorN<>& buffer_in, 
+							CVectorN<>& buffer_out) const;
 
 protected:
 	// change handler for when the volume or region changes

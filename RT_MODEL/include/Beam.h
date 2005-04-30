@@ -106,8 +106,8 @@ public:
 
 	// helper function to transfer intensity maps from one level
 	//		to next
-	void InvFiltIntensityMap(int nLevel, const CVectorBase<>& vWeights, 
-		CVectorBase<>& vFiltWeights);
+	void InvFiltIntensityMap(int nLevel, const CVectorN<>& vWeights, 
+		CVectorN<>& vFiltWeights);
 
 	// the computed dose for this beam (NULL if no dose exists)
 	virtual CVolume<REAL> *GetDoseMatrix();

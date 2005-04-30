@@ -217,7 +217,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 			// LOG_EXPR_EXT_DESC(arrCalc_dGPDF.back(), FMT("arrCalc_dGPDF %i", nAt_dVol));
 		}
 	} 
-	CVectorBase<> *arrCalc_dGPDF = &const_cast<CVectorBase<>&>(GetHistogram()->Get_dGBins(0));
+	CVectorN<> *arrCalc_dGPDF = &const_cast<CVectorN<>&>(GetHistogram()->Get_dGBins(0));
 
 	// must normalize both distributions
 	REAL calcSum = 0.0; 
