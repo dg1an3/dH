@@ -10,41 +10,42 @@
 #endif // _MSC_VER > 1000
 
 #include <MatrixD.h>
+#include <VectorN.h>
+#include <MatrixNxM.h>
+
 
 const int NUM_THETA = 8;
+const int NUM_RADIAL_STEPS = 64;
 
 
 class CEnergyDepKernel  
 {
 public:
-	CEnergyDepKernel();
+	CEnergyDepKernel(REAL energy);
 	virtual ~CEnergyDepKernel();
 
-	void InitDoseSpread(REAL energy);
+	double Get_mu() { return m_mu; }
 
-	// attenuation coeffecient for this energy
-	double m_mu;
-	double m_energy;
-
-	// sets the basis for the corresponding dose matrix
-	void SetBasis(const CMatrixD<4>& mBasis);
+	// sets the basis for the corresponding dose matrix -- pix spacing in cm
+	void SetBasis(const CVectorD<3>& vPixSpacing);
 
 	int GetNumPhi();
+	int GetNumTheta() { return NUM_THETA; }
+	int GetNumRadii() { return NUM_RADIAL_STEPS; }
 
-	void GetDelta(int theta, int phi, int rad_inc, CVectorD<3, int>& vDelta_out);
+	void GetDelta(int nTheta, int nPhi, int nRadial, int& nX, int& nY, int& nZ);
 	double GetRadius(int nTheta, int nPhi, int nRadInc);
 	double GetCumEnergy(int nPhi, double rad_dist);
 
-// protected:
-	void EnergyLookup();
+ protected:
+	// reads the appropriate EDK
+	void Init();
 
-	double InterpEnergy(
-		const double bound_1,				// inner boundary
-		const double bound_2,				// outer boundary
-		const int rad_numb,					// radial label of inner voxel
-		const int phi_numb					// angular label of voxel
-		);
+	// sets up cumulative energy LUT
+	void InterpCumEnergy(const CMatrixNxM<>& mIncEnergy, 
+					   const CVectorN<>& vRadialBounds);
 
+	// constructs spherical LUT for a single dimension
 	void MakeVector(
 		const int numstep_in,         // number of voxels passed thru
 		const double factor1_in,      // principle direction cosine
@@ -58,20 +59,23 @@ public:
 		);
 
 private:
-	int m_numphi;
-	int m_numrad;
+	// energy for this kernel
+	double m_energy;
 
-	double m_ang[48];				// zenith angle list           		// (48)
-	double m_rad_bound[49];		// (0:48)
-	double m_inc_energy[48][49];	// (48,0:48)
+	// attenuation coeffecient (H2O) for this energy
+	double m_mu;
 
-	double m_cum_energy[48][601];	// (48,0:600)
+	// mean angle values from kernel
+	CVectorN<REAL> m_vAnglesIn;
 
-	bool m_bSetupRaytrace;
+	// interpolated energy lookup table
+	CMatrixNxM<REAL> m_mCumEnergy;
+
+	// spherical xform lookup table
+	CVectorD<3> m_vPixSpacing;
 
 	double m_radius[NUM_THETA][48][65];	// (0:64,48,48); 
 	
-public:
 	int m_delta_i[NUM_THETA][48][64];	// (64,48,48);
 	int m_delta_j[NUM_THETA][48][64];	// (64,48,48);
 	int m_delta_k[NUM_THETA][48][64];	// (64,48,48);
@@ -82,24 +86,32 @@ public:
 
 inline int CEnergyDepKernel::GetNumPhi()
 {
-	return m_numphi;
+	return m_mCumEnergy.GetCols();
 }
 
-inline void CEnergyDepKernel::GetDelta(int nTheta, int nPhi, int nRadInc, CVectorD<3, int> &vDelta_out)
+inline void CEnergyDepKernel::GetDelta(int nTheta, int nPhi, int nRadial, int& nX, int& nY, int& nZ)
 {
-	vDelta_out[0] =	m_delta_i[nTheta-1][nPhi-1][nRadInc-1];    
-	vDelta_out[1] = m_delta_j[nTheta-1][nPhi-1][nRadInc-1];    
-	vDelta_out[2] = m_delta_k[nTheta-1][nPhi-1][nRadInc-1];    
+	nX -= m_delta_k[nTheta-1][nPhi-1][nRadial-1];
+	nY -= m_delta_i[nTheta-1][nPhi-1][nRadial-1]; 
+	nZ -= m_delta_j[nTheta-1][nPhi-1][nRadial-1];   
 }
 
-inline double CEnergyDepKernel::GetRadius(int nTheta, int nPhi, int nRadInc)
+// returns radius in cm
+inline double CEnergyDepKernel::GetRadius(int nTheta, int nPhi, int nRadial)
 {
-	return m_radius[nTheta-1][nPhi-1][nRadInc];
+	return m_radius[nTheta-1][nPhi-1][nRadial];
 }
 
-inline double CEnergyDepKernel::GetCumEnergy(int nPhi, double rad_dist)
+inline double CEnergyDepKernel::GetCumEnergy(int nPhi, double rad_dist /* cm */)
 {
-	return m_cum_energy[nPhi-1][(int) floor(rad_dist*10.0 + 0.5)];
+	// The resolution of the array in the radial direction is every mm
+	//	hence the multiply by 10.0 in the arguement.
+	int nRadial = (int) floor(rad_dist * 10.0 + 0.5);
+
+	// check for overflow
+	nRadial = __min(nRadial, m_mCumEnergy.GetRows()-1);
+
+	return m_mCumEnergy[nPhi-1][nRadial];
 }
 
 #endif // !defined(AFX_SOURCE_H__A104E4D2_7288_4520_9F88_3EFAFFAD46CB__INCLUDED_)

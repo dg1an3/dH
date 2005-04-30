@@ -7,6 +7,8 @@
 
 #include <MathUtil.h>
 
+#include <Volumep.h>
+
 #include <direct.h>
 
 #ifdef _DEBUG
@@ -34,13 +36,10 @@ static int nint(double val)
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CEnergyDepKernel::CEnergyDepKernel()
-: m_bSetupRaytrace(true)
+CEnergyDepKernel::CEnergyDepKernel(REAL energy)
+	: m_energy(energy)
 {
-	memset(m_ang, 0, sizeof(m_ang));
-	memset(m_rad_bound, 0, sizeof(m_rad_bound));
-	memset(m_inc_energy, 0, sizeof(m_inc_energy));
-	memset(m_cum_energy, 0, sizeof(m_cum_energy));
+	Init();
 }
 
 CEnergyDepKernel::~CEnergyDepKernel()
@@ -49,22 +48,29 @@ CEnergyDepKernel::~CEnergyDepKernel()
 }
 
 
-
-void CEnergyDepKernel::InitDoseSpread(REAL energy)
+void CEnergyDepKernel::Init()
 {
-	m_energy = energy;
-
 	CString strFilename;
-	if (IsApproxEqual(m_energy, 6.0))
+
+	if (IsApproxEqual(m_energy, 15.0))
+	{
+		strFilename = "C:\\15MV_kernel.dat";
+		m_mu = 1.941E-02;
+	}
+	else if (IsApproxEqual(m_energy, 6.0))
 	{
 		strFilename = "C:\\6MV_kernel.dat";
-		m_mu = 0.02770;
+		m_mu = 2.770E-02;
 	}
 	else if (IsApproxEqual(m_energy, 2.0))
 	{
 		strFilename = "C:\\2MV_kernel.dat";
-		m_mu = 0.0494;
+		m_mu = 4.942E-02;
 
+	}
+	else
+	{
+		ASSERT(FALSE);
 	}
 
 	// The dose spread arrays produced by SUM_ELEMENT.FOR are read.
@@ -72,127 +78,120 @@ void CEnergyDepKernel::InitDoseSpread(REAL energy)
 	
 	char pszLine[100];
 	
-	fscanf(pFile, "%[^\n]\n", pszLine);		// read (1,*)
-	fscanf(pFile, "%[^\n]\n", pszLine);		// read (1,*)
-	fscanf(pFile, "%i\n", &m_numphi);	// read (1,*) numphi       !number of angular divisions
-	fscanf(pFile, "%i\n", &m_numrad);	// read (1,*) numrad       !number of radial divisions
-	fscanf(pFile, "%[^\n]\n", pszLine);		// read (1,*)
-	fscanf(pFile, "%[^\n]\n", pszLine);		// read (1,*)
+
+	fscanf(pFile, "%[^\n]\n", pszLine);	
+	fscanf(pFile, "%[^\n]\n", pszLine);	
+
+	int nNumPhiIn;
+	int nNumRadIn;
+
+	fscanf(pFile, "%i\n", &nNumPhiIn);	
+	fscanf(pFile, "%i\n", &nNumRadIn);	
+
+	fscanf(pFile, "%[^\n]\n", pszLine);	
+	fscanf(pFile, "%[^\n]\n", pszLine);	
 	
-	for (int nA = 1; nA <= m_numphi; nA++)
-	{
-		for (int nR = 1; nR <= m_numrad; nR++)
-		{
-			fscanf(pFile, "%le", &m_inc_energy[nA-1][nR]);
-			// read (1,*) (inc_energy(a,r),r=1,numrad) !read dose spread values 
-		}
-	}
 	
-	for (nA = 1; nA <= m_numphi; nA++)
+	// set up increment energy array
+	CMatrixNxM<REAL> mIncEnergyIn;
+	mIncEnergyIn.Reshape(nNumPhiIn+1, nNumRadIn+1);
+	for (int nA = 1; nA <= nNumPhiIn; nA++)
 	{
-		m_inc_energy[nA-1][0] = 0.0;
-		
-		for (int nR = 1; nR <= m_numrad; nR++)
+		mIncEnergyIn[nA-1][0] = 0.0;
+		for (int nR = 1; nR <= nNumRadIn; nR++)
 		{
 			// read dose spread values      
-			m_inc_energy[nA-1][nR] += m_inc_energy[nA-1][nR-1];
+			fscanf(pFile, "%e", &mIncEnergyIn[nA-1][nR]);
+			mIncEnergyIn[nA-1][nR] += mIncEnergyIn[nA-1][nR-1];
 		}
-	}
+	}  
+
+	// read (1,*)
+	fscanf(pFile, "%*s%[^\n]\n", pszLine);		
 	
-	fscanf(pFile, "%*s%[^\n]\n", pszLine);		// read (1,*)
-	
-	for (nA = 1; nA <= m_numphi; nA++)
+	// set up angle vector
+	m_vAnglesIn.SetDim(nNumPhiIn+1);
+	for (nA = 1; nA <= nNumPhiIn; nA++)
 	{        
-		fscanf(pFile, "%lf", &m_ang[nA-1]);      // read mean angle of spherical voxels 
-	}
+		// read mean angle of spherical voxels 
+		fscanf(pFile, "%f", &m_vAnglesIn[nA-1]);      
+	} 
 	
-	fscanf(pFile, "%*s%[^\n]\n", pszLine);		// read (1,*)
+	// set up radial bounds vector
+	// read (1,*)
+	fscanf(pFile, "%*s%[^\n]\n", pszLine);		
 	
-	m_rad_bound[0] = 0.0;
-	
-	for (int nR = 1; nR <= m_numrad; nR++)
+	CVectorN<REAL> vRadialBoundsIn;
+	vRadialBoundsIn.SetDim(nNumRadIn+1);
+	vRadialBoundsIn[0] = 0.0;
+	for (int nR = 1; nR <= nNumRadIn; nR++)
 	{              
-		fscanf(pFile, "%lf", &m_rad_bound[nR]);   // read radial boundaries of spherical voxels
-	}	
+		// read radial boundaries of spherical voxels
+		fscanf(pFile, "%f", &vRadialBoundsIn[nR]);   
+	} 
 
 	fclose(pFile);
 
-	EnergyLookup();
+	// now interpolate values to mm resolution
+	InterpCumEnergy(mIncEnergyIn, vRadialBoundsIn);
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
-// energy_lookup
+// CEnergyDepKernel::InterpCumEnergy
 //
 // looks up the energies for a phi angle setting 
 //////////////////////////////////////////////////////////////////////////////
-void CEnergyDepKernel::EnergyLookup()
+void CEnergyDepKernel::InterpCumEnergy(const CMatrixNxM<>& mIncEnergy, 
+									   const CVectorN<>& vRadialBounds)
 {
+	// TODO: fix hard-coding for 60.0 cm
+	m_mCumEnergy.Reshape(mIncEnergy.GetCols(), 600);
+
 	// these should be read in the table
-	for (int phi_in = 1; phi_in <= m_numphi; phi_in++)
+	for (int nPhi = 1; nPhi <= m_mCumEnergy.GetCols()-1; nPhi++)
 	{
-		int rad_numb = 1;
-		double last_rad = 0.0;
-		double rad_dist = 0.0;
-		m_cum_energy[phi_in-1][0] = 0.0;
+		m_mCumEnergy[nPhi-1][0] = 0.0;
 		
-		for (int nI = 1; nI <= 599; nI++)
+		int nRadial = 1;
+		for (int nI = 1; nI < m_mCumEnergy.GetRows(); nI++)
 		{
-			rad_dist = 0.1 * nI;
+			// distance in cm
+			double radialDist = 0.1 * nI;
 			
-			for (int r = rad_numb-1; r <= m_numrad; r++)
+			while (nRadial < vRadialBounds.GetDim()
+				&& vRadialBounds[nRadial] < radialDist)
 			{
-				if (m_rad_bound[r] > rad_dist) 
-				{
-					break;
-				}
-			}                      
-			
-			rad_numb = r;
-			
-			// New subroutine interpolates the kernel values to get the 
-			// energy absorbed.
-			
-			double tot_energy = 
-				InterpEnergy(
-					last_rad,		// inner boundary
-					rad_dist,       // outer boundary
-					rad_numb,       // radial label of inner voxel
-					phi_in			// angular label of voxel
-				);
-			
-			last_rad = rad_dist;
-			
-			m_cum_energy[phi_in-1][nI] = tot_energy;
+				nRadial++;
+			}
+
+			if (nRadial < vRadialBounds.GetDim())
+			{
+				// energy at lower boundary
+				double incEnergy = mIncEnergy[nPhi-1][nRadial-1];
+
+				// increase in energy between lower and upper
+				double incEnergyDelta = mIncEnergy[nPhi-1][nRadial] - incEnergy;
+
+				// linear interpolate using lookup table values
+				incEnergy += incEnergyDelta 
+					* (radialDist - vRadialBounds[nRadial-1]) 
+						/ (vRadialBounds[nRadial] - vRadialBounds[nRadial-1]);
+
+				m_mCumEnergy[nPhi-1][nI] = incEnergy;
+			}
+			else
+			{
+				// if over end of radial bounds, just fill out with same value
+				m_mCumEnergy[nPhi-1][nI] = m_mCumEnergy[nPhi-1][nI-1];
+			}
 		}
 	}
 	
-}	// energy_lookup
+}	// CEnergyDepKernel::InterpCumEnergy
 
 
 
-//////////////////////////////////////////////////////////////////////////////
-// interp_energy
-//
-// returns energy between boundaries  
-//////////////////////////////////////////////////////////////////////////////
-double CEnergyDepKernel::InterpEnergy(
-					 const double bound_1,		// inner boundary
-					 const double bound_2,		// outer boundary
-					 const int rad_numb,		// radial label of inner voxel
-					 const int phi_numb			// angular label of voxel
-					 )        
-{
-	double inc_energy1 = m_inc_energy[phi_numb-1][rad_numb-1];
-	double inc_energy2 = m_inc_energy[phi_numb-1][rad_numb];
-
-	double energy = inc_energy1
-		+ (inc_energy2 - inc_energy1) * (bound_2 - m_rad_bound[rad_numb-1]) 
-		/ (m_rad_bound[rad_numb] - m_rad_bound[rad_numb-1]);
-
-	return energy;
-	
-}	// interp_energy
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -220,16 +219,10 @@ void CEnergyDepKernel::MakeVector(
         // distance to the end of a voxel
 		double d = double(nI) - 0.5;                 
 		
-		// want absolute distance
-		if (factor1_in < 0.0) 
-		{
-			d = -d;     
-		}
-		
 		if (fabs(factor1_in) >= 1e-04) 
 		{	
-			// radius to interection point
-			r_out[nI-1] = d / factor1_in;                
+			// radius to intersection point
+			r_out[nI-1] = fabs(d / factor1_in);
 		}      
 		else
 		{
@@ -240,8 +233,7 @@ void CEnergyDepKernel::MakeVector(
 		// Calculate a distance along a coordinate direction and find the nearest
 		// integer to specify the voxel direction.
         
-		delta1_out[nI-1] = nint(0.99 * r_out[nI-1] * factor1_in);  
-		// 0.99 prevents being exactly on the voxel boundary
+		delta1_out[nI-1] = nint(0.99 * r_out[nI-1] * factor1_in);  // 0.99 prevents being exactly on the voxel boundary
 		delta2_out[nI-1] = nint(r_out[nI-1] * factor2_in);       
 		delta3_out[nI-1] = nint(r_out[nI-1] * factor3_in);       
 	}
@@ -255,29 +247,41 @@ void CEnergyDepKernel::MakeVector(
 //
 // sets up the ray trace for conv.
 //////////////////////////////////////////////////////////////////////////////
-void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
+void CEnergyDepKernel::SetBasis(const CVectorD<3>& vPixSpacing)
 {
-	if (!m_bSetupRaytrace)
+	// check if we are already set up
+	if (m_vPixSpacing.IsApproxEqual(vPixSpacing))
 	{
 		return;
 	}
 	
-	const int numstep_in = 64;
-
 	// the azimuthal angle increment is calculated
 	double ang_inc = 2.0 * PI 
 		/ double(NUM_THETA); 
 	
 	// loop thru all zenith angles
-	for (int nPhi = 1; nPhi <= m_numphi; nPhi++)              
+	for (int nPhi = 1; nPhi <= m_vAnglesIn.GetDim()-1; nPhi++)              
 	{
 		// trig. for zenith angles
-		double sphi = sin(m_ang[nPhi]);
-		double cphi = cos(m_ang[nPhi]);
+		double sphi = sin(m_vAnglesIn[nPhi]);
+		double cphi = cos(m_vAnglesIn[nPhi]);
 		
+//		CMatrixD<3> mPhiRot = CreateRotate(CreateRotate(m_angles[nPhi], 
+//			CVectorD<3>(0.0, 1.0, 0.0);
+
 		// loop thru all azimuthal angles
 		for (int nTheta = 1; nTheta <= NUM_THETA; nTheta++)                  
 		{
+//			CMatrixD<3> mThetaRot = CreateRotate(CreateRotate(m_angles[nPhi], 
+//				CVectorD<3>(1.0, 0.0, 0.0);
+//
+//			CVectorD<3> vDir = mThetaRot * mPhiRot 
+//				* CVectorD<3>(1.0, 0.0, 0.0):
+
+//			vDir[0] /= vPixSpacing[0];
+//			vDir[1] /= vPixSpacing[1];
+//			vDir[2] /= vPixSpacing[2];
+
 			// trig. for azimuthal angles
 			double sthet = sin(double(nTheta) * ang_inc);    
 			double cthet = cos(double(nTheta) * ang_inc);
@@ -293,10 +297,11 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 			int delta_j_x[64];	// (64)
 			int delta_k_x[64];	// (64)
 			
-			MakeVector(numstep_in,              
-				sphi*cthet / mBasis[1][1],   // x-dir direction cosine
-				sphi*sthet / mBasis[2][2],   // y-dir direction cosine 
-				cphi       / mBasis[0][0],   // z-dir direction cosine    
+			MakeVector(NUM_RADIAL_STEPS,              
+				// vDir[1], vDir[2], vDir[0],
+				sphi*cthet / vPixSpacing[1],   // x-dir direction cosine : units voxels / cm
+				sphi*sthet / vPixSpacing[2],   // y-dir direction cosine 
+				cphi       / vPixSpacing[0],   // z-dir direction cosine    
 				rx,                   // list of dist. to x-bound  
 				delta_i_x,            // x-dir voxel location      
 				delta_j_x,            // y-dir voxel location      
@@ -309,10 +314,11 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 			int delta_j_y[64];	// (64)
 			int delta_k_y[64];	// (64)
 			
-			MakeVector(numstep_in,              
-				sphi*sthet / mBasis[2][2],   // y-dir direction cosine    
-				sphi*cthet / mBasis[1][1],   // x-dir direction cosine    
-				cphi       / mBasis[0][0],   // z-dir direction cosine    
+			MakeVector(NUM_RADIAL_STEPS,     
+				// vDir[2], vDir[1], vDir[0],
+				sphi*sthet / vPixSpacing[2],   // y-dir direction cosine    
+				sphi*cthet / vPixSpacing[1],   // x-dir direction cosine    
+				cphi       / vPixSpacing[0],   // z-dir direction cosine    
 				ry,                   // list of dist. to y-bound  
 				delta_j_y,            // y-dir voxel location      
 				delta_i_y,            // x-dir voxel location      
@@ -324,10 +330,11 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 			int delta_i_z[64];	// (64)      
 			int delta_j_z[64];	// (64)
 			int delta_k_z[64];	// (64)
-			MakeVector(numstep_in,              
-				cphi       / mBasis[0][0],   // z-dir direction cosine    
-				sphi*sthet / mBasis[2][2],   // y-dir direction cosine    
-				sphi*cthet / mBasis[1][1],   // x-dir direction cosine    
+			MakeVector(NUM_RADIAL_STEPS,     
+				// vDir[0], vDir[2], vDir[1],
+				cphi       / vPixSpacing[0],   // z-dir direction cosine    
+				sphi*sthet / vPixSpacing[2],   // y-dir direction cosine    
+				sphi*cthet / vPixSpacing[1],   // x-dir direction cosine    
 				rz,                   // list of dist. to z-bound  
 				delta_k_z,            // z-dir voxel location      
 				delta_j_z,            // y-dir voxel location      
@@ -345,7 +352,7 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 			// A merged vector is created that lists the location of the voxel crossed
 			// and the length thru it in the order of crossings.
 			
-			for (int nN = 1; nN <= numstep_in; nN++)
+			for (int nN = 1; nN <= NUM_RADIAL_STEPS; nN++)
 			{
 				// done if plane defined by the x-coord crossed
 				if (rx[nI-1] <= ry[nJ-1] && rx[nI-1] <= rz[nK-1])
@@ -402,6 +409,7 @@ void CEnergyDepKernel::SetBasis(const CMatrixD<4>& mBasis)
 		}
 	}
 
-	m_bSetupRaytrace = false;
+	// store the pixel spacing used
+	m_vPixSpacing = vPixSpacing;
 
 }	// CEnergyDepKernel::SetBasis
