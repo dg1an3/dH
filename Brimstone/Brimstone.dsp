@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\RT_MODEL\include" /I "..\OptimizeN\include" /I "..\GEOM_MODEL\include" /I "..\MTL" /I "..\XMLLogging" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "USE_IPP" /FR /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\dcmtk-3.5.3\config\include" /I "..\..\dcmtk-3.5.3\dcmimgle\include" /I "..\..\dcmtk-3.5.3\ofstd\include" /I "..\..\dcmtk-3.5.3\dcmdata\include" /I "..\dcmtk-3.5.3\config\include" /I "..\dcmtk-3.5.3\dcmimgle\include" /I "..\dcmtk-3.5.3\ofstd\include" /I "..\dcmtk-3.5.3\dcmdata\include" /I "..\RT_MODEL\DicomImEx" /I "..\RT_MODEL\include" /I "..\OptimizeN\include" /I "..\GEOM_MODEL\include" /I "..\MTL" /I "..\XMLLogging" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "USE_IPP" /FR /Yu"stdafx.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /machine:I386
-# ADD LINK32 ipps20.lib ippi20.lib ippcv20.lib /nologo /subsystem:windows /machine:I386 /libpath:"$(IPPROOT)\lib" /libpath:"$(IPPROOT)\stublib"
+# ADD LINK32 ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib /nologo /subsystem:windows /machine:I386 /libpath:"$(IPPROOT)\lib" /libpath:"$(IPPROOT)\stublib"
 
 !ELSEIF  "$(CFG)" == "Brimstone - Win32 Debug"
 
@@ -66,9 +66,10 @@ LINK32=link.exe
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\RT_MODEL\include" /I "..\OptimizeN\include" /I "..\GEOM_MODEL\include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /FR /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\dcmtk-3.5.3\config\include" /I "..\dcmtk-3.5.3\dcmimgle\include" /I "..\dcmtk-3.5.3\ofstd\include" /I "..\dcmtk-3.5.3\dcmdata\include" /I "..\RT_MODEL\DicomImEx" /I "..\RT_MODEL\include" /I "..\OptimizeN\include" /I "..\GEOM_MODEL\include" /I "..\MTL" /I "..\XMLLogging" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "_MBCS" /D "USE_XMLLOGGING" /D "XMLLOGGING_ON" /D "USE_IPP" /FR /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -78,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 ipps20.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"$(IPPROOT)\lib" /libpath:"$(IPPROOT)\stublib"
+# ADD LINK32 ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"$(IPPROOT)\lib" /libpath:"$(IPPROOT)\stublib"
 
 !ENDIF 
 
@@ -115,6 +116,18 @@ SOURCE=.\MainFrm.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\PlanarView.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\PlanSetupDlg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\PrescDlg.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\PrescriptionToolbar.cpp
 # End Source File
 # Begin Source File
@@ -145,6 +158,18 @@ SOURCE=.\Graph.h
 # Begin Source File
 
 SOURCE=.\MainFrm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\PlanarView.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\PlanSetupDlg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\PrescDlg.h
 # End Source File
 # Begin Source File
 

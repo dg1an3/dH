@@ -26,6 +26,30 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name OPTIMIZER_BASE
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name DicomImEx
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name dcmdata
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name dcmimgle
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ofstd
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "DicomImEx"=..\RT_MODEL\DicomImEx\DicomImEx.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################
@@ -79,6 +103,42 @@ Package=<4>
 ###############################################################################
 
 Project: "XMLLogging"=..\XMLLogging\XMLLogging.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "dcmdata"="..\dcmtk-3.5.3\dcmdata\libsrc\dcmdata.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "dcmimgle"="..\dcmtk-3.5.3\dcmimgle\libsrc\dcmimgle.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "ofstd"="..\dcmtk-3.5.3\ofstd\libsrc\ofstd.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
