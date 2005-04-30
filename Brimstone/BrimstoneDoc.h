@@ -19,6 +19,7 @@ class COptThread : public CWinThread
 public:
 	COptThread() 
 		: m_pPresc(NULL),
+		m_pPrescParam(NULL),
 		m_evtParamChanged(FALSE),
 		m_evtNewResult(FALSE)
 	{ 
@@ -43,7 +44,7 @@ public:
 
 	int nIteration;
 	BOOL m_bDone;
-private:
+public:
 	// results
 	CCriticalSection m_csResult;
 	REAL m_bestValue;
@@ -80,9 +81,9 @@ public:
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CBrimstoneDoc)
 	public:
-	virtual BOOL OnNewDocument();
 	virtual void Serialize(CArchive& ar);
 	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
+	virtual void DeleteContents();
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -105,7 +106,9 @@ protected:
 protected:
 	//{{AFX_MSG(CBrimstoneDoc)
 	afx_msg void OnOptimize();
-	afx_msg void OnScanbeamlets();
+	afx_msg void OnGenbeamlets();
+	afx_msg void OnFileImportDcm();
+	afx_msg void OnPlanAddPresc();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

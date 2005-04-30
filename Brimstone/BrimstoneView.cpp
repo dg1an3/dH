@@ -26,6 +26,11 @@ BEGIN_MESSAGE_MAP(CBrimstoneView, CView)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
 	ON_WM_TIMER()
+	ON_COMMAND(ID_SCANBEAMLETS_G0, OnScanbeamletsG0)
+	ON_COMMAND(ID_VIEW_STRUCT_COLORWASH, OnViewStructColorwash)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_STRUCT_COLORWASH, OnUpdateViewStructColorwash)
+	ON_COMMAND(ID_SCANBEAMLETS_G1, OnScanbeamletsG1)
+	ON_COMMAND(ID_SCANBEAMLETS_G2, OnScanbeamletsG2)
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
@@ -37,6 +42,7 @@ END_MESSAGE_MAP()
 // CBrimstoneView construction/destruction
 
 CBrimstoneView::CBrimstoneView()
+: m_bColorwashStruct(FALSE)
 {
 	// TODO: add construction code here
 
@@ -61,6 +67,10 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 {
 	CBrimstoneDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
+
+	CView::OnDraw(pDC);
+
+	return;
 
 	if (!pDoc->m_pPlan) 
 		return;
@@ -134,11 +144,11 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 	DWORD dwCount = dib.SetBitmapBits(rect.Width() * rect.Height() * sizeof(COLORREF),
 		(void *) arrPixels.GetData());
 
-	PLDrawBitmap(*pDC, &dib, NULL, NULL, SRCCOPY);
+//	PLDrawBitmap(*pDC, &dib, NULL, NULL, SRCCOPY);
 
 	DrawContours(pDC, rect, &density);
 
-	ValidateRect(NULL);
+//	ValidateRect(NULL);
 
 	CView::OnDraw(pDC);
 }
@@ -191,8 +201,8 @@ int CBrimstoneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CView::OnCreate(lpCreateStruct) == -1)
 		return -1;
 	
-	// create the graph window
-	m_graph.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+	// create the planar window
+	m_wndPlanarView.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
 		CRect(0, 0, 200, 200), this, /* nID */ 111);
 
 	// load the colormap for dose display
@@ -201,15 +211,26 @@ int CBrimstoneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CSize size = colormap.GetSize();
 	m_arrColormap.SetSize(size.cx * size.cy);
 
-	unsigned char *pRaw = new unsigned char[size.cx * size.cy * 3];
-	colormap.GetBitmapBits(size.cx * size.cy * 3, pRaw);
+	CArray<UCHAR, UCHAR&> arrRaw;
+	arrRaw.SetSize(size.cx * size.cy * 3);
+	colormap.GetBitmapBits(size.cx * size.cy * 3, arrRaw.GetData());
 
 	int nAtRaw = 0;
 	for (int nAt = 0; nAt < m_arrColormap.GetSize(); nAt++)
 	{ 
-		m_arrColormap[nAt] = RGB(pRaw[nAtRaw+2], pRaw[nAtRaw+1], pRaw[nAtRaw]);
+		m_arrColormap[nAt] = RGB(arrRaw[nAtRaw+2], arrRaw[nAtRaw+1], arrRaw[nAtRaw]);
 		nAtRaw += 3;
 	}
+
+	m_wndPlanarView.SetLUT(m_arrColormap, 1); 
+
+	// create the graph window
+	m_graph.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+		CRect(0, 200, 200, 400), this, /* nID */ 113);
+
+	m_graph.m_arrLegendLUT.Copy(m_arrColormap);
+	m_graph.m_window = m_wndPlanarView.m_window[1];
+	m_graph.m_level = m_wndPlanarView.m_level[1];
 
 	// set timer to update plan
 	SetTimer(7, 20, NULL);
@@ -224,19 +245,29 @@ void CBrimstoneView::OnInitialUpdate()
 	
 	if (GetDocument()->m_pSeries)
 	{
+		m_wndPlanarView.SetVolume(GetDocument()->m_pSeries->m_pDens, 0);
+		m_wndPlanarView.SetBasis(GetDocument()->m_pSeries->m_pDens->GetBasis());
+		m_wndPlanarView.m_pSeries = GetDocument()->m_pSeries;
+
 		for (int nAt = 0; nAt < GetDocument()->m_pSeries->GetStructureCount(); nAt++)
 		{
 			CStructure *pStruct = GetDocument()->m_pSeries->GetStructureAt(nAt);
-			CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct);
-			CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
-			m_graph.AddDataSeries(pSeries);
-		}
+//			CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct);
+//			CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
+//			m_graph.AddDataSeries(pSeries);
+		} 
 	}
+	if (GetDocument()->m_pPlan)
+	{
+		m_wndPlanarView.SetVolume(GetDocument()->m_pPlan->GetDoseMatrix(), 1);
+	}
+
+	m_wndPlanarView.Invalidate(TRUE);
 }
 
 void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
-	if (lHint == IDC_STRUCTSELECT)
+	if (IDC_STRUCTSELECT == lHint)
 	{
 		CStructure *pStruct = (CStructure *) pHint;
 
@@ -244,9 +275,17 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		// set target curve in CGraph
 	}
-
+	else if (IDD_ADDPRESC == lHint)
+	{
+		CStructure *pStruct = (CStructure *) pHint;
+		CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct);
+		CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
+		pSeries->SetColor(pStruct->m_color);
+		m_graph.AddDataSeries(pSeries);
+	}
 	
 	Invalidate(FALSE);
+	m_wndPlanarView.Invalidate(TRUE);
 
 	// DON'T CALL because it will erase
 	// CView::OnUpdate(pSender, lHint, pHint);
@@ -262,6 +301,8 @@ void CBrimstoneView::OnDVHChanged()
 void CBrimstoneView::OnSize(UINT nType, int cx, int cy) 
 {
 	CView::OnSize(nType, cx, cy);
+
+	m_wndPlanarView.MoveWindow(0, 0, cx, 2 * cy / 3);
 
 	// reposition the graph window
 	m_graph.MoveWindow(0, 2 * cy / 3, cx, cy / 3);	
@@ -289,7 +330,7 @@ void CBrimstoneView::OnTimer(UINT nIDEvent)
 {
 //	GetDocument()->UpdateFromOptimizer();
 
-	m_graph.Invalidate(TRUE);
+	// m_graph.Invalidate(TRUE);
 
 	CView::OnTimer(nIDEvent);
 }
@@ -319,4 +360,97 @@ void CBrimstoneView::DrawContours(CDC *pDC, const CRect& rect, CVolume<REAL> *pD
 			}
 		}
 	}
+}
+
+void CBrimstoneView::OnScanbeamletsG0() 
+{
+	ScanBeamlets(0);
+}
+
+void CBrimstoneView::OnViewStructColorwash() 
+{
+	m_bColorwashStruct = !m_bColorwashStruct;
+
+	if (m_bColorwashStruct)
+	{
+		CStructure *pStruct = GetDocument()->m_pSelectedStruct;
+		if (pStruct != NULL)
+		{
+			CVolume<REAL> *pRegion = pStruct->GetRegion(2);
+			m_wndPlanarView.SetVolume(pRegion, 1);
+		}
+	}
+	else
+	{
+		m_wndPlanarView.SetVolume(NULL, 1);
+	}
+
+
+	m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+}
+
+void CBrimstoneView::OnUpdateViewStructColorwash(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck(m_bColorwashStruct ? 1 : 0);	
+}
+
+void CBrimstoneView::ScanBeamlets(int nLevel)
+{
+	CPlan *pPlan = GetDocument()->m_pPlan;
+
+	if (nLevel == 0)
+	{
+		for (int nAt = pPlan->GetBeamAt(0)->GetBeamletCount()-1; nAt >= 0; nAt--)
+		{
+			CVectorN<> vWeights;
+			vWeights.SetDim(pPlan->GetBeamAt(0)->GetBeamletCount());
+			vWeights.SetZero();
+	/*		vWeights[nAt] = 0.0;
+
+			for (int nAtBeam = 0; nAtBeam < pPlan->GetBeamCount(); nAtBeam++)
+			{
+				CBeam *pBeam = pPlan->GetBeamAt(nAtBeam);
+				pBeam->SetIntensityMap(vWeights);
+			}
+			pPlan->GetDoseMatrix();
+
+			m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+
+	*/		vWeights[nAt] = 0.8;
+
+			for (int nAtBeam = 0; nAtBeam < pPlan->GetBeamCount(); nAtBeam++)
+			{
+				CBeam *pBeam = pPlan->GetBeamAt(nAtBeam);
+				pBeam->SetIntensityMap(vWeights);
+			}
+			pPlan->GetDoseMatrix();
+
+			m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+		}	
+	}
+	else
+	{
+		for (int nAtBeam = 0; nAtBeam < pPlan->GetBeamCount(); nAtBeam++)
+		{
+			CBeam *pBeam = pPlan->GetBeamAt(nAtBeam);
+			for (int nShift = -pBeam->GetBeamletCount(nLevel) / 2; 
+					nShift<= pBeam->GetBeamletCount(nLevel) / 2; nShift++)
+			{
+				CVolume<REAL> *pBeamlet = pBeam->GetBeamlet(nShift, nLevel);
+				m_wndPlanarView.SetVolume(pBeamlet, 1);
+				m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+			}
+
+		}	
+	}
+}
+
+void CBrimstoneView::OnScanbeamletsG1() 
+{
+	ScanBeamlets(1);	
+}
+
+void CBrimstoneView::OnScanbeamletsG2() 
+{
+	ScanBeamlets(2);
 }

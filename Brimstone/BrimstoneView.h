@@ -6,6 +6,7 @@
 #define AFX_BRIMSTONEVIEW_H__315F9461_92CF_4D86_B8C6_304D8C253E91__INCLUDED_
 
 #include "Graph.h"
+#include "PlanarView.h"	// Added by ClassView
 
 #if _MSC_VER > 1000
 #pragma once
@@ -22,11 +23,16 @@ protected: // create from serialization only
 public:
 	CBrimstoneDoc* GetDocument();
 
+	// planar view of images / contours / dose
+	CPlanarView m_wndPlanarView;
+
 	// colormap for the dose display
 	CArray<COLORREF, COLORREF> m_arrColormap;
 
 	// graph to display the histogram
 	CGraph m_graph;
+
+	BOOL m_bColorwashStruct;
 
 // Operations
 public:
@@ -47,6 +53,7 @@ public:
 
 // Implementation
 public:
+	void ScanBeamlets(int nLevel);
 	void DrawContours(CDC *pDC, const CRect& rect, CVolume<REAL> *pDens);
 	void OnHistogramChange(CObservableEvent *, void *);
 	void OnDVHChanged();
@@ -64,6 +71,11 @@ protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnScanbeamletsG0();
+	afx_msg void OnViewStructColorwash();
+	afx_msg void OnUpdateViewStructColorwash(CCmdUI* pCmdUI);
+	afx_msg void OnScanbeamletsG1();
+	afx_msg void OnScanbeamletsG2();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
