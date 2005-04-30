@@ -94,6 +94,8 @@ BEGIN
     SEPARATOR
     BUTTON      ID_OPTIMIZE
     SEPARATOR
+    BUTTON      ID_VIEW_STRUCT_COLORWASH
+    SEPARATOR
     BUTTON      ID_EDIT_CUT
     BUTTON      ID_EDIT_COPY
     BUTTON      ID_EDIT_PASTE
@@ -118,6 +120,8 @@ BEGIN
         MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
         MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
         MENUITEM SEPARATOR
+        MENUITEM "&Import DICOM...",            ID_FILE_IMPORT_DCM
+        MENUITEM SEPARATOR
         MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
         MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
         MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
@@ -134,11 +138,22 @@ BEGIN
         MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
         MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
         MENUITEM SEPARATOR
+    END
+    POPUP "&Plan"
+    BEGIN
+        MENUITEM "Generate Beamlets",           ID_GENBEAMLETS
+        MENUITEM "Add Prescription",            ID_PLAN_ADD_PRESC
         MENUITEM "Optimize",                    ID_OPTIMIZE
     END
     POPUP "&View"
     BEGIN
-        MENUITEM "Scan Beamlets",               ID_SCANBEAMLETS
+        POPUP "Scan Beamlets"
+        BEGIN
+            MENUITEM "G0",                          ID_SCANBEAMLETS_G0
+            MENUITEM "G1",                          ID_SCANBEAMLETS_G1
+            MENUITEM "G2",                          ID_SCANBEAMLETS_G2
+        END
+        MENUITEM SEPARATOR
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
     END
@@ -190,31 +205,56 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
 END
 
-IDD_PRESCDLG DIALOG DISCARDABLE  0, 0, 102, 300
+IDD_PRESCDLG DIALOG DISCARDABLE  0, 0, 132, 364
 STYLE WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_STRUCTSELECT,14,20,75,102,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_STRUCTSELECT,14,20,100,102,CBS_DROPDOWNLIST | 
                     CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Slider1",IDC_STRUCTWEIGHT,"msctls_trackbar32",
-                    TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,13,53,74,17
-    GROUPBOX        "Structure",IDC_STATIC,7,7,88,74
-    GROUPBOX        "Param",IDC_STATIC,59,88,36,169
+                    TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,13,82,102,17
+    GROUPBOX        "Structure",IDC_STATIC,7,7,118,105
+    GROUPBOX        "Param",IDC_STATIC,30,119,36,238
     CONTROL         "Slider1",IDC_OPTPARAM,"msctls_trackbar32",TBS_AUTOTICKS | 
-                    TBS_VERT | TBS_TOP | WS_TABSTOP,67,99,20,148
-    LTEXT           "Weight:",IDC_STATIC,17,38,68,9
-    CONTROL         134,IDC_LEGEND,"Static",SS_BITMAP | SS_CENTERIMAGE | 
-                    SS_REALSIZEIMAGE | SS_SUNKEN,7,94,17,193
-    LTEXT           "- 70",IDC_STATIC,31,92,13,11
-    LTEXT           "- 65",IDC_STATIC,31,113,13,11
-    LTEXT           "- 60",IDC_STATIC,31,134,13,11
-    LTEXT           "- 55",IDC_STATIC,31,155,13,11
-    LTEXT           "- 50",IDC_STATIC,31,176,13,11
-    LTEXT           "- 45",IDC_STATIC,31,197,13,11
-    LTEXT           "- 40",IDC_STATIC,31,218,13,11
-    LTEXT           "- 35",IDC_STATIC,31,239,13,11
-    LTEXT           "- 30",IDC_STATIC,31,260,13,11
-    LTEXT           "- 25",IDC_STATIC,31,281,13,8
+                    TBS_VERT | TBS_TOP | WS_TABSTOP,37,137,20,210
+    LTEXT           "Weight:",IDC_STATIC,17,67,68,9
+    CONTROL         "Visible",IDC_STRUCT_VISIBLE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,22,38,84,15
+END
+
+IDD_PLANSETUPDLG DIALOG DISCARDABLE  0, 0, 186, 122
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Plan Setup"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,34,101,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,109,101,50,14
+    LTEXT           "Number of Beams",IDC_STATIC,7,15,72,18
+    EDITTEXT        IDC_EDIT_BEAMCOUNT,92,15,87,13,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    LTEXT           "Isocenter Offset (cm)",IDC_STATIC,7,43,72,18
+    EDITTEXT        IDC_EDIT_ISO_OFS_X,92,42,87,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_ISO_OFS_Y,92,59,87,13,ES_AUTOHSCROLL
+END
+
+IDD_ADDPRESC DIALOG DISCARDABLE  0, 0, 192, 121
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add Prescription"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,33,100,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,110,100,50,14
+    COMBOBOX        IDC_STRUCTCOMBO,63,7,99,89,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Structure",IDC_STATIC,13,7,42,16
+    LTEXT           "Point 1",IDC_STATIC,7,41,49,16
+    LTEXT           "Point 2",IDC_STATIC,7,63,48,16
+    EDITTEXT        IDC_VOLUME1_EDIT,61,38,51,17,ES_AUTOHSCROLL
+    EDITTEXT        IDC_DOSE1_EDIT,125,38,51,17,ES_AUTOHSCROLL
+    LTEXT           "Volume",IDC_STATIC,66,24,49,9
+    LTEXT           "Dose",IDC_STATIC,125,25,49,11
+    LTEXT           "0.0",IDC_STATIC,63,63,48,10
+    EDITTEXT        IDC_DOSE2_EDIT,126,58,51,17,ES_AUTOHSCROLL
 END
 
 
@@ -280,9 +320,25 @@ BEGIN
     IDD_PRESCDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 95
+        RIGHTMARGIN, 125
         TOPMARGIN, 7
-        BOTTOMMARGIN, 293
+        BOTTOMMARGIN, 357
+    END
+
+    IDD_PLANSETUPDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
+
+    IDD_ADDPRESC, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 185
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 114
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -437,6 +493,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     ID_SCANBEAMLETS         "Scans beamlets"
+    IDM_IMPORT_DCM          "Import DICOM image && sset files"
 END
 
 #endif    // English (U.S.) resources

@@ -43,6 +43,7 @@ protected:
 	//{{AFX_MSG(CPrescriptionToolbar)
 	afx_msg void OnSelchangeStructselectcombo();
 	afx_msg void OnDropdownStructselectcombo();
+	afx_msg void OnVisibleCheck();
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 		// NOTE - the ClassWizard will add and remove member functions here.

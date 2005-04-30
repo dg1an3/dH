@@ -30,6 +30,7 @@ BEGIN_MESSAGE_MAP(CPrescriptionToolbar, CDialogBar)
 	//{{AFX_MSG_MAP(CDialogBar)
 	ON_CBN_SELCHANGE(IDC_STRUCTSELECT, OnSelchangeStructselectcombo)
 	ON_CBN_DROPDOWN(IDC_STRUCTSELECT, OnDropdownStructselectcombo)
+	ON_BN_CLICKED(IDC_STRUCT_VISIBLE, OnVisibleCheck)
 	ON_WM_HSCROLL()
 	ON_WM_VSCROLL()
 	//}}AFX_MSG_MAP
@@ -49,10 +50,21 @@ void CPrescriptionToolbar::OnSelchangeStructselectcombo()
 
 	CStructure *pStruct = (CStructure *) pSSelectCB->GetItemDataPtr(
 		pSSelectCB->GetCurSel());
-	CVOITerm *pVOIT = m_pDoc->m_pOptThread->m_pPrescParam->GetStructureTerm(pStruct);
 
-	CSliderCtrl *pSWSlider = (CSliderCtrl *) GetDlgItem(IDC_STRUCTWEIGHT);
-	pSWSlider->SetPos(pVOIT->GetWeight() * 20.0);
+	if (m_pDoc->m_pOptThread->m_pPrescParam)
+	{
+		CVOITerm *pVOIT = m_pDoc->m_pOptThread->m_pPrescParam->GetStructureTerm(pStruct);
+
+		if (pVOIT != NULL)
+		{
+			CSliderCtrl *pSWSlider = (CSliderCtrl *) GetDlgItem(IDC_STRUCTWEIGHT);
+			pSWSlider->SetPos(pVOIT->GetWeight() * 20.0);
+		}
+	}
+
+	// set visibility check
+	CButton *pVizCheck = (CButton*) GetDlgItem(IDC_STRUCT_VISIBLE);
+	pVizCheck->SetCheck(pStruct->m_bVisible ? 1 : 0);
 }
 
 void CPrescriptionToolbar::OnDropdownStructselectcombo() 
@@ -80,7 +92,7 @@ void CPrescriptionToolbar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 	{
 		CStructure *pStruct = (CStructure *) pSSelectCB->GetItemDataPtr(nIndex);
 
-		m_pDoc->m_pOptThread->m_csPrescParam.Lock();
+		// m_pDoc->m_pOptThread->m_csPrescParam.Lock();
 		// get term
 		CVOITerm *pVOIT = m_pDoc->m_pOptThread->m_pPrescParam->GetStructureTerm(pStruct);
 
@@ -89,19 +101,40 @@ void CPrescriptionToolbar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 		pVOIT->m_weight = (REAL) nPos / 20.0;
 		TRACE("SW Slider %i\n", nPos);
 
-		m_pDoc->m_pOptThread->m_evtParamChanged = TRUE;
-		m_pDoc->m_pOptThread->m_csPrescParam.Unlock();
+		m_pDoc->m_pOptThread->m_pPresc->UpdateTerms(
+			m_pDoc->m_pOptThread->m_pPrescParam);
+
+		// call optimize
+		CVectorN<> vInit;
+		m_pDoc->m_pOptThread->m_pPresc->GetInitStateVector(vInit);
+		if (m_pDoc->m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
+		{
+			// m_pDoc->m_pOptThread->m_vResult.SetDim(vInit.GetDim());
+			// m_pDoc->m_pOptThread->m_vResult = vInit;
+			// for (int nAt = 0; nAt < vInit.GetDim(); nAt++)
+			{
+				// vInit[nAt] = 
+				//	Sigmoid(vInit[nAt], m_pDoc->m_pOptThread->m_pPresc->m_inputScale);
+			}
+
+			m_pDoc->m_pOptThread->m_pPresc->SetStateVectorToPlan(vInit);
+//			m_pDoc->m_pOptThread->m_pPresc->UpdateTerms(
+//				m_pDoc->m_pOptThread->m_pPrescParam);
+		}
+
+		// m_pDoc->m_pOptThread->m_evtParamChanged = TRUE;
+		// m_pDoc->m_pOptThread->m_csPrescParam.Unlock();
 
 		// m_pDoc->m_pOptThread->Immediate();
-		m_pDoc->m_pOptThread->ResumeThread();
+		// m_pDoc->m_pOptThread->ResumeThread();
 
-		do
+/*		do
 		{
 			Sleep(0);	
 
-		} while (!m_pDoc->m_pOptThread->m_evtNewResult);
+		} while (!m_pDoc->m_pOptThread->m_evtNewResult); */
 
-		m_pDoc->UpdateFromOptimizer();
+//		m_pDoc->UpdateFromOptimizer();
 		POSITION pos = m_pDoc->GetFirstViewPosition();
 		while (pos != NULL)
 		{
@@ -122,24 +155,37 @@ void CPrescriptionToolbar::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 	nPos = pPRSlider->GetPos();
 
 	TRACE("PR Slider %i\n", nPos);
-	REAL weight = (REAL) nPos / 20.0;
+	REAL weight = (REAL) nPos / 10.0;
 
-	m_pDoc->m_pOptThread->m_csPrescParam.Lock();
+//	m_pDoc->m_pOptThread->m_csPrescParam.Lock();
 
 	m_pDoc->m_pOptThread->m_pPrescParam->SetEntropyWeight(weight);
-	m_pDoc->m_pOptThread->m_evtParamChanged = TRUE;
-	m_pDoc->m_pOptThread->m_csPrescParam.Unlock();
+//	m_pDoc->m_pOptThread->m_evtParamChanged = TRUE;
+//	m_pDoc->m_pOptThread->m_csPrescParam.Unlock();
 
 	// m_pDoc->m_pOptThread->Immediate();
-	m_pDoc->m_pOptThread->ResumeThread();
+	// m_pDoc->m_pOptThread->ResumeThread();
 
-	do
+/*	do
 	{
 		Sleep(0);	
 
 	} while (!m_pDoc->m_pOptThread->m_evtNewResult);
 
-	m_pDoc->UpdateFromOptimizer();
+	m_pDoc->UpdateFromOptimizer(); */
+
+	m_pDoc->m_pOptThread->m_pPresc->UpdateTerms(
+		m_pDoc->m_pOptThread->m_pPrescParam);
+
+	// call optimize
+	CVectorN<> vInit;
+	m_pDoc->m_pOptThread->m_pPresc->GetInitStateVector(vInit);
+	if (m_pDoc->m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
+	{
+			m_pDoc->m_pOptThread->m_pPresc->SetStateVectorToPlan(vInit);
+	}
+
+
 	POSITION pos = m_pDoc->GetFirstViewPosition();
 	while (pos != NULL)
 	{
@@ -166,4 +212,19 @@ void CPrescriptionToolbar::SetDocument(CBrimstoneDoc *pDoc)
 		CStructure *pStruct = pSeries->GetStructureAt(nStruct);
 		pSSelectCB->AddString(pStruct->GetName());
 	}  */
+}
+
+
+void CPrescriptionToolbar::OnVisibleCheck() 
+{
+	CComboBox *pSSelectCB = (CComboBox *) GetDlgItem(IDC_STRUCTSELECT);
+	int nIndex = pSSelectCB->GetCurSel();
+	if (nIndex != CB_ERR)
+	{
+		CStructure *pStruct = (CStructure *) pSSelectCB->GetItemDataPtr(nIndex);
+
+		CButton *pVizCheck = (CButton*) GetDlgItem(IDC_STRUCT_VISIBLE);
+
+		pStruct->m_bVisible = pVizCheck->GetCheck() == 1;
+	}
 }
