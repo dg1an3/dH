@@ -5,7 +5,7 @@
 
 #include <UtilMacros.h>
 
-#include <MatrixBase.inl>
+//#include <MatrixBase.inl>
 
 #include <Plan.h>
 #include <EnergyDepKernel.h>
@@ -27,8 +27,7 @@ CPlan::CPlan()
 		m_bRecomputeTotalDose(TRUE),
 		m_bCalcMassDensity(TRUE)
 {
-	m_pKernel = new CEnergyDepKernel();
-	m_pKernel->InitDoseSpread(6.0);
+	m_pKernel = new CEnergyDepKernel(15.0);
 
 }	// CPlan::CPlan
 
@@ -187,11 +186,13 @@ CVolume<REAL> *CPlan::GetDoseMatrix()
 				static CVolume<REAL> beamDoseRot;
 				beamDoseRot.ConformTo(&m_dose);
 
-				Resample(GetBeamAt(nAt)->GetDoseMatrix(), &beamDoseRot);
+				Resample(GetBeamAt(nAt)->GetDoseMatrix(), &beamDoseRot, TRUE);
 
 				// add this beam's dose matrix to the total
 				m_dose.Accumulate(&beamDoseRot, GetBeamAt(nAt)->GetWeight());
 			}
+
+			m_dose.VoxelsChanged();
 		}
 
 #ifdef NORMALIZE_DOSE
@@ -230,6 +231,8 @@ CHistogram *CPlan::GetHistogram(CStructure *pStructure)
 	if (!m_mapHistograms.Lookup((void *) pStructure, (void*&) pHisto))
 	{
 		pHisto = new CHistogram();
+		const REAL GBINS_BUFFER = 2.0;
+		pHisto->SetBinning((REAL) 0.0, (REAL) 0.02, GBINS_BUFFER);
 		pHisto->SetVolume(GetDoseMatrix());
 
 		// resample region, if needed

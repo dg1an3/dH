@@ -8,6 +8,8 @@
 
 #include <ConjGradOptimizer.h>
 
+#include <iostream>
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -31,7 +33,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		m_pOptimizer(NULL),
 		m_pNextLevel(NULL),
 		m_totalEntropyWeight((REAL) 0.05),
-		m_intensityMapSumWeight((REAL) 0.10),
+		m_intensityMapSumWeight((REAL) 0.30),
 		m_inputScale((REAL) 0.5)
 {
 	m_pOptimizer = new CConjGradOptimizer(this);
@@ -438,7 +440,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
 		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
 
-		pBeamlet->SetThreshold((REAL) 0.01); // pow(10, -(m_nLevel+1)));
+		pBeamlet->SetThreshold((REAL) 0.005); // pow(10, -(m_nLevel+1)));
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
 
