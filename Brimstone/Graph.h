@@ -14,6 +14,8 @@
 
 #include <Histogram.h>
 
+#include <Dib.h>
+
 // Graph.h : header file
 //
 
@@ -115,6 +117,11 @@ public:
 	void AddDataSeries(CDataSeries *pSeries);
 	void RemoveAllDataSeries();
 
+	// void SetLegendLUT(CArray<COLORREF, COLORREF>& arrLUT, REAL win, REAL lev);
+	CArray<COLORREF, COLORREF> m_arrLegendLUT;
+	REAL m_window;
+	REAL m_level;
+
 private:
 	// the array of data series
 	CObArray m_arrDataSeries;
@@ -123,11 +130,14 @@ private:
 	CVectorD<2> m_vMax;
 	CVectorD<2> m_vMin;
 	CVectorD<2> m_vMajor;
+	CVectorD<2> m_vMinor;
 
 	CDataSeries *m_pDragSeries;
 	int m_nDragPoint;
 	CSize m_ptDragOffset;
 	BOOL m_bDragging;
+
+	CDib m_dib;
 
 	// Generated message map functions
 protected:
