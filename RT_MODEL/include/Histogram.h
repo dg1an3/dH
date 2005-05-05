@@ -39,7 +39,7 @@ public:
 	// association to a congruent volume describing the region over
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
-	CVolume<REAL> *GetRegion();
+	CVolume<REAL> *GetRegion() const;
 	void SetRegion(CVolume<REAL> *pVolume);
 
 	// histogram parameters
@@ -82,9 +82,18 @@ public:
 	void Conv_dGauss(const CVectorN<>& buffer_in, 
 							CVectorN<>& buffer_out) const;
 
+	BOOL IsContributing(int nElement);
+
 protected:
 	// change handler for when the volume or region changes
 	void OnVolumeChange(CObservableEvent *pSource, void *);
+
+	// helpers
+	const CVolume<short> * GetBinVolume(int nAt) const;
+
+	// TODO: make const <need to change signature on Resample>
+	CVolume<REAL> * GetBinScaledVolume() const;
+	const CVolume<REAL> * Get_dVolume_x_Region(int nAt) const;
 
 private:
 	// association to the volume over which the histogram is formed
@@ -102,7 +111,7 @@ private:
 
 	// bin volume
 	mutable CTypedPtrArray<CObArray, CVolume<short> *> m_arrBinVolume;
-	mutable CArray<BOOL, BOOL> m_arrRecomputeBinVolume;
+	mutable CArray<BOOL, BOOL> m_arr_bRecomputeBinVolume;
 
 	// histogram bins
 	mutable CVectorN<> m_arrBins;
