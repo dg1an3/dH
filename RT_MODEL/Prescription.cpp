@@ -33,7 +33,7 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		m_pOptimizer(NULL),
 		m_pNextLevel(NULL),
 		m_totalEntropyWeight((REAL) 0.05),
-		m_intensityMapSumWeight((REAL) 0.30),
+		m_intensityMapSumWeight((REAL) 0.10),
 		m_inputScale((REAL) 0.5)
 {
 	m_pOptimizer = new CConjGradOptimizer(this);
@@ -69,6 +69,8 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 ///////////////////////////////////////////////////////////////////////////////
 CPrescription::~CPrescription()
 {
+	delete m_pNextLevel;
+
 	CStructure *pStruct = NULL;
 	CVOITerm *pVOIT = NULL;
 	POSITION pos = m_mapVOITs.GetStartPosition();
@@ -255,7 +257,7 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 			vPartGrad.SetDim(vInput.GetDim());
 			vPartGrad.SetZero();
 
-			totalSum += pVOIT->Eval(&vPartGrad);
+			totalSum += pVOIT->Eval(&vPartGrad, m_arrIncludeElement);
 
 			// apply the chain rule for the sigmoid
 			for (int nAt = 0; nAt < vPartGrad.GetDim(); nAt++)
@@ -267,7 +269,7 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 		}
 		else
 		{
-			totalSum += pVOIT->Eval();
+			totalSum += pVOIT->Eval(NULL, m_arrIncludeElement);
 		}
 	}
 
@@ -404,6 +406,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 	// TODO: fix this memory leak
 	CVolume<REAL> *pResampRegion = new CVolume<REAL>(); // pVOIT->GetVOI()->GetRegion(m_nLevel);
 	pResampRegion->ConformTo(&m_sumVolume);
+	pResampRegion->ClearVoxels();
 
 	int nLevel = -1;
 	CVectorD<3> vSumPixelSpacing = m_sumVolume.GetPixelSpacing();
@@ -680,5 +683,66 @@ void CPrescription::UpdateTerms(CPrescription *pPresc)
 		{
 			(*pMyVOIT) = (*pVOIT);
 		}
+	}
+}
+
+void CPrescription::SetElementInclude()
+{
+	// iterate over terms to find target term
+	POSITION pos = m_mapVOITs.GetStartPosition();
+	while (pos != NULL)
+	{
+		CStructure *pStruct = NULL;
+		CVOITerm *pVOIT = NULL;
+		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+
+		// check type
+		CKLDivTerm *pKLDivTerm = (CKLDivTerm *) pVOIT;
+
+		CHistogram *pHisto = pKLDivTerm->GetHistogram();
+
+		if (m_arrIncludeElement.GetSize() < pHisto->Get_dVolumeCount())
+		{
+			m_arrIncludeElement.SetSize(pHisto->Get_dVolumeCount());
+
+			for (int nAt = 0; nAt < m_arrIncludeElement.GetSize(); nAt++)
+			{
+				m_arrIncludeElement[nAt] = FALSE;
+			}
+		}
+
+		const CVectorN<>& vBins = pKLDivTerm->GetTargetBins();
+		// const CVectorN<>& vBinMeans = pHisto->GetBinMeans();
+
+		REAL binMean = pHisto->GetBinMinValue();
+		REAL expect = 0.0;
+		REAL sum = 0.0;
+		for (int nAt = 0; nAt < vBins.GetDim(); nAt++)
+		{
+			expect += binMean * vBins[nAt];
+			sum += vBins[nAt];
+			binMean += pHisto->GetBinWidth();
+		}
+
+		// calculate expectation
+		REAL targetMean = expect / sum;
+
+		// check if its a target
+		if (targetMean > 0.30)
+		{
+			// iterate over beamlets, seeing which are included in target term
+			for (int nAt = 0; nAt < pHisto->Get_dVolumeCount(); nAt++)
+			{
+				// TODO: fix this for multiple targets
+				m_arrIncludeElement[nAt] = 
+					m_arrIncludeElement[nAt]
+						|| pHisto->IsContributing(nAt);
+			}
+		}
+	}
+
+	if (m_pNextLevel)
+	{
+		m_pNextLevel->SetElementInclude();
 	}
 }

@@ -38,7 +38,7 @@ public:
 	CHistogram *GetHistogram() { return &m_histogram; }
 	const CHistogram *GetHistogram() const { return &m_histogram; }
 
-	virtual REAL Eval(CVectorN<> *pvGrad = NULL) { return 0; }
+	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude) { return 0; }
 
 protected:
 	friend class CPrescription;

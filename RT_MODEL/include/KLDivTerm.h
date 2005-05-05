@@ -34,7 +34,7 @@ public:
 	void SetRamp(REAL low, REAL low_frac,
 			REAL high, REAL high_frac);
 
-	virtual REAL Eval(CVectorN<> *pvGrad = NULL);
+	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude);
 
 protected:
 	friend class CPrescription;

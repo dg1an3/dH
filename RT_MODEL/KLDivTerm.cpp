@@ -92,7 +92,7 @@ void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction)
 		for (nAtBin = 0; nAtBin < targetBins.GetDim(); nAtBin++)
 		{
 			// re-normalize bins
-			targetBins[nAtBin] *= fraction * totalVolume / sum;
+			targetBins[nAtBin] *= 1.0 /* fraction * totalVolume */ / sum;
 		}
 	}
 
@@ -187,7 +187,7 @@ const CVectorN<>& CKLDivTerm::GetTargetGBins() const
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
+REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 {
 	REAL sum = 0.0;
 
@@ -198,114 +198,77 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad)
 	LOG_EXPR_EXT(calcGPDF);
 
 	// get the target bins
-	CVectorN<>& targetGPDF = const_cast< CVectorN<>& >(GetTargetGBins());
+	const CVectorN<>& targetGPDF = GetTargetGBins();
 	LOG_EXPR_EXT(targetGPDF);
 
 	const long n_dVolCount = GetHistogram()->Get_dVolumeCount();
-	// std::vector< CVectorN<> > arrCalc_dGPDF = &GetHistogram()->Get_dGBins(0);
-	
+
+	// form the sum of the sq. difference for target - calc
+	const REAL EPS = (REAL) 1e-8;
+	ASSERT(calcGPDF.GetDim() <= targetGPDF.GetDim());
+	for (int nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
+	{
+
+#define CROSS_ENTROPY
+#ifdef CROSS_ENTROPY
+		ASSERT(calcGPDF[nAtBin] >= 0.0);
+		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] + EPS);	
+
+		ASSERT(targetGPDF[nAtBin] >= 0.0);
+		sum -= calcGPDF[nAtBin] * log(targetGPDF[nAtBin] + EPS);
+		ASSERT(_finite(sum));
+#endif
+
+	}
+
 	// if a gradient is needed
 	if (pvGrad)
 	{
 		pvGrad->SetDim(n_dVolCount);
 		pvGrad->SetZero();
 
+		// iterate over the dVolumes
 		for (int nAt_dVol = 0; nAt_dVol < n_dVolCount; nAt_dVol++)
 		{
-			GetHistogram()->Get_dGBins(nAt_dVol);
-			// arrCalc_dGPDF.push_back(GetHistogram()->Get_dGBins(nAt_dVol));
-			// LOG_EXPR_EXT_DESC(arrCalc_dGPDF.back(), FMT("arrCalc_dGPDF %i", nAt_dVol));
-		}
-	} 
-	CVectorN<> *arrCalc_dGPDF = &const_cast<CVectorN<>&>(GetHistogram()->Get_dGBins(0));
-
-	// must normalize both distributions
-	REAL calcSum = 0.0; 
-	REAL targetSum = 0.0;
-	for (int nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
-	{
-		// form sum of bins values
-		calcSum += calcGPDF[nAtBin];
-		targetSum += targetGPDF[nAtBin];
-	}
-	LOG_EXPR(calcSum);
-	LOG_EXPR(targetSum);
-
-	// form the sum of the sq. difference for target - calc
-	const REAL EPS = (REAL) 1e-8;
-	for (nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
-	{
-		if (calcSum > 0.0)
-			// normalize samples
-			calcGPDF[nAtBin] /= calcSum;
-
-		if (targetSum > 0.0)
-			targetGPDF[nAtBin] /= targetSum;
-
-#define CROSS_ENTROPY
-#ifdef CROSS_ENTROPY
-		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] + EPS);	
-		sum -= calcGPDF[nAtBin] * log(targetGPDF[nAtBin] + EPS);
-#else
-		// form sum of relative entropy termA
-		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin]
-			/ (targetGPDF[nAtBin] + EPS) + EPS);
-#endif
-
-
-#ifdef SWAP
-		sum += targetGPDF[nAtBin] * log(targetGPDF[nAtBin]
-			/ (calcGPDF[nAtBin] + EPS) + EPS);
-#endif
-		// if a gradient is needed
-		if (pvGrad)
-		{
-			// iterate over the dVolumes
-			for (int nAt_dVol = 0; nAt_dVol < n_dVolCount; nAt_dVol++)
+			if (!arrInclude[nAt_dVol])
 			{
-				// normalize this bin
-				arrCalc_dGPDF[nAt_dVol][nAtBin] /= calcSum;
-
-#ifdef CROSS_ENTROPY
-				(*pvGrad)[nAt_dVol] += m_weight 
-					* (log(calcGPDF[nAtBin] + EPS) 
-							+ calcGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS))
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 
-				(*pvGrad)[nAt_dVol] -= m_weight 
-					* log(targetGPDF[nAtBin] + EPS)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 
-#else
-				// add to the proper gradient element
-				(*pvGrad)[nAt_dVol] += m_weight
-					* (log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS) + 1.0)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]; 			
-						// * d_vInput[nAt_dVol];
-						// * dSigmoid(vInput[nAt_dVol]);
-						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
-#endif
-
-#ifdef SWAP		
-				(*pvGrad)[nAt_dVol] += 
-					- targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]
-						* dSigmoid(vInput[nAt_dVol]);
-						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
-#endif
-#ifdef _FULL_DERIV
-					- (targetGPDF[nAtBin] * targetGPDF[nAtBin]) 
-						/ ((calcGPDF[nAtBin] + EPS) * (calcGPDF[nAtBin] + EPS))
-					/ (targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS) + EPS)
-						* arrCalc_dGPDF[nAt_dVol][nAtBin]
-						* dSigmoid(vInput[nAt_dVol]);
-						// * m_inputScale * exp(m_inputScale * vInput[nAt_dVol]);
-#endif
-
+				continue;
 			}
+
+			// get the dGPDF distribution
+			const CVectorN<>& arrCalc_dGPDF = GetHistogram()->Get_dGBins(nAt_dVol);
+
+			for (nAtBin = 0; nAtBin < __max(calcGPDF.GetDim(), targetGPDF.GetDim()); nAtBin++)
+			{
+				if (nAtBin < calcGPDF.GetDim())
+				{
+#ifdef CROSS_ENTROPY
+					(*pvGrad)[nAt_dVol] += m_weight 
+						* (log(calcGPDF[nAtBin] + EPS) 
+								+ calcGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS))
+							* arrCalc_dGPDF[nAtBin]; 
+
+					if (nAtBin < targetGPDF.GetDim())
+					{
+						ASSERT(nAtBin < arrCalc_dGPDF.GetDim());
+						(*pvGrad)[nAt_dVol] -= m_weight 
+							* log(targetGPDF[nAtBin] + EPS)
+								* arrCalc_dGPDF[nAtBin]; 
+					}
+					else
+					{
+						(*pvGrad)[nAt_dVol] -= m_weight 
+							* log(EPS) * arrCalc_dGPDF[nAtBin];
+					}
+#endif
+				}
+			}
+
+			(*pvGrad)[nAt_dVol] /= (REAL) calcGPDF.GetDim();
 		}
 	}
 
 	sum /= (REAL) calcGPDF.GetDim();
-	ASSERT(_finite(sum));
 
 	LOG_EXPR(sum);
 	END_LOG_SECTION();	// CHistogramMatcher::Eval_RelativeEntropy

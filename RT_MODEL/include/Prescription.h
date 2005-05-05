@@ -88,6 +88,10 @@ protected:
 
 public:
 	CPlan *m_pPlan;
+
+	// array of flags for element inclusion
+	CArray<BOOL, BOOL> m_arrIncludeElement;
+
 private:
 	COptimizer * m_pOptimizer;
 	CPrescription *m_pNextLevel;
@@ -104,6 +108,7 @@ private:
 	REAL m_intensityMapSumWeight;
 
 public:
+	void SetElementInclude();
 	// scales input prior to exponentiation
 	REAL m_inputScale;
 
