@@ -35,7 +35,8 @@ CVOITerm::CVOITerm(CStructure *pStructure, REAL weight)
 ///////////////////////////////////////////////////////////////////////////////
 CVOITerm::~CVOITerm()
 {
-	delete m_pNextScale;
+	// The associated Prescription will take care of this
+	// delete m_pNextScale;
 
 }	// CVOITerm::~CVOITerm
 
