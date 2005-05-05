@@ -22,7 +22,15 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
+COptThread::~COptThread() 
+{ 
+	delete m_pPresc;
+	delete m_pPrescParam;
+}
+
+
 IMPLEMENT_DYNCREATE(COptThread, CWinThread);
+
 
 BOOL ExtCallback(REAL lambda, const CVectorN<>& vDir, 
 							 void *pParam)
@@ -210,10 +218,12 @@ void CBrimstoneDoc::Serialize(CArchive& ar)
 		{
 			if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CSeries)))
 			{
+				delete m_pSeries;
 				m_pSeries = (CSeries *) arrWorkspace[nAt];
 			}
 			else if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CPlan)))
 			{
+				delete m_pPlan;
 				m_pPlan = (CPlan *) arrWorkspace[nAt];
 			}
 		}
@@ -450,13 +460,16 @@ BOOL CBrimstoneDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		return FALSE;
 	
 	m_pOptThread->m_pPrescParam = new CPrescription(m_pPlan, 0);
+	m_pOptThread->m_pPrescParam->SetElementInclude();
 //	InitVolumes(m_pSeries, m_pPlan, m_pOptThread->m_pPrescParam);
 
 	m_pOptThread->m_pPresc = new CPrescription(m_pPlan, 0);
+	m_pOptThread->m_pPresc->SetElementInclude();
 //	InitVolumes(m_pSeries, m_pPlan, m_pOptThread->m_pPresc);
 //	m_pOptThread->m_pPresc->UpdateTerms(m_pOptThread->m_pPrescParam);
 
 //	m_pOptThread->ResumeThread();
+
 
 	return TRUE;
 }
@@ -623,6 +636,9 @@ void CBrimstoneDoc::OnPlanAddPresc()
 
 	if (dlg.DoModal())
 	{
+		m_pOptThread->m_pPresc->SetElementInclude();
+		m_pOptThread->m_pPrescParam->SetElementInclude();
+
 		UpdateAllViews(NULL, IDD_ADDPRESC, dlg.m_pStruct);
 	}
 }
