@@ -509,16 +509,20 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 template<class VOXEL_TYPE>
 inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetSum()
 {
-	VOXEL_TYPE sum = (VOXEL_TYPE) 0;
-	VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
-
-	int nCount = GetVoxelCount();
-	for (int nAt = 0; nAt < nCount; nAt++)
+	if (m_bRecomputeSum)
 	{
-		sum += pVoxels[nAt];
+		m_sum = (VOXEL_TYPE) 0;
+		VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
+
+		int nCount = GetVoxelCount();
+		for (int nAt = 0; nAt < nCount; nAt++)
+		{
+			m_sum += pVoxels[nAt];
+		}
+		m_bRecomputeSum = FALSE;
 	}
 
-	return sum;
+	return m_sum;
 
 }	// CVolume<VOXEL_TYPE>::GetSum
 
