@@ -25,6 +25,8 @@ public:
 	{ 
 	}
 
+	virtual ~COptThread();
+
 	DECLARE_DYNCREATE(COptThread);
 
 	virtual BOOL InitInstance() { return TRUE; }

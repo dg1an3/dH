@@ -91,9 +91,13 @@ CBeam::~CBeam()
 		delete m_arrBlocks[nAt];
 	}
 
-	for (nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
+	int nLevels = MAX_SCALES;
+	for (int nAtLevel = 0; nAtLevel < nLevels; nAtLevel++)
 	{
-		delete m_arrBeamlets[0][nAt];
+		for (nAt = 0; nAt < m_arrBeamlets[nAtLevel].GetSize(); nAt++)
+		{
+			delete m_arrBeamlets[nAtLevel][nAt];
+		}
 	}
 
 }	// CBeam::~CBeam

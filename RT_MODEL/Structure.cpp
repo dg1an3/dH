@@ -51,7 +51,12 @@ CStructure::~CStructure()
 {
 	delete m_pMesh;
 
-	for (int nAt = 0; nAt < m_arrRegions.GetSize(); nAt++)
+	for (int nAt = 0; nAt < m_arrContours.GetSize(); nAt++)
+	{
+		delete m_arrContours[nAt];
+	}
+
+	for (nAt = 0; nAt < m_arrRegions.GetSize(); nAt++)
 	{
 		delete m_arrRegions[nAt];
 	}
