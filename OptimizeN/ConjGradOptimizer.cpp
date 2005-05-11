@@ -110,7 +110,10 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		LOG_EXPR(lambda);
 
 		// update the final parameter value
-		m_vFinalParam += lambda * m_lineFunction.GetDirection();
+		m_vLambdaScaled.SetDim(m_lineFunction.GetDirection().GetDim());
+		m_vLambdaScaled = m_lineFunction.GetDirection();
+		m_vLambdaScaled *= lambda;
+		m_vFinalParam += m_vLambdaScaled;
 		LOG_EXPR_EXT(m_vFinalParam);
 
 		// store the final value from the line optimizer

@@ -57,6 +57,8 @@ private:
 	CVectorN<> m_vDir;
 	CVectorN<> m_vDirPrev;
 
+	CVectorN<> m_vLambdaScaled;
+
 };	// class CConjGradOptimizer
 
 
