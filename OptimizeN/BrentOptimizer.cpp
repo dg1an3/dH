@@ -68,7 +68,7 @@ CBrentOptimizer::CBrentOptimizer(CObjectiveFunction *pFunc)
 		m_vX(1), 
 		m_vU(1),
 		m_vGrad(1),
-		m_Bracket(10.0),
+		m_Bracket(1.0),
 		m_GLimit(100.0)		
 {
 	// make sure the brent optimizer's starting value is correct
