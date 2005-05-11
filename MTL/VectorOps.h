@@ -23,10 +23,25 @@ void FreeValues(TYPE*& pValues)
 
 #ifdef USE_IPP
 
+template<> __forceinline			
+void AllocValues(int nCount, float *& pValues)
+{											
+//	TRACE("Allocating %i values of type %s\n", nCount, "32f");
+	pValues = ippsMalloc_32f(nCount);	
+}											
+
+template<> __forceinline					
+void FreeValues(float *& pValues)				
+{											
+	ippsFree(pValues);						
+	pValues = NULL;							
+}
+
 #define DECLARE_ALLOC_FREE(TYPE, TYPE_IPP) \
 	template<> __forceinline					\
 	void AllocValues(int nCount, TYPE*& pValues) \
 	{											\
+		TRACE("Allocating %i values of type %s\n", nCount, #TYPE_IPP);	\
 		pValues = ippsMalloc_##TYPE_IPP(nCount);	\
 	}											\
 	template<> __forceinline					\
@@ -41,7 +56,7 @@ DECLARE_ALLOC_FREE(USHORT, 16u);
 DECLARE_ALLOC_FREE(SHORT, 16s);
 DECLARE_ALLOC_FREE(UINT, 32u);
 DECLARE_ALLOC_FREE(int, 32s);
-DECLARE_ALLOC_FREE(float, 32f);
+/// DECLARE_ALLOC_FREE(float, 32f);
 DECLARE_ALLOC_FREE(double, 64f);
 
 #endif
