@@ -121,6 +121,7 @@ private:
 	mutable BOOL m_bRecomputeBins;
 
 #if defined(USE_IPP)
+	mutable CVolume<REAL> m_volRotate;
 	mutable CVolume<REAL> *m_pVolume_BinScaled;
 
 	mutable BOOL m_bRecomputeBinScaledVolume;

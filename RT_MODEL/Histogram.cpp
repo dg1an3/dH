@@ -494,7 +494,8 @@ CVectorN<>& CHistogram::GetBins()
 
 		// now set up the bins
 		REAL maxValue = m_pVolume->GetMax();
-		m_arrBins.SetDim(GetBinForValue(maxValue)+2);
+		// if (m_arrBins.GetDim() < GetBinForValue(maxValue)+2)
+			m_arrBins.SetDim(GetBinForValue(maxValue)+2);
 		m_arrBins.SetZero();
 
 		// and do the binning
@@ -510,7 +511,7 @@ CVectorN<>& CHistogram::GetBins()
 					ASSERT(IsApproxEqual<REAL>(pppVoxelsFracLow[nAtZ][nAtY][nAtX]
 						- pppVoxelsFrac[nAtZ][nAtY][nAtX],
 						m_pRegion->GetVoxels()[nAtZ][nAtY][nAtX], 
-						1e-3));
+						(REAL) 1e-3));
 
 					ASSERT(m_pRegion->GetVoxels()[nAtZ][nAtY][nAtX] >= 0.0);
 
@@ -526,16 +527,17 @@ CVectorN<>& CHistogram::GetBins()
 
 		if (m_binKernelSigma > 0.0)
 		{			
+			// if (m_arrGBins.GetDim() < GetBinForValue(maxValue + GBINS_BUFFER * m_binKernelSigma) + 1)
 			m_arrGBins.SetDim(GetBinForValue(maxValue + GBINS_BUFFER * m_binKernelSigma) + 1);
 			ConvGauss(m_arrBins, m_arrGBins);
 		}
 
 		// now normalize
 		REAL calcSum = GetRegion()->GetSum();
-		for (int nAtBin = 0; nAtBin < m_arrGBins.GetDim(); nAtBin++)
+		// for (int nAtBin = 0; nAtBin < m_arrGBins.GetDim(); nAtBin++)
 		{
 			// normalize each bin
-			m_arrGBins[nAtBin] /= calcSum;
+			m_arrGBins *= 1.0 /* [nAtBin] */ / calcSum;
 		}
 
 		m_bRecomputeBins = FALSE;
@@ -799,10 +801,10 @@ const CVectorN<>& CHistogram::Get_dBins(int nAt) const
 			// now normalize?
 			REAL calcSum = GetRegion()->GetSum();
 
-			for (int nAtBin = 0; nAtBin < m_arr_dGBins.GetRows(); nAtBin++)
+			// for (int nAtBin = 0; nAtBin < m_arr_dGBins.GetRows(); nAtBin++)
 			{
 				// normalize this bin
-				m_arr_dGBins[nAt][nAtBin] /= calcSum;
+				m_arr_dGBins[nAt] *= 1.0 / calcSum; // [nAtBin] /= calcSum;
 			}
 		}
 
@@ -995,12 +997,11 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 	if (m_arr_bRecomputeBinVolume[nGroup])
 	{
 		// rotate to proper orientation
-		static CVolume<REAL> volRotate;
-		volRotate.ConformTo(Get_dVolume(nAt));
-		volRotate.ClearVoxels();
+		m_volRotate.ConformTo(Get_dVolume(nAt));
+		m_volRotate.ClearVoxels();
 
-		Resample(GetBinScaledVolume(), &volRotate, TRUE);
-		m_arrBinVolume[nGroup]->ConformTo(&volRotate);
+		Resample(GetBinScaledVolume(), &m_volRotate, TRUE);
+		m_arrBinVolume[nGroup]->ConformTo(&m_volRotate);
 		m_arrBinVolume[nGroup]->ClearVoxels();
 
 		CRect rect = m_arrRegionRotate[nGroup]->GetThresholdBounds();
@@ -1013,8 +1014,8 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 
 		// get the main volume voxels
 		IppStatus stat = ippiConvert_32f16s_C1R(
-			&volRotate.GetVoxels()[0][rect.top][rect.left], 
-				volRotate.GetWidth() * sizeof(REAL),
+			&m_volRotate.GetVoxels()[0][rect.top][rect.left], 
+				m_volRotate.GetWidth() * sizeof(REAL),
 			&m_arrBinVolume[nGroup]->GetVoxels()[0][rect.top][rect.left], 
 				m_arrBinVolume[nGroup]->GetWidth() * sizeof(short),
 			roiSize, ippRndNear);
