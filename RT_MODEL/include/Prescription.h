@@ -71,7 +71,8 @@ public:
 
 	BOOL Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *pParam);
 
-	void CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput) const;
+	void CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput, 
+		const CArray<BOOL, BOOL>& arrInclude) const;
 
 	REAL Eval_TotalEntropy(const CVectorN<>& vInput, CVectorN<> *pGrad = NULL) const;
 
@@ -98,6 +99,8 @@ private:
 	int m_nLevel;
 
 	CVolume<REAL> m_sumVolume;
+	mutable CVolume<REAL> m_volGroup;
+	mutable CVolume<REAL> m_volGroupMain;
 
 	CTypedPtrMap<CMapPtrToPtr, CStructure*, CVOITerm*> m_mapVOITs;
 
@@ -106,6 +109,9 @@ private:
 
 	REAL m_totalEntropyWeight;
 	REAL m_intensityMapSumWeight;
+
+	mutable CVectorN<double> m_vBeamWeights;
+	mutable CVectorN<> m_vPartGrad;
 
 public:
 	void SetElementInclude();
