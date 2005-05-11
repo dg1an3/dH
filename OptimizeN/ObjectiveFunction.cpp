@@ -41,10 +41,18 @@ BOOL CObjectiveFunction::HasGradientInfo() const
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-REAL CObjectiveFunction::TestGradient(const CVectorN<>& vAtParam, REAL epsilon) const
+REAL CObjectiveFunction::TestGradient(const CVectorN<>& vAtParam, double epsilon) const
 {
 	REAL res = 0.0;
 	BEGIN_LOG_SECTION(CObjectiveFunction::TestGradient());
+
+	// get epsilon
+	REAL elem_max = 0.0;
+	for (int nAt = 0; nAt < vAtParam.GetDim(); nAt++)
+	{
+		elem_max = __max(elem_max, fabs(vAtParam[nAt]));
+	}
+	epsilon = elem_max * epsilon;
 
 	CVectorN<> vEvalGrad;
 	vEvalGrad.SetDim(vAtParam.GetDim());
@@ -53,24 +61,27 @@ REAL CObjectiveFunction::TestGradient(const CVectorN<>& vAtParam, REAL epsilon) 
 
 	// numerically evaluate the gradiant
 	CVectorN<> vParam = vAtParam;
-	const REAL fp = (*this)(vParam);
+	const double fp = (*this)(vParam);
 
 	CVectorN<> vDiffGrad;
 	vDiffGrad.SetDim(vParam.GetDim());
-	for (int nAt = 0; nAt < vParam.GetDim(); nAt++)
+	for (nAt = 0; nAt < vParam.GetDim(); nAt++)
 	{
 		vParam[nAt] += epsilon;
 
-		const REAL fp_del = (*this)(vParam);
+		const double fp_del = (*this)(vParam);
 
-		vDiffGrad[nAt] = fp_del - fp;
-		vDiffGrad[nAt] /= epsilon;
+		vDiffGrad[nAt] = (fp_del - fp) / epsilon;
+		// vDiffGrad[nAt] /= epsilon;
 
 		vParam[nAt] -= epsilon;
 	}
 	LOG_EXPR_EXT(vDiffGrad);
 
 	res = (vEvalGrad - vDiffGrad).GetLength();
+	TRACE_VECTOR("vEvalGrad", vEvalGrad);
+	TRACE_VECTOR("vDiffGrad", vDiffGrad);
+	// TRACE_VECTOR("Gradient diff", vEvalGrad - vDiffGrad);
 	LOG_EXPR(res);
 	END_LOG_SECTION();	// CObjectiveFunction::TestGradient
 
@@ -132,7 +143,7 @@ void CObjectiveFunction::Hessian(const CVectorN<>& vAtParam, CMatrixNxM<>& mHess
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-void CObjectiveFunction::TestHessian(const CVectorN<>& vAtParam, REAL epsilon) const
+void CObjectiveFunction::TestHessian(const CVectorN<>& vAtParam, double epsilon) const
 {
 	BEGIN_LOG_SECTION(CObjectiveFunction::TestHessian());
 
