@@ -23,13 +23,13 @@ CPlanarView::CPlanarView()
 	m_pVolume[0] = NULL;
 	m_pVolume[1] = NULL;
 
-	m_window[0] = 2.0;
-	m_window[1] = 1.0 / 0.8;
+	m_window[0] = (REAL) 2.0;
+	m_window[1] = (REAL) 1.0 / 0.8;
 
-	m_level[0] = 1.0;
-	m_level[1] = 0.4;
+	m_level[0] = (REAL) 1.0;
+	m_level[1] = (REAL) 0.4;
 
-	m_alpha = 1.0;
+	m_alpha = (REAL) 1.0;
 }
 
 CPlanarView::~CPlanarView()
@@ -112,7 +112,7 @@ void CPlanarView::OnPaint()
 	
 	if (m_pVolume[1] != NULL && m_pVolume[1]->GetHeight() > 0)
 	{
-		REAL c = 0.4;
+		REAL c = (REAL) 0.4;
 		while (c < 1.0)
 		{
 			REAL max_value = m_arrLUT[1].GetSize();
@@ -129,7 +129,7 @@ void CPlanarView::OnPaint()
 			dcMem.SelectObject(&pen);
 			DrawIsocurves(m_pVolume[1], c, &dcMem);
 
-			c += 0.05;
+			c += (REAL) 0.05;
 		}
 	}
 

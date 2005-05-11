@@ -416,7 +416,7 @@ void CBrimstoneView::ScanBeamlets(int nLevel)
 
 			m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
 
-	*/		vWeights[nAt] = 0.8;
+	*/		vWeights[nAt] = (REAL) 0.8;
 
 			for (int nAtBeam = 0; nAtBeam < pPlan->GetBeamCount(); nAtBeam++)
 			{

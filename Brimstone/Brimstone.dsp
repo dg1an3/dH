@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /machine:I386
-# ADD LINK32 ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib /nologo /subsystem:windows /machine:I386 /libpath:"$(IPPROOT)\lib" /libpath:"$(IPPROOT)\stublib"
+# ADD LINK32 ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib /nologo /subsystem:windows /profile /machine:I386 /libpath:"$(IPPROOT)\lib" /libpath:"$(IPPROOT)\stublib"
 
 !ELSEIF  "$(CFG)" == "Brimstone - Win32 Debug"
 
