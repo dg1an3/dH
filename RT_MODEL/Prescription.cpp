@@ -32,8 +32,8 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		m_nLevel(nLevel),
 		m_pOptimizer(NULL),
 		m_pNextLevel(NULL),
-		m_totalEntropyWeight((REAL) 0.05),
-		m_intensityMapSumWeight((REAL) 0.10),
+		m_totalEntropyWeight((REAL) 0.025),
+		m_intensityMapSumWeight((REAL) 0.00),
 		m_inputScale((REAL) 0.5)
 {
 	m_pOptimizer = new CConjGradOptimizer(this);
@@ -42,9 +42,11 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 	{
 		REAL GBinSigma = (REAL) 0.20;
 		int nAtSigma[] = {4, 2, 1};
-		REAL tol[] = // {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
-			{(REAL) 1e-3, (REAL) 1e-3, (REAL) 1e-3};
-			// {(REAL) 1e-5, (REAL) 1e-5, (REAL) 1e-5};
+		REAL tol[] = 
+			// {(REAL) 1e-4, (REAL) 5e-3, (REAL) 1e-3};
+			// {(REAL) 1e-3, (REAL) 1e-3, (REAL) 1e-3};
+			//  {(REAL) 1e-3, (REAL) 1e-4, (REAL) 1e-4};
+			{(REAL) 1e-7, (REAL) 1e-7, (REAL) 1e-7};
 		CPrescription *pPresc = this;
 		pPresc->SetGBinSigma(GBinSigma / nAtSigma[0]);
 		pPresc->m_tolerance = tol[0];
@@ -90,7 +92,9 @@ CPrescription::~CPrescription()
 // 
 // computes the sum of weights from an input vector
 ///////////////////////////////////////////////////////////////////////////////
-void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput) const
+void CPrescription::CalcSumSigmoid(CHistogram *pHisto, 
+								   const CVectorN<>& vInput, 
+								   const CArray<BOOL, BOOL>& arrInclude) const
 {
 	// get the main volume
 	CVolume<REAL> *pVolume = pHisto->GetVolume();
@@ -102,7 +106,6 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 	int nMaxGroup = pHisto->GetGroupCount();
 	for (int nAtGroup = 0; nAtGroup < nMaxGroup; nAtGroup++)
 	{
-		static CVolume<REAL> volGroup;
 		BOOL bInitVolGroup = TRUE;
 
 		for (int nAt_dVolume = 0; nAt_dVolume < pHisto->Get_dVolumeCount();
@@ -116,27 +119,30 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 				
 				if (bInitVolGroup)
 				{
-					volGroup.ConformTo(p_dVolume);
-					volGroup.ClearVoxels();
+					m_volGroup.ConformTo(p_dVolume);
+					m_volGroup.ClearVoxels();
 
 					bInitVolGroup = FALSE;
 				}
 
 				// add to weighted sum
-				volGroup.Accumulate(p_dVolume, 
-					Sigmoid(vInput[nAt_dVolume], m_inputScale), TRUE);
+				if (arrInclude[nAt_dVolume])
+				{
+					REAL weight = Sigmoid(vInput[nAt_dVolume], m_inputScale);
+					m_volGroup.Accumulate(p_dVolume, 
+						weight, TRUE);
+				}
 			}
 		}
 
 		// now rotate the groups sum to the main sumVolume basis
-		static CVolume<REAL> volGroupMain;
-		volGroupMain.ConformTo(pVolume);
-		volGroupMain.ClearVoxels();
-		Resample(&volGroup, &volGroupMain, // FALSE); 
+		m_volGroupMain.ConformTo(pVolume);
+		m_volGroupMain.ClearVoxels();
+		Resample(&m_volGroup, &m_volGroupMain, // FALSE); 
 			TRUE);
 
 		// and accumulate
-		pVolume->Accumulate(&volGroupMain, 1.0, FALSE);
+		pVolume->Accumulate(&m_volGroupMain, 1.0, FALSE);
 	}
 
 }	// CPrescription::CalcSumSigmoid
@@ -150,9 +156,8 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto, const CVectorN<>& vInput)
 REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput, 
 											   CVectorN<> *pGrad) const
 {
-	static CVectorN<> vBeamWeights;
-	vBeamWeights.SetDim(m_pPlan->GetBeamCount());
-	vBeamWeights.SetZero();
+	m_vBeamWeights.SetDim(m_pPlan->GetBeamCount());
+	m_vBeamWeights.SetZero();
 
 	double sum = 0.0;
 	for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
@@ -161,27 +166,33 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 		int nBeamlet;
 		GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
 
-		REAL beamWeight = Sigmoid(vInput[nAt], m_inputScale);
-		vBeamWeights[nBeam] += beamWeight;
+		double beamWeight = Sigmoid(vInput[nAt], m_inputScale);
+		m_vBeamWeights[nBeam] += beamWeight;
 		sum += beamWeight;
 	}
+
+	const double EPS = 1e-5;
 
 	// to accumulate total entropy
 	double totalEntropy = 0.0;
 
 	// for each beamlet
-	for (int nAtBeam = 0; nAtBeam < vBeamWeights.GetDim(); nAtBeam++)
+	for (int nAtBeam = 0; nAtBeam < m_vBeamWeights.GetDim(); nAtBeam++)
 	{
 		// p is probability of intensity of this beamlet
-		double p = vBeamWeights[nAtBeam] / sum;
+		double p_beam = m_vBeamWeights[nAtBeam] / sum;
 
 		// contribution to total is entropy of the probability
-		totalEntropy += - p * log(p);
+		totalEntropy += - p_beam * log(p_beam + EPS);
 	}
+	totalEntropy /= (double) (m_vBeamWeights.GetDim());
+
 
 	// do we evaluate gradient?
 	if (pGrad)
 	{
+		pGrad->SetZero();
+
 		for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
 		{
 			int nBeam;
@@ -189,24 +200,67 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 			GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
 
 			// p is probability of intensity of this beamlet
-			double p = vBeamWeights[nBeam] / sum;
+			double p_beam = m_vBeamWeights[nBeam] / sum;
+
+#if !defined(_OLD_ENTROPY)
+
+			// don't need this (zeroed above)
+			for (int nAtBeam2 = 0; nAtBeam2 < m_vBeamWeights.GetDim(); nAtBeam2++)
+			{
+				double p_beam2 = m_vBeamWeights[nAtBeam2] / sum;
+
+				(*pGrad)[nAt] += 
+					m_totalEntropyWeight 
+						* -((p_beam2 / (p_beam2 + EPS)) 
+								+ log(p_beam2 + EPS)) 
+						* (-m_vBeamWeights[nAtBeam2] + ((nAtBeam2 == nBeam) ? sum : 0.0))
+							/ (sum * sum)
+						* dSigmoid(vInput[nAt], m_inputScale);
+			}
+			(*pGrad)[nAt] /= (double) (m_vBeamWeights.GetDim());
+
+/*			double p_beamlet = wgts[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] / beamSum[nAtBeam];
+			entrBeamlets += ENTR_BEAMLET_WEIGHT * -p_beamlet * log(p_beamlet + ZETA);
+
+			d_entrBeamlets_Beamlet[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] = 0.0;
+			for (int nAtBeamlet2 = 0; nAtBeamlet2 < BEAMLETS_PER_BEAM; nAtBeamlet2++)
+			{
+				double p_beamlet2 = wgts[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet2] / beamSum[nAtBeam];
+
+				d_entrBeamlets_Beamlet[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] += 
+					ENTR_BEAMLET_WEIGHT 
+						* -((p_beamlet2 / (p_beamlet2 + ZETA)) 
+							+ log(p_beamlet2 + ZETA)) 
+						* (-wgts[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet2] + ((nAtBeamlet2 == nAtBeamlet) ? beamSum[nAtBeam] : 0.0))
+							/ (beamSum[nAtBeam] * beamSum[nAtBeam]);
+			}
+			d_entrBeamlets_Beamlet[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] /= 
+				(double) (STATE_DIM); */
+			// entrBeamlets /= (double) (STATE_DIM);
+
+#else
 
 			// derivative of prob is found by applying ratio rule
 			double d_p = dSigmoid(vInput[nAt], m_inputScale) 
-				* (sum - vBeamWeights[nBeam]) 
+				* (sum - m_vBeamWeights[nBeam]) 
 					/ (sum * sum);
 
 			// apply chain rule to compute the derivative
-			(*pGrad)[nAt] = m_totalEntropyWeight * -d_p * (1 + log(p));
+			(*pGrad)[nAt] += m_totalEntropyWeight * -d_p * (1.0 + log(p + EPS));
 
+#endif
 			(*pGrad)[nAt] -= m_intensityMapSumWeight * dSigmoid(vInput[nAt], m_inputScale) 
-				/ (REAL) vBeamWeights.GetDim();
+				/ (REAL) m_vBeamWeights.GetDim();
 		}
 	}
 
+
+	// TRACE("totalEntropyWeight = %f\n", m_totalEntropyWeight);
+	// TRACE("totalEntropy = %f\n", totalEntropy);
+
 	// return total entropy scaled by number of beamlets
 	return m_totalEntropyWeight * totalEntropy 
-		- m_intensityMapSumWeight * sum / (REAL) vBeamWeights.GetDim();;
+		- m_intensityMapSumWeight * sum / (REAL) m_vBeamWeights.GetDim();;
 
 }	// CPrescription::Eval_TotalEntropy
 
@@ -237,7 +291,8 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 
 	bool bCalcSum = true;
 
-	POSITION pos = m_mapVOITs.GetStartPosition();
+	static bool bCalcOnlyEntropy = false;
+	POSITION pos = bCalcOnlyEntropy ? NULL : m_mapVOITs.GetStartPosition();
 	while (pos != NULL)
 	{
 		CStructure *pStruct = NULL;
@@ -247,25 +302,24 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 		// calculate the summed volume, if this is the first VOIT
 		if (bCalcSum)
 		{
-			CalcSumSigmoid(pVOIT->GetHistogram(), vInput);
+			CalcSumSigmoid(pVOIT->GetHistogram(), vInput, m_arrIncludeElement);
 			bCalcSum = false;
 		}
 
 		if (pGrad)
 		{
-			static CVectorN<> vPartGrad;
-			vPartGrad.SetDim(vInput.GetDim());
-			vPartGrad.SetZero();
+			m_vPartGrad.SetDim(vInput.GetDim());
+			m_vPartGrad.SetZero();
 
-			totalSum += pVOIT->Eval(&vPartGrad, m_arrIncludeElement);
+			totalSum += pVOIT->Eval(&m_vPartGrad, m_arrIncludeElement);
 
 			// apply the chain rule for the sigmoid
-			for (int nAt = 0; nAt < vPartGrad.GetDim(); nAt++)
+			for (int nAt = 0; nAt < m_vPartGrad.GetDim(); nAt++)
 			{
-				vPartGrad[nAt] *= dSigmoid(vInput[nAt], m_inputScale);
+				m_vPartGrad[nAt] *= dSigmoid(vInput[nAt], m_inputScale);
 			}
 
-			(*pGrad) += vPartGrad;
+			(*pGrad) += m_vPartGrad;
 		}
 		else
 		{
@@ -279,20 +333,57 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 
 	if (pGrad)
 	{
-		static CVectorN<> vPartGrad;
-		vPartGrad.SetDim(vInput.GetDim());
-		vPartGrad.SetZero();
+		m_vPartGrad.SetDim(vInput.GetDim());
+		m_vPartGrad.SetZero();
 
-		totalSum -=  Eval_TotalEntropy(vInput, &vPartGrad);
+		totalSum -=  Eval_TotalEntropy(vInput, &m_vPartGrad);
 
-		(*pGrad) -= vPartGrad;
+		(*pGrad) -= m_vPartGrad;
 	}
 	else
 	{
 		totalSum -=  Eval_TotalEntropy(vInput);
 	}
 
+#if defined(_DEBUG) // && defined(_TEST_GRADIENT)
+
+	static BOOL bTesting = FALSE;
+	if (pGrad && !bTesting)
+	{
+		bTesting = TRUE;
+		bCalcOnlyEntropy = TRUE;
+
+		double tempTEW = m_totalEntropyWeight;
+		// const_cast<REAL&>(m_totalEntropyWeight) = 0.0;
+		double tempIMSW = m_intensityMapSumWeight;
+		const_cast<REAL&>(m_intensityMapSumWeight) = 0.0;
+
+/*		double delta = 1e-4;
+		for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
+		{
+			double start = Sigmoid(vInput[nAt], m_inputScale);
+			double end = Sigmoid(vInput[nAt] + delta, m_inputScale);
+
+			double del = (end - start) / delta;
+
+			double eval = dSigmoid(vInput[nAt], m_inputScale);
+			TRACE("%6.4lf / %6.4lf, ", eval, del);
+		}
+		TRACE("\n"); */
+
+		TestGradient(vInput, 1e-5);
+
+		const_cast<REAL&>(m_totalEntropyWeight) = tempTEW;
+		const_cast<REAL&>(m_intensityMapSumWeight) = tempIMSW;
+
+		bTesting = FALSE;
+		bCalcOnlyEntropy = FALSE;
+	}
+#endif
+
 	END_LOG_SECTION();	// CPrescription::operator()
+
+	// TRACE("objFunc = %f\n", totalSum);
 
 	return totalSum;
 
@@ -443,7 +534,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		CVolume<REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
 		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
 
-		pBeamlet->SetThreshold((REAL) 0.005); // pow(10, -(m_nLevel+1)));
+		pBeamlet->SetThreshold((REAL) 0.005 /* 0.005 */ ); // pow(10, -(m_nLevel+1)));
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
 
@@ -588,6 +679,7 @@ void CPrescription::InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVec
 {
 	BEGIN_LOG_SECTION(CPrescription::InvFilterStateVector);
 
+	// TODO: make a member so don't have to re-initialize
 	CMatrixNxM<> mBeamletWeights;
 	StateVectorToBeamletWeights(nScale, vIn, mBeamletWeights);
 	LOG_EXPR_EXT(mBeamletWeights);

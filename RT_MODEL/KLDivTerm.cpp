@@ -243,7 +243,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 				if (nAtBin < calcGPDF.GetDim())
 				{
 #ifdef CROSS_ENTROPY
-					(*pvGrad)[nAt_dVol] += m_weight 
+					(*pvGrad)[nAt_dVol] -= /* DGL 05072005 += */ m_weight 
 						* (log(calcGPDF[nAtBin] + EPS) 
 								+ calcGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS))
 							* arrCalc_dGPDF[nAtBin]; 
@@ -251,13 +251,13 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 					if (nAtBin < targetGPDF.GetDim())
 					{
 						ASSERT(nAtBin < arrCalc_dGPDF.GetDim());
-						(*pvGrad)[nAt_dVol] -= m_weight 
+						(*pvGrad)[nAt_dVol] += /* DGL 05072005 -= */ m_weight 
 							* log(targetGPDF[nAtBin] + EPS)
 								* arrCalc_dGPDF[nAtBin]; 
 					}
 					else
 					{
-						(*pvGrad)[nAt_dVol] -= m_weight 
+						(*pvGrad)[nAt_dVol]  += /* DGL 05072005 -= */ m_weight 
 							* log(EPS) * arrCalc_dGPDF[nAtBin];
 					}
 #endif
