@@ -15,7 +15,6 @@
 
 class CXMLElement;
 
-
 //////////////////////////////////////////////////////////////////////
 // class CXMLLogFile
 //
@@ -124,6 +123,7 @@ private:
 	static CXMLLogFile m_pGlobalFile;
 
 };	// class CXMLLogFile
+
 
 
 #endif // !defined(AFX_STRUCTLOGXMLFILE_H__EBCA9A41_6C53_45F8_8B79_9E958F3786DD__INCLUDED_)

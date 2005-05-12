@@ -10,10 +10,10 @@
 #include "XMLLogging.h"
 USES_FMT;
 
-#include <imagehlp.h>
-#pragma comment(lib, "imagehlp.lib")
+// #include <imagehlp.h>
+// #pragma comment(lib, "imagehlp.lib")
 
-
+/*
 #define MODULE_NAME_LEN 64
 #define SYMBOL_NAME_LEN 128
 
@@ -119,7 +119,7 @@ static BOOL ResolveSymbol(HANDLE hProcess, DWORD dwAddress,
 		lstrcatA(siSymbol.szModule, "! ");
 	}
 
-	__try
+	// __try
 	{
 		sym.SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
 		sym.Address = dwAddress;
@@ -148,20 +148,21 @@ static BOOL ResolveSymbol(HANDLE hProcess, DWORD dwAddress,
 	  else
 		  pszSymbol = "(no symbol)";
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	// __except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		pszSymbol = "(EX: no symbol)";
-		siSymbol.dwOffset = dwAddress - mi.BaseOfImage;
+	//	pszSymbol = "(EX: no symbol)";
+	//	siSymbol.dwOffset = dwAddress - mi.BaseOfImage;
 	}
 
 	lstrcpynA(siSymbol.szSymbol, pszSymbol, strlen(pszSymbol));
 	return fRetval;
 
 }	//  ResolveSymbol
-
+*/
 
 /////////////////////////////////////////////////////////////////////////////
 // AfxDumpStack API
+
 
 
 CXMLLogFile CXMLLogFile::m_pGlobalFile("TestXML");
@@ -199,10 +200,10 @@ CXMLLogFile::CXMLLogFile(const char *pszAppName)
 	strDir.ReleaseBuffer();
 	strDir += "\\DEBUG";
 
-	if (!SymInitialize(GetCurrentProcess(), strDir.GetBuffer(100), FALSE))
+/*	if (!SymInitialize(GetCurrentProcess(), strDir.GetBuffer(100), FALSE))
 	{
 		DWORD dwError = GetLastError();
-	}
+	} */
 
 }	//  CXMLLogFile::CXMLLogFile
 
@@ -434,7 +435,7 @@ BOOL CXMLLogFile::StackDump(const char *pszMessage)
 	{
 		return TRUE;
 	}
-
+/*
 	NewElement("lsd", __FILE__);
 	Format("%s", pszMessage);
 
@@ -530,7 +531,7 @@ BOOL CXMLLogFile::StackDump(const char *pszMessage)
 	}
 
 	CloseElement();
-
+*/
 	return TRUE;
 
 }	// CXMLLogFile::StackDump
