@@ -175,7 +175,7 @@ BOOL Invert(MATRIX_TYPE& mMat, BOOL bFullPivot = FALSE)
 		}
 
 		// scale factor to be applied
-		MATRIX_TYPE::ELEM_TYPE scale = 1.0 / mCopy[nCol][nCol];	
+		MATRIX_TYPE::ELEM_TYPE scale = R(1.0) / mCopy[nCol][nCol];	
 
 		// scale the copy to get a 1.0 in the diagonal
 		mCopy.GetRow(nCol, vRow);

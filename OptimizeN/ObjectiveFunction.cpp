@@ -67,14 +67,14 @@ REAL CObjectiveFunction::TestGradient(const CVectorN<>& vAtParam, double epsilon
 	vDiffGrad.SetDim(vParam.GetDim());
 	for (nAt = 0; nAt < vParam.GetDim(); nAt++)
 	{
-		vParam[nAt] += epsilon;
+		vParam[nAt] += (REAL) epsilon;
 
 		const double fp_del = (*this)(vParam);
 
-		vDiffGrad[nAt] = (fp_del - fp) / epsilon;
+		vDiffGrad[nAt] = (REAL)((fp_del - fp) / epsilon);
 		// vDiffGrad[nAt] /= epsilon;
 
-		vParam[nAt] -= epsilon;
+		vParam[nAt] -= (REAL) epsilon;
 	}
 	LOG_EXPR_EXT(vDiffGrad);
 
@@ -163,7 +163,7 @@ void CObjectiveFunction::TestHessian(const CVectorN<>& vAtParam, double epsilon)
 		BEGIN_LOG_SECTION_(FMT("Col %i", nAtCol));
 
 		vParam = vAtParam;
-		vParam[nAtCol] += epsilon;
+		vParam[nAtCol] += (REAL) epsilon;
 		const REAL fp_del_col = (*this)(vParam);
 
 		for (int nAtRow = 0; nAtRow < vDiffHess.GetRows(); nAtRow++)
@@ -171,14 +171,14 @@ void CObjectiveFunction::TestHessian(const CVectorN<>& vAtParam, double epsilon)
 			BEGIN_LOG_SECTION_(FMT("Row %i", nAtRow));
 
 			vParam = vAtParam;
-			vParam[nAtRow] += epsilon;
+			vParam[nAtRow] += (REAL) epsilon;
 			const REAL fp_del_row = (*this)(vParam);
-			vParam[nAtCol] += epsilon;
+			vParam[nAtCol] += (REAL) epsilon;
 			const REAL fp_del_row_del_col = (*this)(vParam);
 
 			vDiffHess[nAtCol][nAtRow] = fp_del_row_del_col - fp_del_row;
 			vDiffHess[nAtCol][nAtRow] -= fp_del_col - fp;
-			vDiffHess[nAtCol][nAtRow] /= epsilon * epsilon;
+			vDiffHess[nAtCol][nAtRow] /= (REAL) (epsilon * epsilon);
 			LOG_EXPR(vDiffHess[nAtCol][nAtRow]);
 
 			END_LOG_SECTION();	// FormatString("Row %i", nAtRow);

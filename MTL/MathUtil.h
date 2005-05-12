@@ -29,11 +29,14 @@ typedef double REAL;
 #define REAL_DEFINED
 #endif
 
+// macro to wrap real values
+#define R(x) ((REAL)(x))
+
 
 //////////////////////////////////////////////////////////////////////
 // declare PI for later use
 //////////////////////////////////////////////////////////////////////
-const REAL PI = (atan(1.0) * 4.0);
+const REAL PI = (REAL) (atan(1.0) * 4.0);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -157,14 +160,14 @@ inline REAL AngleFromSinCos(REAL sin_angle, REAL cos_angle)
 ///////////////////////////////////////////////////////////////////////////////
 inline REAL Sigmoid(REAL x, REAL scale /* = 1.0 */) 
 {
-	REAL res = 1.0 / (1.0 + exp(-scale * x));
+	REAL res = (REAL) (1.0 / (1.0 + exp(-scale * x)));
 
 	if (_finite(res))
 	{
 		return res;
 	}
 
-	return (x > 0.0) ? 1.0 : 0.0;
+	return (x > 0.0) ? (REAL) 1.0 : (REAL) 0.0;
 
 }	// Sigmoid
 
@@ -177,7 +180,7 @@ inline REAL Sigmoid(REAL x, REAL scale /* = 1.0 */)
 inline REAL dSigmoid(REAL x, REAL scale /* = 1.0 */) 
 {
 	REAL exp_val = exp(-scale * x);
-	REAL denom = 1.0 + exp_val;
+	REAL denom = (REAL) (1.0 + exp_val);
 	REAL d_denom = -scale * exp_val;
 	REAL res = -d_denom / (denom * denom);
 
@@ -205,8 +208,8 @@ inline REAL InvSigmoid(REAL y, REAL scale /* = 1.0 */)
 	}
 
 	// compute value
-	REAL value = -log(1.0 / y - 1.0) 
-		/ scale;
+	REAL value = (REAL) (-log(1.0 / y - 1.0) 
+		/ scale);
 	ASSERT(_finite(value));
 
 	// test result

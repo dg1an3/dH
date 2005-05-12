@@ -318,7 +318,7 @@ void CVectorN<TYPE>::SetDim(int nDim)
 template<class TYPE> __forceinline
 TYPE CVectorN<TYPE>::GetLength() const
 {
-	return VectorLength((*this));
+	return VectorLength(&(*this)[0], GetDim());
 
 }	// CVectorN<TYPE>::GetLength
 
@@ -524,7 +524,7 @@ template<class TYPE> __forceinline
 TYPE operator*(const CVectorN<TYPE>& vLeft, 
 							  const CVectorN<TYPE>& vRight)
 {
-	return DotProduct(vLeft, vRight);
+	return DotProduct(&vLeft[0], &vRight[0], vLeft.GetDim());
 
 }	// operator*(const CVectorN, const CVectorN)
 

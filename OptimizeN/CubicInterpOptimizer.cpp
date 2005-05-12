@@ -25,7 +25,7 @@ BOOL SolveQuadratic(REAL a, REAL b, REAL c, REAL *r1, REAL *r2)
 {
 	// compute determinant terms
 	REAL b_sq = b * b;
-	REAL ac_4 = 4.0 * a * c;
+	REAL ac_4 = (REAL) 4.0 * a * c;
 
 	// test for real roots
 	if (b_sq < ac_4)
@@ -38,8 +38,8 @@ BOOL SolveQuadratic(REAL a, REAL b, REAL c, REAL *r1, REAL *r2)
 	REAL det = sqrt(b_sq - ac_4);
 
 	// compute roots
-	(*r1) = (-b + det) / (2.0 * a);
-	(*r2) = (-b - det) / (2.0 * a);
+	(*r1) = (-b + det) / ((REAL) 2.0 * a);
+	(*r2) = (-b - det) / ((REAL) 2.0 * a);
 
 	// roots found
 	return TRUE;
@@ -50,12 +50,12 @@ void FindMinimumFast(REAL x1, REAL fx1, REAL dx1,
 					 REAL *min_guess)
 {
 	// update constants
-	REAL beta1 = dx1 + dx2 - 3.0 * (fx1 - fx2) / (x1 - x2);
-	REAL beta2 = sqrt(beta1 * beta1 - dx1 * dx2);
+	REAL beta1 = dx1 + dx2 - (REAL) 3.0 * (fx1 - fx2) / (x1 - x2);
+	REAL beta2 = (REAL) sqrt(beta1 * beta1 - dx1 * dx2);
 
 	// compute the next guess for minimum
 	(*min_guess) = x2 - (x2 - x1) * (dx2 + beta2 - beta1) 
-		/ (dx2 - dx1 + 2.0 * beta2);
+		/ (dx2 - dx1 + (REAL) 2.0 * beta2);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -176,25 +176,25 @@ BOOL CCubicInterpOptimizer::SolveConst(REAL x1, REAL fx1, REAL dx1,
 	// set up the system matrix
 	CMatrixD<4> mS;
 
-	mS[0][0] = 3.0 * x1 * x1;
-	mS[0][1] = 2.0 * x1;
-	mS[0][2] = 1.0;
-	mS[0][3] = 0.0;
+	mS[0][0] = (REAL) 3.0 * x1 * x1;
+	mS[0][1] = (REAL) 2.0 * x1;
+	mS[0][2] = (REAL) 1.0;
+	mS[0][3] = (REAL) 0.0;
 
-	mS[1][0] = 3.0 * x2 * x2;
-	mS[1][1] = 2.0 * x2;
-	mS[1][2] = 1.0;
-	mS[1][3] = 0.0;
+	mS[1][0] = (REAL) 3.0 * x2 * x2;
+	mS[1][1] = (REAL) 2.0 * x2;
+	mS[1][2] = (REAL) 1.0;
+	mS[1][3] = (REAL) 0.0;
 
 	mS[2][0] = x1 * x1 * x1;
 	mS[2][1] = x1 * x1;
 	mS[2][2] = x1;
-	mS[2][3] = 1.0;
+	mS[2][3] = (REAL) 1.0;
 
 	mS[3][0] = x2 * x2 * x2;
 	mS[3][1] = x2 * x2;
 	mS[3][2] = x2;
-	mS[3][3] = 1.0;
+	mS[3][3] = (REAL) 1.0;
 
 	// invert
 	mS.Invert();
@@ -225,11 +225,14 @@ BOOL CCubicInterpOptimizer::FindMinimum(REAL *min_guess)
 
 	// find roots of first derivative
 	REAL r1, r2;
-	BOOL bReal = SolveQuadratic(3.0 * m_vK[0], 2.0 * m_vK[1], m_vK[2], 
+	BOOL bReal = SolveQuadratic((REAL) 3.0 * m_vK[0], 
+		(REAL) 2.0 * m_vK[1], 
+		m_vK[2], 
 		&r1, &r2);
 
 	// find value of second derivative 
-	REAL ddx1 = 6.0 * m_vK[0] * r1 + 2.0 * m_vK[1];
+	REAL ddx1 = (REAL) 6.0 * m_vK[0] * r1 
+		+ (REAL) 2.0 * m_vK[1];
 	if (ddx1 > 0.0)
 	{
 		// root1 is the minimum
@@ -239,7 +242,7 @@ BOOL CCubicInterpOptimizer::FindMinimum(REAL *min_guess)
 		return TRUE;
 	}
 
-	REAL ddx2 = 6.0 * m_vK[0] * r2 + 2.0 * m_vK[1];
+	REAL ddx2 = (REAL) 6.0 * m_vK[0] * r2 + (REAL) 2.0 * m_vK[1];
 	if (ddx2 > 0.0)
 	{
 		// root2 is the minimum

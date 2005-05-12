@@ -29,7 +29,8 @@ class CVectorD
 public:
 	// constructors / destructor
 	CVectorD();
-	CVectorD(TYPE x);
+	/* DGL Deprecated 
+	CVectorD(TYPE x); */
 	CVectorD(TYPE x, TYPE y);
 	CVectorD(TYPE x, TYPE y, TYPE z);
 	CVectorD(TYPE x, TYPE y, TYPE z, TYPE w);
@@ -100,6 +101,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>()
 //
 // construct from one element
 //////////////////////////////////////////////////////////////////
+/*
 template<int DIM, class TYPE> __forceinline
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
 {
@@ -113,7 +115,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x)
 	}
 
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
-
+*/
 
 //////////////////////////////////////////////////////////////////
 // CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
@@ -205,8 +207,8 @@ template<int DIM, class TYPE> __forceinline
 CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
 {
 	// set the given elements
-	(*this)[0] = pt.x;
-	(*this)[1] = pt.y;
+	(*this)[0] = R(pt.x);
+	(*this)[1] = R(pt.y);
 
 	// clear to all zeros
 	if (DIM > 2)
@@ -345,7 +347,7 @@ CVectorD<DIM, TYPE>::operator const TYPE *() const
 template<int DIM, class TYPE> __forceinline
 TYPE CVectorD<DIM, TYPE>::GetLength() const
 {
-	return VectorLength((*this));
+	return VectorLength(&(*this)[0], DIM);
 
 }	// CVectorD<DIM, TYPE>::GetLength
 

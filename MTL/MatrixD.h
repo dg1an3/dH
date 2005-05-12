@@ -652,8 +652,8 @@ inline CMatrixD<3> CreateTranslate(const double& s,
 	// start with an identity matrix
 	CMatrixD<3> mTranslate;
 
-	mTranslate[2][0] = s * vAxis[0];
-	mTranslate[2][1] = s * vAxis[1];
+	mTranslate[2][0] = (REAL) s * vAxis[0];
+	mTranslate[2][1] = (REAL) s * vAxis[1];
 
 	return mTranslate;
 
@@ -672,9 +672,9 @@ inline CMatrixD<4> CreateTranslate(const double& s,
 	// start with an identity matrix
 	CMatrixD<4> mTranslate;
 
-	mTranslate[3][0] = s * vAxis[0];
-	mTranslate[3][1] = s * vAxis[1];
-	mTranslate[3][2] = s * vAxis[2];
+	mTranslate[3][0] = (REAL) s * vAxis[0];
+	mTranslate[3][1] = (REAL) s * vAxis[1];
+	mTranslate[3][2] = (REAL) s * vAxis[2];
 
 	return mTranslate;
 
@@ -706,8 +706,8 @@ inline CMatrixD<2> CreateRotate(const double& theta)
 	// now compute the rotation matrix
 
 	// angle helper values
-	double st = sin(theta);
-	double ct = cos(theta);
+	REAL st = (REAL) sin(theta);
+	REAL ct = (REAL) cos(theta);
 
 	mRotate[0][0] = ct;
 	mRotate[1][0] = - st;
@@ -847,16 +847,16 @@ inline CMatrixD<4> CreateProjection(const double& n, const double& f)
 	CMatrixD<4> mProj;
 
 	// set the near plane elements
-	mProj[0][0] = n;
-	mProj[1][1] = n;
+	mProj[0][0] = (REAL) n;
+	mProj[1][1] = (REAL) n;
 
 	// set the ratio elements
-	mProj[2][2] = -(f + n)	  / (f - n);
-	mProj[3][2] = -2.0 * f * n / (f - n);
+	mProj[2][2] = (REAL) (-(f + n)	  / (f - n));
+	mProj[3][2] = (REAL) (-2.0 * f * n / (f - n));
 
 	// set the projection elements
-	mProj[2][3] = -1.0;
-	mProj[3][3] =  0.0;
+	mProj[2][3] = (REAL) -1.0;
+	mProj[3][3] = (REAL)  0.0;
 
 	// return the created matrix
 	return mProj;
@@ -1056,8 +1056,8 @@ inline REAL Eigen(CMatrixD<2> m, int nOrder = 1,
 	}
 
 	// and find the roots of the equation
-	REAL r1 = -(b + sqrt(b * b - 4.0 * c)) / 2.0;
-	REAL r2 = -(b - sqrt(b * b - 4.0 * c)) / 2.0;
+	REAL r1 = (REAL) -((b + sqrt(b * b - 4.0 * c)) / 2.0);
+	REAL r2 = (REAL) -((b - sqrt(b * b - 4.0 * c)) / 2.0);
 
 	// choose root which is either largest or smallest, depending on order
 	REAL r = ((fabs(r1) > fabs(r2)) && (nOrder <= 1)) 

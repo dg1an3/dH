@@ -23,30 +23,24 @@
 #define MOV3(a, b, c, d, e, f) (a)=(d); (b)=(e); (c)=(f);
 
 // SIGN returns the argument a with the sign of the argument b 
-#define SIGN(a,b) ((b) >= (REAL) 0.0 ? (REAL) fabs(a) : (REAL) -fabs(a))  
+#define SIGN(a,b) ((b) >= R(0.0) ? R(fabs(a)) : R(-fabs(a)))  
 	
 
 ///////////////////////////////////////////////////////////////////////////////
 // constants used to optimize
 ///////////////////////////////////////////////////////////////////////////////
 
-const REAL GOLD = (REAL) 1.618034;	// golden mean
+const REAL GOLD = R(1.618034);		// golden mean
 
-const REAL CGOLD = (REAL) 0.3819660;	// golden section ratio
+const REAL CGOLD = R(0.3819660);	// golden section ratio
 								
-const REAL ZEPS = (REAL) 1.0e-1;	// z-epsilon -- small number to protect against 
+const REAL ZEPS = R(1.0e-1);		// z-epsilon -- small number to protect against 
 									// fractional accuracy for a minimum that
 									// happens to be exactly zero;  used in
 									//    function FindMinimum
 
 
-const REAL TINY = (REAL) 1.0e-20;	// used in function BracketMinimum 
-
-/*
-const REAL BRACKET = (REAL) 10.0;	// 10.0	// initial bracket size
-
-const REAL GLIMIT = (REAL) 100.0;		// 100.0;	// parameter needed by function BracketMinimum  
-*/
+const REAL TINY = R(1.0e-20);		// used in function BracketMinimum 
 
 const int ITER_MAX = 1000;		// maximum iteration
 
@@ -295,9 +289,9 @@ REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 	{
 		BEGIN_LOG_SECTION_(FMT("Iteration %i", m_nIteration));
 
-		xm = (REAL) 0.5*(a+b);
-		tol1 = (REAL) (GetTolerance() * fabs(x)+ZEPS);
-		tol2 = (REAL) 2.0 * tol1;
+		xm = R(0.5) * (a+b);
+		tol1 = R(GetTolerance() * fabs(x) + ZEPS);
+		tol2 = R(2.0) * tol1;
 
 		// Test for done here. 
 		if (fabs(x - xm) <= (tol2-0.5*(b-a)))
@@ -309,34 +303,38 @@ REAL CBrentOptimizer::FindMinimum (REAL ax, REAL bx, REAL cx)
 		// Construct a trial parabolic fit. 
 		if (fabs(e) > tol1)
 		{
-			r=(x-w)*(fx-fv);
-			q=(x-v)*(fx-fw);
-			p=(x-v)*q-(x-w)*r;
-			q=(REAL) 2.0*(q-r);
+			r = (x-w) * (fx-fv);
+			q = (x-v) * (fx-fw);
+			p = (x-v) * q-(x-w)*r;
+			q = R(2.0) * (q-r);
 			if (q > 0.0)
 				p = -p;
-			q=(REAL)fabs(q);
-			etemp=e;
-			e=d;
+			q = (REAL)fabs(q);
+			etemp = e;
+			e = d;
 
 			// These conditions determine the acceptibility of the parabolic 
 			//   fit. 
 			if ((fabs(p) >= fabs(0.5*q*etemp)) || (p <= q*(a-x)) || (p >= q*(b-x)))
+			{
 				// Here we take the golden section step into the larger of the two 
 				//   segments 
-				d=(REAL) CGOLD*(e=(x >= xm ? a-x : b-x));
+				e = (x >= xm ? a-x : b-x);
+				d = R(CGOLD) * e;
+			}
 			else
 			{
 				// Take the parabolic step. 
 				d=p/q;
 				u=x+d;
 				if ((u-a < tol2) || (b-u < tol2))
-					d=(REAL) SIGN(tol1,xm-x);
+					d = R(SIGN(tol1,xm-x));
 			}
 		}
 		else
 		{
-			d=(REAL) CGOLD*(e=(x >= xm ? a-x : b-x));
+			e=(x >= xm ? a-x : b-x);
+			d = R(CGOLD) * e;
 		}
 
 		u=(fabs(d) >= tol1 ? x+d : x+(REAL)SIGN(tol1,d));
@@ -423,11 +421,11 @@ REAL CBrentOptimizer::FindMinimumGrad(REAL ax, REAL bx, REAL cx)
 	for (m_nIteration = 0; m_nIteration < ITER_MAX; m_nIteration++)
 	{
 		// computing mean x-value
-		REAL xm = (REAL) 0.5 * (a + b);
+		REAL xm = R(0.5) * (a + b);
 
 		// computing bounding tolerances
 		REAL tol1 = GetTolerance() * (REAL) fabs(x) + (REAL) ZEPS;
-		REAL tol2 = (REAL) 2.0 * tol1;
+		REAL tol2 = R(2.0) * tol1;
 
 		// test for convergence
 		if ((REAL) fabs(x - xm) <= (tol2 - (REAL) 0.5 * (b-a)))
@@ -439,7 +437,7 @@ REAL CBrentOptimizer::FindMinimumGrad(REAL ax, REAL bx, REAL cx)
 		if ((REAL) fabs(e) > tol1)
 		{
 			// compute d1 with secant method
-			REAL d1 = (REAL) 2.0 * (b - a);	// initialize with out-of-bracket value
+			REAL d1 = R(2.0) * (b - a);	// initialize with out-of-bracket value
 			REAL d2 = d1;					// initialize with out-of-bracket value
 
 			//secant method with one point

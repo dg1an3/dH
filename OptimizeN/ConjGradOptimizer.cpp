@@ -84,7 +84,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	if (m_vGrad.GetLength() < GetTolerance())
 	{
 		LOG("Gradient too small -- adding length");
-		RandomVector(GetTolerance(), m_vGrad);
+		RandomVector(GetTolerance(), &m_vGrad[0], m_vGrad.GetDim());
 	}
 
 	// set the initial (steepest descent) direction

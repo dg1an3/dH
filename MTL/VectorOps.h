@@ -194,34 +194,32 @@ void ScaleValues(double *pSrcDst, double scale, int nCount)
 
 
 
-template<class VECTOR_TYPE> __forceinline
-VECTOR_TYPE::ELEM_TYPE VectorLength(const VECTOR_TYPE& v)
+template<class ELEM_TYPE> __forceinline
+ELEM_TYPE VectorLength(const ELEM_TYPE *pV, int nLength)
 {
 	// form the sum of the square of each element
-	VECTOR_TYPE::ELEM_TYPE lenSq = (VECTOR_TYPE::ELEM_TYPE) 0.0;
-	for (int nAt = 0; nAt < v.GetDim(); nAt++)
+	ELEM_TYPE lenSq = (ELEM_TYPE) 0.0;
+	for (int nAt = 0; nAt < nLength; nAt++)
 	{
-		lenSq += v[nAt] * v[nAt];
+		lenSq += pV[nAt] * pV[nAt];
 	}
-	return (VECTOR_TYPE::ELEM_TYPE) sqrt(lenSq);
+	return (ELEM_TYPE) sqrt(lenSq);
 }
 
 
 
 
-template<class VECTOR_TYPE> __forceinline
-VECTOR_TYPE::ELEM_TYPE DotProduct(const VECTOR_TYPE& vLeft, 
-								  const VECTOR_TYPE& vRight)
+template<class ELEM_TYPE> __forceinline
+ELEM_TYPE DotProduct(const ELEM_TYPE *pLeft, 
+						const ELEM_TYPE *pRight, int nLength)
 {
-	ASSERT(vLeft.GetDim() == vRight.GetDim());
-
 	// stores the dot product
-	VECTOR_TYPE::ELEM_TYPE prod = (VECTOR_TYPE::ELEM_TYPE) 0.0;
+	ELEM_TYPE prod = (ELEM_TYPE) 0.0;
 
 	// sum the element-wise multiplication
-	for (int nAt = 0; nAt < vLeft.GetDim(); nAt++)
+	for (int nAt = 0; nAt < nLength; nAt++)
 	{
-		prod += vLeft[nAt] * vRight[nAt];
+		prod += pLeft[nAt] * pRight[nAt];
 	}
 	
 	return prod;
@@ -234,14 +232,14 @@ VECTOR_TYPE::ELEM_TYPE DotProduct(const VECTOR_TYPE& vLeft,
 //
 // initializes a random vector
 //////////////////////////////////////////////////////////////////////
-template<class VECTOR_TYPE>
-void RandomVector(VECTOR_TYPE::ELEM_TYPE range, VECTOR_TYPE& v)
+template<class ELEM_TYPE>
+void RandomVector(ELEM_TYPE range, ELEM_TYPE *pV, int nLength)
 {
-	for (int nAt = 0; nAt < v.GetDim(); nAt++)
+	for (int nAt = 0; nAt < nLength; nAt++)
 	{
-		v[nAt] = range - (VECTOR_TYPE::ELEM_TYPE) 2.0 * range 
-			* (VECTOR_TYPE::ELEM_TYPE) rand() 
-				/ (VECTOR_TYPE::ELEM_TYPE) RAND_MAX;
+		pV[nAt] = range - (ELEM_TYPE) 2.0 * range 
+			* (ELEM_TYPE) rand() 
+				/ (ELEM_TYPE) RAND_MAX;
 	}
 
 }	// RandomVector

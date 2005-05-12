@@ -50,7 +50,7 @@ const CVectorN<>& CGradDescOptimizer::Optimize(const CVectorN<>& vInit)
 		for (int nAt = 0; nAt < m_vGrad.GetDim(); nAt++)
 		{
 			m_vGrad[nAt] += GetTolerance() -
-				(REAL) rand() * 2.0 * GetTolerance() / (REAL) RAND_MAX;
+				(REAL) (rand() * 2.0 * GetTolerance()) / (REAL) RAND_MAX;
 		}
 	}
 
