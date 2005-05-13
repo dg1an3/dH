@@ -537,7 +537,7 @@ template<int DIM, class TYPE> __forceinline
 TYPE operator*(const CVectorD<DIM, TYPE>& vLeft, 
 							  const CVectorD<DIM, TYPE>& vRight)
 {
-	return DotProduct(vLeft, vRight);
+	return DotProduct(&vLeft[0], &vRight[0], vLeft.GetDim());
 
 }	// operator*(const CVectorD, const CVectorD)
 
