@@ -168,7 +168,7 @@ inline int CMesh::GetTriangleCount()
 inline const CVectorD<3>& CMesh::GetTriVert(int nTriangle, int nVertex) const
 {
 	int nVertIndex = m_arrTriIndex[nTriangle][nVertex]-1;
-	const float *pElem = &m_mVertex[nVertIndex][0];
+	const REAL *pElem = &m_mVertex[nVertIndex][0];
 	return reinterpret_cast< const CVectorD<3>& >(*pElem);
 }
 
@@ -180,7 +180,7 @@ inline const CVectorD<3>& CMesh::GetTriVert(int nTriangle, int nVertex) const
 inline const CVectorD<3>& CMesh::GetTriNorm(int nTriangle, int nVertex) const
 {
 	int nVertIndex = m_arrTriIndex[nTriangle][nVertex]-1;
-	const float *pElem = &m_mNormal[nVertIndex][0];
+	const REAL *pElem = &m_mNormal[nVertIndex][0];
 	return reinterpret_cast< const CVectorD<3>& >(*pElem);
 }
 
