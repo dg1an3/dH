@@ -20,13 +20,14 @@ using namespace std;
 // standard real representation
 //////////////////////////////////////////////////////////////////////
 #ifndef REAL_DEFINED
-#define REAL_FLOAT
+#define REAL_DEFINED
 #ifdef REAL_FLOAT
 typedef float REAL;
+#define REAL_FMT "%f"
 #else
 typedef double REAL;
+#define REAL_FMT "%lf"
 #endif
-#define REAL_DEFINED
 #endif
 
 // macro to wrap real values
@@ -158,16 +159,17 @@ inline REAL AngleFromSinCos(REAL sin_angle, REAL cos_angle)
 // 
 // Compute Sigmoid function, with scale parameter
 ///////////////////////////////////////////////////////////////////////////////
-inline REAL Sigmoid(REAL x, REAL scale /* = 1.0 */) 
+template<class TYPE>
+inline TYPE Sigmoid(TYPE x, TYPE scale /* = 1.0 */) 
 {
-	REAL res = (REAL) (1.0 / (1.0 + exp(-scale * x)));
+	TYPE res = (TYPE) (1.0 / (1.0 + exp(-scale * x)));
 
 	if (_finite(res))
 	{
 		return res;
 	}
 
-	return (x > 0.0) ? (REAL) 1.0 : (REAL) 0.0;
+	return (x > 0.0) ? (TYPE) 1.0 : (TYPE) 0.0;
 
 }	// Sigmoid
 
@@ -177,12 +179,13 @@ inline REAL Sigmoid(REAL x, REAL scale /* = 1.0 */)
 // 
 // Derivative of Sigmoid
 ///////////////////////////////////////////////////////////////////////////////
-inline REAL dSigmoid(REAL x, REAL scale /* = 1.0 */) 
+template<class TYPE>
+inline TYPE dSigmoid(TYPE x, TYPE scale /* = 1.0 */) 
 {
-	REAL exp_val = exp(-scale * x);
-	REAL denom = (REAL) (1.0 + exp_val);
-	REAL d_denom = -scale * exp_val;
-	REAL res = -d_denom / (denom * denom);
+	TYPE exp_val = exp(-scale * x);
+	TYPE denom = (TYPE) (1.0 + exp_val);
+	TYPE d_denom = -scale * exp_val;
+	TYPE res = -d_denom / (denom * denom);
 
 	if (_finite(res))
 	{
@@ -199,16 +202,17 @@ inline REAL dSigmoid(REAL x, REAL scale /* = 1.0 */)
 // 
 // inverse of sigmoid function
 ///////////////////////////////////////////////////////////////////////////////
-inline REAL InvSigmoid(REAL y, REAL scale /* = 1.0 */)
+template<class TYPE>
+inline TYPE InvSigmoid(TYPE y, TYPE scale /* = 1.0 */)
 {
 	// test for bounds
 	if (y >= 1.0) 
 	{
-		y = (REAL) 1.0 - (REAL) 1e-6;
+		y = (TYPE) 1.0 - (TYPE) 1e-6;
 	}
 
 	// compute value
-	REAL value = (REAL) (-log(1.0 / y - 1.0) 
+	TYPE value = (TYPE) (-log(1.0 / y - 1.0) 
 		/ scale);
 	ASSERT(_finite(value));
 
@@ -221,8 +225,39 @@ inline REAL InvSigmoid(REAL y, REAL scale /* = 1.0 */)
 }	// InvSigmoid
 
 
-#define ITERATE(coll, index, statement) \
+//////////////////////////////////////////////////////////////////////
+// ITERATE_VECTOR
+//
+// macro for quick iterative loops over vectors
+//////////////////////////////////////////////////////////////////////
+#define ITERATE_VECTOR(coll, index, statement) \
 { for (int index = 0; index < coll.GetDim(); index++) { statement; } }
+
+
+//////////////////////////////////////////////////////////////////////
+// GetProfileReal
+//
+// function for real-valued registry values
+//////////////////////////////////////////////////////////////////////
+inline REAL GetProfileReal(const char *pszSection, const char *pszName, double default_value)
+{
+	CString strValue;
+	strValue.Format("%lf", default_value);
+	
+	// get profile string, or default value
+	strValue = ::AfxGetApp()->GetProfileString(pszSection, pszName, strValue);
+
+	// turn to REAL
+	REAL value;
+	sscanf(strValue.GetBuffer(), REAL_FMT, &value);
+
+	// make sure parameter is written, so it can be modified through RegEdit
+	::AfxGetApp()->WriteProfileString(pszSection, pszName, strValue);
+
+	return value;
+
+}	// GetProfileReal
+
 
 //////////////////////////////////////////////////////////////////////
 // functions for complex values
