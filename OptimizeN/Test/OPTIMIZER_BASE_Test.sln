@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MTL", "..\..\MTL\MTL.vcproj", "{AB7DCDE5-D24F-40D0-8B8F-7525D7434E57}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OPTIMIZER_BASE", "..\OPTIMIZER_BASE.vcproj", "{8D28D385-1B33-4CC9-8104-BB23C8E20B67}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AB7DCDE5-D24F-40D0-8B8F-7525D7434E57} = {AB7DCDE5-D24F-40D0-8B8F-7525D7434E57}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OPTIMIZER_BASE_Test", "OPTIMIZER_BASE_Test.vcproj", "{1CF30119-FAE0-4C88-A105-9749229F31CA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E36AAF21-36B6-4925-BD53-60E7D2ADA601} = {E36AAF21-36B6-4925-BD53-60E7D2ADA601}
+		{8D28D385-1B33-4CC9-8104-BB23C8E20B67} = {8D28D385-1B33-4CC9-8104-BB23C8E20B67}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XMLLogging", "..\..\XMLLogging\XMLLogging.vcproj", "{E36AAF21-36B6-4925-BD53-60E7D2ADA601}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{AB7DCDE5-D24F-40D0-8B8F-7525D7434E57}.Debug.ActiveCfg = Debug|Win32
+		{AB7DCDE5-D24F-40D0-8B8F-7525D7434E57}.Debug.Build.0 = Debug|Win32
+		{AB7DCDE5-D24F-40D0-8B8F-7525D7434E57}.Release.ActiveCfg = Release|Win32
+		{AB7DCDE5-D24F-40D0-8B8F-7525D7434E57}.Release.Build.0 = Release|Win32
+		{8D28D385-1B33-4CC9-8104-BB23C8E20B67}.Debug.ActiveCfg = Debug|Win32
+		{8D28D385-1B33-4CC9-8104-BB23C8E20B67}.Debug.Build.0 = Debug|Win32
+		{8D28D385-1B33-4CC9-8104-BB23C8E20B67}.Release.ActiveCfg = Release|Win32
+		{8D28D385-1B33-4CC9-8104-BB23C8E20B67}.Release.Build.0 = Release|Win32
+		{1CF30119-FAE0-4C88-A105-9749229F31CA}.Debug.ActiveCfg = Debug|Win32
+		{1CF30119-FAE0-4C88-A105-9749229F31CA}.Debug.Build.0 = Debug|Win32
+		{1CF30119-FAE0-4C88-A105-9749229F31CA}.Release.ActiveCfg = Release|Win32
+		{1CF30119-FAE0-4C88-A105-9749229F31CA}.Release.Build.0 = Release|Win32
+		{E36AAF21-36B6-4925-BD53-60E7D2ADA601}.Debug.ActiveCfg = Debug|Win32
+		{E36AAF21-36B6-4925-BD53-60E7D2ADA601}.Debug.Build.0 = Debug|Win32
+		{E36AAF21-36B6-4925-BD53-60E7D2ADA601}.Release.ActiveCfg = Release|Win32
+		{E36AAF21-36B6-4925-BD53-60E7D2ADA601}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
