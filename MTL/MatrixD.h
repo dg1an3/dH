@@ -387,10 +387,15 @@ DECLARE_MATRIXD_INVERT(float, 32f, 6);
 DECLARE_MATRIXD_INVERT(float, 32f, 7);
 DECLARE_MATRIXD_INVERT(float, 32f, 8);
 DECLARE_MATRIXD_INVERT(float, 32f, 9);
+DECLARE_MATRIXD_INVERT(double, 64f, 1);
+DECLARE_MATRIXD_INVERT(double, 64f, 2);
 DECLARE_MATRIXD_INVERT(double, 64f, 3);
 DECLARE_MATRIXD_INVERT(double, 64f, 4);
 DECLARE_MATRIXD_INVERT(double, 64f, 5);
 DECLARE_MATRIXD_INVERT(double, 64f, 6); 
+DECLARE_MATRIXD_INVERT(double, 64f, 7); 
+DECLARE_MATRIXD_INVERT(double, 64f, 8); 
+DECLARE_MATRIXD_INVERT(double, 64f, 9); 
 
 #endif
 
@@ -505,8 +510,10 @@ CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,
 		return vProduct;												\
 	}
 
+// DECLARE_MATRIXD_VECPRODUCT(float, 32f, 2);
 DECLARE_MATRIXD_VECPRODUCT(float, 32f, 3);
 DECLARE_MATRIXD_VECPRODUCT(float, 32f, 4);
+// DECLARE_MATRIXD_VECPRODUCT(double, 64f, 2);
 DECLARE_MATRIXD_VECPRODUCT(double, 64f, 3);
 DECLARE_MATRIXD_VECPRODUCT(double, 64f, 4);
 #endif
@@ -551,8 +558,10 @@ CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft,
 		return mProduct;												\
 	}
 
+// DECLARE_MATRIXD_PRODUCT(float, 32f, 2);
 DECLARE_MATRIXD_PRODUCT(float, 32f, 3);
 DECLARE_MATRIXD_PRODUCT(float, 32f, 4);
+// DECLARE_MATRIXD_PRODUCT(double, 64f, 2);
 DECLARE_MATRIXD_PRODUCT(double, 64f, 3);
 DECLARE_MATRIXD_PRODUCT(double, 64f, 4);
 #endif
