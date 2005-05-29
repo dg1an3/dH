@@ -59,7 +59,7 @@ CBrentOptimizer& CConjGradOptimizer::GetBrentOptimizer()
 ///////////////////////////////////////////////////////////////////////////////
 const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 {
-	BEGIN_LOG_SECTION_("CConjGradOptimizer::Optimize");
+	BEGIN_LOG_SECTION(CConjGradOptimizer::Optimize);
 	LOG_EXPR_EXT(vInit);
 
 	// set the tolerance for the line optimizer
@@ -76,7 +76,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	// evaluate the function at the initial point, storing
 	//		the gradient as the current direction
 	m_finalValue = (*m_pFunc)(m_vFinalParam, &m_vGrad);
-	m_vGrad *= -1.0;
+	m_vGrad *= R(-1.0);
 	LOG_EXPR(m_finalValue);
 	LOG_EXPR_EXT(m_vGrad);
 
@@ -95,12 +95,12 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	BOOL bConvergence = FALSE;
 	for (m_nIteration = 0; (m_nIteration < ITER_MAX) && !bConvergence; m_nIteration++)
 	{
-		BEGIN_LOG_SECTION_(FMT("Iteration %i", m_nIteration));
+		LOG(FMT("Iteration %i", m_nIteration));
 
 		///////////////////////////////////////////////////////////////////////////////
 		// line minimization
 
-		BEGIN_LOG_SECTION_("Line Minimization");
+		BEGIN_LOG_SECTION(CConjGradOptimizer::Optimize!Line_Minimization);
 
 		// set up the direction for the line minimization
 		m_lineFunction.SetLine(m_vFinalParam, m_vDir); // m_vGrad);
@@ -143,7 +143,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		///////////////////////////////////////////////////////////////////////////////
 		// Update Direction
 
-		BEGIN_LOG_SECTION_("Update Direction");
+		BEGIN_LOG_SECTION(CConjGradOptimizer::Optimize!Update_Direction);
 		
 		// compute denominator for gamma
 		REAL gg = m_vGrad * m_vGrad;
@@ -190,8 +190,6 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		}
 
 		END_LOG_SECTION();	// Update Direction
-
-		END_LOG_SECTION();	// Iteration
 	}
 
 	if (!bConvergence)
