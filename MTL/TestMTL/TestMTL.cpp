@@ -50,12 +50,12 @@ complex<double> GenRand(complex<double> range)
 //		elements scaled by scale
 //////////////////////////////////////////////////////////////////////
 template<class VECTOR_TYPE>
-void TestVector(VECTOR_TYPE v1, VECTOR_TYPE::ELEM_TYPE range)
+void TestVector(VECTOR_TYPE v1, /* VECTOR_TYPE::ELEM_TYPE */ REAL range)
 {
 	// element accessors
 	for (int nAt = 0; nAt < v1.GetDim(); nAt++)
 	{
-		v1[nAt] = GenRand<VECTOR_TYPE::ELEM_TYPE>(range);
+		v1[nAt] = GenRand</* VECTOR_TYPE::ELEM_TYPE */ REAL>(range);
 	}
 	TRACE_VECTOR("v1 = ", v1);
 
@@ -109,7 +109,7 @@ void TestVector(VECTOR_TYPE v1, VECTOR_TYPE::ELEM_TYPE range)
 //		elements scaled by scale
 //////////////////////////////////////////////////////////////////////
 template<class MATRIX_TYPE>
-void TestMatrix(MATRIX_TYPE& m1, MATRIX_TYPE::ELEM_TYPE scale)
+void TestMatrix(MATRIX_TYPE& m1, /* MATRIX_TYPE::ELEM_TYPE */ REAL scale)
 {
 	// element accessors
 	for (int nAtCol = 0; nAtCol < m1.GetCols(); nAtCol++)
