@@ -26,7 +26,7 @@ static CVectorD<3> CalcPixelSpacing(const CMatrixD<4>& mBasis)
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CPyramid::CPyramid(CVolume<REAL> *pVolume)
+CPyramid::CPyramid(CVolume<VOXEL_REAL> *pVolume)
 : m_pVolume(pVolume)
 {
 	m_arrLevels.Add(m_pVolume);
@@ -48,17 +48,17 @@ CPyramid::~CPyramid()
 	}
 }
 
-CVolume<REAL> * CPyramid::GetLevel(int nLevel)
+CVolume<VOXEL_REAL> * CPyramid::GetLevel(int nLevel)
 {
 	if (m_arrLevels.GetSize() <= nLevel)
 	{
-		CVolume<REAL> *pPrev = GetLevel(nLevel-1);
+		CVolume<VOXEL_REAL> *pPrev = GetLevel(nLevel-1);
 
-		CVolume<REAL> convRegion;
+		CVolume<VOXEL_REAL> convRegion;
 		convRegion.ConformTo(pPrev);
 		Convolve(pPrev, &m_kernel, &convRegion);
 
-		CVolume<REAL> *pNewRegion = new CVolume<REAL>();
+		CVolume<VOXEL_REAL> *pNewRegion = new CVolume<VOXEL_REAL>();
 		Decimate(&convRegion, pNewRegion);
 		m_arrLevels.Add(pNewRegion);
 	}
@@ -97,7 +97,7 @@ int CPyramid::SetLevelBasis(const CMatrixD<4> &mBasis)
 	}
 
 	// resample G0
-	CVolume<REAL> * pG0 = new CVolume<REAL>();
+	CVolume<VOXEL_REAL> * pG0 = new CVolume<VOXEL_REAL>();
 	pG0->ConformTo(m_pVolume);
 	pG0->SetBasis(mNewBasis0);
 	::Resample(m_pVolume, pG0, TRUE);

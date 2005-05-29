@@ -14,19 +14,19 @@
 class CPyramid  
 {
 public:
-	CPyramid(CVolume<REAL> *pVolume);
+	CPyramid(CVolume<VOXEL_REAL> *pVolume);
 	virtual ~CPyramid();
 
-	CVolume<REAL> * GetLevel(int nLevel);
+	CVolume<VOXEL_REAL> * GetLevel(int nLevel);
 
 	int SetLevelBasis(const CMatrixD<4>& mBasis);
 
 private:
-	CVolume<REAL> * m_pVolume;
+	CVolume<VOXEL_REAL> * m_pVolume;
 
-	CVolume<REAL> m_kernel;
+	CVolume<VOXEL_REAL> m_kernel;
 
-	CTypedPtrArray<CPtrArray, CVolume<REAL> * > m_arrLevels;
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL> * > m_arrLevels;
 };
 
 #endif // !defined(AFX_PYRAMID_H__D29DF52C_B3D2_46E9_B9CD_2D92D31D8CDB__INCLUDED_)

@@ -31,6 +31,7 @@
 #include <limits>
 using namespace std;
 
+typedef float VOXEL_REAL;
 //////////////////////////////////////////////////////////////////////
 // class CVolume<VOXEL_TYPE>
 //
@@ -441,7 +442,7 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 	ASSERT(GetHeight() == pVolume->GetHeight());
 	ASSERT(GetDepth() == pVolume->GetDepth());
 
-	ASSERT(GetBasis().IsApproxEqual(pVolume->GetBasis()));
+//	ASSERT(GetBasis().IsApproxEqual(pVolume->GetBasis()));
 
 	CRect rectBounds(0, 0, pVolume->GetWidth()-1, pVolume->GetHeight()-1);
 	if (bUseBoundingBox)
@@ -458,17 +459,17 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 	IppiSize roiSize = { rectBounds.Width(), rectBounds.Height() };
 	IppStatus stat = ippiMulC_32f_C1R(
 		&pVolume->GetVoxels()[0][rectBounds.top][rectBounds.left], 
-		pVolume->GetWidth() * sizeof(REAL),
-		(REAL) weight,
+		pVolume->GetWidth() * sizeof(VOXEL_REAL),
+		(VOXEL_REAL) weight,
 		&m_pAccumBuffer->GetVoxels()[0][rectBounds.top][rectBounds.left], 
-		m_pAccumBuffer->GetWidth() * sizeof(REAL),
+		m_pAccumBuffer->GetWidth() * sizeof(VOXEL_REAL),
 		roiSize);
 
 	stat = ippiAdd_32f_C1IR(
 		&m_pAccumBuffer->GetVoxels()[0][rectBounds.top][rectBounds.left],
-		m_pAccumBuffer->GetWidth() * sizeof(REAL),
+		m_pAccumBuffer->GetWidth() * sizeof(VOXEL_REAL),
 		&GetVoxels()[0][rectBounds.top][rectBounds.left],
-		GetWidth() * sizeof(REAL),
+		GetWidth() * sizeof(VOXEL_REAL),
 		roiSize);
 
 #elif defined(ACCUMULATE_FLAT_LOOP)
@@ -634,6 +635,12 @@ inline const CRect& CVolume<VOXEL_TYPE>::GetThresholdBounds() const
 
 		m_bRecomputeThresh = FALSE;
 	}
+
+	//// TODO: reenable thershold boudns
+	//m_rectThresh.left = 0; 
+	//m_rectThresh.right = GetWidth()-1;
+	//m_rectThresh.top = 0; 
+	//m_rectThresh.bottom = GetHeight()-1;
 
 	return m_rectThresh;
 
@@ -928,7 +935,7 @@ void Rotate(CVolume<VOXEL_TYPE> *pOrig, CVectorD<2> vCenterOrig,
 		for (int nAtCol = 0; nAtCol < pNew->GetWidth(); nAtCol++)
 		{
 			// transform coordinate
-			CVectorD<2, VOXEL_TYPE> vAt((REAL) nAtCol, (REAL) nAtRow);
+			CVectorD<2, VOXEL_TYPE> vAt((VOXEL_TYPE) nAtCol, (VOXEL_TYPE) nAtRow);
 
 			vAt = mRot * (vAt - vCenterNew) + vCenterOrig;
 
@@ -1001,8 +1008,8 @@ inline void ClipRaster(int nDim,
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-#ifdef USE_IPP
-inline void Resample(CVolume<REAL> *pOrig, CVolume<REAL> *pNew, 
+#if defined(USE_IPP)
+inline void Resample(CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew, 
 					 BOOL bBilinear = FALSE)
 {
 	// form translation basis
@@ -1022,8 +1029,8 @@ inline void Resample(CVolume<REAL> *pOrig, CVolume<REAL> *pNew,
 	IppiRect rectOrig = {0, 0, pOrig->GetWidth(), pOrig->GetHeight() };
 	IppiRect rectNew = {0, 0, pNew->GetWidth(), pNew->GetHeight() };
 	IppStatus stat = ippiWarpAffineBack_32f_C1R(&pOrig->GetVoxels()[0][0][0], sz, 
-		pOrig->GetWidth() * sizeof(REAL), rectOrig,
-		&pNew->GetVoxels()[0][0][0], pNew->GetWidth() * sizeof(REAL), rectNew,
+		pOrig->GetWidth() * sizeof(VOXEL_REAL), rectOrig,
+		&pNew->GetVoxels()[0][0][0], pNew->GetWidth() * sizeof(VOXEL_REAL), rectNew,
 		coeffs, IPPI_INTER_LINEAR);
 
 	// flag change
@@ -1066,8 +1073,8 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 
 	}
 
-	REAL ***pppDstVoxels = pNew->GetVoxels();
-	REAL ***pppSrcVoxels = pOrig->GetVoxels();
+	VOXEL_REAL ***pppDstVoxels = pNew->GetVoxels();
+	VOXEL_REAL ***pppSrcVoxels = pOrig->GetVoxels();
 	for (int nY = 0; nY < pNew->GetHeight(); nY++)
 	{
 		CVectorD<3, int> vOX = vOY;
