@@ -205,7 +205,7 @@ void CMatrixNxM<TYPE>::SetIdentity()
 	// for each element in the matrix,
 	for (int nAt = 0; nAt < __min(GetCols(), GetRows()); nAt++)
 	{
-		(*this)[nAt][nAt] = 1.0;
+		(*this)[nAt][nAt] = TYPE(1.0);
 	}
 
 }	// CMatrixD<TYPE>::SetIdentity
