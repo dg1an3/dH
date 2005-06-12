@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -27,18 +27,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE 
 BEGIN
     "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
     "#define _AFX_NO_OLE_RESOURCES\r\n"
@@ -67,24 +67,24 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINFRAME           ICON    DISCARDABLE     "res\\Brimstone.ico"
-IDR_BRIMSTTYPE          ICON    DISCARDABLE     "res\\BrimstoneDoc.ico"
+IDR_MAINFRAME           ICON                    "res\\Brimstone.ico"
+IDR_BRIMSTTYPE          ICON                    "res\\BrimstoneDoc.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
-IDR_MAINFRAME           BITMAP  MOVEABLE PURE   "res\\Toolbar.bmp"
-IDB_LEGEND              BITMAP  DISCARDABLE     "res\\legend.bmp"
-IDB_RAINBOW             BITMAP  DISCARDABLE     "res\\rainbow.bmp"
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+IDB_LEGEND              BITMAP                  "res\\legend.bmp"
+IDB_RAINBOW             BITMAP                  "res\\rainbow.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Toolbar
 //
 
-IDR_MAINFRAME TOOLBAR DISCARDABLE  16, 15
+IDR_MAINFRAME TOOLBAR  16, 15
 BEGIN
     BUTTON      ID_FILE_NEW
     BUTTON      ID_FILE_OPEN
@@ -93,6 +93,7 @@ BEGIN
     BUTTON      ID_SCANBEAMLETS
     SEPARATOR
     BUTTON      ID_OPTIMIZE
+    BUTTON      ID_OPT_DASHBOARD
     SEPARATOR
     BUTTON      ID_VIEW_STRUCT_COLORWASH
     SEPARATOR
@@ -111,7 +112,7 @@ END
 // Menu
 //
 
-IDR_MAINFRAME MENU PRELOAD DISCARDABLE 
+IDR_MAINFRAME MENU 
 BEGIN
     POPUP "&File"
     BEGIN
@@ -143,7 +144,9 @@ BEGIN
     BEGIN
         MENUITEM "Generate Beamlets",           ID_GENBEAMLETS
         MENUITEM "Add Prescription",            ID_PLAN_ADD_PRESC
-        MENUITEM "Optimize",                    ID_OPTIMIZE
+        MENUITEM SEPARATOR
+        MENUITEM "&Optimize",                   ID_OPTIMIZE
+        MENUITEM "Optimzer &Dashboard",         ID_OPT_DASHBOARD
     END
     POPUP "&View"
     BEGIN
@@ -169,7 +172,7 @@ END
 // Accelerator
 //
 
-IDR_MAINFRAME ACCELERATORS PRELOAD MOVEABLE PURE 
+IDR_MAINFRAME ACCELERATORS 
 BEGIN
     "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
     "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
@@ -193,8 +196,8 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOG DISCARDABLE  0, 0, 235, 55
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_ABOUTBOX DIALOG  0, 0, 235, 55
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Brimstone"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -205,8 +208,8 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
 END
 
-IDD_PRESCDLG DIALOG DISCARDABLE  0, 0, 132, 364
-STYLE WS_CHILD
+IDD_PRESCDLG DIALOG  0, 0, 132, 364
+STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     COMBOBOX        IDC_STRUCTSELECT,14,20,100,102,CBS_DROPDOWNLIST | 
@@ -222,8 +225,8 @@ BEGIN
                     WS_TABSTOP,22,38,84,15
 END
 
-IDD_PLANSETUPDLG DIALOG DISCARDABLE  0, 0, 186, 122
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_PLANSETUPDLG DIALOG  0, 0, 186, 122
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Plan Setup"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -237,8 +240,8 @@ BEGIN
     EDITTEXT        IDC_EDIT_ISO_OFS_Y,92,59,87,13,ES_AUTOHSCROLL
 END
 
-IDD_ADDPRESC DIALOG DISCARDABLE  0, 0, 192, 121
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_ADDPRESC DIALOG  0, 0, 192, 121
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Add Prescription"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -257,8 +260,37 @@ BEGIN
     EDITTEXT        IDC_DOSE2_EDIT,126,58,51,17,ES_AUTOHSCROLL
 END
 
+IDD_OPTIMIZERTEST_DIALOG DIALOGEX 0, 0, 644, 456
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "OptimizerTest"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    CONTROL         "Component 1",IDC_CHECK_COMP1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,79,54,13
+    CONTROL         "Component 2",IDC_CHECK_COMP2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,96,54,13
+    CONTROL         "Component 3",IDC_CHECK_COMP3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,113,54,13
+    CONTROL         "Diff Approx",IDC_DIFF_APPROX_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,543,133,70,13
+    CONTROL         "Transform Param",IDC_XFORM_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,543,161,66,13
+    CONTROL         "Log Scale",IDC_LOG_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,266,52,13
+    GROUPBOX        "Iterations",IDC_STATIC_ITER_GRAPH,7,297,504,140
+    GROUPBOX        "Param",IDC_STATIC_PARAM_GRAPH,7,147,504,140
+    GROUPBOX        "Gradient",IDC_STATIC_GRAD_GRAPH,7,7,504,140
+    SCROLLBAR       IDC_ITER_SCROLLBAR,7,437,504,12
+    SCROLLBAR       IDC_PARAM_SCROLLBAR,7,286,504,12
+    GROUPBOX        "Distance",IDC_STATIC_DIST_GRAPH,7,297,504,104
+    PUSHBUTTON      "Done",IDOK,540,405,77,21
+    PUSHBUTTON      ">>",IDC_BTN_NEXT,571,242,40,15
+    PUSHBUTTON      "<<",IDC_BTN_PREV,523,242,40,15
+END
 
-#ifndef _MAC
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -281,15 +313,13 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "Brimstone MFC Application\0"
-            VALUE "FileVersion", "1, 0, 0, 1\0"
-            VALUE "InternalName", "Brimstone\0"
-            VALUE "LegalCopyright", "Copyright (C) 2004\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "Brimstone.EXE\0"
-            VALUE "ProductName", "Brimstone Application\0"
-            VALUE "ProductVersion", "1, 0, 0, 1\0"
+            VALUE "FileDescription", "Brimstone MFC Application"
+            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "InternalName", "Brimstone"
+            VALUE "LegalCopyright", "Copyright (C) 2004"
+            VALUE "OriginalFilename", "Brimstone.EXE"
+            VALUE "ProductName", "Brimstone Application"
+            VALUE "ProductVersion", "1, 0, 0, 1"
         END
     END
     BLOCK "VarFileInfo"
@@ -298,8 +328,6 @@ BEGIN
     END
 END
 
-#endif    // !_MAC
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -307,7 +335,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -340,6 +368,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 114
     END
+
+    IDD_OPTIMIZERTEST_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 635
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 449
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -366,18 +402,18 @@ END
 // String Table
 //
 
-STRINGTABLE PRELOAD DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDR_MAINFRAME           "Brimstone\n\nBrimst\n\n\nBrimstone.Document\nBrimst Document"
 END
 
-STRINGTABLE PRELOAD DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_APP_TITLE       "Brimstone"
     AFX_IDS_IDLEMESSAGE     "Ready"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_INDICATOR_EXT        "EXT"
     ID_INDICATOR_CAPS       "CAP"
@@ -387,7 +423,7 @@ BEGIN
     ID_INDICATOR_REC        "REC"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_FILE_NEW             "Create a new document\nNew"
     ID_FILE_OPEN            "Open an existing document\nOpen"
@@ -400,13 +436,13 @@ BEGIN
     ID_FILE_PRINT_PREVIEW   "Display full pages\nPrint Preview"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
     ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_FILE_MRU_FILE1       "Open this document"
     ID_FILE_MRU_FILE2       "Open this document"
@@ -426,18 +462,18 @@ BEGIN
     ID_FILE_MRU_FILE16      "Open this document"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
     ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_EDIT_CLEAR           "Erase the selection\nErase"
     ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
@@ -452,13 +488,13 @@ BEGIN
     ID_EDIT_REDO            "Redo the previously undone action\nRedo"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle ToolBar"
     ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_SCSIZE          "Change the window size"
     AFX_IDS_SCMOVE          "Change the window position"
@@ -469,18 +505,18 @@ BEGIN
     AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_SCRESTORE       "Restore the window to normal size"
     AFX_IDS_SCTASKLIST      "Activate Task List"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_PREVIEW_CLOSE   "Close print preview mode\nCancel Preview"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDM_DOSEUPDATE          "MSG Update Dose"
     IDC_LEGEND              "Isodose legend"
@@ -490,10 +526,11 @@ BEGIN
     IDC_STRUCTWEIGHT        "Select structure weight"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_SCANBEAMLETS         "Scans beamlets"
     IDM_IMPORT_DCM          "Import DICOM image && sset files"
+    ID_OPT_DASHBOARD        "Calls up Optimizer Dashboard"
 END
 
 #endif    // English (U.S.) resources

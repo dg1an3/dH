@@ -5,7 +5,7 @@
 #if !defined(AFX_BRIMSTONEVIEW_H__315F9461_92CF_4D86_B8C6_304D8C253E91__INCLUDED_)
 #define AFX_BRIMSTONEVIEW_H__315F9461_92CF_4D86_B8C6_304D8C253E91__INCLUDED_
 
-#include "Graph.h"
+#include <Graph.h>
 #include "PlanarView.h"	// Added by ClassView
 
 #if _MSC_VER > 1000
@@ -54,9 +54,9 @@ public:
 // Implementation
 public:
 	void ScanBeamlets(int nLevel);
-	void DrawContours(CDC *pDC, const CRect& rect, CVolume<REAL> *pDens);
-	void OnHistogramChange(CObservableEvent *, void *);
-	void OnDVHChanged();
+	void DrawContours(CDC *pDC, const CRect& rect, CVolume<VOXEL_REAL> *pDens);
+	// void OnHistogramChange(CObservableEvent *, void *);
+	// void OnDVHChanged();
 	virtual ~CBrimstoneView();
 #ifdef _DEBUG
 	virtual void AssertValid() const;

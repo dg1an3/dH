@@ -14,6 +14,9 @@
 
 #include "PlanSetupDlg.h"
 #include "PrescDlg.h"
+#include ".\brimstonedoc.h"
+
+#include "OptimizerDashboard.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -104,7 +107,7 @@ BOOL COptThread::Callback(REAL value, const CVectorN<>& vRes)
 
 	nIteration++;
 
-	if (vRes.GetDim() == m_pPresc->m_pPlan->GetTotalBeamletCount(0))
+	if (vRes.GetDim() == m_pPresc->GetPlan()->GetTotalBeamletCount(0))
 	{
 		// m_csResult.Lock();
 
@@ -112,11 +115,12 @@ BOOL COptThread::Callback(REAL value, const CVectorN<>& vRes)
 		m_bestValue = value;
 		m_vResult.SetDim(vRes.GetDim());
 		m_vResult = vRes;
+		m_pPresc->Transform(&m_vResult);
+
+		// TODO: get rid of this check
 		for (int nAt = 0; nAt < m_vResult.GetDim(); nAt++)
 		{
-//			ASSERT(_finite(vInit[nAt]));
-			m_vResult[nAt] = Sigmoid(vRes[nAt], m_pPresc->m_inputScale);
-//			ASSERT(_finite(vInit[nAt]));
+			ASSERT(_finite(m_vResult[nAt]));
 		}
 
 		// flag new result
@@ -154,6 +158,7 @@ BEGIN_MESSAGE_MAP(CBrimstoneDoc, CDocument)
 	ON_COMMAND(ID_FILE_IMPORT_DCM, OnFileImportDcm)
 	ON_COMMAND(ID_PLAN_ADD_PRESC, OnPlanAddPresc)
 	//}}AFX_MSG_MAP
+	ON_COMMAND(ID_OPT_DASHBOARD, OnOptDashboard)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -297,10 +302,10 @@ void InitUTarget(CPlan *pPlan, CStructure *pTarget, CStructure *pAvoid)
 {
 	BEGIN_LOG_SECTION(InitUTarget);
 
-	CVolume<REAL> *pRegionTarget = pTarget->GetRegion(0);
+	CVolume<VOXEL_REAL> *pRegionTarget = pTarget->GetRegion(0);
 	pRegionTarget->ClearVoxels();
 
-	CVolume<REAL> *pRegionAvoid = pAvoid->GetRegion(0);
+	CVolume<VOXEL_REAL> *pRegionAvoid = pAvoid->GetRegion(0);
 	pRegionAvoid->ClearVoxels();
 
 	int nBeamletCount = pPlan->GetBeamAt(0)->GetBeamletCount(0); // 31;
@@ -358,8 +363,8 @@ void InitUTarget(CPlan *pPlan, CStructure *pTarget, CStructure *pAvoid)
 	
 	pAvoid->AddContour(pAvoidContour, 0.0);
 
-	REAL ***pppVoxelsTarget = pRegionTarget->GetVoxels();
-	REAL ***pppVoxelsAvoid = pRegionAvoid->GetVoxels();
+	VOXEL_REAL ***pppVoxelsTarget = pRegionTarget->GetVoxels();
+	VOXEL_REAL ***pppVoxelsAvoid = pRegionAvoid->GetVoxels();
 	for (int nAtRow = nMargin; nAtRow < pRegionTarget->GetHeight()-nMargin; nAtRow++)
 	{
 		for (int nAtCol = nMargin; nAtCol < pRegionTarget->GetWidth()-nMargin; nAtCol++)
@@ -426,6 +431,25 @@ void InitVolumes(CSeries *pSeries, CPlan *pPlan, CPrescription *pPresc)
 
 void CBrimstoneDoc::OnOptimize() 
 {
+	// call optimize
+	CVectorN<> vInit;
+	m_pOptThread->m_pPresc->GetInitStateVector(vInit);
+	if (m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
+	{
+		m_pOptThread->m_pPresc->SetStateVectorToPlan(vInit);
+	}
+
+
+	POSITION pos = GetFirstViewPosition();
+	while (pos != NULL)
+	{
+		CView *pView = GetNextView(pos);
+		pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+
+	return;
+
+#ifdef _USE_THREAD_
 	m_pOptThread->m_csPrescParam.Lock();
 	m_pOptThread->m_evtParamChanged = TRUE;
 	m_pOptThread->m_csPrescParam.Unlock();
@@ -452,6 +476,7 @@ void CBrimstoneDoc::OnOptimize()
 	BOOL bRes = m_pOptThread->m_pPrescParam->Optimize(vParam, NULL, NULL);
 
 	m_pOptThread->m_pPrescParam->SetStateVectorToPlan(vParam); */
+#endif
 }
 
 BOOL CBrimstoneDoc::OnOpenDocument(LPCTSTR lpszPathName) 
@@ -460,11 +485,11 @@ BOOL CBrimstoneDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		return FALSE;
 	
 	m_pOptThread->m_pPrescParam = new CPrescription(m_pPlan, 0);
-	m_pOptThread->m_pPrescParam->SetElementInclude();
+//	m_pOptThread->m_pPrescParam->SetElementInclude();
 //	InitVolumes(m_pSeries, m_pPlan, m_pOptThread->m_pPrescParam);
 
 	m_pOptThread->m_pPresc = new CPrescription(m_pPlan, 0);
-	m_pOptThread->m_pPresc->SetElementInclude();
+//	m_pOptThread->m_pPresc->SetElementInclude();
 //	InitVolumes(m_pSeries, m_pPlan, m_pOptThread->m_pPresc);
 //	m_pOptThread->m_pPresc->UpdateTerms(m_pOptThread->m_pPrescParam);
 
@@ -486,7 +511,7 @@ void CBrimstoneDoc::OnGenbeamlets()
 		mBasis[1][1] = 4.0;	// mm
 		mBasis[2][2] = 4.0; // mm
 
-		CVolume<REAL> *pOrigDensity = m_pSeries->m_pDens;
+		CVolume<VOXEL_REAL> *pOrigDensity = m_pSeries->m_pDens;
 		int nHeight = pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[0][0] / mBasis[0][0];
 		int nWidth = pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[1][1] / mBasis[1][1];
 		int nDepth = 10;
@@ -495,12 +520,12 @@ void CBrimstoneDoc::OnGenbeamlets()
 		mBasis[3] = pOrigDensity->GetBasis()[3];
 		m_pPlan->m_dose.SetBasis(mBasis);
 
-		CVolume<REAL> massDensity;
+		CVolume<VOXEL_REAL> massDensity;
 		massDensity.ConformTo(pOrigDensity);
 		massDensity.ClearVoxels();
 
-		REAL ***pppCTVoxels = pOrigDensity->GetVoxels();
-		REAL ***pppMDVoxels = massDensity.GetVoxels();
+		VOXEL_REAL ***pppCTVoxels = pOrigDensity->GetVoxels();
+		VOXEL_REAL ***pppMDVoxels = massDensity.GetVoxels();
 		for (int nX = 0; nX < massDensity.GetWidth(); nX++)
 			for (int nY = 0; nY < massDensity.GetHeight() * 3 / 4; nY++)
 				for (int nZ = 0; nZ < massDensity.GetDepth(); nZ++)
@@ -636,9 +661,21 @@ void CBrimstoneDoc::OnPlanAddPresc()
 
 	if (dlg.DoModal())
 	{
-		m_pOptThread->m_pPresc->SetElementInclude();
-		m_pOptThread->m_pPrescParam->SetElementInclude();
+		CVectorN<> vInit;
+		m_pOptThread->m_pPresc->GetInitStateVector(vInit);
+		// if (m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
+		{
+		}
+		// m_pOptThread->m_pPresc->SetElementInclude();
+		// m_pOptThread->m_pPrescParam->SetElementInclude();
 
 		UpdateAllViews(NULL, IDD_ADDPRESC, dlg.m_pStruct);
 	}
+}
+
+void CBrimstoneDoc::OnOptDashboard()
+{
+	COptimizerDashboard optDash;
+	optDash.m_pPresc = m_pOptThread->m_pPresc;
+	optDash.DoModal();
 }

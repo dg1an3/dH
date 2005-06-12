@@ -4,10 +4,11 @@
 #include "stdafx.h"
 #include "Brimstone.h"
 
+#include <Dib.h>
+#include <HistogramDataSeries.h>
+
 #include "BrimstoneDoc.h"
 #include "BrimstoneView.h"
-
-#include <Dib.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -87,13 +88,13 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 	rect.bottom = rectGraph.top;
 	rect.right = rect.left + rect.Height();
 
-	CVolume<REAL>& density = *pDoc->m_pSeries->m_pDens;
+	CVolume<VOXEL_REAL>& density = *pDoc->m_pSeries->m_pDens;
 
 	CMatrixD<4> mBasis = density.GetBasis();
 	mBasis[0][0] = (REAL) density.GetWidth() / (REAL) rect.Width();
 	mBasis[1][1] = (REAL) density.GetHeight() / (REAL) rect.Height();
 
-	static CVolume<REAL> densityResamp;
+	static CVolume<VOXEL_REAL> densityResamp;
 	if (densityResamp.GetWidth() != rect.Width())
 	{
 		densityResamp.SetDimensions(rect.Width(), rect.Height(), 1);
@@ -103,9 +104,9 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 
 	Resample(&density, &densityResamp, TRUE);
 
-	CVolume<REAL>& totalDose = *pDoc->m_pPlan->GetDoseMatrix();
+	CVolume<VOXEL_REAL>& totalDose = *pDoc->m_pPlan->GetDoseMatrix();
 
-	static CVolume<REAL> doseResamp;
+	static CVolume<VOXEL_REAL> doseResamp;
 	doseResamp.ConformTo(&densityResamp);
 	doseResamp.ClearVoxels();
 
@@ -114,17 +115,17 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 	static CArray<COLORREF, COLORREF> arrPixels;
 	arrPixels.SetSize(rect.Width() * rect.Height());
 
-	REAL *pDens = &densityResamp.GetVoxels()[0][0][0];
-	REAL *pDose = &doseResamp.GetVoxels()[0][0][0];
+	VOXEL_REAL *pDens = &densityResamp.GetVoxels()[0][0][0];
+	VOXEL_REAL *pDose = &doseResamp.GetVoxels()[0][0][0];
 	int nRowSize = densityResamp.GetWidth();
 	for (int nAt = 0; nAt < nRowSize * nRowSize; nAt++)
 	{
-		REAL dose = pDose[nAt] / 0.80;
-		int colorIndex = (int)(dose * (REAL) (m_arrColormap.GetSize()-1));
+		VOXEL_REAL dose = pDose[nAt] / 0.80;
+		int colorIndex = (int)(dose * (VOXEL_REAL) (m_arrColormap.GetSize()-1));
 		colorIndex = __min(colorIndex, m_arrColormap.GetSize()-1);
 		COLORREF color = m_arrColormap[colorIndex];
 
-		REAL intensity = pDens[nAt];
+		VOXEL_REAL intensity = pDens[nAt];
 		// intensity /= 1000.0;
 
 		color = RGB(intensity * GetBValue(color), 
@@ -228,9 +229,8 @@ int CBrimstoneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_graph.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
 		CRect(0, 200, 200, 400), this, /* nID */ 113);
 
-	m_graph.m_arrLegendLUT.Copy(m_arrColormap);
-	m_graph.m_window = m_wndPlanarView.m_window[1];
-	m_graph.m_level = m_wndPlanarView.m_level[1];
+	m_graph.SetLegendLUT(m_arrColormap, 
+		m_wndPlanarView.m_window[1], m_wndPlanarView.m_level[1]);
 
 	// set timer to update plan
 	SetTimer(7, 20, NULL);
@@ -282,6 +282,8 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
 		pSeries->SetColor(pStruct->m_color);
 		m_graph.AddDataSeries(pSeries);
+		m_graph.AutoScale();
+		m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
 	}
 	
 	Invalidate(FALSE);
@@ -289,13 +291,6 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	// DON'T CALL because it will erase
 	// CView::OnUpdate(pSender, lHint, pHint);
-}
-
-void CBrimstoneView::OnDVHChanged()
-{
-	// set DVH values
-
-	// set legend
 }
 
 void CBrimstoneView::OnSize(UINT nType, int cx, int cy) 
@@ -308,22 +303,26 @@ void CBrimstoneView::OnSize(UINT nType, int cx, int cy)
 	m_graph.MoveWindow(0, 2 * cy / 3, cx, cy / 3);	
 }
 
-void CBrimstoneView::OnHistogramChange(CObservableEvent *, void *)
-{
-	// locate the histo
-	CHistogram *pHisto = NULL;
-
-	// now draw the histogram
-	const CVectorN<>& arrBins = pHisto->GetCumBins();
-	CDataSeries *pSeries = new CDataSeries();
-	m_graph.RemoveAllDataSeries();
-	m_graph.AddDataSeries(pSeries);
-	for (int nAt = 0; nAt < arrBins.GetDim(); nAt++)
-	{
-		pSeries->AddDataPoint(CVectorD<2>
-			(1000 * nAt / 256, arrBins[nAt] * 100.0));
-	}	
-}
+//void CBrimstoneView::OnHistogramChange(CObservableEvent *, void *)
+//{
+//	// locate the histo
+//	CHistogram *pHisto = NULL;
+//
+//	// now draw the histogram
+//	const CVectorN<>& arrBins = pHisto->GetCumBins();
+//	CDataSeries *pSeries = new CDataSeries();
+//	m_graph.RemoveAllDataSeries();
+//	m_graph.AddDataSeries(pSeries);
+//	for (int nAt = 0; nAt < arrBins.GetDim(); nAt++)
+//	{
+//		pSeries->AddDataPoint(CVectorD<2>
+//			(1000 * nAt / 256, arrBins[nAt] * 100.0));
+//	}	
+//	
+//	// set up graph scale
+//	m_graph.AutoScale();
+//	m_graph.SetAxesMinMax(CVectorD<2>(0.0f, 0.0f), CVectorD<2>(100.0f, 110.0f));
+//}
 
 
 void CBrimstoneView::OnTimer(UINT nIDEvent) 
@@ -335,7 +334,7 @@ void CBrimstoneView::OnTimer(UINT nIDEvent)
 	CView::OnTimer(nIDEvent);
 }
 
-CPoint ToDC(const CVectorD<2>& vVert, const CRect& rect, CVolume<REAL> *pDens)
+CPoint ToDC(const CVectorD<2>& vVert, const CRect& rect, CVolume<VOXEL_REAL> *pDens)
 {
 	CPoint pt(
 		vVert[0] / (REAL) pDens->GetWidth() * (REAL) rect.Width(),
@@ -344,7 +343,7 @@ CPoint ToDC(const CVectorD<2>& vVert, const CRect& rect, CVolume<REAL> *pDens)
 	return pt;
 		
 }
-void CBrimstoneView::DrawContours(CDC *pDC, const CRect& rect, CVolume<REAL> *pDens)
+void CBrimstoneView::DrawContours(CDC *pDC, const CRect& rect, CVolume<VOXEL_REAL> *pDens)
 {
 	CSeries *pSeries = GetDocument()->m_pSeries;
 	for (int nAtStruct = 0; nAtStruct < pSeries->GetStructureCount(); nAtStruct++)
@@ -376,7 +375,7 @@ void CBrimstoneView::OnViewStructColorwash()
 		CStructure *pStruct = GetDocument()->m_pSelectedStruct;
 		if (pStruct != NULL)
 		{
-			CVolume<REAL> *pRegion = pStruct->GetRegion(2);
+			CVolume<VOXEL_REAL> *pRegion = pStruct->GetRegion(2);
 			m_wndPlanarView.SetVolume(pRegion, 1);
 		}
 	}
@@ -436,7 +435,7 @@ void CBrimstoneView::ScanBeamlets(int nLevel)
 			for (int nShift = -pBeam->GetBeamletCount(nLevel) / 2; 
 					nShift<= pBeam->GetBeamletCount(nLevel) / 2; nShift++)
 			{
-				CVolume<REAL> *pBeamlet = pBeam->GetBeamlet(nShift, nLevel);
+				CVolume<VOXEL_REAL> *pBeamlet = pBeam->GetBeamlet(nShift, nLevel);
 				m_wndPlanarView.SetVolume(pBeamlet, 1);
 				m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
 			}
