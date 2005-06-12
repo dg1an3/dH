@@ -17,9 +17,18 @@
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
 CKLDivTerm::CKLDivTerm(CStructure *pStructure, REAL weight)
-	: CVOITerm(pStructure, weight),
-		m_bReconvolve(true)
+	: CVOITerm(pStructure, weight)
+		, m_bReconvolve(true)
+		, m_bTargetCrossEntropy(false)
 {
+	// initialize flag
+	int nTargetCrossEntropy = 
+		::AfxGetApp()->GetProfileInt("KLDivTerm", "TargetCrossEntropy", 0);
+	m_bTargetCrossEntropy = (nTargetCrossEntropy != 0);
+
+	// store value back to registry
+	::AfxGetApp()->WriteProfileInt("KLDivTerm", "TargetCrossEntropy", nTargetCrossEntropy);
+		
 	m_histogram.GetChangeEvent().AddObserver(this, 
 		(ListenerFunction) OnHistogramChange);
 
@@ -62,13 +71,12 @@ CVOITerm *CKLDivTerm::Subcopy(CVOITerm *)
 void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction)
 {
 	BEGIN_LOG_SECTION(CKLDivTerm::SetInterval);
-	LOG("Setting interval for histogram");
 	LOG_EXPR(low);
 	LOG_EXPR(high);
 	LOG_EXPR(fraction);
 
 	// get the main volume
-	CVolume<REAL> *pVolume = GetHistogram()->GetVolume();
+	CVolume<VOXEL_REAL> *pVolume = GetHistogram()->GetVolume();
 	CVectorN<>& targetBins = GetTargetBins();
 	targetBins.SetDim(GetHistogram()->GetBinForValue(high)+1);
 	targetBins.SetZero();
@@ -81,18 +89,21 @@ void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction)
 		sum += 1.0;
 	}
 
-	REAL totalVolume = pVolume->GetVoxelCount();
+	REAL totalVolume = R(pVolume->GetVoxelCount());
 	if (NULL != GetHistogram()->GetRegion())
 	{
 		totalVolume = GetHistogram()->GetRegion()->GetSum();
+		CVectorD<3> vPixSpacing = GetHistogram()->GetRegion()->GetPixelSpacing();
+		totalVolume *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
 	}
 
-	if (sum > 0.0)
+	if (totalVolume > 0.0)
 	{
 		for (nAtBin = 0; nAtBin < targetBins.GetDim(); nAtBin++)
 		{
 			// re-normalize bins
-			targetBins[nAtBin] *= 1.0 /* fraction * totalVolume */ / sum;
+			targetBins[nAtBin] *= R(1.0 / ((double) totalVolume * (double) GetHistogram()->GetBinWidth()));
+				// / sum);
 		}
 	}
 
@@ -102,12 +113,12 @@ void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction)
 	// triggers recalc of GBins
 	m_bReconvolve = true;
 
-	END_LOG_SECTION();	// CKLDivTerm::SetInterval
-
 	if (m_pNextScale)
 	{
 		static_cast<CKLDivTerm*>(m_pNextScale)->SetInterval(low, high, fraction);
 	}
+
+	END_LOG_SECTION();	// CKLDivTerm::SetInterval
 
 }	// CKLDivTerm::SetInterval
 
@@ -128,7 +139,7 @@ void CKLDivTerm::SetRamp(REAL low, REAL low_frac,
 	LOG_EXPR(high_frac);
 
 	// get the main volume
-	CVolume<REAL> *pVolume = GetHistogram()->GetVolume();
+	CVolume<VOXEL_REAL> *pVolume = GetHistogram()->GetVolume();
 	CVectorN<>& targetBins = GetTargetBins();
 	targetBins.SetZero();
 
@@ -150,15 +161,38 @@ void CKLDivTerm::SetRamp(REAL low, REAL low_frac,
 	// triggers recalc of GBins
 	m_bReconvolve = true;
 
-	END_LOG_SECTION();	// CKLDivTerm::SetRamp
-
 	if (m_pNextScale)
 	{
 		static_cast<CKLDivTerm*>(m_pNextScale)->SetRamp(low, 
 			low_frac, high, high_frac);
 	}
 
+	END_LOG_SECTION();	// CKLDivTerm::SetRamp
+
 }	// CKLDivTerm::SetRamp
+
+///////////////////////////////////////////////////////////////////////////////
+// CKLDivTerm::GetTargetBins
+// 
+// accessor for target bins (after calling SetRamp or SetInterval)
+///////////////////////////////////////////////////////////////////////////////
+CVectorN<>& CKLDivTerm::GetTargetBins() 
+{ 
+	return m_vTargetBins; 
+
+}	// CKLDivTerm::GetTargetBins
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CKLDivTerm::GetTargetBins
+// 
+// accessor for target bins (after calling SetRamp or SetInterval)
+///////////////////////////////////////////////////////////////////////////////
+const CVectorN<>& CKLDivTerm::GetTargetBins() const 
+{ 
+	return m_vTargetBins; 
+
+}	// CKLDivTerm::GetTargetBins
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -170,11 +204,22 @@ const CVectorN<>& CKLDivTerm::GetTargetGBins() const
 { 
 	if (m_bReconvolve)
 	{
+		BEGIN_LOG_SECTION(CKLDivTerm::GetTargetGBins!Reconvolve);
+
 		// now convolve GBins
-		m_vTargetGBins.SetDim(GetHistogram()->GetGBins().GetDim());
+		m_vTargetGBins.SetDim( // GetHistogram()->GetGBins().GetDim())
+			GetTargetBins().GetDim() 
+				+ (int) (GBINS_BUFFER * GetHistogram()->GetGBinSigma() / GetHistogram()->GetBinWidth()));
+		//	(GetBinForValue(maxValue + GBINS_BUFFER * GetHistogram()->GetBinKernelSigma()) + 1);
 		GetHistogram()->ConvGauss(GetTargetBins(), m_vTargetGBins);
-		
+
+		REAL sum = 0.0;
+		ITERATE_VECTOR(m_vTargetGBins, nAt, sum += m_vTargetGBins[nAt]);
+		m_vTargetGBins *= R(1.0) / (sum * GetHistogram()->GetBinWidth());
+
 		m_bReconvolve = false;
+
+		END_LOG_SECTION(); // CKLDivTerm::GetTargetGBins!Reconvolve
 	}
 
 	return m_vTargetGBins; 
@@ -192,38 +237,84 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 	REAL sum = 0.0;
 
 	BEGIN_LOG_SECTION(CKLDivTerm::Eval);
+	LOG_EXPR(m_weight);
+
+#define TEST_REGION_SUM
+#ifdef TEST_REGION_SUM
+	if (m_pNextScale)
+	{
+		REAL calcSum = GetHistogram()->GetRegion()->GetSum();
+		CVectorD<3> vPixSpacing = GetHistogram()->GetRegion()->GetPixelSpacing();
+		calcSum *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
+
+		REAL calcSumNext = m_pNextScale->GetHistogram()->GetRegion()->GetSum();
+		vPixSpacing = m_pNextScale->GetHistogram()->GetRegion()->GetPixelSpacing();
+		calcSumNext *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
+
+		ASSERT(IsApproxEqual(calcSum, calcSumNext, 0.1));
+	}
+#endif
 
 	// get the calculated histogram bins
 	CVectorN<>& calcGPDF = GetHistogram()->GetGBins();
+
+#define TEST_NORM
+#ifdef TEST_NORM
+	double vec_sum = 0.0;
+	ITERATE_VECTOR(calcGPDF, nAt, vec_sum += calcGPDF[nAt]);
+	ASSERT(vec_sum < 10.0 * (1.0 / GetHistogram()->GetBinWidth()));
+#endif
+
 	LOG_EXPR_EXT(calcGPDF);
 
 	// get the target bins
 	const CVectorN<>& targetGPDF = GetTargetGBins();
 	LOG_EXPR_EXT(targetGPDF);
 
-	const long n_dVolCount = GetHistogram()->Get_dVolumeCount();
-
 	// form the sum of the sq. difference for target - calc
-	const REAL EPS = (REAL) 1e-8;
-	ASSERT(calcGPDF.GetDim() <= targetGPDF.GetDim());
-	for (int nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
+	const REAL EPS = (REAL) 1e-5;
+	LOG_EXPR(EPS);
+
+	if (!m_bTargetCrossEntropy)
 	{
-
-#define CROSS_ENTROPY
-#ifdef CROSS_ENTROPY
-		ASSERT(calcGPDF[nAtBin] >= 0.0);
-		sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] + EPS);	
-
-		ASSERT(targetGPDF[nAtBin] >= 0.0);
-		sum -= calcGPDF[nAtBin] * log(targetGPDF[nAtBin] + EPS);
-		ASSERT(_finite(sum));
-#endif
-
+		for (int nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
+		{
+			if (nAtBin < targetGPDF.GetDim())
+			{
+				ASSERT(targetGPDF[nAtBin] >= 0.0);
+				sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS);	
+			}
+			else
+			{
+				sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] / (EPS) + EPS);	
+				ASSERT(_finite(sum));
+			}
+		}
 	}
+	else // if (m_bTargetCrossEntropy)
+	{
+		for (int nAtBin = 0; nAtBin < targetGPDF.GetDim(); nAtBin++)
+		{
+			if (nAtBin < calcGPDF.GetDim())
+			{
+				sum += targetGPDF[nAtBin] 
+					* log(targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS) + EPS);
+			}
+			else
+			{
+				sum += targetGPDF[nAtBin] 
+					* log(targetGPDF[nAtBin] / (EPS) + EPS);
+			}
+		}
+	}
+	ASSERT(_finite(sum));
 
 	// if a gradient is needed
 	if (pvGrad)
 	{
+		BEGIN_LOG_SECTION(CKLDivTerm::Eval!CalcGrad);
+
+		const int n_dVolCount = GetHistogram()->Get_dVolumeCount();
 		pvGrad->SetDim(n_dVolCount);
 		pvGrad->SetZero();
 
@@ -237,43 +328,104 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 
 			// get the dGPDF distribution
 			const CVectorN<>& arrCalc_dGPDF = GetHistogram()->Get_dGBins(nAt_dVol);
+			LOG_EXPR_EXT(arrCalc_dGPDF);
 
-			for (nAtBin = 0; nAtBin < __max(calcGPDF.GetDim(), targetGPDF.GetDim()); nAtBin++)
+			ASSERT(arrCalc_dGPDF.GetDim() >= calcGPDF.GetDim());
+			if (!m_bTargetCrossEntropy)
 			{
-				if (nAtBin < calcGPDF.GetDim())
+				for (int nAtBin = 0; nAtBin < __max(targetGPDF.GetDim(), arrCalc_dGPDF.GetDim()); nAtBin++)
 				{
-#ifdef CROSS_ENTROPY
-					(*pvGrad)[nAt_dVol] -= /* DGL 05072005 += */ m_weight 
-						* (log(calcGPDF[nAtBin] + EPS) 
-								+ calcGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS))
-							* arrCalc_dGPDF[nAtBin]; 
+					if (nAtBin < calcGPDF.GetDim() && nAtBin < targetGPDF.GetDim())
+					{
+						// u * v'
+						(*pvGrad)[nAt_dVol] += 
+							calcGPDF[nAtBin] 
+								* R(1.0) / (calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS) 
+									* arrCalc_dGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS);
 
-					if (nAtBin < targetGPDF.GetDim())
-					{
-						ASSERT(nAtBin < arrCalc_dGPDF.GetDim());
-						(*pvGrad)[nAt_dVol] += /* DGL 05072005 -= */ m_weight 
-							* log(targetGPDF[nAtBin] + EPS)
-								* arrCalc_dGPDF[nAtBin]; 
+						// + u' * v
+						(*pvGrad)[nAt_dVol] += 
+							arrCalc_dGPDF[nAtBin]
+								* log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS);
 					}
-					else
+					else if (nAtBin < calcGPDF.GetDim())
 					{
-						(*pvGrad)[nAt_dVol]  += /* DGL 05072005 -= */ m_weight 
-							* log(EPS) * arrCalc_dGPDF[nAtBin];
+						// u * v'
+						(*pvGrad)[nAt_dVol] += 
+							calcGPDF[nAtBin] 
+								* R(1.0) / (calcGPDF[nAtBin] / (EPS) + EPS) 
+									* arrCalc_dGPDF[nAtBin] / (EPS);
+
+						// + u' * v
+						(*pvGrad)[nAt_dVol] += 
+							arrCalc_dGPDF[nAtBin]
+								* log(calcGPDF[nAtBin] / (EPS) + EPS);
+
 					}
-#endif
+					else if (nAtBin < arrCalc_dGPDF.GetDim() && nAtBin < targetGPDF.GetDim())
+					{
+						// u * v' = 0
+
+						// + u' * v
+						(*pvGrad)[nAt_dVol] += 
+							arrCalc_dGPDF[nAtBin]
+								* log(targetGPDF[nAtBin] + EPS);
+					}
+					else if (nAtBin < arrCalc_dGPDF.GetDim())
+					{
+						// u * v' = 0
+
+						// + u' * v
+						(*pvGrad)[nAt_dVol] += 
+							arrCalc_dGPDF[nAtBin]
+								* log(EPS);
+					} 
 				}
 			}
-
-			(*pvGrad)[nAt_dVol] /= (REAL) calcGPDF.GetDim();
+			else // if (m_bTargetCrossEntropy)
+			{
+				for (int nAtBin = 0; nAtBin < __max(targetGPDF.GetDim(), arrCalc_dGPDF.GetDim()); nAtBin++)
+				{
+					if (nAtBin < calcGPDF.GetDim() && nAtBin < targetGPDF.GetDim())
+					{
+						(*pvGrad)[nAt_dVol] += 
+							targetGPDF[nAtBin] 
+							* arrCalc_dGPDF[nAtBin]	// don't forget negate
+							* (targetGPDF[nAtBin] / ((calcGPDF[nAtBin] + EPS) * (calcGPDF[nAtBin] + EPS)))
+							/ (targetGPDF[nAtBin] / (calcGPDF[nAtBin] + EPS) + EPS);
+					}
+					else if (nAtBin < arrCalc_dGPDF.GetDim() && nAtBin < targetGPDF.GetDim())
+					{
+						(*pvGrad)[nAt_dVol] += 
+							targetGPDF[nAtBin] 
+							* arrCalc_dGPDF[nAtBin]	// don't forget negate
+							* (targetGPDF[nAtBin] / ((EPS) * (EPS)))
+							/ (targetGPDF[nAtBin] / (EPS) + EPS);
+					} 
+				}
+			}
 		}
+
+		// now adjust or integral 
+		(*pvGrad) *= GetHistogram()->GetBinWidth();
+		LOG_EXPR_EXT((*pvGrad));
+
+		// and weight
+		(*pvGrad) *= m_weight;
+
+		END_LOG_SECTION(); // CKLDivTerm::Eval!CalcGrad
 	}
 
-	sum /= (REAL) calcGPDF.GetDim();
-
+	// now adjust or integral 
+	sum *= GetHistogram()->GetBinWidth();
 	LOG_EXPR(sum);
+
+	// and weight
+	sum *= m_weight;
+
 	END_LOG_SECTION();	// CHistogramMatcher::Eval_RelativeEntropy
 
-	return m_weight * sum;
+	return sum;
 
 }	// CKLDivTerm::Eval
 

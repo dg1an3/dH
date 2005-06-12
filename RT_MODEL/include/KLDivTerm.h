@@ -24,8 +24,8 @@ public:
 	virtual ~CKLDivTerm();
 
 	// accessor for target bins
-	CVectorN<>& GetTargetBins() { return m_vTargetBins; }
-	const CVectorN<>& GetTargetBins() const { return m_vTargetBins; }
+	CVectorN<>& GetTargetBins();
+	const CVectorN<>& GetTargetBins() const;
 	const CVectorN<>& GetTargetGBins() const;
 
 	// sets the bins to an interval distribution
@@ -46,10 +46,16 @@ protected:
 	void OnHistogramChange(CObservableEvent *pSource = NULL, void *pVoid = NULL);
 
 private:
+	// the target bins
 	CVectorN<> m_vTargetBins;
 
+	// the convolved bins
 	mutable CVectorN<> m_vTargetGBins;
 	mutable bool m_bReconvolve;
+
+// public:
+	// use if cross entropy of calc w.r.t. target is needed
+	bool m_bTargetCrossEntropy;
 
 };	// class CKLDivTerm
 
