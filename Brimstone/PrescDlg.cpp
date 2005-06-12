@@ -75,14 +75,17 @@ void CPrescDlg::OnOK()
 
 	m_pStruct = (CStructure *) m_StructCombo.GetItemDataPtr(m_StructCombo.GetCurSel());
 
-	CKLDivTerm *pKLDT1 = new CKLDivTerm(m_pStruct, 0.5);
+	CKLDivTerm *pKLDT1 = new CKLDivTerm(m_pStruct, 2.5);
 	m_pPrescParam->AddStructureTerm(pKLDT1);
 
-	CKLDivTerm *pKLDT2 = new CKLDivTerm(m_pStruct, 0.5);
+	CKLDivTerm *pKLDT2 = new CKLDivTerm(m_pStruct, 2.5);
 	m_pPresc->AddStructureTerm(pKLDT2);
 	
 	pKLDT1->SetInterval(m_Dose1, m_Dose2, 1.0);
 	pKLDT2->SetInterval(m_Dose1, m_Dose2, 1.0);
 
+	m_pPresc->SetElementInclude();
+
 	m_pPresc->UpdateTerms(m_pPrescParam);
+	m_pPrescParam->SetElementInclude();
 }
