@@ -114,6 +114,7 @@ private:
 	std::vector< CXMLElement > m_arrElementStack;
 
 	// flag to indicate enabled
+public:
 	int m_nEnabled;
 
 	// the map of formats
