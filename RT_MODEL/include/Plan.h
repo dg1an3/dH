@@ -59,10 +59,10 @@ public:
 	void SetBeamCount(int nCount);
 
 	// helper to get formatted mass density volume
-	CVolume<REAL> * GetMassDensity();
+	CVolume<VOXEL_REAL> * GetMassDensity();
 
 	// the computed dose for this plan (NULL if no dose exists)
-	CVolume<REAL> *GetDoseMatrix();
+	CVolume<VOXEL_REAL> *GetDoseMatrix();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -94,12 +94,12 @@ private:
 	CSeries * m_pSeries;
 
 	// pyramid storing resampled mass density
-	CVolume<REAL> m_massDensity;
+	CVolume<VOXEL_REAL> m_massDensity;
 	BOOL m_bCalcMassDensity;
 
 public:
 	// the dose matrix for the plan
-	CVolume<REAL> m_dose;
+	CVolume<VOXEL_REAL> m_dose;
 
 private:
 	// flag to indicate the total dose is to be recomputed

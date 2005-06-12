@@ -46,7 +46,7 @@ public:
 	CStructure * GetStructureFromName(const CString& strName);
 
 	// Volume data for the series
-	CVolume<REAL> *m_pDens;
+	CVolume<VOXEL_REAL> *m_pDens;
 
 	CTypedPtrArray<CObArray, CStructure*> m_arrStructures;
 };

@@ -49,10 +49,10 @@ CBeamDoseCalc::CBeamDoseCalc(CBeam *pBeam, CEnergyDepKernel *pKernel)
 :	m_pBeam(pBeam),
 		m_pKernel(pKernel),
 		m_pMassDensityPyr(NULL),
-		m_pTerma(new CVolume<REAL>()),
+		m_pTerma(new CVolume<VOXEL_REAL>()),
 		m_nBeamletCount(15),
 		m_raysPerVoxel(12),
-		m_pEnergy(new CVolume<REAL>())
+		m_pEnergy(new CVolume<VOXEL_REAL>())
 {
 	m_kernel.SetDimensions(9, 9, 1);
 	CalcBinomialFilter(&m_kernel);
@@ -85,7 +85,7 @@ void CBeamDoseCalc::SetDoseCalcRegion(const CVectorD<3> &vMin, const CVectorD<3>
 // 
 // Calculates pencil beams + sub-beamlets given the density matrix
 ///////////////////////////////////////////////////////////////////////////////
-void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
+void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 {
 #define DUMB_FILTER_DENSITY
 #ifdef DUMB_FILTER_DENSITY
@@ -105,7 +105,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 	{
 		memcpy(&m_densityRep.GetVoxels()[nZ][0][0], 
 			&m_densityRep.GetVoxels()[0][0][0], 
-			m_densityRep.GetWidth() * m_densityRep.GetHeight() * sizeof(REAL));
+			m_densityRep.GetWidth() * m_densityRep.GetHeight() * sizeof(VOXEL_REAL));
 	}
 
 #else
@@ -113,7 +113,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 	m_pMassDensityPyr = new CPyramid(pOrigDensity);
 	int nLevel = m_pMassDensityPyr->SetLevelBasis(m_pBeam->m_dose.GetBasis());
 
-	CVolume<REAL> *pDensity = m_pMassDensityPyr->GetLevel(nLevel);
+	CVolume<VOXEL_REAL> *pDensity = m_pMassDensityPyr->GetLevel(nLevel);
 
 	ASSERT(pDensity->GetBasis().IsApproxEqual(m_pBeam->m_dose.GetBasis())); */
 
@@ -125,7 +125,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 	{
 		memcpy(&m_densityRep.GetVoxels()[nZ][0][0], 
 			&m_densityRep.GetVoxels()[0][0][0], 
-			m_densityRep.GetWidth() * m_densityRep.GetHeight() * sizeof(REAL));
+			m_densityRep.GetWidth() * m_densityRep.GetHeight() * sizeof(VOXEL_REAL));
 	}
 #endif
 
@@ -147,7 +147,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 		// convolve terma with energy deposition kernel to form dose
 		CalcSphereConvolve();
 
-		CVolume<REAL> *pEnergy2D = new CVolume<REAL>();
+		CVolume<VOXEL_REAL> *pEnergy2D = new CVolume<VOXEL_REAL>();
 		pEnergy2D->ConformTo(m_pEnergy);
 		pEnergy2D->SetDimensions(m_pEnergy->GetWidth(), m_pEnergy->GetHeight(), 1);
 
@@ -157,14 +157,14 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 		// copy voxels from 3D energy to 2D array
 		memcpy(&pEnergy2D->GetVoxels()[0][0][0], 
 			&m_pEnergy->GetVoxels()[nCenterPlane][0][0],
-			m_pEnergy->GetWidth() * m_pEnergy->GetHeight() * sizeof(REAL));
+			m_pEnergy->GetWidth() * m_pEnergy->GetHeight() * sizeof(VOXEL_REAL));
 
 		// set pencil beam
 		m_pBeam->m_arrBeamlets[0].Add(pEnergy2D);
 	}
 
 	// generate the kernel for convolution
-	CVolume<REAL> kernel;
+	CVolume<VOXEL_REAL> kernel;
 	kernel.SetDimensions(5, 5, 1);
 	CalcBinomialFilter(&kernel);
 
@@ -187,7 +187,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 		// generate beamlets for base scale
 		for (int nAtShift = -nBeamletCount; nAtShift <= nBeamletCount; nAtShift++)
 		{
-			CVolume<REAL> beamlet;
+			CVolume<VOXEL_REAL> beamlet;
 			beamlet.ConformTo(m_pBeam->GetBeamlet(0, nAtScale-1));
 			beamlet.ClearVoxels();
 
@@ -199,11 +199,11 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<REAL> *pOrigDensity)
 				2.0 * m_pBeam->m_vWeightFilter[2]);
 
 			// convolve with gaussian
-			CVolume<REAL> beamletConv;
+			CVolume<VOXEL_REAL> beamletConv;
 			beamletConv.ConformTo(&beamlet);
 			Convolve(&beamlet, &kernel, &beamletConv);
 
-			CVolume<REAL> *pBeamletConvDec = new CVolume<REAL>;
+			CVolume<VOXEL_REAL> *pBeamletConvDec = new CVolume<VOXEL_REAL>;
 			Decimate(&beamletConv, pBeamletConvDec);
 
 			m_pBeam->m_arrBeamlets[nAtScale].Add(pBeamletConvDec);
@@ -305,12 +305,12 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 	const REAL mu = m_pKernel->Get_mu();
 
 	// set up density voxel accessor
-	REAL ***pppDensity = m_densityRep.GetVoxels();
+	VOXEL_REAL ***pppDensity = m_densityRep.GetVoxels();
 
 	// set up terma and voxel accessor
 	m_pTerma->ConformTo(&m_densityRep);
 	m_pTerma->ClearVoxels();
-	REAL ***pppTerma = m_pTerma->GetVoxels();
+	VOXEL_REAL ***pppTerma = m_pTerma->GetVoxels();
 
 #ifdef CHECK_CONSERVATION_LAW
 
@@ -465,7 +465,7 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 	TRACE("TERMA Integral = %lf\n", m_pTerma->GetSum());
 
 	// fluence surface integral should be equal to integral of TERMA
-	ASSERT(IsApproxEqual(fluenceSurfIntegral, m_pTerma->GetSum(), 
+	ASSERT(IsApproxEqual(fluenceSurfIntegral, (REAL) m_pTerma->GetSum(), 
 		fluenceSurfIntegral * (REAL) 1e-2));
 
 #endif
@@ -488,11 +488,11 @@ void CBeamDoseCalc::CalcSphereConvolve()
 	m_pEnergy->ClearVoxels();
 
 	// accessors for voxels
-	REAL ***pppDensity = m_densityRep.GetVoxels();
-	REAL ***pppEnergy = m_pEnergy->GetVoxels();
+	VOXEL_REAL ***pppDensity = m_densityRep.GetVoxels();
+	VOXEL_REAL ***pppEnergy = m_pEnergy->GetVoxels();
 
 	// TODO: get rid of this
-	REAL ***pppFluence = m_pTerma->GetVoxels();
+	VOXEL_REAL ***pppFluence = m_pTerma->GetVoxels();
 
 	// set up pixel spacing
 	CVectorD<3> vPixSpacing = m_densityRep.GetPixelSpacing();
@@ -566,9 +566,9 @@ void CBeamDoseCalc::CalcSphereTrace(int nX, int nY, int nZ)
 	const REAL kernelDensity = 1.0;
 
 	// accessors for voxels
-	REAL ***pppDensity = m_densityRep.GetVoxels();
-	REAL ***pppTerma = m_pTerma->GetVoxels();
-	REAL ***pppEnergy = m_pEnergy->GetVoxels();
+	VOXEL_REAL ***pppDensity = m_densityRep.GetVoxels();
+	VOXEL_REAL ***pppTerma = m_pTerma->GetVoxels();
+	VOXEL_REAL ***pppEnergy = m_pEnergy->GetVoxels();
 
 	// do for all azimuthal angles
 	for (int nTheta = 1; nTheta <= m_pKernel->GetNumTheta(); nTheta++)            

@@ -31,7 +31,7 @@ public:
 	void SetDoseCalcRegion(const CVectorD<3>& vMin, const CVectorD<3>& vMax);
 
 	// triggers calculation of beam's pencil beams
-	void CalcPencilBeams(CVolume<REAL> *pOrigDensity);
+	void CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity);
 
 	// vMin, vMax in physical coords at isocentric plane
 	void CalcTerma(const CVectorD<2>& vMin_in,
@@ -57,10 +57,10 @@ private:
 	// Mass Density Dist variables
 
 	CPyramid * m_pMassDensityPyr;
-	CVolume<REAL> m_densityRep;
+	CVolume<VOXEL_REAL> m_densityRep;
 
-	CVolume<REAL> m_kernel;
-	CVolume<REAL> m_densityFilt;
+	CVolume<VOXEL_REAL> m_kernel;
+	CVolume<VOXEL_REAL> m_densityFilt;
 
 
 public:
@@ -73,7 +73,7 @@ public:
 
 private:
 	// returns computed terma
-	CVolume<REAL> *m_pTerma;
+	CVolume<VOXEL_REAL> *m_pTerma;
 
 	// minimum number of rays to use per voxel (on top boundary)
 	REAL m_raysPerVoxel;
@@ -86,7 +86,7 @@ private:
 	CVectorD<3> m_vDoseCalcRegionMax;
 
 	// computed energy
-	CVolume<REAL> *m_pEnergy;
+	CVolume<VOXEL_REAL> *m_pEnergy;
 
 };	// class CBeamDoseCalc
 

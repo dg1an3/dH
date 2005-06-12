@@ -6,7 +6,7 @@
 #include "Structure.h"
 #include <Series.h>
 
-CVolume<REAL> CStructure::m_kernel;
+CVolume<VOXEL_REAL> CStructure::m_kernel;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -79,7 +79,7 @@ CMesh * CStructure::GetMesh()
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<REAL> * CStructure::GetRegion(int nScale)
+CVolume<VOXEL_REAL> * CStructure::GetRegion(int nScale)
 {
 	if (m_arrRegions.GetSize() <= nScale)
 	{
@@ -87,7 +87,7 @@ CVolume<REAL> * CStructure::GetRegion(int nScale)
 
 		// TODO: use CPyramid for this
 
-		CVolume<REAL> *pNewRegion = new CVolume<REAL>();
+		CVolume<VOXEL_REAL> *pNewRegion = new CVolume<VOXEL_REAL>();
 		if (nScale == 0)
 		{
 			// set size of region
@@ -96,9 +96,9 @@ CVolume<REAL> * CStructure::GetRegion(int nScale)
 		}
 		else
 		{
-			CVolume<REAL> *pPrevRegion = GetRegion(nScale - 1);
+			CVolume<VOXEL_REAL> *pPrevRegion = GetRegion(nScale - 1);
 
-			CVolume<REAL> convRegion;
+			CVolume<VOXEL_REAL> convRegion;
 			convRegion.SetBasis(pPrevRegion->GetBasis());
 			Convolve(pPrevRegion, &m_kernel, &convRegion);
 
@@ -110,7 +110,7 @@ CVolume<REAL> * CStructure::GetRegion(int nScale)
 		END_LOG_SECTION();
 	}
 	
-	return (CVolume<REAL> *) m_arrRegions[nScale];
+	return (CVolume<VOXEL_REAL> *) m_arrRegions[nScale];
 
 }	// CStructure::GetRegion
 
@@ -202,7 +202,7 @@ void CStructure::Serialize(CArchive& ar)
 // 
 // converts the contours to a region
 ///////////////////////////////////////////////////////////////////////////////
-void CStructure::ContoursToRegion(CVolume<REAL> *pRegion)
+void CStructure::ContoursToRegion(CVolume<VOXEL_REAL> *pRegion)
 {
 	REAL slicePos = pRegion->GetBasis()[3][2];
 

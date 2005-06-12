@@ -26,7 +26,7 @@ IMPLEMENT_SERIAL(CSeries, CModelObject, 1)
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
 CSeries::CSeries()
-	: m_pDens(new CVolume<REAL>())
+	: m_pDens(new CVolume<VOXEL_REAL>())
 {
 }	// CSeries::CSeries
 

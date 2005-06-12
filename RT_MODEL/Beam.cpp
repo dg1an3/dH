@@ -450,9 +450,9 @@ int CBeam::GetBeamletCount(int nLevel)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<REAL> * CBeam::GetBeamlet(int nShift, int nLevel)
+CVolume<VOXEL_REAL> * CBeam::GetBeamlet(int nShift, int nLevel)
 {
-	return (CVolume<REAL> *) m_arrBeamlets[nLevel]
+	return (CVolume<VOXEL_REAL> *) m_arrBeamlets[nLevel]
 		[nShift + GetBeamletCount(nLevel) / 2];
 
 }	// CBeam::GetBeamlet
@@ -522,7 +522,7 @@ void CBeam::InvFiltIntensityMap(int nLevel, const CVectorN<>& vWeights,
 // 
 // the computed dose for this beam (NULL if no dose exists)
 //////////////////////////////////////////////////////////////////////
-CVolume<REAL> *CBeam::GetDoseMatrix()
+CVolume<VOXEL_REAL> *CBeam::GetDoseMatrix()
 {
 	if (m_bRecalcDose 
 		 && m_vBeamletWeights.GetDim() == m_arrBeamlets[0].GetSize())
@@ -535,7 +535,7 @@ CVolume<REAL> *CBeam::GetDoseMatrix()
 
 		for (int nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
 		{
-			CVolume<REAL> *pBeamlet = m_arrBeamlets[0][nAt];
+			CVolume<VOXEL_REAL> *pBeamlet = m_arrBeamlets[0][nAt];
 			m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
 		}
 
@@ -657,7 +657,7 @@ void CBeam::Serialize(CArchive &ar)
 			{
 				if (ar.IsLoading())
 				{
-					m_arrBeamlets[nAtLevel].Add(new CVolume<REAL>());
+					m_arrBeamlets[nAtLevel].Add(new CVolume<VOXEL_REAL>());
 				}
 				m_arrBeamlets[nAtLevel][nAtBeamlet]->Serialize(ar);
 			}

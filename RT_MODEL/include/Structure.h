@@ -37,7 +37,7 @@ public:
 
 	CMesh * GetMesh();
 	
-	CVolume<REAL> * GetRegion(int nLevel = 0);
+	CVolume<VOXEL_REAL> * GetRegion(int nLevel = 0);
 
 	void SetRegionResolution(REAL pixelScale = 1.0);
 
@@ -45,7 +45,7 @@ public:
 
 protected:
 	static void InitFilter();
-	void ContoursToRegion(CVolume<REAL> *pRegion);
+	void ContoursToRegion(CVolume<VOXEL_REAL> *pRegion);
 
 private:
 	// contours for the structure
@@ -56,9 +56,9 @@ private:
 
 	CMesh * m_pMesh;
 
-	CTypedPtrArray<CPtrArray, CVolume<REAL>*> m_arrRegions;
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>*> m_arrRegions;
 
-	static CVolume<REAL> m_kernel;
+	static CVolume<VOXEL_REAL> m_kernel;
 };
 
 #endif // !defined(AFX_STRUCTURE_H__489BF55D_7352_4E75_9689_6B1818CC8D0D__INCLUDED_)

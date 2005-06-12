@@ -150,11 +150,12 @@ void CSeriesDicomImporter::FormatVolume()
 
 
 template<class VOXEL_TYPE>
-BOOL convertVoxels(VOXEL_TYPE *pOrigVoxels, int nSize, REAL *pNewVoxels, Float64 slope = 1.0, Float64 intercept = 0.0)
+BOOL convertVoxels(VOXEL_TYPE *pOrigVoxels, int nSize, 
+				   VOXEL_REAL *pNewVoxels, Float64 slope = 1.0, Float64 intercept = 0.0)
 {
 	for (int nAt = 0; nAt < nSize; nAt++)
 	{
-		pNewVoxels[nAt] = slope * (REAL) pOrigVoxels[nAt] + intercept;
+		pNewVoxels[nAt] = slope * (VOXEL_REAL) pOrigVoxels[nAt] + intercept;
 	}
 
 	return TRUE;
@@ -167,7 +168,7 @@ void CSeriesDicomImporter::ResampleNextDicomImage()
 	DcmMetaInfo *pMetaInfo = m_arrImageItems.back()->m_pFileFormat->getMetaInfo();
 
 	FormatVolume();
-	REAL ***pppDstPixelData = m_pSeries->m_pDens->GetVoxels();
+	VOXEL_REAL ***pppDstPixelData = m_pSeries->m_pDens->GetVoxels();
 
 	int nSlice = m_arrImageItems.size()-1;
 
@@ -195,7 +196,7 @@ void CSeriesDicomImporter::ResampleNextDicomImage()
 						{
 							pppDstPixelData[nSlice][nAtY][nAtX] = 
 								1.0 / 48000.0 
-									* (float) pSrcPixelData[nAtY * pImage->getWidth() + nAtX];
+									* (VOXEL_REAL) pSrcPixelData[nAtY * pImage->getWidth() + nAtX];
 						}
 					}
 				}
@@ -207,8 +208,6 @@ void CSeriesDicomImporter::ResampleNextDicomImage()
 
 			DcmPixelData *pDPD = OFstatic_cast(DcmPixelData *, pElem);
 			CHK_DCM(pDPD->loadAllDataIntoMemory());
-
-			float *pNew = NULL;
 
 			Uint16 nPR = 0;
 			CHK_DCM(pDataset->findAndGetUint16(DCM_PixelRepresentation, nPR));
@@ -255,6 +254,9 @@ void CSeriesDicomImporter::ResampleNextDicomImage()
 				}
 			}
 
+			m_pSeries->m_pDens->VoxelsChanged();
+			TRACE("Converted image min = %f", (float) m_pSeries->m_pDens->GetMin());
+			TRACE("Converted image max = %f", (float) m_pSeries->m_pDens->GetMax());
 #endif
 		} 
 		else
@@ -277,12 +279,14 @@ CSeriesDicomImporter::CDicomImageItem::CDicomImageItem(DcmFileFormat *pFileForma
 
 	OFString strImgPositionPatient;
 	CHK_DCM(pDataset->findAndGetOFStringArray(DCM_ImagePositionPatient, strImgPositionPatient));
-	sscanf(strImgPositionPatient.c_str(), "%f\\%f\\%f", 
+
+	sscanf(strImgPositionPatient.c_str(), REAL_FMT "\\" REAL_FMT "\\" REAL_FMT,
 		&m_vImgPos[0], &m_vImgPos[1], &m_vImgPos[2]);
 
 	OFString strImgOrientPatient;
 	CHK_DCM(pDataset->findAndGetOFStringArray(DCM_ImageOrientationPatient, strImgOrientPatient));
-	sscanf(strImgOrientPatient.c_str(), "%f\\%f\\%f\\%f\\%f\\%f", 
+	sscanf(strImgOrientPatient.c_str(), 
+		REAL_FMT "\\" REAL_FMT "\\" REAL_FMT "\\" REAL_FMT "\\" REAL_FMT "\\" REAL_FMT,
 		&m_vOffset[0][0], &m_vOffset[0][1], &m_vOffset[0][2],
 		&m_vOffset[1][0], &m_vOffset[1][1], &m_vOffset[1][2]);
 
@@ -373,62 +377,65 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 		CHK_DCM(pROIContourItem->findAndGetSint32(DCM_ReferencedROINumber, nRefROINumber));
 		CStructure *pStruct = arrROIs[nRefROINumber];
 
-		OFString strColor;
-		CHK_DCM(pROIContourItem->findAndGetOFStringArray(DCM_ROIDisplayColor, strColor));
-		
-		int nRed, nGrn, nBlu;
-		sscanf(strColor.c_str(), "%i\\%i\\%i", &nRed, &nGrn, &nBlu);
-		pStruct->m_color = RGB(nRed, nGrn, nBlu);
-
-		DcmSequenceOfItems *pContourSequence = NULL;
-		CHK_DCM(pROIContourItem->findAndGetSequence(DCM_ContourSequence, pContourSequence));
-		for (int nAtContour = 0; nAtContour< pContourSequence->card(); nAtContour++)
+		if (pStruct)
 		{
-			DcmItem *pContourItem = pContourSequence->getItem(nAtContour);
+			OFString strColor;
+			CHK_DCM(pROIContourItem->findAndGetOFStringArray(DCM_ROIDisplayColor, strColor));
+			
+			int nRed, nGrn, nBlu;
+			sscanf(strColor.c_str(), "%i\\%i\\%i", &nRed, &nGrn, &nBlu);
+			pStruct->m_color = RGB(nRed, nGrn, nBlu);
 
-			OFString strContourGeometricType;
-			CHK_DCM(pContourItem->findAndGetOFString(DCM_ContourGeometricType, strContourGeometricType));
-			ASSERT(strContourGeometricType == "CLOSED_PLANAR");
-			long nContourPoints;
-			CHK_DCM(pContourItem->findAndGetSint32(DCM_NumberOfContourPoints, nContourPoints));
-
-			OFString strContourData;
-			CHK_DCM(pContourItem->findAndGetOFStringArray(DCM_ContourData, strContourData));
-
-			CPolygon *pPoly = new CPolygon();
-
-			int nStart = 0;
-			int nNext = 0;
-			float slice_z = 0.0;
-			for (int nAtPoint = 0; nAtPoint < nContourPoints; nAtPoint++)
+			DcmSequenceOfItems *pContourSequence = NULL;
+			CHK_DCM(pROIContourItem->findAndGetSequence(DCM_ContourSequence, pContourSequence));
+			for (int nAtContour = 0; nAtContour< pContourSequence->card(); nAtContour++)
 			{
-				// now parse contour data, one vertex at a time
-				nNext = strContourData.find('\\', nStart);
-				float coord_x;
-				sscanf(strContourData.substr(nStart, nNext-nStart).c_str(), "%f", &coord_x);
-				nStart = nNext+1;
+				DcmItem *pContourItem = pContourSequence->getItem(nAtContour);
 
-				nNext = strContourData.find('\\', nStart);
-				float coord_y;
-				sscanf(strContourData.substr(nStart, nNext-nStart).c_str(), "%f", &coord_y);
-				nStart = nNext+1;
+				OFString strContourGeometricType;
+				CHK_DCM(pContourItem->findAndGetOFString(DCM_ContourGeometricType, strContourGeometricType));
+				ASSERT(strContourGeometricType == "CLOSED_PLANAR");
+				long nContourPoints;
+				CHK_DCM(pContourItem->findAndGetSint32(DCM_NumberOfContourPoints, nContourPoints));
 
-				nNext = strContourData.find('\\', nStart);
-				float coord_z;
-				sscanf(strContourData.substr(nStart, nNext-nStart).c_str(), "%f", &coord_z);
-				nStart = nNext+1;
+				OFString strContourData;
+				CHK_DCM(pContourItem->findAndGetOFStringArray(DCM_ContourData, strContourData));
 
-				if (nAtPoint == 0)
+				CPolygon *pPoly = new CPolygon();
+
+				int nStart = 0;
+				int nNext = 0;
+				float slice_z = 0.0;
+				for (int nAtPoint = 0; nAtPoint < nContourPoints; nAtPoint++)
 				{
-					slice_z = coord_z;
+					// now parse contour data, one vertex at a time
+					nNext = strContourData.find('\\', nStart);
+					float coord_x;
+					sscanf(strContourData.substr(nStart, nNext-nStart).c_str(), "%f", &coord_x);
+					nStart = nNext+1;
+
+					nNext = strContourData.find('\\', nStart);
+					float coord_y;
+					sscanf(strContourData.substr(nStart, nNext-nStart).c_str(), "%f", &coord_y);
+					nStart = nNext+1;
+
+					nNext = strContourData.find('\\', nStart);
+					float coord_z;
+					sscanf(strContourData.substr(nStart, nNext-nStart).c_str(), "%f", &coord_z);
+					nStart = nNext+1;
+
+					if (nAtPoint == 0)
+					{
+						slice_z = coord_z;
+					}
+					ASSERT(IsApproxEqual(coord_z, slice_z));
+
+					CVectorD<2> vVert(coord_x, coord_y);
+					pPoly->AddVertex(vVert);
 				}
-				ASSERT(IsApproxEqual(coord_z, slice_z));
 
-				CVectorD<2> vVert(coord_x, coord_y);
-				pPoly->AddVertex(vVert);
+				pStruct->AddContour(pPoly, slice_z);
 			}
-
-			pStruct->AddContour(pPoly, slice_z);
 		}
 	}
 

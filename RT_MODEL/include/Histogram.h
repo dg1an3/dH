@@ -15,6 +15,7 @@
 #include <VectorN.h>
 #include <Volumep.h>
 
+const REAL GBINS_BUFFER = R(8.0);
 
 //////////////////////////////////////////////////////////////////////
 // class CHistogram
@@ -26,21 +27,21 @@ class CHistogram : public CModelObject
 {
 public:
 	// constructor from a volume and a "region"
-	CHistogram(CVolume<REAL> *pImage = NULL, 
-		CVolume<REAL> *pRegion = NULL);
+	CHistogram(CVolume<VOXEL_REAL> *pImage = NULL, 
+		CVolume<VOXEL_REAL> *pRegion = NULL);
 
 	// destructor
 	virtual ~CHistogram();
 
 	// association to the volume over which the histogram is formed
-	CVolume<REAL> *GetVolume();
-	void SetVolume(CVolume<REAL> *pVolume);
+	CVolume<VOXEL_REAL> *GetVolume();
+	void SetVolume(CVolume<VOXEL_REAL> *pVolume);
 
 	// association to a congruent volume describing the region over
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
-	CVolume<REAL> *GetRegion() const;
-	void SetRegion(CVolume<REAL> *pVolume);
+	CVolume<VOXEL_REAL> *GetRegion() const;
+	void SetRegion(CVolume<VOXEL_REAL> *pVolume);
 
 	// histogram parameters
 	REAL GetBinMinValue() const;
@@ -56,6 +57,7 @@ public:
 	const CVectorN<>& GetCumBins() const;
 
 	// Gbinning parameter
+	REAL GetGBinSigma(void) const;
 	void SetGBinSigma(REAL sigma);
 
 	// Gbin accessor
@@ -66,8 +68,8 @@ public:
 	// partial derivative volumes
 	int Get_dVolumeCount() const;
 	int GetGroupCount() const;
-	CVolume<REAL> *Get_dVolume(int nAt, int *pnGroup = NULL) const;
-	int Add_dVolume(CVolume<REAL> *p_dVolume, int nGroup);
+	CVolume<VOXEL_REAL> *Get_dVolume(int nAt, int *pnGroup = NULL) const;
+	int Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup);
 
 	// partial derivatives
 	const CVectorN<>& Get_dBins(int nAt) const;
@@ -92,18 +94,18 @@ protected:
 	const CVolume<short> * GetBinVolume(int nAt) const;
 
 	// TODO: make const <need to change signature on Resample>
-	CVolume<REAL> * GetBinScaledVolume() const;
-	const CVolume<REAL> * Get_dVolume_x_Region(int nAt) const;
+	CVolume<VOXEL_REAL> * GetBinScaledVolume() const;
+	const CVolume<VOXEL_REAL> * Get_dVolume_x_Region(int nAt) const;
 
 private:
 	// association to the volume over which the histogram is formed
-	CVolume<REAL> *m_pVolume;
+	CVolume<VOXEL_REAL> *m_pVolume;
 
 	// association to a congruent volume describing the region over
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
-	CVolume<REAL> *m_pRegion;
-	CTypedPtrArray<CObArray, CVolume<REAL> *> m_arrRegionRotate;
+	CVolume<VOXEL_REAL> *m_pRegion;
+	CTypedPtrArray<CObArray, CVolume<VOXEL_REAL> *> m_arrRegionRotate;
 
 	// 
 	REAL m_minValue;
@@ -121,14 +123,14 @@ private:
 	mutable BOOL m_bRecomputeBins;
 
 #if defined(USE_IPP)
-	mutable CVolume<REAL> m_volRotate;
-	mutable CVolume<REAL> *m_pVolume_BinScaled;
+	mutable CVolume<VOXEL_REAL> m_volRotate;
+	mutable CVolume<VOXEL_REAL> *m_pVolume_BinScaled;
 
 	mutable BOOL m_bRecomputeBinScaledVolume;
 
 	mutable CVolume<short> *m_pVolume_BinLowInt;
-	mutable CVolume<REAL> *m_pVolume_Frac;
-	mutable CVolume<REAL> *m_pVolume_FracLow;
+	mutable CVolume<VOXEL_REAL> *m_pVolume_Frac;
+	mutable CVolume<VOXEL_REAL> *m_pVolume_FracLow;
 #endif
 
 	// cumulative bins
@@ -148,11 +150,11 @@ private:
 	// BOOL m_bRecomputeGBins;
 
 	// array of partial derivative volumes
-	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arr_dVolumes;
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arr_dVolumes;
 	CArray<int, int> m_arrVolumeGroups;
 
 	// array of partial derivative X region
-	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arr_dVolumes_x_Region;
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arr_dVolumes_x_Region;
 
 	// flags for recalc
 	mutable CArray<BOOL, BOOL> m_arr_bRecompute_dVolumes_x_Region;

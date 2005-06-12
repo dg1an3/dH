@@ -101,7 +101,7 @@ void CEnergyDepKernel::Init()
 		for (int nR = 1; nR <= nNumRadIn; nR++)
 		{
 			// read dose spread values      
-			fscanf(pFile, "%e", &mIncEnergyIn[nA-1][nR]);
+			fscanf(pFile, REAL_FMT, &mIncEnergyIn[nA-1][nR]);
 			mIncEnergyIn[nA-1][nR] += mIncEnergyIn[nA-1][nR-1];
 		}
 	}  
@@ -114,7 +114,7 @@ void CEnergyDepKernel::Init()
 	for (nA = 1; nA <= nNumPhiIn; nA++)
 	{        
 		// read mean angle of spherical voxels 
-		fscanf(pFile, "%f", &m_vAnglesIn[nA-1]);      
+		fscanf(pFile, REAL_FMT, &m_vAnglesIn[nA-1]);      
 	} 
 	
 	// set up radial bounds vector
@@ -127,7 +127,7 @@ void CEnergyDepKernel::Init()
 	for (int nR = 1; nR <= nNumRadIn; nR++)
 	{              
 		// read radial boundaries of spherical voxels
-		fscanf(pFile, "%f", &vRadialBoundsIn[nR]);   
+		fscanf(pFile, REAL_FMT, &vRadialBoundsIn[nR]);   
 	} 
 
 	fclose(pFile);

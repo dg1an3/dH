@@ -98,7 +98,7 @@ public:
 
 	// beamlet accessors
 	int GetBeamletCount(int nLevel = 0);
-	CVolume<REAL> *GetBeamlet(int nShift, int nLevel = 0);
+	CVolume<VOXEL_REAL> *GetBeamlet(int nShift, int nLevel = 0);
 
 	// intensity map accessors
 	const CVectorN<>& GetIntensityMap() const;
@@ -110,7 +110,7 @@ public:
 		CVectorN<>& vFiltWeights);
 
 	// the computed dose for this beam (NULL if no dose exists)
-	virtual CVolume<REAL> *GetDoseMatrix();
+	virtual CVolume<VOXEL_REAL> *GetDoseMatrix();
 
 	// beam serialization
 	void Serialize(CArchive &ar);
@@ -125,7 +125,7 @@ protected:
 	friend class CBeamDoseCalc;
 
 public:
-	mutable CVolume<REAL> m_dose;
+	mutable CVolume<VOXEL_REAL> m_dose;
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -172,7 +172,7 @@ private:
 	mutable BOOL m_bRecalcDose;
 
 	// the beamlets for the beam
-	CTypedPtrArray<CPtrArray, CVolume<REAL>* > m_arrBeamlets[MAX_SCALES];
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamlets[MAX_SCALES];
 
 	// the intensity map
 	CVectorN<> m_vBeamletWeights;
