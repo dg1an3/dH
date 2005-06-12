@@ -155,7 +155,7 @@ void CPrescriptionToolbar::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 	nPos = pPRSlider->GetPos();
 
 	TRACE("PR Slider %i\n", nPos);
-	REAL weight = (REAL) nPos / 20.0;
+	REAL weight = (REAL) nPos * 10.0;
 
 //	m_pDoc->m_pOptThread->m_csPrescParam.Lock();
 
