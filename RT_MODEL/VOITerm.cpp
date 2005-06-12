@@ -63,16 +63,16 @@ CVOITerm *CVOITerm::Subcopy(CVOITerm *pSubcopy)
 
 	ASSERT(m_histogram.GetRegion() != NULL);
 
-	CVolume<REAL> convRegion;
+	CVolume<VOXEL_REAL> convRegion;
 	convRegion.ConformTo(m_histogram.GetRegion());
 
-	CVolume<REAL> kernel;
+	CVolume<VOXEL_REAL> kernel;
 	kernel.SetDimensions(5, 5, 1);
 	::CalcBinomialFilter(&kernel);
 
 	::Convolve(m_histogram.GetRegion(), &kernel, &convRegion);
 
-	CVolume<REAL> *pDecRegion = new CVolume<REAL>();
+	CVolume<VOXEL_REAL> *pDecRegion = new CVolume<VOXEL_REAL>();
 	::Decimate(&convRegion, pDecRegion);
 
 	pSubcopy->m_histogram.SetRegion(pDecRegion);

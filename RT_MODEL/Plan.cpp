@@ -160,14 +160,14 @@ int CPlan::AddBeam(CBeam *pBeam)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<REAL> *CPlan::GetDoseMatrix()
+CVolume<VOXEL_REAL> *CPlan::GetDoseMatrix()
 {
 	if (TRUE) // m_bRecomputeTotalDose)
 	{
 		// total the dose for all beams
 		if (GetBeamCount() > 0)
 		{
-/*			CVolume<REAL> *pBeamDose = GetBeamAt(0)->GetDoseMatrix();
+/*			CVolume<VOXEL_REAL> *pBeamDose = GetBeamAt(0)->GetDoseMatrix();
 			// TODO: move this to SetSeries
 			m_dose.SetDimensions(pBeamDose->GetWidth(), 
 				pBeamDose->GetHeight(),
@@ -183,7 +183,7 @@ CVolume<REAL> *CPlan::GetDoseMatrix()
 
 			for (int nAt = 0; nAt < GetBeamCount(); nAt++)
 			{
-				static CVolume<REAL> beamDoseRot;
+				static CVolume<VOXEL_REAL> beamDoseRot;
 				beamDoseRot.ConformTo(&m_dose);
 
 				Resample(GetBeamAt(nAt)->GetDoseMatrix(), &beamDoseRot, TRUE);
@@ -231,13 +231,13 @@ CHistogram *CPlan::GetHistogram(CStructure *pStructure)
 	if (!m_mapHistograms.Lookup((void *) pStructure, (void*&) pHisto))
 	{
 		pHisto = new CHistogram();
-		const REAL GBINS_BUFFER = 2.0;
+		// const REAL GBINS_BUFFER = 2.0;
 		pHisto->SetBinning((REAL) 0.0, (REAL) 0.02, GBINS_BUFFER);
 		pHisto->SetVolume(GetDoseMatrix());
 
 		// resample region, if needed
 		// TODO: save this so that it can be freed
-		CVolume<REAL> *pResampRegion = new CVolume<REAL>();
+		CVolume<VOXEL_REAL> *pResampRegion = new CVolume<VOXEL_REAL>();
 		pResampRegion->ConformTo(GetDoseMatrix());
 
 		int nLevel = -1;
@@ -412,7 +412,7 @@ void CPlan::OnBeamChange(CObservableEvent *, void *)
 // 
 // used to format the mass density array, conformant to dose matrix
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<REAL> * CPlan::GetMassDensity()
+CVolume<VOXEL_REAL> * CPlan::GetMassDensity()
 {
 	if (m_bCalcMassDensity)
 	{
@@ -420,8 +420,8 @@ CVolume<REAL> * CPlan::GetMassDensity()
 		m_massDensity.ConformTo(m_pSeries->m_pDens);
 
 		// lookup values
-		REAL *pCTVoxels = &m_pSeries->m_pDens->GetVoxels()[0][0][0];
-		REAL *pMDVoxels = &m_massDensity.GetVoxels()[0][0][0];
+		VOXEL_REAL *pCTVoxels = &m_pSeries->m_pDens->GetVoxels()[0][0][0];
+		VOXEL_REAL *pMDVoxels = &m_massDensity.GetVoxels()[0][0][0];
 		int nVoxels = m_massDensity.GetWidth() * m_massDensity.GetHeight();
 		for (int nAtVoxel = 0; nAtVoxel < nVoxels; nAtVoxel++)
 		{
