@@ -33,28 +33,26 @@ public:
 	virtual REAL operator()(const CVectorN<>& vInput, 
 		CVectorN<> *pGrad = NULL) const = 0;
 
-	// function to evaluate gradiant at a point
-	virtual void Gradient(const CVectorN<>& vIn, CVectorN<>& vGrad_out) const 
-	{ 
-		vGrad_out.SetDim(vIn.GetDim());
-		operator()(vIn, &vGrad_out);
-	};
-
-	// function to evaluate hessian at a point
-	virtual void Hessian(const CVectorN<>& vIn, CMatrixNxM<>& mHess_out) const;
-
 	// whether gradient information is available
 	BOOL HasGradientInfo() const;
 
-	// function to test the gradient calculation
-	REAL TestGradient(const CVectorN<>& vAtParam, double epsilon) const;
+	// transform function from linear to other parameter space
+	virtual void Transform(CVectorN<> *pvInOut) const;
+	virtual void dTransform(CVectorN<> *pvInOut) const;
+	virtual void InvTransform(CVectorN<> *pvInOut) const;
 
-	// function to test hessian calculation
-	void TestHessian(const CVectorN<>& vAtParam, double epsilon) const;
+	// function to evaluate gradiant at a point (uses difference method)
+	void Gradient(const CVectorN<>& vIn, REAL epsilon, 
+				CVectorN<>& vGrad_out) const;
+
+	// function to evaluate hessian at a point (uses difference method)
+	void Hessian(const CVectorN<>& vIn, REAL epsilon, 
+				CMatrixNxM<>& mHess_out) const;
 
 private:
 	// flag to indicate that gradient information is available
 	BOOL m_bHasGradientInfo;
-};
+
+};	// class CObjectiveFunction
 
 #endif
