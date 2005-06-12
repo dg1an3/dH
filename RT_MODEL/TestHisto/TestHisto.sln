@@ -1,0 +1,66 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GEOM_MODEL", "..\..\GEOM_MODEL\GEOM_MODEL.vcproj", "{7B03D703-6FEA-4CB8-AB11-F866DD0927C7}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MTL", "..\..\MTL\MTL.vcproj", "{0AF3B34A-7122-437D-9F16-F5D0302DD13E}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OPTIMIZER_BASE", "..\..\OptimizeN\OPTIMIZER_BASE.vcproj", "{B80EAA0B-8CC6-4387-8513-25F729B11C1E}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RT_MODEL", "..\RT_MODEL.vcproj", "{22554301-6128-4413-809D-550AB3FF0C88}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestHisto", "TestHisto.vcproj", "{5F539F45-7D39-4FB2-87BE-552A78915641}"
+	ProjectSection(ProjectDependencies) = postProject
+		{22554301-6128-4413-809D-550AB3FF0C88} = {22554301-6128-4413-809D-550AB3FF0C88}
+		{8B6C77CE-C220-4E23-ABF0-D6361EED3459} = {8B6C77CE-C220-4E23-ABF0-D6361EED3459}
+		{B80EAA0B-8CC6-4387-8513-25F729B11C1E} = {B80EAA0B-8CC6-4387-8513-25F729B11C1E}
+		{0AF3B34A-7122-437D-9F16-F5D0302DD13E} = {0AF3B34A-7122-437D-9F16-F5D0302DD13E}
+		{7B03D703-6FEA-4CB8-AB11-F866DD0927C7} = {7B03D703-6FEA-4CB8-AB11-F866DD0927C7}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XMLLogging", "..\..\XMLLogging\XMLLogging.vcproj", "{8B6C77CE-C220-4E23-ABF0-D6361EED3459}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{7B03D703-6FEA-4CB8-AB11-F866DD0927C7}.Debug.ActiveCfg = Debug|Win32
+		{7B03D703-6FEA-4CB8-AB11-F866DD0927C7}.Debug.Build.0 = Debug|Win32
+		{7B03D703-6FEA-4CB8-AB11-F866DD0927C7}.Release.ActiveCfg = Release|Win32
+		{7B03D703-6FEA-4CB8-AB11-F866DD0927C7}.Release.Build.0 = Release|Win32
+		{0AF3B34A-7122-437D-9F16-F5D0302DD13E}.Debug.ActiveCfg = Debug|Win32
+		{0AF3B34A-7122-437D-9F16-F5D0302DD13E}.Debug.Build.0 = Debug|Win32
+		{0AF3B34A-7122-437D-9F16-F5D0302DD13E}.Release.ActiveCfg = Release|Win32
+		{0AF3B34A-7122-437D-9F16-F5D0302DD13E}.Release.Build.0 = Release|Win32
+		{B80EAA0B-8CC6-4387-8513-25F729B11C1E}.Debug.ActiveCfg = Debug|Win32
+		{B80EAA0B-8CC6-4387-8513-25F729B11C1E}.Debug.Build.0 = Debug|Win32
+		{B80EAA0B-8CC6-4387-8513-25F729B11C1E}.Release.ActiveCfg = Release|Win32
+		{B80EAA0B-8CC6-4387-8513-25F729B11C1E}.Release.Build.0 = Release|Win32
+		{22554301-6128-4413-809D-550AB3FF0C88}.Debug.ActiveCfg = Debug|Win32
+		{22554301-6128-4413-809D-550AB3FF0C88}.Debug.Build.0 = Debug|Win32
+		{22554301-6128-4413-809D-550AB3FF0C88}.Release.ActiveCfg = Release|Win32
+		{22554301-6128-4413-809D-550AB3FF0C88}.Release.Build.0 = Release|Win32
+		{5F539F45-7D39-4FB2-87BE-552A78915641}.Debug.ActiveCfg = Debug|Win32
+		{5F539F45-7D39-4FB2-87BE-552A78915641}.Debug.Build.0 = Debug|Win32
+		{5F539F45-7D39-4FB2-87BE-552A78915641}.Release.ActiveCfg = Release|Win32
+		{5F539F45-7D39-4FB2-87BE-552A78915641}.Release.Build.0 = Release|Win32
+		{8B6C77CE-C220-4E23-ABF0-D6361EED3459}.Debug.ActiveCfg = Debug|Win32
+		{8B6C77CE-C220-4E23-ABF0-D6361EED3459}.Debug.Build.0 = Debug|Win32
+		{8B6C77CE-C220-4E23-ABF0-D6361EED3459}.Release.ActiveCfg = Release|Win32
+		{8B6C77CE-C220-4E23-ABF0-D6361EED3459}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
