@@ -52,7 +52,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CPlanarView message handlers
 
-void CPlanarView::SetVolume(CVolume<REAL> *pVolume, int nVolumeAt)
+void CPlanarView::SetVolume(CVolume<VOXEL_REAL> *pVolume, int nVolumeAt)
 {
 	if (nVolumeAt == 1 && m_pVolume[1] == NULL)
 	{
@@ -112,24 +112,24 @@ void CPlanarView::OnPaint()
 	
 	if (m_pVolume[1] != NULL && m_pVolume[1]->GetHeight() > 0)
 	{
-		REAL c = (REAL) 0.4;
+		VOXEL_REAL c = (VOXEL_REAL) 0.425;
 		while (c < 1.0)
 		{
-			REAL max_value = m_arrLUT[1].GetSize();
-			REAL pix_value1 = max_value * m_window[1] * (c - m_level[1]) + max_value / 2.0;
+			VOXEL_REAL max_value = m_arrLUT[1].GetSize();
+			VOXEL_REAL pix_value1 = max_value * m_window[1] * (c - m_level[1]) + max_value / 2.0;
 
 			// scale to 0..255
 			pix_value1 = __min(pix_value1, max_value - 1.0);
 			pix_value1 = __max(pix_value1, 0.0);
 
-			//  colorIndex = (int) pix_value1 // * (REAL) (max_value - 1.0));
+			//  colorIndex = (int) pix_value1 // * (VOXEL_REAL) (max_value - 1.0));
 			int colorIndex = __min(pix_value1, max_value - 1.0);
 
 			CPen pen(PS_SOLID, 1, m_arrLUT[1][colorIndex]);
 			dcMem.SelectObject(&pen);
 			DrawIsocurves(m_pVolume[1], c, &dcMem);
 
-			c += (REAL) 0.05;
+			c += (VOXEL_REAL) 0.05;
 		}
 	}
 
@@ -145,7 +145,7 @@ void CPlanarView::DrawImages(CDC *pDC)
 	CRect rect;
 	GetClientRect(&rect);
 
-	REAL *pVoxels0 = NULL;
+	VOXEL_REAL *pVoxels0 = NULL;
 	if (m_pVolume[0] && m_pVolume[0]->GetWidth() != 0)
 	{
 		if (m_volumeResamp[0].GetWidth() != rect.Width())
@@ -172,7 +172,7 @@ void CPlanarView::DrawImages(CDC *pDC)
 		bDraw = TRUE;
 	}
 
-	REAL *pVoxels1 = NULL; 
+	VOXEL_REAL *pVoxels1 = NULL; 
 	if (m_pVolume[1] && m_pVolume[1]->GetHeight() != 0)
 	{
 		m_volumeResamp[1].ConformTo(&m_volumeResamp[0]);
@@ -194,10 +194,10 @@ void CPlanarView::DrawImages(CDC *pDC)
 	
 	m_arrPixels.SetSize(rect.Width() * rect.Height());
 
-	REAL alpha1 = 1.0 - m_alpha;
+	VOXEL_REAL alpha1 = 1.0 - m_alpha;
 	for (int nAt = 0; nAt < rect.Width() * rect.Height(); nAt++)
 	{
-		REAL pix_value0 = 256.0 * m_window[0] * (pVoxels0[nAt] - m_level[0]) + 128.0;
+		VOXEL_REAL pix_value0 = 256.0 * m_window[0] * (pVoxels0[nAt] - m_level[0]) + 128.0;
 
 		// scale to 0..255
 		pix_value0 = __min(pix_value0, 255.0);
@@ -210,14 +210,14 @@ void CPlanarView::DrawImages(CDC *pDC)
 		}
 		else
 		{
-			REAL max_value = m_arrLUT[1].GetSize();
-			REAL pix_value1 = max_value * m_window[1] * (pVoxels1[nAt] - m_level[1]) + max_value / 2.0;
+			VOXEL_REAL max_value = m_arrLUT[1].GetSize();
+			VOXEL_REAL pix_value1 = max_value * m_window[1] * (pVoxels1[nAt] - m_level[1]) + max_value / 2.0;
 
 			// scale to 0..255
 			pix_value1 = __min(pix_value1, max_value - 1.0);
 			pix_value1 = __max(pix_value1, 0.0);
 
-			//  colorIndex = (int) pix_value1 // * (REAL) (max_value - 1.0));
+			//  colorIndex = (int) pix_value1 // * (VOXEL_REAL) (max_value - 1.0));
 			int colorIndex = __min(pix_value1, max_value - 1.0);
 			COLORREF color1 = m_arrLUT[1][colorIndex];
 
@@ -280,14 +280,14 @@ void CPlanarView::OnMouseMove(UINT nFlags, CPoint point)
 		CRect rectClient;
 		GetClientRect(&rectClient);
 
-		REAL voxelMax = m_pVolume[0]->GetMax();
+		VOXEL_REAL voxelMax = m_pVolume[0]->GetMax();
 
 		CPoint ptDelta = point - m_ptWinLevStart;
 
-		m_window[0] = m_windowStart - voxelMax * (REAL) ptDelta.y / (REAL) rectClient.Height();
+		m_window[0] = m_windowStart - voxelMax * (VOXEL_REAL) ptDelta.y / (VOXEL_REAL) rectClient.Height();
 		m_window[0] = __max(m_window[0], 0.001);
 
-		m_level[0] = m_levelStart - voxelMax * (REAL) ptDelta.x / (REAL) rectClient.Width();
+		m_level[0] = m_levelStart - voxelMax * (VOXEL_REAL) ptDelta.x / (VOXEL_REAL) rectClient.Width();
 
 		// Invalidate(FALSE);
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
@@ -300,8 +300,8 @@ CPoint ToDC(const CVectorD<2>& vVert, const CMatrixD<4>& mBasis)
 {
 	CPoint pt;
 		// (
-		// vVert[0] / (REAL) pDens->GetWidth() * (REAL) rect.Width(),
-		// vVert[1] / (REAL) pDens->GetHeight() * (REAL) rect.Height());
+		// vVert[0] / (VOXEL_REAL) pDens->GetWidth() * (VOXEL_REAL) rect.Width(),
+		// vVert[1] / (VOXEL_REAL) pDens->GetHeight() * (VOXEL_REAL) rect.Height());
 	// pt += rect.TopLeft();
 	pt.x = (vVert[0] - mBasis[3][0]) / mBasis[0][0];
 	pt.y = (vVert[1] - mBasis[3][1]) / mBasis[1][1];
@@ -358,7 +358,7 @@ double calcPoint(double bottom, double top, double c, double tempstep)
 }
 
 
-void CPlanarView::DrawIsocurves(CVolume<REAL> *pVolume, REAL c, CDC *pDC)
+void CPlanarView::DrawIsocurves(CVolume<VOXEL_REAL> *pVolume, REAL c, CDC *pDC)
 {
 	const CMatrixD<4>& mBasis = m_volumeResamp[0].GetBasis();
 
@@ -367,7 +367,7 @@ void CPlanarView::DrawIsocurves(CVolume<REAL> *pVolume, REAL c, CDC *pDC)
 	double bottomleft = 0;
 	double bottomright = 0;
 	
-	REAL **ppPixels = pVolume->GetVoxels()[0];
+	VOXEL_REAL **ppPixels = pVolume->GetVoxels()[0];
 
 	CVectorD<3> vPixSpacing = pVolume->GetPixelSpacing();
 	CVectorD<3> vOrigin = FromHG<3, REAL>(pVolume->GetBasis()[3]);

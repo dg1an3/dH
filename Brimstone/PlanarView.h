@@ -22,7 +22,7 @@ public:
 
 // Attributes
 public:
-	void SetVolume(CVolume<REAL> *pVolume, int nVolumeAt = 0);
+	void SetVolume(CVolume<VOXEL_REAL> *pVolume, int nVolumeAt = 0);
 	void SetBasis(const CMatrixD<4>& mBasis);
 	void SetWindowLevel(REAL win, REAL cen, int nVolumeAt = 0);
 	void SetLUT(CArray<COLORREF, COLORREF>& arrLUT, int nVolumeAt = 0);
@@ -42,11 +42,11 @@ public:
 	CSeries * m_pSeries;
 	void DrawContours(CDC *pDC);
 	void DrawImages(CDC *pDC);
-	void DrawIsocurves(CVolume<REAL> *pVolume, REAL c, CDC *pDC);
+	void DrawIsocurves(CVolume<VOXEL_REAL> *pVolume, REAL c, CDC *pDC);
 	REAL m_alpha;
 	void SetAlpha(REAL alpha);
-	CVolume<REAL> * m_pVolume[2];
-	CVolume<REAL> m_volumeResamp[2];
+	CVolume<VOXEL_REAL> * m_pVolume[2];
+	CVolume<VOXEL_REAL> m_volumeResamp[2];
 	REAL m_window[2];
 	REAL m_level[2];
 
