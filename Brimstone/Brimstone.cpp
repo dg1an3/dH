@@ -35,7 +35,7 @@ END_MESSAGE_MAP()
 
 CBrimstoneApp::CBrimstoneApp()
 {
-	// TODO: add construction code here,
+	// no constructoin
 	// Place all significant initialization in InitInstance
 }
 
@@ -62,10 +62,8 @@ BOOL CBrimstoneApp::InitInstance()
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
 
-	// Change the registry key under which our settings are stored.
-	// TODO: You should modify this string to be something appropriate
-	// such as the name of your company or organization.
-	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
+	// Change the registry key under which our settings are stored
+	SetRegistryKey(_T("2nd Messenger Systems"));
 
 	LoadStdProfileSettings();  // Load standard INI file options (including MRU)
 
