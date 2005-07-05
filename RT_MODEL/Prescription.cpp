@@ -9,7 +9,7 @@
 #include <ConjGradOptimizer.h>
 
 #include <iostream>
-#include ".\include\prescription.h"
+// s#include ".\include\prescription.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -207,7 +207,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
 		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
 
-		pBeamlet->SetThreshold(GetProfileReal("Prescription", "BeamletThreshold", 0.005));
+		pBeamlet->SetThreshold(GetProfileReal("Prescription", "BeamletThreshold", VOXEL_REAL(0.005)));
 			// (REAL) 0.005 /* 0.005 */ ); // pow(10, -(m_nLevel+1)));
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
@@ -530,6 +530,11 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 		CStructure *pStruct = NULL;
 		CVOITerm *pVOIT = NULL;
 		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+
+		if (pVOIT->GetWeight() < DEFAULT_EPSILON)
+		{
+			continue;
+		}
 
 		// calculate the summed volume, if this is the first VOIT
 		if (bCalcSum)
