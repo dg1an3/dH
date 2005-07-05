@@ -40,6 +40,9 @@ public:
 
 	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude) { return 0; }
 
+	REAL GetWeight() const;
+	void SetWeight(REAL weight);
+
 protected:
 	friend class CPrescription;
 
@@ -53,9 +56,7 @@ protected:
 	// the histogram for the term
 	CHistogram m_histogram;
 
-public:
-	REAL GetWeight() const;
-	void SetWeight(REAL weight);
+// public:
 	// the weight
 	REAL m_weight;
 
