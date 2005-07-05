@@ -98,7 +98,7 @@ void CPrescriptionToolbar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 
 		CSliderCtrl *pSWSlider = (CSliderCtrl *) GetDlgItem(IDC_STRUCTWEIGHT);
 		nPos = pSWSlider->GetPos();
-		pVOIT->m_weight = (REAL) nPos / 20.0;
+		pVOIT->SetWeight((REAL) nPos / 20.0);
 		TRACE("SW Slider %i\n", nPos);
 
 		m_pDoc->m_pOptThread->m_pPresc->UpdateTerms(
@@ -107,7 +107,7 @@ void CPrescriptionToolbar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrol
 		// call optimize
 		CVectorN<> vInit;
 		m_pDoc->m_pOptThread->m_pPresc->GetInitStateVector(vInit);
-		if (m_pDoc->m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
+		if (FALSE) // m_pDoc->m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
 		{
 			// m_pDoc->m_pOptThread->m_vResult.SetDim(vInit.GetDim());
 			// m_pDoc->m_pOptThread->m_vResult = vInit;
