@@ -235,7 +235,7 @@ inline TYPE InvSigmoid(TYPE y, TYPE scale /* = 1.0 */)
 
 
 // only use if we have included necessary AFX calls
-#ifdef _AFXWIN_INLINE
+// #ifdef _AFXWIN_INLINE
 //////////////////////////////////////////////////////////////////////
 // GetProfileReal
 //
@@ -259,7 +259,7 @@ inline REAL GetProfileReal(const char *pszSection, const char *pszName, double d
 	return value;
 
 }	// GetProfileReal
-#endif
+// #endif
 
 
 //////////////////////////////////////////////////////////////////////
