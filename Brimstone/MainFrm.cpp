@@ -76,6 +76,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		TRACE0("Failed to create mainbar\n");
 		return -1;      // fail to create
 	}
+	m_wndPrescToolBar.OnInitDialog();
 
 	if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP
 		| CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
@@ -103,7 +104,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);
 
-	SetTimer(8, 50, NULL);
+	// SetTimer(8, 50, NULL);
 
 	return 0;
 }
@@ -120,6 +121,7 @@ void CMainFrame::ActivateFrame(int nCmdShow)
 
 void CMainFrame::OnTimer(UINT nIDEvent) 
 {
+#ifdef THREAD_OPT
 	CBrimstoneDoc *pDoc = (CBrimstoneDoc *) GetActiveDocument();
 
 	if (pDoc)
@@ -138,6 +140,7 @@ void CMainFrame::OnTimer(UINT nIDEvent)
 		}
 		m_wndStatusBar.SetPaneText(0, strMessage);
 	}
-	
+#endif
+
 	CFrameWnd::OnTimer(nIDEvent);
 }
