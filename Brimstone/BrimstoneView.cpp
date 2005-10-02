@@ -61,6 +61,40 @@ BOOL CBrimstoneView::PreCreateWindow(CREATESTRUCT& cs)
 	return CView::PreCreateWindow(cs);
 }
 
+
+// generates a histogram for the specified structure
+void CBrimstoneView::AddHistogram(CStructure * pStruct)
+{
+	CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct, false);
+	ASSERT(pHisto != NULL);
+
+	CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
+	pSeries->SetColor(pStruct->GetColor());
+
+	m_graph.AddDataSeries(pSeries);
+	m_graph.AutoScale();
+	m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
+}
+
+// removes histogram for designated structure
+void CBrimstoneView::RemoveHistogram(CStructure * pStruct)
+{
+	CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct, false);
+	ASSERT(pHisto != NULL);
+
+	for (int nAt = 0; nAt < m_graph.GetDataSeriesCount(); nAt++)
+	{
+		CHistogramDataSeries *pSeries = 
+			static_cast<CHistogramDataSeries *>(m_graph.GetDataSeriesAt(nAt));
+		if (pSeries->GetHistogram() == pHisto)
+		{
+			m_graph.RemoveDataSeries(nAt);
+			m_graph.AutoScale();
+			m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
+		}
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CBrimstoneView drawing
 
@@ -120,7 +154,7 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 	int nRowSize = densityResamp.GetWidth();
 	for (int nAt = 0; nAt < nRowSize * nRowSize; nAt++)
 	{
-		VOXEL_REAL dose = pDose[nAt] / 0.80;
+		VOXEL_REAL dose = (VOXEL_REAL)(pDose[nAt] / 0.80);
 		int colorIndex = (int)(dose * (VOXEL_REAL) (m_arrColormap.GetSize()-1));
 		colorIndex = __min(colorIndex, m_arrColormap.GetSize()-1);
 		COLORREF color = m_arrColormap[colorIndex];
@@ -233,7 +267,7 @@ int CBrimstoneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		m_wndPlanarView.m_window[1], m_wndPlanarView.m_level[1]);
 
 	// set timer to update plan
-	SetTimer(7, 20, NULL);
+	// SetTimer(7, 20, NULL);
 
 	return 0;
 }
@@ -249,13 +283,6 @@ void CBrimstoneView::OnInitialUpdate()
 		m_wndPlanarView.SetBasis(GetDocument()->m_pSeries->m_pDens->GetBasis());
 		m_wndPlanarView.m_pSeries = GetDocument()->m_pSeries;
 
-		for (int nAt = 0; nAt < GetDocument()->m_pSeries->GetStructureCount(); nAt++)
-		{
-			CStructure *pStruct = GetDocument()->m_pSeries->GetStructureAt(nAt);
-//			CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct);
-//			CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
-//			m_graph.AddDataSeries(pSeries);
-		} 
 	}
 	if (GetDocument()->m_pPlan)
 	{
@@ -263,6 +290,24 @@ void CBrimstoneView::OnInitialUpdate()
 	}
 
 	m_wndPlanarView.Invalidate(TRUE);
+
+	// delete histograms
+	m_graph.RemoveAllDataSeries();
+
+	// generate ADDHISTO events
+	for (int nAt = 0; nAt < GetDocument()->m_pSeries->GetStructureCount(); nAt++)
+	{
+		CStructure *pStruct = GetDocument()->m_pSeries->GetStructureAt(nAt);
+		CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct, false);
+		if (NULL != pHisto)
+		{
+			AddHistogram(pStruct);
+		}
+	}
+
+	// TODO: generate events for prescriptions
+
+	m_graph.Invalidate(TRUE);
 }
 
 void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
@@ -275,18 +320,33 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		// set target curve in CGraph
 	}
-	else if (IDD_ADDPRESC == lHint)
+	else if (IDD_ADDHISTO == lHint)
+	{
+		CStructure *pStruct = (CStructure *) pHint;
+		ASSERT(pStruct->IsKindOf(RUNTIME_CLASS(CStructure)));
+
+		AddHistogram(pStruct);
+	}
+	else if (IDD_REMOVEHISTO == lHint)
+	{
+		CStructure *pStruct = (CStructure *) pHint;
+		ASSERT(pStruct->IsKindOf(RUNTIME_CLASS(CStructure)));
+
+		RemoveHistogram(pStruct);
+	}
+/*	else if (IDD_ADDPRESC == lHint)
 	{
 		CStructure *pStruct = (CStructure *) pHint;
 		CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct);
 		CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
-		pSeries->SetColor(pStruct->m_color);
+		pSeries->SetColor(pStruct->GetColor());
 		m_graph.AddDataSeries(pSeries);
 		m_graph.AutoScale();
 		m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
 	}
-	
+*/	
 	Invalidate(FALSE);
+	m_graph.Invalidate(TRUE);
 	m_wndPlanarView.Invalidate(TRUE);
 
 	// DON'T CALL because it will erase
@@ -303,27 +363,6 @@ void CBrimstoneView::OnSize(UINT nType, int cx, int cy)
 	m_graph.MoveWindow(0, 2 * cy / 3, cx, cy / 3);	
 }
 
-//void CBrimstoneView::OnHistogramChange(CObservableEvent *, void *)
-//{
-//	// locate the histo
-//	CHistogram *pHisto = NULL;
-//
-//	// now draw the histogram
-//	const CVectorN<>& arrBins = pHisto->GetCumBins();
-//	CDataSeries *pSeries = new CDataSeries();
-//	m_graph.RemoveAllDataSeries();
-//	m_graph.AddDataSeries(pSeries);
-//	for (int nAt = 0; nAt < arrBins.GetDim(); nAt++)
-//	{
-//		pSeries->AddDataPoint(CVectorD<2>
-//			(1000 * nAt / 256, arrBins[nAt] * 100.0));
-//	}	
-//	
-//	// set up graph scale
-//	m_graph.AutoScale();
-//	m_graph.SetAxesMinMax(CVectorD<2>(0.0f, 0.0f), CVectorD<2>(100.0f, 110.0f));
-//}
-
 
 void CBrimstoneView::OnTimer(UINT nIDEvent) 
 {
@@ -336,9 +375,9 @@ void CBrimstoneView::OnTimer(UINT nIDEvent)
 
 CPoint ToDC(const CVectorD<2>& vVert, const CRect& rect, CVolume<VOXEL_REAL> *pDens)
 {
-	CPoint pt(
-		vVert[0] / (REAL) pDens->GetWidth() * (REAL) rect.Width(),
-		vVert[1] / (REAL) pDens->GetHeight() * (REAL) rect.Height());
+	CPoint pt(Round<int>(vVert[0] / (REAL) pDens->GetWidth() * (REAL) rect.Width()),
+		Round<int>(vVert[1] / (REAL) pDens->GetHeight() * (REAL) rect.Height()));
+
 	pt += rect.TopLeft();
 	return pt;
 		

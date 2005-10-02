@@ -34,6 +34,12 @@ public:
 
 	BOOL m_bColorwashStruct;
 
+	// generates a histogram for the specified structure
+	void AddHistogram(CStructure * pStruct);
+
+	// removes histogram for designated structure
+	void RemoveHistogram(CStructure * pStruct);
+
 // Operations
 public:
 
