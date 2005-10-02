@@ -2,9 +2,9 @@
 //
 
 #include "stdafx.h"
-#include "Brimstone.h"
+#include ".\brimstonedoc.h"
 
-#include "BrimstoneDoc.h"
+#include "Brimstone.h"
 
 #include <Prescription.h>
 
@@ -14,7 +14,6 @@
 
 #include "PlanSetupDlg.h"
 #include "PrescDlg.h"
-#include ".\brimstonedoc.h"
 
 #include "OptimizerDashboard.h"
 
@@ -23,128 +22,6 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
-
-
-COptThread::~COptThread() 
-{ 
-	delete m_pPresc;
-	delete m_pPrescParam;
-}
-
-
-IMPLEMENT_DYNCREATE(COptThread, CWinThread);
-
-
-BOOL ExtCallback(REAL lambda, const CVectorN<>& vDir, 
-							 void *pParam)
-{
-	COptThread *pOptThread = (COptThread *) pParam;
-	return pOptThread->Callback(lambda, vDir);
-}
-
-void COptThread::Immediate()
-{
-	m_evtParamChanged = FALSE;
-
-	// call optimize
-	CVectorN<> vInit;
-	m_pPresc->GetInitStateVector(vInit);
-	if (m_pPresc->Optimize(vInit, ExtCallback, (void *) this))
-	{
-		m_evtNewResult = TRUE;
-
-		// set updated results
-		// ...
-		m_pPrescParam->SetStateVectorToPlan(m_vResult);
-	}
-}
-
-int COptThread::Run()
-{
-	while (m_pPresc)
-	{
-		nIteration = 0;
-
-		m_bDone = FALSE;
-
-		// call optimize
-		CVectorN<> vInit;
-		m_pPresc->GetInitStateVector(vInit);
-		if (m_pPresc->Optimize(vInit, ExtCallback, (void *) this))
-		{
-			// set updated results
-			// ...
-			m_evtNewResult = TRUE;
-			m_bDone = TRUE;
-
-			// wait for new params
-			SuspendThread();
-			while (!m_evtParamChanged) 
-			{
-			}
-		}
-
-		m_csPrescParam.Lock();
-
-		// transfer parameters
-		// ...
-		m_pPresc->UpdateTerms(m_pPrescParam);
-
-		m_evtParamChanged = FALSE;
-
-		m_csPrescParam.Unlock();
-	}
-
-	return 0;
-}
-
-BOOL COptThread::Callback(REAL value, const CVectorN<>& vRes)
-{
-	if (m_evtParamChanged)
-	{
-		return FALSE;
-	}
-
-	nIteration++;
-
-	if (vRes.GetDim() == m_pPresc->GetPlan()->GetTotalBeamletCount(0))
-	{
-		// m_csResult.Lock();
-
-		// set results
-		m_bestValue = value;
-		m_vResult.SetDim(vRes.GetDim());
-		m_vResult = vRes;
-		m_pPresc->Transform(&m_vResult);
-
-		// TODO: get rid of this check
-		for (int nAt = 0; nAt < m_vResult.GetDim(); nAt++)
-		{
-			ASSERT(_finite(m_vResult[nAt]));
-		}
-
-		// flag new result
-//		m_evtNewResult = TRUE;
-
-		// m_csResult.Unlock();
-	}
-
-	return TRUE;
-}
-
-void COptThread::UpdatePlan()
-{
-	if (m_evtNewResult)
-	{
-//		m_csResult.Lock();
-
-		m_pPrescParam->SetStateVectorToPlan(m_vResult);
-				
-		m_evtNewResult = FALSE;
-
-//		m_csResult.Unlock();
-	}
-}
 
 /////////////////////////////////////////////////////////////////////////////
 // CBrimstoneDoc
@@ -165,36 +42,40 @@ END_MESSAGE_MAP()
 // CBrimstoneDoc construction/destruction
 
 CBrimstoneDoc::CBrimstoneDoc()
-: m_pSeries(NULL),
-	m_pPlan(NULL),
-	m_pOptThread(NULL)
+#ifdef THREAD_OPT
+	, m_pOptThread(NULL)
+#endif
 {
+	// triggers creation of subordinates
+	DeleteContents();
+
+#ifdef THREAD_OPT
 	m_pOptThread = (COptThread *) ::AfxBeginThread(RUNTIME_CLASS(COptThread),
 		THREAD_PRIORITY_HIGHEST, // THREAD_PRIORITY_NORMAL, 
 		0, CREATE_SUSPENDED);
+#endif
 }
 
 CBrimstoneDoc::~CBrimstoneDoc()
 {
+#ifdef THREAD_OPT
 	m_pOptThread->SuspendThread();
-
 	delete m_pOptThread;
-
-	delete m_pPlan;
-	delete m_pSeries;
+#endif
 }
 
 void CBrimstoneDoc::DeleteContents() 
 {
-	delete m_pPlan;
-	m_pPlan = NULL;
-	delete m_pSeries;
-	m_pSeries = NULL;
-
 	// create series * plan
-	m_pSeries = new CSeries();
-	m_pPlan = new CPlan();
+	m_pSeries.Free();
+	m_pSeries.Attach(new CSeries());
+
+	m_pPlan.Free();
+	m_pPlan.Attach(new CPlan());
 	m_pPlan->SetSeries(m_pSeries);
+
+	m_pPresc.Free();
+	m_pPresc.Attach(new CPrescription(m_pPlan, 0));
 
 	m_pSelectedStruct = NULL;
 	
@@ -213,28 +94,53 @@ void CBrimstoneDoc::Serialize(CArchive& ar)
 	{
 		arrWorkspace.Add(m_pSeries);
 		arrWorkspace.Add(m_pPlan);
+		arrWorkspace.Add(m_pPresc);
 	}
 
 	arrWorkspace.Serialize(ar);
 
 	if (ar.IsLoading())
 	{
+		m_pSeries.Free();
+		m_pPlan.Free();
+		m_pPresc.Free();
 		for (int nAt = 0; nAt < arrWorkspace.GetSize(); nAt++)
 		{
 			if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CSeries)))
 			{
-				delete m_pSeries;
-				m_pSeries = (CSeries *) arrWorkspace[nAt];
+				m_pSeries.Attach((CSeries *) arrWorkspace[nAt]);
 			}
 			else if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CPlan)))
 			{
-				delete m_pPlan;
-				m_pPlan = (CPlan *) arrWorkspace[nAt];
+				m_pPlan.Attach((CPlan *) arrWorkspace[nAt]);
+			}
+			else if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CPrescription)))
+			{
+				m_pPresc.Attach((CPrescription *) arrWorkspace[nAt]);
 			}
 		}
 
+		// check everything loads OK
+		ASSERT(m_pSeries != NULL);
+		ASSERT(m_pPlan != NULL);
+
+		// link plan to series
+		m_pPlan->SetSeries(m_pSeries);
+
+		// create an empty prescription, if none available
+		if (m_pPresc == NULL)
+		{
+			m_pPresc.Attach(new CPrescription(m_pPlan, 0));
+		}
+
+		// set up the structure regions for histograms
+
 		m_pPlan->GetDoseMatrix()->GetChangeEvent().AddObserver(this,
 			(ListenerFunction) OnDoseChange);
+
+		// set up element includes
+		// TODO: wire this up properly
+		m_pPresc->SetElementInclude();
 	}
 }
 
@@ -279,11 +185,14 @@ void CBrimstoneDoc::OnDoseChange(CObservableEvent *, void *)
 	UpdateAllViews(NULL, NULL, NULL);
 }
 
+#ifdef THREAD_OPT
 void CBrimstoneDoc::UpdateFromOptimizer()
 {
 	m_pOptThread->UpdatePlan();
 }
+#endif
 
+#ifdef THREAD_OPT
 void CBrimstoneDoc::OnParamChange(CObservableEvent *, void *)
 {
 	m_pOptThread->m_evtParamChanged = TRUE;
@@ -291,6 +200,7 @@ void CBrimstoneDoc::OnParamChange(CObservableEvent *, void *)
 	// make sure the thread is still running
 	// m_pOptThread->ResumeThread();
 }
+#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -309,7 +219,7 @@ void InitUTarget(CPlan *pPlan, CStructure *pTarget, CStructure *pAvoid)
 	pRegionAvoid->ClearVoxels();
 
 	int nBeamletCount = pPlan->GetBeamAt(0)->GetBeamletCount(0); // 31;
-	int nRegionSize = ((REAL) nBeamletCount / sqrt(2.0)) / 2 + 1;
+	int nRegionSize = Round<int>(((REAL) nBeamletCount / sqrt(2.0)) / 2.0) + 1;
 	int nMargin = pRegionTarget->GetWidth() / 2 - nRegionSize;
 
 	CPolygon *pTargetContour = new CPolygon();
@@ -433,10 +343,10 @@ void CBrimstoneDoc::OnOptimize()
 {
 	// call optimize
 	CVectorN<> vInit;
-	m_pOptThread->m_pPresc->GetInitStateVector(vInit);
-	if (m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
+	m_pPresc->GetInitStateVector(vInit);
+	if (m_pPresc->Optimize(vInit, NULL, NULL))
 	{
-		m_pOptThread->m_pPresc->SetStateVectorToPlan(vInit);
+		m_pPresc->SetStateVectorToPlan(vInit);
 	}
 
 
@@ -484,17 +394,8 @@ BOOL CBrimstoneDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	if (!CDocument::OnOpenDocument(lpszPathName))
 		return FALSE;
 	
-	m_pOptThread->m_pPrescParam = new CPrescription(m_pPlan, 0);
-//	m_pOptThread->m_pPrescParam->SetElementInclude();
-//	InitVolumes(m_pSeries, m_pPlan, m_pOptThread->m_pPrescParam);
-
-	m_pOptThread->m_pPresc = new CPrescription(m_pPlan, 0);
-//	m_pOptThread->m_pPresc->SetElementInclude();
-//	InitVolumes(m_pSeries, m_pPlan, m_pOptThread->m_pPresc);
-//	m_pOptThread->m_pPresc->UpdateTerms(m_pOptThread->m_pPrescParam);
-
-//	m_pOptThread->ResumeThread();
-
+	// create prescription if its their
+	ASSERT(m_pPresc != NULL);
 
 	return TRUE;
 }
@@ -512,8 +413,10 @@ void CBrimstoneDoc::OnGenbeamlets()
 		mBasis[2][2] = 4.0; // mm
 
 		CVolume<VOXEL_REAL> *pOrigDensity = m_pSeries->m_pDens;
-		int nHeight = pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[0][0] / mBasis[0][0];
-		int nWidth = pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[1][1] / mBasis[1][1];
+		int nHeight = 
+			Round<int>(pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[0][0] / mBasis[0][0]);
+		int nWidth = 
+			Round<int>(pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[1][1] / mBasis[1][1]);
 		int nDepth = 10;
 		m_pPlan->m_dose.SetDimensions(nWidth, nHeight, nDepth);
 
@@ -532,13 +435,13 @@ void CBrimstoneDoc::OnGenbeamlets()
 				{
 					if (pppCTVoxels[nZ][nY][nX] < 0.0)
 					{
-						pppMDVoxels[nZ][nY][nX] = 
-							0.0 + 1.0 * (pppCTVoxels[nZ][nY][nX] - -1024.0) / 1024.0;
+						pppMDVoxels[nZ][nY][nX] = (VOXEL_REAL)
+							(0.0 + 1.0 * (pppCTVoxels[nZ][nY][nX] - -1024.0) / 1024.0);
 					}
 					else if (pppCTVoxels[nZ][nY][nX] < 1024.0)
 					{
-						pppMDVoxels[nZ][nY][nX] = 
-							1.0 + 0.5 * pppCTVoxels[nZ][nY][nX] / 1024.0;
+						pppMDVoxels[nZ][nY][nX] = (VOXEL_REAL)
+							(1.0 + 0.5 * pppCTVoxels[nZ][nY][nX] / 1024.0);
 					}
 					else
 					{
@@ -654,28 +557,36 @@ void CBrimstoneDoc::OnFileImportDcm()
 
 void CBrimstoneDoc::OnPlanAddPresc() 
 {
-	CPrescDlg dlg;
+/*	CPrescDlg dlg;
 	dlg.m_pSeries = m_pSeries;
-	dlg.m_pPrescParam = m_pOptThread->m_pPrescParam;
-	dlg.m_pPresc = m_pOptThread->m_pPresc;
+	dlg.m_pPresc = m_pPresc;
 
 	if (dlg.DoModal())
 	{
-		CVectorN<> vInit;
-		m_pOptThread->m_pPresc->GetInitStateVector(vInit);
-		// if (m_pOptThread->m_pPresc->Optimize(vInit, NULL, NULL))
-		{
-		}
-		// m_pOptThread->m_pPresc->SetElementInclude();
-		// m_pOptThread->m_pPrescParam->SetElementInclude();
-
-		UpdateAllViews(NULL, IDD_ADDPRESC, dlg.m_pStruct);
-	}
+		UpdateAllViews(NULL, IDD_ADDHISTO, dlg.m_pStruct);
+	} */
 }
 
 void CBrimstoneDoc::OnOptDashboard()
 {
 	COptimizerDashboard optDash;
-	optDash.m_pPresc = m_pOptThread->m_pPresc;
+	optDash.m_pPresc = m_pPresc;
 	optDash.DoModal();
+}
+
+// generates a histogram for the specified structure
+void CBrimstoneDoc::AddHistogram(CStructure * pStruct)
+{
+	// generate the histogram
+	m_pPlan->GetHistogram(pStruct, true);
+
+	// trigger updates
+	UpdateAllViews(NULL, IDD_ADDHISTO, pStruct);
+}
+
+// removes histogram for designated structure
+void CBrimstoneDoc::RemoveHistogram(CStructure * pStruct)
+{
+	UpdateAllViews(NULL, IDD_REMOVEHISTO, pStruct);
+	m_pPlan->RemoveHistogram(pStruct);
 }

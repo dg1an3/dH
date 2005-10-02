@@ -7,57 +7,11 @@
 
 #include <Series.h>
 #include <Plan.h>
+#include <Prescription.h>
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
-
-class CPrescription;
-
-class COptThread : public CWinThread
-{
-public:
-	COptThread() 
-		: m_pPresc(NULL),
-		m_pPrescParam(NULL),
-		m_evtParamChanged(FALSE),
-		m_evtNewResult(FALSE)
-	{ 
-	}
-
-	virtual ~COptThread();
-
-	DECLARE_DYNCREATE(COptThread);
-
-	virtual BOOL InitInstance() { return TRUE; }
-
-	void Immediate();
-
-	virtual int Run();
-
-	virtual BOOL Callback(REAL value, const CVectorN<>& vDir);
-
-	// external prescription object (used to transfer parameters)
-	CCriticalSection m_csPrescParam;
-	CPrescription *m_pPrescParam;
-	BOOL m_evtParamChanged;
-
-	void UpdatePlan();
-
-	int nIteration;
-	BOOL m_bDone;
-public:
-	// results
-	CCriticalSection m_csResult;
-	REAL m_bestValue;
-	CVectorN<> m_vResult;
-public:
-	BOOL m_evtNewResult;
-
-public:
-	// internal prescription object
-	CPrescription *m_pPresc;
-};
 
 class CBrimstoneDoc : public CDocument
 {
@@ -70,11 +24,24 @@ public:
 	BOOL SelectStructure(const CString& strName);
 	CStructure * GetSelectedStructure();
 
-	CSeries * m_pSeries;
+	// pointer to selected structure
 	CStructure * m_pSelectedStruct;
-	CPlan * m_pPlan;
 
+	CAutoPtr<CSeries> m_pSeries;
+	CAutoPtr<CPlan> m_pPlan;
+
+	// stores the prescription object
+	CAutoPtr<CPrescription> m_pPresc;
+
+	// generates a histogram for the specified structure
+	void AddHistogram(CStructure * pStruct);
+
+	// removes histogram for designated structure
+	void RemoveHistogram(CStructure * pStruct);
+
+#ifdef THREAD_OPT
 	COptThread *m_pOptThread;
+#endif
 
 // Operations
 public:
@@ -111,10 +78,10 @@ protected:
 	afx_msg void OnGenbeamlets();
 	afx_msg void OnFileImportDcm();
 	afx_msg void OnPlanAddPresc();
+	afx_msg void OnOptDashboard();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-public:
-	afx_msg void OnOptDashboard();
+
 };
 
 /////////////////////////////////////////////////////////////////////////////
