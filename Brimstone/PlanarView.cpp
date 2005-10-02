@@ -23,10 +23,10 @@ CPlanarView::CPlanarView()
 	m_pVolume[0] = NULL;
 	m_pVolume[1] = NULL;
 
-	m_window[0] = (REAL) 2.0;
+	m_window[0] = (REAL) 400.0;
 	m_window[1] = (REAL) 1.0 / 0.8;
 
-	m_level[0] = (REAL) 1.0;
+	m_level[0] = (REAL) 30.0;
 	m_level[1] = (REAL) 0.4;
 
 	m_alpha = (REAL) 1.0;
@@ -115,15 +115,16 @@ void CPlanarView::OnPaint()
 		VOXEL_REAL c = (VOXEL_REAL) 0.425;
 		while (c < 1.0)
 		{
-			VOXEL_REAL max_value = m_arrLUT[1].GetSize();
-			VOXEL_REAL pix_value1 = max_value * m_window[1] * (c - m_level[1]) + max_value / 2.0;
+			VOXEL_REAL max_value = (VOXEL_REAL) m_arrLUT[1].GetSize();
+			VOXEL_REAL pix_value1 = (VOXEL_REAL)
+				(max_value * m_window[1] * (c - m_level[1]) + max_value / 2.0);
 
 			// scale to 0..255
-			pix_value1 = __min(pix_value1, max_value - 1.0);
-			pix_value1 = __max(pix_value1, 0.0);
+			pix_value1 = (VOXEL_REAL) __min(pix_value1, max_value - 1.0);
+			pix_value1 = (VOXEL_REAL) __max(pix_value1, 0.0);
 
 			//  colorIndex = (int) pix_value1 // * (VOXEL_REAL) (max_value - 1.0));
-			int colorIndex = __min(pix_value1, max_value - 1.0);
+			int colorIndex = Round<int>(__min(pix_value1, max_value - 1.0));
 
 			CPen pen(PS_SOLID, 1, m_arrLUT[1][colorIndex]);
 			dcMem.SelectObject(&pen);
@@ -194,14 +195,15 @@ void CPlanarView::DrawImages(CDC *pDC)
 	
 	m_arrPixels.SetSize(rect.Width() * rect.Height());
 
-	VOXEL_REAL alpha1 = 1.0 - m_alpha;
+	VOXEL_REAL alpha1 = (VOXEL_REAL) (1.0 - m_alpha);
 	for (int nAt = 0; nAt < rect.Width() * rect.Height(); nAt++)
 	{
-		VOXEL_REAL pix_value0 = 256.0 * m_window[0] * (pVoxels0[nAt] - m_level[0]) + 128.0;
+		VOXEL_REAL pix_value0 = (VOXEL_REAL) 
+			(128.0 / m_window[0] * (pVoxels0[nAt] - m_level[0]) + 128.0);
 
 		// scale to 0..255
-		pix_value0 = __min(pix_value0, 255.0);
-		pix_value0 = __max(pix_value0, 0.0);
+		pix_value0 = (VOXEL_REAL) __min(pix_value0, 255.0);
+		pix_value0 = (VOXEL_REAL) __max(pix_value0, 0.0);
 
 		if (!pVoxels1)
 		{
@@ -210,15 +212,16 @@ void CPlanarView::DrawImages(CDC *pDC)
 		}
 		else
 		{
-			VOXEL_REAL max_value = m_arrLUT[1].GetSize();
-			VOXEL_REAL pix_value1 = max_value * m_window[1] * (pVoxels1[nAt] - m_level[1]) + max_value / 2.0;
+			VOXEL_REAL max_value = (VOXEL_REAL) m_arrLUT[1].GetSize();
+			VOXEL_REAL pix_value1 = (VOXEL_REAL) 
+				(max_value * m_window[1] * (pVoxels1[nAt] - m_level[1]) + max_value / 2.0);
 
 			// scale to 0..255
-			pix_value1 = __min(pix_value1, max_value - 1.0);
-			pix_value1 = __max(pix_value1, 0.0);
+			pix_value1 = (VOXEL_REAL) __min(pix_value1, max_value - 1.0);
+			pix_value1 = (VOXEL_REAL) __max(pix_value1, 0.0);
 
 			//  colorIndex = (int) pix_value1 // * (VOXEL_REAL) (max_value - 1.0));
-			int colorIndex = __min(pix_value1, max_value - 1.0);
+			int colorIndex = Round<int>(__min(pix_value1, max_value - 1.0));
 			COLORREF color1 = m_arrLUT[1][colorIndex];
 
 			if (colorIndex > 5)
@@ -303,8 +306,9 @@ CPoint ToDC(const CVectorD<2>& vVert, const CMatrixD<4>& mBasis)
 		// vVert[0] / (VOXEL_REAL) pDens->GetWidth() * (VOXEL_REAL) rect.Width(),
 		// vVert[1] / (VOXEL_REAL) pDens->GetHeight() * (VOXEL_REAL) rect.Height());
 	// pt += rect.TopLeft();
-	pt.x = (vVert[0] - mBasis[3][0]) / mBasis[0][0];
-	pt.y = (vVert[1] - mBasis[3][1]) / mBasis[1][1];
+	// TODO: use round function
+	pt.x = Round<LONG>((vVert[0] - mBasis[3][0]) / mBasis[0][0]);
+	pt.y = Round<LONG>((vVert[1] - mBasis[3][1]) / mBasis[1][1]);
 
 	return pt;
 		
@@ -322,10 +326,12 @@ void CPlanarView::DrawContours(CDC *pDC)
 	{
 		CStructure *pStruct = m_pSeries->GetStructureAt(nAtStruct);
 
-		if (!pStruct->m_bVisible)
+		if (!pStruct->IsVisible())
+		{
 			continue;
+		}
 
-		CPen pen(PS_SOLID, 2, pStruct->m_color);
+		CPen pen(PS_SOLID, 2, pStruct->GetColor());
 		CPen *pOldPen = pDC->SelectObject(&pen);
 		pDC->SelectStockObject(HOLLOW_BRUSH);
 
