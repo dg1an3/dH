@@ -17,7 +17,6 @@
 #include <VectorN.h>
 #include <MatrixD.h>
 #include <MatrixNxM.h>
-//#include <MatrixBase.inl>
 
 #include <ippi.h>
 
@@ -31,7 +30,22 @@
 #include <limits>
 using namespace std;
 
+//////////////////////////////////////////////////////////////////////
+// class CVolumeBase
+//
+// base class for volumes
+//////////////////////////////////////////////////////////////////////
+class CVolumeBase : public CModelObject
+{
+	// TODO: implement this as CBufferBase 
+	// -- so that serialization is fully supported
+};
+
+
+// normative voxel type
 typedef float VOXEL_REAL;
+
+
 //////////////////////////////////////////////////////////////////////
 // class CVolume<VOXEL_TYPE>
 //
@@ -46,6 +60,9 @@ public:
 	CVolume(const CVolume& vFrom);
 
 	virtual ~CVolume();
+
+	// serializes the volume
+	virtual void Serialize(CArchive& ar);
 
 	// dimension attributes
 	int GetWidth() const;
@@ -108,9 +125,6 @@ public:
 
 	// helper for pixel spacing
 	CVectorD<3> GetPixelSpacing() const;
-
-	// serializes the volume
-	virtual void Serialize(CArchive& ar);
 
 	// logging
 	virtual void Log(CXMLElement *pElem) const;
@@ -1009,7 +1023,7 @@ inline void ClipRaster(int nDim,
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
 #if defined(USE_IPP)
-inline void Resample(CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew, 
+inline void Resample(const CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew, 
 					 BOOL bBilinear = FALSE)
 {
 	// form translation basis
@@ -1252,6 +1266,7 @@ void WriteCSV(const char *pszFilename, CVolume<VOXEL_TYPE> *pVol, int nAtDepth)
 	fclose(hFile);
 }
 
+/*
 //////////////////////////////////////////////////////////////////////
 // DEPRECATED
 // function operator>>(CArchive &ar, CVolume<VOXEL_TYPE>*&)
@@ -1274,5 +1289,6 @@ CArchive& operator>>(CArchive& ar, CVolume<VOXEL_TYPE>*&pOb)
 	// return the archive
 	return ar; 
 } 
+*/
 
 #endif // !defined(AFX_VOLUME_H__82547A50_0C10_11D5_9E4E_00B0D0609AB0__INCLUDED_)
