@@ -22,7 +22,7 @@
 //		objective function to define a gradient, but a flag is provided
 //		in the case that no gradient is available
 //////////////////////////////////////////////////////////////////////
-class CObjectiveFunction
+class CObjectiveFunction : public CObject
 {
 public:
 	// constructs an objective function; gets flag to indicate
