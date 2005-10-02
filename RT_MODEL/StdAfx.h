@@ -10,7 +10,16 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
+
+#ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
+#endif
+
+#ifndef WINVER				// Allow use of features specific to Windows 95 and Windows NT 4 or later.
+#define WINVER 0x0501		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
+#endif
 
 #include <afx.h>
 #include <afxwin.h>
@@ -18,6 +27,8 @@
 #include <afxdisp.h>
 
 #include <afxtempl.h>
+
+#include <atlcoll.h>
 
 #include <XMLLogging.h>
 USES_FMT;
