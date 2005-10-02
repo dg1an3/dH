@@ -3,20 +3,9 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#include "Structure.h"
+#include ".\include\structure.h"
+
 #include <Series.h>
-
-CVolume<VOXEL_REAL> CStructure::m_kernel;
-
-
-/////////////////////////////////////////////////////////////////////////////
-// CSeries
-
-#define STRUCTURE_SCHEMA 2
-	// Schema 1: initial structure schema
-	// Schema 2: + structure color
-
-IMPLEMENT_SERIAL(CStructure, CModelObject, VERSIONABLE_SCHEMA | STRUCTURE_SCHEMA)
 
 
 //////////////////////////////////////////////////////////////////////
@@ -26,13 +15,14 @@ IMPLEMENT_SERIAL(CStructure, CModelObject, VERSIONABLE_SCHEMA | STRUCTURE_SCHEMA
 ///////////////////////////////////////////////////////////////////////////////
 // CStructure::CStructure
 // 
-// <description>
+// constructs a structure
 ///////////////////////////////////////////////////////////////////////////////
 CStructure::CStructure(const CString& strName)
-	: CModelObject(strName),
-		m_pSeries(NULL),
-		m_pMesh(NULL),
-		m_bVisible(TRUE)
+	: CModelObject(strName)
+		, m_pSeries(NULL)
+		, m_pMesh(NULL)
+		, m_bVisible(TRUE)
+		, m_type(eNONE)
 {
 	if (m_kernel.GetWidth() == 0)
 	{
@@ -45,7 +35,7 @@ CStructure::CStructure(const CString& strName)
 ///////////////////////////////////////////////////////////////////////////////
 // CStructure::~CStructure
 // 
-// <description>
+// destroys structure
 ///////////////////////////////////////////////////////////////////////////////
 CStructure::~CStructure()
 {
@@ -61,102 +51,21 @@ CStructure::~CStructure()
 		delete m_arrRegions[nAt];
 	}
 
+	for (nAt = 0; nAt < m_arrConformRegions.GetSize(); nAt++)
+	{
+		delete m_arrConformRegions[nAt];
+	}
+
 }	// CStructure::~CStructure
 
-///////////////////////////////////////////////////////////////////////////////
-// CStructure::GetMesh
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-CMesh * CStructure::GetMesh()
-{
-	return m_pMesh;
+#define STRUCTURE_SCHEMA 4
+	// Schema 1: initial structure schema
+	// Schema 2: + structure color
+	// Schema 3: + structure type
+	// Schema 4: + structure visible
 
-}	// CStructure::GetMesh
+IMPLEMENT_SERIAL(CStructure, CModelObject, VERSIONABLE_SCHEMA | STRUCTURE_SCHEMA)
 
-///////////////////////////////////////////////////////////////////////////////
-// CStructure::GetRegion
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-CVolume<VOXEL_REAL> * CStructure::GetRegion(int nScale)
-{
-	if (m_arrRegions.GetSize() <= nScale)
-	{
-		BEGIN_LOG_SECTION(CStructure::GetRegion);
-
-		// TODO: use CPyramid for this
-
-		CVolume<VOXEL_REAL> *pNewRegion = new CVolume<VOXEL_REAL>();
-		if (nScale == 0)
-		{
-			// set size of region
-			pNewRegion->ConformTo(m_pSeries->m_pDens);
-			ContoursToRegion(pNewRegion);
-		}
-		else
-		{
-			CVolume<VOXEL_REAL> *pPrevRegion = GetRegion(nScale - 1);
-
-			CVolume<VOXEL_REAL> convRegion;
-			convRegion.SetBasis(pPrevRegion->GetBasis());
-			Convolve(pPrevRegion, &m_kernel, &convRegion);
-
-			Decimate(&convRegion, pNewRegion);
-		}
-
-		m_arrRegions.Add(pNewRegion);
-
-		END_LOG_SECTION();
-	}
-	
-	return (CVolume<VOXEL_REAL> *) m_arrRegions[nScale];
-
-}	// CStructure::GetRegion
-
-///////////////////////////////////////////////////////////////////////////////
-// CStructure::InitFilter
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-void CStructure::InitFilter()
-{
-}	// CStructure::InitFilter
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CStructure::GetContourCount
-// 
-// returns the number of contours in the mesh
-///////////////////////////////////////////////////////////////////////////////
-int CStructure::GetContourCount() const
-{
-	return m_arrContours.GetSize();
-
-}	// CStructure::GetContourCount
-
-///////////////////////////////////////////////////////////////////////////////
-// CStructure::GetContour
-// 
-// returns the contour at the given index
-///////////////////////////////////////////////////////////////////////////////
-CPolygon *CStructure::GetContour(int nIndex)
-{
-	return (CPolygon *) m_arrContours[nIndex];
-
-}	// CStructure::GetContour
-
-
-///////////////////////////////////////////////////////////////////////////////
-// CStructure::GetContourRefDist
-// 
-// returns the reference distance of the indicated contour
-///////////////////////////////////////////////////////////////////////////////
-REAL CStructure::GetContourRefDist(int nIndex) const
-{
-	return m_arrRefDist[nIndex];
-
-}	// CStructure::GetContourRefDist
 
 ///////////////////////////////////////////////////////////////////////////////
 // CStructure::Serialize
@@ -194,7 +103,204 @@ void CStructure::Serialize(CArchive& ar)
 		}
 	}
 
+	if (nSchema >= 3)
+	{
+		if (ar.IsLoading())
+		{
+			int nIntType;
+			ar >> nIntType;
+			m_type = (StructType) nIntType;
+		}
+		else
+		{
+			ar << (int) m_type;
+		}
+	}
+
+	if (nSchema >= 4)
+	{
+		if (ar.IsLoading())
+		{
+			ar >> m_bVisible;
+		}
+		else
+		{
+			ar << m_bVisible;
+		}
+	}
+
 }	// CStructure::Serialize
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetContourCount
+// 
+// returns the number of contours in the mesh
+///////////////////////////////////////////////////////////////////////////////
+int CStructure::GetContourCount() const
+{
+	return m_arrContours.GetSize();
+
+}	// CStructure::GetContourCount
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetContour
+// 
+// returns the contour at the given index
+///////////////////////////////////////////////////////////////////////////////
+CPolygon *CStructure::GetContour(int nIndex)
+{
+	return (CPolygon *) m_arrContours[nIndex];
+
+}	// CStructure::GetContour
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetContourRefDist
+// 
+// returns the reference distance of the indicated contour
+///////////////////////////////////////////////////////////////////////////////
+REAL CStructure::GetContourRefDist(int nIndex) const
+{
+	return m_arrRefDist[nIndex];
+
+}	// CStructure::GetContourRefDist
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::AddContour
+// 
+// adds a new contour to the structure
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::AddContour(CPolygon *pPoly, REAL refDist)
+{
+	m_arrContours.Add(pPoly);
+	m_arrRefDist.Add(refDist);
+
+}	// CStructure::AddContour
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetMesh
+// 
+// returns the mesh
+///////////////////////////////////////////////////////////////////////////////
+CMesh * CStructure::GetMesh()
+{
+	return m_pMesh;
+
+}	// CStructure::GetMesh
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetRegion
+// 
+// forms a new region and returns at requested scale
+///////////////////////////////////////////////////////////////////////////////
+CVolume<VOXEL_REAL> * CStructure::GetRegion(int nScale)
+{
+	if (m_arrRegions.GetSize() <= nScale)
+	{
+		BEGIN_LOG_SECTION(CStructure::GetRegion);
+
+		// TODO: use CPyramid for this
+
+		CVolume<VOXEL_REAL> *pNewRegion = new CVolume<VOXEL_REAL>();
+		if (nScale == 0)
+		{
+			// set size of region
+			pNewRegion->ConformTo(m_pSeries->m_pDens);
+			ContoursToRegion(pNewRegion);
+		}
+		else
+		{
+			CVolume<VOXEL_REAL> *pPrevRegion = GetRegion(nScale - 1);
+
+			CVolume<VOXEL_REAL> convRegion;
+			convRegion.SetBasis(pPrevRegion->GetBasis());
+			Convolve(pPrevRegion, &m_kernel, &convRegion);
+
+			Decimate(&convRegion, pNewRegion);
+		}
+
+		m_arrRegions.Add(pNewRegion);
+
+		END_LOG_SECTION();
+	}
+	
+	return (CVolume<VOXEL_REAL> *) m_arrRegions[nScale];
+
+}	// CStructure::GetRegion
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetType
+// 
+// accessors for struct type
+///////////////////////////////////////////////////////////////////////////////
+CStructure::StructType CStructure::GetType(void) const
+{
+	return m_type;
+
+}	// CStructure::GetType
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::SetType
+// 
+// accessors for struct type
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::SetType(CStructure::StructType newType)
+{
+	m_type = newType;
+
+}	// CStructure::SetType
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetVisible
+// 
+// accessor for visible flag
+///////////////////////////////////////////////////////////////////////////////
+bool CStructure::IsVisible(void) const
+{
+	return m_bVisible;
+
+}	// CStructure::GetVisible
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::SetVisible
+// 
+// accessor for visible flag
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::SetVisible(bool bVisible)
+{
+	m_bVisible = bVisible;
+
+}	// CStructure::SetVisible
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::GetColor
+// 
+// accessor for display color 
+///////////////////////////////////////////////////////////////////////////////
+COLORREF CStructure::GetColor(void) const
+{
+	return m_color;
+
+}	// CStructure::GetColor
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::SetColor
+// 
+// accessor for display color 
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::SetColor(COLORREF color)
+{
+	m_color = color;
+
+}	// CStructure::SetColor
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -218,72 +324,18 @@ void CStructure::ContoursToRegion(CVolume<VOXEL_REAL> *pRegion)
 
 	CreateRegion(arrContours, pRegion);
 
-/*	int nWidth = 0;
-	int nHeight = 0;
-	for (int nAt = 0; nAt < GetContourCount(); nAt++)
-	{
-		CPolygon *pPoly = GetContour(nAt);
-
-		nWidth = __max(ceil(pPoly->GetMax()[0]), nWidth);
-		nHeight = __max(ceil(pPoly->GetMax()[1]), nHeight);
-	}
-
-	CDC dc;
-	BOOL bRes = dc.CreateCompatibleDC(NULL);
-
-	CBitmap bitmap;
-	bRes = bitmap.CreateBitmap(nWidth, nHeight, 1, 1, NULL);
-
-	CBitmap *pOldBitmap = (CBitmap *) dc.SelectObject(&bitmap);
-	dc.SelectStockObject(WHITE_PEN);
-	dc.SelectStockObject(WHITE_BRUSH);
-
-	for (nAt = 0; nAt < GetContourCount(); nAt++)
-	{
-		CPolygon *pPoly = GetContour(nAt);
-
-		static CArray<CPoint, CPoint&> arrPoints;
-		arrPoints.SetSize(pPoly->GetVertexCount());
-		for (int nAt = 0; nAt < pPoly->GetVertexCount(); nAt++)
-		{
-			arrPoints[nAt].x = (int) floor(pPoly->GetVertexAt(nAt)[0] + 0.5);
-			arrPoints[nAt].y = (int) floor(pPoly->GetVertexAt(nAt)[1] + 0.5);
-		}
-		dc.Polygon(arrPoints.GetData(), pPoly->GetVertexCount());
-	}
-
-	dc.SelectObject(pOldBitmap);
-
-	dc.DeleteDC();
-
-	BITMAP bm;
-	bitmap.GetBitmap(&bm);
-
-	static CArray<BYTE, BYTE> arrBuffer;
-	arrBuffer.SetSize(nHeight * bm.bmWidthBytes);
-	int nByteCount = bitmap.GetBitmapBits(arrBuffer.GetSize(), arrBuffer.GetData());
-
-	// now populate region
-	pRegion->SetDimensions(nWidth, nHeight, 1);
-	pRegion->ClearVoxels();
-
-	for (int nY = 0; nY < pRegion->GetHeight(); nY++)
-	{
-		for (int nX = 0; nX < pRegion->GetWidth(); nX++)
-		{
-			if ((arrBuffer[nY * bm.bmWidthBytes + nX / 8] >> (nX % 8)) & 0x01)
-			{
-				pRegion->GetVoxels()[0][nY][nX] = 1.0;
-			}
-		}
-	}
-
-	bitmap.DeleteObject(); */
-
 }	// CStructure::ContoursToRegion
 
-void CStructure::AddContour(CPolygon *pPoly, REAL refDist)
+
+// stores the convolution kernel
+CVolume<VOXEL_REAL> CStructure::m_kernel;
+
+///////////////////////////////////////////////////////////////////////////////
+// CStructure::InitFilter
+// 
+// initializes the kernel
+///////////////////////////////////////////////////////////////////////////////
+void CStructure::InitFilter()
 {
-	m_arrContours.Add(pPoly);
-	m_arrRefDist.Add(refDist);
-}
+}	// CStructure::InitFilter
+
