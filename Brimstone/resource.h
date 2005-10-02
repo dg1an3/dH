@@ -11,6 +11,8 @@
 #define IDB_LEGEND                      134
 #define IDD_PLANSETUPDLG                135
 #define IDD_ADDPRESC                    136
+#define IDD_ADDHISTO                    137
+#define IDD_REMOVEHISTO                 138
 #define IDC_STATIC_ITER_GRAPH           1001
 #define IDM_DOSEUPDATE                  1002
 #define IDC_STATIC_PARAM_GRAPH          1002
@@ -36,10 +38,17 @@
 #define IDC_CHECK_COMP1                 1011
 #define IDC_DOSE2_EDIT                  1012
 #define IDC_CHECK_COMP2                 1012
+#define IDC_DOSE1_EDIT2                 1012
 #define IDC_CHECK_COMP3                 1013
-#define IDC_BUTTON1                     1014
+#define IDC_DOSE2_EDIT2                 1013
 #define IDC_BTN_NEXT                    1014
+#define IDC_STRUCT_HISTO_VISIBLE        1014
 #define IDC_BTN_PREV                    1015
+#define IDC_VOLUME2_EDIT                1015
+#define IDC_EDIT1                       1017
+#define IDC_RADIO_NONE                  1018
+#define IDC_RADIO_TARGET                1021
+#define IDC_RADIO_OAR                   1022
 #define ID_SCANBEAMLETS                 32771
 #define ID_OPTIMIZE                     32772
 #define ID_GENBEAMLETS                  32773
@@ -60,7 +69,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        137
 #define _APS_NEXT_COMMAND_VALUE         32784
-#define _APS_NEXT_CONTROL_VALUE         1015
-#define _APS_NEXT_SYMED_VALUE           101
+#define _APS_NEXT_CONTROL_VALUE         1019
+#define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif
