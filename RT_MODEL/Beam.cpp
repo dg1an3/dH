@@ -600,7 +600,7 @@ void CBeam::Serialize(CArchive &ar)
 		m_arrBlocks.SetSize(0);
 
 		DWORD nCount = ar.ReadCount();
-		for (nAt = 0; nAt < nCount; nAt++)
+		for (nAt = 0; nAt < (int) nCount; nAt++)
 		{
 			// and add it to the array
 			AddBlock(new CPolygon());

@@ -155,7 +155,7 @@ BOOL convertVoxels(VOXEL_TYPE *pOrigVoxels, int nSize,
 {
 	for (int nAt = 0; nAt < nSize; nAt++)
 	{
-		pNewVoxels[nAt] = slope * (VOXEL_REAL) pOrigVoxels[nAt] + intercept;
+		pNewVoxels[nAt] = (VOXEL_REAL) (slope * pOrigVoxels[nAt] + intercept);
 	}
 
 	return TRUE;
@@ -333,8 +333,8 @@ int CSeriesDicomImporter::CDicomImageItem::CompareSlicePosition(CDicomImageItem 
 {
 	ASSERT(pFirst->m_vOffset[2].IsApproxEqual(pSecond->m_vOffset[2]));
 
-	float pos1 = pFirst->m_vImgPos * pFirst->m_vOffset[2];
-	float pos2 = pSecond->m_vImgPos * pSecond->m_vOffset[2];
+	REAL pos1 = pFirst->m_vImgPos * pFirst->m_vOffset[2];
+	REAL pos2 = pSecond->m_vImgPos * pSecond->m_vOffset[2];
 
 	return (pos1 < pos2); 
 }
@@ -347,7 +347,7 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 
 	DcmSequenceOfItems *pSSROISequence = NULL;
 	CHK_DCM(pDataset->findAndGetSequence(DCM_StructureSetROISequence, pSSROISequence));
-	for (int nAtROI = 0; nAtROI < pSSROISequence->card(); nAtROI++)
+	for (int nAtROI = 0; nAtROI < (int) pSSROISequence->card(); nAtROI++)
 	{
 		DcmItem *pROIItem = pSSROISequence->getItem(nAtROI);
 
@@ -369,7 +369,7 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 
 	DcmSequenceOfItems *pROIContourSequence = NULL;
 	CHK_DCM(pDataset->findAndGetSequence(DCM_ROIContourSequence, pROIContourSequence));
-	for (int nAtROIContour = 0; nAtROIContour< pROIContourSequence->card(); nAtROIContour++)
+	for (int nAtROIContour = 0; nAtROIContour < (int) pROIContourSequence->card(); nAtROIContour++)
 	{
 		DcmItem *pROIContourItem = pROIContourSequence->getItem(nAtROIContour);
 
@@ -384,11 +384,11 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 			
 			int nRed, nGrn, nBlu;
 			sscanf(strColor.c_str(), "%i\\%i\\%i", &nRed, &nGrn, &nBlu);
-			pStruct->m_color = RGB(nRed, nGrn, nBlu);
+			pStruct->SetColor(RGB(nRed, nGrn, nBlu));
 
 			DcmSequenceOfItems *pContourSequence = NULL;
 			CHK_DCM(pROIContourItem->findAndGetSequence(DCM_ContourSequence, pContourSequence));
-			for (int nAtContour = 0; nAtContour< pContourSequence->card(); nAtContour++)
+			for (int nAtContour = 0; nAtContour < (int) pContourSequence->card(); nAtContour++)
 			{
 				DcmItem *pContourItem = pContourSequence->getItem(nAtContour);
 

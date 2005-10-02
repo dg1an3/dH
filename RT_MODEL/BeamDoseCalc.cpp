@@ -230,12 +230,12 @@ inline REAL DistToIntersectPlane(REAL pos, REAL dir, int& nCurrIndex)
 	
 	if (dir > 0)
 	{
-		nCurrIndex = floor(pos + 0.5 + EPS);
+		nCurrIndex = (int) floor(pos + 0.5 + EPS);
 		return (((REAL) nCurrIndex + 0.5) - pos) / dir;
 	}
 	else
 	{
-		nCurrIndex = ceil(pos - 0.5 - EPS);
+		nCurrIndex = (int) ceil(pos - 0.5 - EPS);
 		return (((REAL) nCurrIndex - 0.5) - pos) / dir;
 	}
 
@@ -430,11 +430,11 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 						{
 							//	use trilinear interpolation weights to update all neighboring 
 							//		terma voxels
-							pppTerma[nNdx[Y]+nDY][nNdx[X]+nDX][nNdx[Z]+nDZ] += 
-								weights[X][nDX+1]
+							pppTerma[nNdx[Y]+nDY][nNdx[X]+nDX][nNdx[Z]+nDZ] += (VOXEL_REAL)
+								( weights[X][nDX+1]
 								* weights[Y][nDY+1] 
 								* weights[Z][nDZ+1] 
-								* fluenceInc;
+								* fluenceInc );
 						}
 					}
 				}
@@ -525,7 +525,7 @@ void CBeamDoseCalc::CalcSphereConvolve()
 					// Convert the energy to dose by dividing by mass                            
 
 					// convert to Gy cm**2 and take into account the azimuthal sum
-					pppEnergy[nZ][nY][nX] *= 1.602e-10 / (REAL) NUM_THETA;
+					pppEnergy[nZ][nY][nX] *= (VOXEL_REAL) (1.602e-10 / (REAL) NUM_THETA);
 
 				}
 			}
@@ -546,7 +546,7 @@ void CBeamDoseCalc::CalcSphereConvolve()
 		{
 			for (int nX = 0; nX < m_densityRep.GetWidth(); nX++)        
 			{
-				pppEnergy[nZ][nY][nX] /= dmax;
+				pppEnergy[nZ][nY][nX] /= (VOXEL_REAL) dmax;
 			}
 		}
 	} 
@@ -626,7 +626,7 @@ void CBeamDoseCalc::CalcSphereTrace(int nX, int nY, int nZ)
 					
 					// The energy is accumulated - superposition
 					pppEnergy[nZ][nY][nX] +=  
-						energy * pppTerma[nKernelZ][nKernelY][nKernelX];
+						(VOXEL_REAL) (energy * pppTerma[nKernelZ][nKernelY][nKernelX]);
 
 				}	// if 
 				
