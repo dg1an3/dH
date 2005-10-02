@@ -14,5 +14,7 @@ public:
 
 private:
 	CHistogram *m_pHisto;
+public:
+	CHistogram * GetHistogram(void);
 };
 

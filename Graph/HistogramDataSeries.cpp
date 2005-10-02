@@ -2,6 +2,7 @@
 
 #include <HistogramDataSeries.h>
 #include <Graph.h>
+#include ".\include\histogramdataseries.h"
 
 CHistogramDataSeries::CHistogramDataSeries(CHistogram *pHisto)
 : m_pHisto(pHisto)
@@ -44,3 +45,8 @@ void CHistogramDataSeries::OnHistogramChanged(CObservableEvent *, void *)
 	}
 }
 
+
+CHistogram * CHistogramDataSeries::GetHistogram(void)
+{
+	return m_pHisto;
+}
