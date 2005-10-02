@@ -2,12 +2,10 @@
 //
 
 #include "stdafx.h"
+#include ".\include\plan.h"
 
 #include <UtilMacros.h>
 
-//#include <MatrixBase.inl>
-
-#include <Plan.h>
 #include <EnergyDepKernel.h>
 
 #ifdef _DEBUG
@@ -49,10 +47,9 @@ CPlan::~CPlan()
 	POSITION pos = m_mapHistograms.GetStartPosition();
 	while (NULL != pos)
 	{
-		CStructure *pStructure = NULL;
+		CString strName;
 		CHistogram *pHistogram = NULL;
-		m_mapHistograms.GetNextAssoc(pos, 
-			(void*&) pStructure, (void*&) pHistogram); 
+		m_mapHistograms.GetNextAssoc(pos, strName, pHistogram); 
 
 		delete pHistogram;
 	}
@@ -225,53 +222,60 @@ CVolume<VOXEL_REAL> *CPlan::GetDoseMatrix()
 // 
 // histogram accessor
 ///////////////////////////////////////////////////////////////////////////////
-CHistogram *CPlan::GetHistogram(CStructure *pStructure)
+CHistogram *CPlan::GetHistogram(CStructure *pStructure, bool bCreate)
 {
 	CHistogram *pHisto = NULL;
-	if (!m_mapHistograms.Lookup((void *) pStructure, (void*&) pHisto))
+	if (!m_mapHistograms.Lookup(pStructure->GetName(), pHisto))
 	{
-		pHisto = new CHistogram();
-		// const REAL GBINS_BUFFER = 2.0;
-		pHisto->SetBinning((REAL) 0.0, (REAL) 0.02, GBINS_BUFFER);
-		pHisto->SetVolume(GetDoseMatrix());
-
-		// resample region, if needed
-		// TODO: save this so that it can be freed
-		CVolume<VOXEL_REAL> *pResampRegion = new CVolume<VOXEL_REAL>();
-		pResampRegion->ConformTo(GetDoseMatrix());
-
-		int nLevel = -1;
-		CVectorD<3> vDosePixelSpacing = pResampRegion->GetPixelSpacing();
-		CVectorD<3> vRegionPixelSpacing;
-		do
+		if (bCreate)
 		{
-			nLevel++;
-			vRegionPixelSpacing = pStructure->GetRegion(nLevel)->GetPixelSpacing();
-		} while (
-			vRegionPixelSpacing[0] * 2.0 < vDosePixelSpacing[0]
-			|| vRegionPixelSpacing[1] * 2.0 < vDosePixelSpacing[1]);
+			pHisto = new CHistogram();
 
-		::Resample(pStructure->GetRegion(nLevel), pResampRegion, TRUE);
+			pHisto->SetBinning((REAL) 0.0, (REAL) 0.02, GBINS_BUFFER);
+			pHisto->SetVolume(GetDoseMatrix());
 
-		pHisto->SetRegion(pResampRegion); // pStructure->GetRegion());
-		m_mapHistograms[pStructure] = pHisto;
+			// resample region, if needed
+			CVolume<VOXEL_REAL> *pResampRegion = pStructure->GetConformRegion(GetDoseMatrix());
+			pHisto->SetRegion(pResampRegion);
+
+			// add to map
+			m_mapHistograms[pStructure->GetName()] = pHisto;
+		}
 	}
 
 	return pHisto;
 
 }	// CPlan::GetHistogram
 
+
+///////////////////////////////////////////////////////////////////////////////
+// CPlan::RemoveHistogram
+// 
+// histogram accessor
+///////////////////////////////////////////////////////////////////////////////
+void CPlan::RemoveHistogram(CStructure *pStructure)
+{
+	CHistogram *pHisto = NULL;
+	if (m_mapHistograms.Lookup(pStructure->GetName(), pHisto))
+	{
+		m_mapHistograms.RemoveKey(pStructure->GetName());
+		delete pHisto;
+	}
+
+}	// CPlan::RemoveHistogram
+
+
 /////////////////////////////////////////////////////////////////////////////
 // CPlan serialization
 
-#define PLAN_SCHEMA 4
+#define PLAN_SCHEMA 5
 	// Schema 1: initial plan schema
 	// Schema 2: + target DVH curves
 	// Schema 3: + number of fields
 	// Schema 4: + target DVH count
+	// Schema 5: + DVHs
 
-IMPLEMENT_SERIAL(CPlan, CDocument, VERSIONABLE_SCHEMA | PLAN_SCHEMA)
-
+IMPLEMENT_SERIAL(CPlan, CModelObject, VERSIONABLE_SCHEMA | PLAN_SCHEMA)
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPlan::Serialize
@@ -304,8 +308,8 @@ void CPlan::Serialize(CArchive& ar)
 	}
 
 	// DEPRACATED flag to serialize dose matrix
-	BOOL m_bDoseValid = FALSE; 
-	SERIALIZE_VALUE(ar, m_bDoseValid);
+	BOOL bDoseValid = FALSE; 
+	SERIALIZE_VALUE(ar, bDoseValid);
 
 	// serialize the dose matrix
 	m_dose.Serialize(ar);
@@ -360,6 +364,35 @@ void CPlan::Serialize(CArchive& ar)
 	{
 		int m_nFields = 0;
 		SERIALIZE_VALUE(ar, m_nFields);
+	}
+
+	if (nSchema >= 5)
+	{
+		SERIALIZE_VALUE(ar, m_pSeries);
+		ASSERT(m_pSeries != NULL);
+
+		m_mapHistograms.Serialize(ar);
+
+		if (ar.IsLoading())
+		{
+			// set up regions and volumes for histograms
+			//		because serialization doesn't restore this
+			POSITION pos = m_mapHistograms.GetStartPosition();
+			while (NULL != pos)
+			{
+				CString strName;
+				CHistogram *pHistogram = NULL;
+				m_mapHistograms.GetNextAssoc(pos, strName, pHistogram); 
+
+				// set volume
+				pHistogram->SetVolume(GetDoseMatrix());
+
+				// set region
+				CStructure *pStruct = GetSeries()->GetStructureFromName(strName);
+				CVolume<VOXEL_REAL> *pConformRegion = pStruct->GetConformRegion(GetDoseMatrix());
+				pHistogram->SetRegion(pConformRegion);
+			}
+		}
 	}
 
 }	// CPlan::Serialize
@@ -427,11 +460,11 @@ CVolume<VOXEL_REAL> * CPlan::GetMassDensity()
 		{
 			if (pCTVoxels[nAtVoxel] < 0.0)
 			{
-				pMDVoxels[nAtVoxel] = 1.0 / 3.0 + (pCTVoxels[nAtVoxel] - -1024.0) * 2.0 / 3.0 / 1024.0;
+				pMDVoxels[nAtVoxel] = VOXEL_REAL(1.0 / 3.0 + (pCTVoxels[nAtVoxel] - -1024.0) * 2.0 / 3.0 / 1024.0);
 			}
 			else if (pCTVoxels[nAtVoxel] < 1024.0)
 			{
-				pMDVoxels[nAtVoxel] = 1.0 + pCTVoxels[nAtVoxel] * 0.5 / 1024.0;
+				pMDVoxels[nAtVoxel] = VOXEL_REAL(1.0 + pCTVoxels[nAtVoxel] * 0.5 / 1024.0);
 			}
 			else
 			{
