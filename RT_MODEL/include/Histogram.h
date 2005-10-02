@@ -33,6 +33,10 @@ public:
 	// destructor
 	virtual ~CHistogram();
 
+	// serialization
+	DECLARE_SERIAL(CHistogram);
+	virtual void Serialize(CArchive& ar);
+
 	// association to the volume over which the histogram is formed
 	CVolume<VOXEL_REAL> *GetVolume();
 	void SetVolume(CVolume<VOXEL_REAL> *pVolume);
@@ -51,17 +55,18 @@ public:
 	int GetBinForValue(REAL value) const;
 	const CVectorN<>& GetBinMeans() const;
 
-	// accessors for bin data
-	CVectorN<>& GetBins();
-	const CVectorN<>& GetBins() const;
-	const CVectorN<>& GetCumBins() const;
-
 	// Gbinning parameter
 	REAL GetGBinSigma(void) const;
 	void SetGBinSigma(REAL sigma);
 
+	// returns a reference to change event representing changes in binning parameters
+	CObservableEvent& GetBinningChangeEvent() { return m_eventBinningChange; }
+
+	// accessors for bin data
+	const CVectorN<>& GetBins() const;
+	const CVectorN<>& GetCumBins() const;
+
 	// Gbin accessor
-	CVectorN<>& GetGBins();
 	const CVectorN<>& GetGBins() const;
 	const CVectorN<>& GetGBinMeans() const;
 
@@ -79,12 +84,14 @@ public:
 	REAL Eval_GBin(REAL x) const;
 	REAL Eval_dGBin(int nAt_dVolume, REAL x) const;
 
+	// convolve helpers
 	void ConvGauss(const CVectorN<>& buffer_in, 
 							CVectorN<>& buffer_out) const;
 	void Conv_dGauss(const CVectorN<>& buffer_in, 
 							CVectorN<>& buffer_out) const;
 
-	BOOL IsContributing(int nElement);
+	// determines if the given dVolume is contributing to the masked region
+	bool IsContributing(int nElement);
 
 protected:
 	// change handler for when the volume or region changes
@@ -92,9 +99,7 @@ protected:
 
 	// helpers
 	const CVolume<short> * GetBinVolume(int nAt) const;
-
-	// TODO: make const <need to change signature on Resample>
-	CVolume<VOXEL_REAL> * GetBinScaledVolume() const;
+	const CVolume<VOXEL_REAL> * GetBinScaledVolume() const;
 	const CVolume<VOXEL_REAL> * Get_dVolume_x_Region(int nAt) const;
 
 private:
@@ -105,15 +110,18 @@ private:
 	//		which the histogram is formed -- contains a 1.0 for voxels
 	//		within the region, 0.0 elsewhere
 	CVolume<VOXEL_REAL> *m_pRegion;
-	CTypedPtrArray<CObArray, CVolume<VOXEL_REAL> *> m_arrRegionRotate;
+	CAutoPtrArray<CVolume<VOXEL_REAL> > m_arrRegionRotate;
 
-	// 
+	// binning parameters
 	REAL m_minValue;
 	REAL m_binWidth;
 
+	// the change event for this object
+	CObservableEvent m_eventBinningChange;
+
 	// bin volume
-	mutable CTypedPtrArray<CObArray, CVolume<short> *> m_arrBinVolume;
-	mutable CArray<BOOL, BOOL> m_arr_bRecomputeBinVolume;
+	mutable CAutoPtrArray< CVolume<short> > m_arrBinVolume;
+	mutable CArray<bool, bool> m_arr_bRecomputeBinVolume;
 
 	// histogram bins
 	mutable CVectorN<> m_arrBins;
@@ -126,7 +134,7 @@ private:
 	mutable CVolume<VOXEL_REAL> m_volRotate;
 	mutable CVolume<VOXEL_REAL> *m_pVolume_BinScaled;
 
-	mutable BOOL m_bRecomputeBinScaledVolume;
+	mutable bool m_bRecomputeBinScaledVolume;
 
 	mutable CVolume<short> *m_pVolume_BinLowInt;
 	mutable CVolume<VOXEL_REAL> *m_pVolume_Frac;
@@ -137,7 +145,7 @@ private:
 	mutable CVectorN<> m_arrCumBins;
 
 	// flag to indicate cumulative bins should be recomputed
-	mutable BOOL m_bRecomputeCumBins;
+	mutable bool m_bRecomputeCumBins;
 
 	// the binning kernel width -- set to zero for a traditional
 	//		histogram
@@ -145,9 +153,9 @@ private:
 	CVectorN<> m_binKernel;
 	CVectorN<> m_bin_dKernel;
 
+	// array of GBins + means
 	mutable CVectorN<> m_arrGBins;
 	mutable CVectorN<> m_arrGBinMeans;
-	// BOOL m_bRecomputeGBins;
 
 	// array of partial derivative volumes
 	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arr_dVolumes;
@@ -157,7 +165,7 @@ private:
 	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arr_dVolumes_x_Region;
 
 	// flags for recalc
-	mutable CArray<BOOL, BOOL> m_arr_bRecompute_dVolumes_x_Region;
+	mutable CArray<bool, bool> m_arr_bRecompute_dVolumes_x_Region;
 
 	// partial derivative histogram bins
 	mutable CMatrixNxM<> m_arr_dBins;
@@ -166,7 +174,7 @@ private:
 	mutable CMatrixNxM<> m_arr_dGBins;
 
 	// flags for recalc
-	mutable CArray<BOOL, BOOL> m_arr_bRecompute_dBins;
+	mutable CArray<bool, bool> m_arr_bRecompute_dBins;
 
 };	// class CHistogram
 
@@ -178,7 +186,7 @@ private:
 //////////////////////////////////////////////////////////////////////
 inline int CHistogram::GetBinForValue(REAL value) const
 {
-	return (int) floor((value - m_minValue) / m_binWidth + 0.5);
+	return Round<int>((value - m_minValue) / m_binWidth);
 
 }	// CHistogram::GetBinForValue
 
