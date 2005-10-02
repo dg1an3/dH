@@ -4,11 +4,14 @@
 
 #include "stdafx.h"
 
+#include <UtilMacros.h>
+
 #include "Prescription.h"
 
 #include <ConjGradOptimizer.h>
 
 #include <iostream>
+#include ".\include\prescription.h"
 // s#include ".\include\prescription.h"
 
 #ifdef _DEBUG
@@ -167,35 +170,18 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 
 	// initialize the histogram region
 	// TODO: fix this memory leak
-	CVolume<VOXEL_REAL> *pResampRegion = new CVolume<VOXEL_REAL>(); // pVOIT->GetVOI()->GetRegion(m_nLevel);
-	pResampRegion->ConformTo(&m_sumVolume);
-	pResampRegion->ClearVoxels();
-
-	int nLevel = -1;
-	CVectorD<3> vSumPixelSpacing = m_sumVolume.GetPixelSpacing();
-	CVectorD<3> vRegionPixelSpacing;
-	do
-	{
-		nLevel++;
-		vRegionPixelSpacing = pVOIT->GetVOI()->GetRegion(nLevel)->GetPixelSpacing();
-	} while (
-		vRegionPixelSpacing[0] * 2.0 < vSumPixelSpacing[0]
-		|| vRegionPixelSpacing[1] * 2.0 < vSumPixelSpacing[1]);
-
-
-	CVolume<VOXEL_REAL> *pVOITRegion = pVOIT->GetVOI()->GetRegion(nLevel);
-	::Resample(pVOIT->GetVOI()->GetRegion(nLevel), pResampRegion, TRUE);
+	CVolume<VOXEL_REAL> *pResampRegion = pVOIT->GetVOI()->GetConformRegion(&m_sumVolume);
 
 	// set histogram options
 	CHistogram *pHisto = pVOIT->GetHistogram();
-	pHisto->SetGBinSigma(m_GBinSigma);
 	pHisto->SetVolume(&m_sumVolume);
 	pHisto->SetRegion(pResampRegion);
 
 	// need to do this before initialize target bins
-	//	 original = 0.0125	0.006125
-	REAL binWidth = R(0.0030625);  // * pow(2.0, (double) m_nLevel));
+	//	 original = 0.0125	0.006125  // * pow(2.0, (double) m_nLevel));
+	REAL binWidth = R(0.0030625);  
 	pHisto->SetBinning(0.0, binWidth, GBINS_BUFFER);
+	pHisto->SetGBinSigma(m_GBinSigma);
 
 	// set up dVolumes
 	for (int nAtElem = 0; nAtElem < m_pPlan->GetTotalBeamletCount(m_nLevel); nAtElem++)
@@ -207,8 +193,10 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
 		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
 
-		pBeamlet->SetThreshold(GetProfileReal("Prescription", "BeamletThreshold", VOXEL_REAL(0.005)));
-			// (REAL) 0.005 /* 0.005 */ ); // pow(10, -(m_nLevel+1)));
+		// set default threshold based on config items
+		pBeamlet->SetThreshold(
+			(VOXEL_REAL) GetProfileReal("Prescription", "BeamletThreshold", VOXEL_REAL(0.005)));
+
 		pHisto->Add_dVolume(pBeamlet, nBeam);
 	}
 
@@ -1051,9 +1039,9 @@ void CPrescription::SetElementInclude()
 		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
 
 		// check type
-		CKLDivTerm *pKLDivTerm = (CKLDivTerm *) pVOIT;
+		// CKLDivTerm *pKLDivTerm = (CKLDivTerm *) pVOIT;
 
-		CHistogram *pHisto = pKLDivTerm->GetHistogram();
+		CHistogram *pHisto = pVOIT->GetHistogram();
 
 		if (m_arrIncludeElement.GetSize() < pHisto->Get_dVolumeCount())
 		{
@@ -1065,24 +1053,8 @@ void CPrescription::SetElementInclude()
 			}
 		}
 
-		const CVectorN<>& vBins = pKLDivTerm->GetTargetBins();
-		// const CVectorN<>& vBinMeans = pHisto->GetBinMeans();
-
-		REAL binMean = pHisto->GetBinMinValue();
-		REAL expect = 0.0;
-		REAL sum = 0.0;
-		for (int nAt = 0; nAt < vBins.GetDim(); nAt++)
-		{
-			expect += binMean * vBins[nAt];
-			sum += vBins[nAt];
-			binMean += pHisto->GetBinWidth();
-		}
-
-		// calculate expectation
-		REAL targetMean = (sum > 0.0) ? expect / sum : 1.0;
-
 		// check if its a target
-		if (targetMean > 0.30)
+		if (CStructure::eTARGET == pVOIT->GetVOI()->GetType()) 
 		{
 			// iterate over beamlets, seeing which are included in target term
 			for (int nAt = 0; nAt < pHisto->Get_dVolumeCount(); nAt++)
@@ -1101,3 +1073,57 @@ void CPrescription::SetElementInclude()
 	}
 
 }	// CPrescription::SetElementInclude
+
+#define PRESC_SCHEMA 1
+
+IMPLEMENT_SERIAL(CPrescription, CObject, VERSIONABLE_SCHEMA | PRESC_SCHEMA)
+
+void CPrescription::Serialize(CArchive& ar)
+{
+	// schema for the voiterm object
+	UINT nSchema = ar.IsLoading() ? ar.GetObjectSchema() : PRESC_SCHEMA;
+
+	CObject::Serialize(ar);
+
+	SERIALIZE_VALUE(ar, m_pPlan);
+
+	if (ar.IsStoring())
+	{	// storing code
+		CTypedPtrArray<CObArray, CVOITerm *> arrTerms;
+
+		CStructure *pStruct = NULL;
+		CVOITerm *pVOIT = NULL;
+
+		POSITION pos = m_mapVOITs.GetStartPosition();
+		while (pos != NULL)
+		{
+			m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+			arrTerms.Add(pVOIT);
+		}
+
+		arrTerms.Serialize(ar);
+
+		// TODO: figure out how GBinSigma is to be stored / retrieved
+	}
+	else
+	{	// loading code
+		// set up subordinate presc objects
+		CPrescription *pPresc = this->m_pNextLevel;
+		while (NULL != pPresc)
+		{
+			pPresc->m_pPlan = m_pPlan;
+			pPresc = pPresc->m_pNextLevel;
+		}
+
+		CTypedPtrArray<CObArray, CVOITerm *> arrTerms;
+		arrTerms.Serialize(ar);
+
+		for (int nAt = 0; nAt < arrTerms.GetSize(); nAt++)
+		{
+			AddStructureTerm(arrTerms[nAt]);
+		}
+
+		// sets the include flag on prescription (double-check)
+		SetElementInclude();
+	}
+}

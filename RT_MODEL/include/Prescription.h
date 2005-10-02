@@ -16,9 +16,7 @@
 #include <Structure.h>
 #include <Plan.h>
 
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CPrescription
@@ -29,8 +27,12 @@ class CPrescription : public CObjectiveFunction
 {
 public:
 	// constructors / destructors
-	CPrescription(CPlan *pPlan, int nLevel);
+	CPrescription(CPlan *pPlan = NULL, int nLevel = 0);
 	virtual ~CPrescription();
+
+	// serializable
+	DECLARE_SERIAL(CPrescription)
+	virtual void Serialize(CArchive& ar);
 
 	// plan accessor
 	CPlan * GetPlan();
@@ -88,6 +90,9 @@ public:
 	void GetStateVectorFromPlan(CVectorN<>& vState);
 	void SetStateVectorToPlan(const CVectorN<>& vState);
 
+	// helper to set up element include flags
+	void SetElementInclude();
+
 protected:
 	// helper functions for state vector
 	void StateVectorToBeamletWeights(int nScale, const CVectorN<>& vState, CMatrixNxM<>& mBeamletWeights);
@@ -99,13 +104,9 @@ protected:
 	// transfers state vector from level n+1 to level n
 	void InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN<>& vOut, BOOL bFixNeg);
 
-public:
-	// helper to set up element include flags
-	void SetElementInclude();
-
 private:  
 	// my plan
-	CPlan *m_pPlan;
+	CPlan * m_pPlan;
 
 	// my optimizer
 	COptimizer * m_pOptimizer;
@@ -114,7 +115,7 @@ private:
 	int m_nLevel;
 
 	// the next level
-	CPrescription *m_pNextLevel;
+	CPrescription * m_pNextLevel;
 	
 	// sigmoid for parameter transform
 	REAL m_inputScale;
