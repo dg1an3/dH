@@ -24,6 +24,7 @@
 
 // histograms for the plan
 #include <Histogram.h>
+// #include "afxcoll.h"
 
 class CEnergyDepKernel;
 
@@ -46,8 +47,9 @@ public:
 	CSeries * GetSeries();
 	void SetSeries(CSeries *pSeries);
 
-	// histogram accessor
-	CHistogram *GetHistogram(CStructure *pSurface);
+	// histogram accessor / creator
+	CHistogram *GetHistogram(CStructure *pSurface, bool bCreate);
+	void RemoveHistogram(CStructure *pStructure);
 
 	// the beams for this plan
 	int GetBeamCount() const;
@@ -62,7 +64,7 @@ public:
 	CVolume<VOXEL_REAL> * GetMassDensity();
 
 	// the computed dose for this plan (NULL if no dose exists)
-	CVolume<VOXEL_REAL> *GetDoseMatrix();
+	CVolume<VOXEL_REAL> * GetDoseMatrix();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -106,7 +108,7 @@ private:
 	BOOL m_bRecomputeTotalDose;
 
 	// the histograms
-	CMapPtrToPtr m_mapHistograms;
+	CTypedPtrMap<CMapStringToOb, CString, CHistogram*> m_mapHistograms;
 
 };	// class CPlan
 
