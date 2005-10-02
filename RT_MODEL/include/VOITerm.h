@@ -16,32 +16,39 @@ class CStructure;
 ///////////////////////////////////////////////////////////////////////////////
 // class CVOITerm
 // 
-// <description>
+// base class for objective function terms
 ///////////////////////////////////////////////////////////////////////////////
 class CVOITerm : public CModelObject
 {
 public:
+	// constructor / destructor
 	CVOITerm(CStructure *pStructure = NULL, REAL weight = 1.0);
 	virtual ~CVOITerm();
 
+	// serialization
 	DECLARE_SERIAL(CVOITerm);
+	virtual void Serialize(CArchive& ar);
 
+	// assignment
 	virtual CVOITerm& operator=(const CVOITerm& otherTerm);
 
+	// structure accessors
 	void SetStructure(CStructure *pStructure);
 
 	// returns the specified subcopy 
 	virtual CVOITerm *GetLevel(int nLevel, BOOL bCreate = FALSE);
 
 	// accessors for structure and histogram
-	CStructure *GetVOI() { return m_pVOI; }
-	CHistogram *GetHistogram() { return &m_histogram; }
-	const CHistogram *GetHistogram() const { return &m_histogram; }
+	CStructure *GetVOI();
+	CHistogram *GetHistogram();
+	const CHistogram *GetHistogram() const;
 
-	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude) { return 0; }
-
+	// weight accessors
 	REAL GetWeight() const;
 	void SetWeight(REAL weight);
+
+	// over-ride for real terms
+	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude);
 
 protected:
 	friend class CPrescription;
@@ -56,16 +63,17 @@ protected:
 	// the histogram for the term
 	CHistogram m_histogram;
 
-// public:
 	// the weight
 	REAL m_weight;
 
+	// mini-me
 	CVOITerm *m_pNextScale;
 
 };	// class CVOITerm
 
 
-/*
+#ifdef BIOLOGICAL_INDICES
+
 ///////////////////////////////////////////////////////////////////////////////
 // class CTCPTerm
 // 
@@ -90,8 +98,8 @@ public:
 	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL);
 
 };	// class CNTCPTerm
-*/
 
+#endif
 
 
 #endif // !defined(AFX_VOITERM_H__BC410BA9_C9C4_472B_8984_0AB4C818ECA9__INCLUDED_)
