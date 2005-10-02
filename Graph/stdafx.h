@@ -35,3 +35,6 @@
 #include <afxdisp.h>
 
 // TODO: reference additional headers your program requires here
+
+#include <atlcoll.h>
+

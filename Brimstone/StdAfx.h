@@ -39,6 +39,8 @@
 #include <afxtempl.h>
 #include <afxmt.h>
 
+#include <atlcoll.h>
+
 #include <XMLLogging.h>
 USES_FMT;
 
