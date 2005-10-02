@@ -39,7 +39,7 @@ CGraph::CGraph()
 /////////////////////////////////////////////////////////////////////////////
 CGraph::~CGraph()
 {
-	RemoveAllDataSeries();
+	RemoveAllDataSeries(true);	// be sure and delete them as well
 
 }	// CGraph::~CGraph
 
@@ -71,6 +71,21 @@ void CGraph::AddDataSeries(CDataSeries *pSeries)
 	m_arrDataSeries.Add(pSeries);
 
 }	// CGraph::AddDataSeries
+
+
+/////////////////////////////////////////////////////////////////////////////
+// CGraph::RemoveDataSeries
+/////////////////////////////////////////////////////////////////////////////
+void CGraph::RemoveDataSeries(int nAt, bool bDelete)
+{
+	if (bDelete)
+	{
+		delete m_arrDataSeries[nAt];
+	}
+
+	m_arrDataSeries.RemoveAt(nAt);
+
+}	// CGraph::RemoveDataSeries
 
 /////////////////////////////////////////////////////////////////////////////
 // CGraph::RemoveAllDataSeries

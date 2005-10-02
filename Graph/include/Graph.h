@@ -37,6 +37,7 @@ public:
 	int GetDataSeriesCount();
 	CDataSeries *GetDataSeriesAt(int nAt);
 	void AddDataSeries(CDataSeries *pSeries);
+	void RemoveDataSeries(int nAt, bool bDelete = false);
 	void RemoveAllDataSeries(bool bDelete = false);
 
 // Operations
