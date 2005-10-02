@@ -1,4 +1,12 @@
+#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+
+#ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
+#endif
+
+#ifndef WINVER				// Allow use of features specific to Windows 95 and Windows NT 4 or later.
+#define WINVER 0x0400		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
+#endif
 
 #include <afx.h>
 #include <afxwin.h>
