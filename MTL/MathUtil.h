@@ -50,10 +50,24 @@ const REAL DEFAULT_EPSILON = (REAL) 1e-5;
 // template function to assist in approximate evaluations
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-BOOL IsApproxEqual(TYPE r1, TYPE r2, TYPE epsilon =  DEFAULT_EPSILON)
+bool IsApproxEqual(TYPE r1, TYPE r2, TYPE epsilon =  DEFAULT_EPSILON)
 {
 	return (fabs(r1 - r2) < epsilon);
 }
+
+
+//////////////////////////////////////////////////////////////////////
+// Round
+//
+// template function for rounding (type conversion)
+//////////////////////////////////////////////////////////////////////
+template<class RETURN_TYPE>
+RETURN_TYPE Round(double value)
+{
+	return (RETURN_TYPE) floor((double) value + 0.5);
+
+}	// Round
+
 
 //////////////////////////////////////////////////////////////////////
 // template function to randomly perturb a value by delta
@@ -260,7 +274,6 @@ inline REAL GetProfileReal(const char *pszSection, const char *pszName, double d
 
 }	// GetProfileReal
 // #endif
-
 
 //////////////////////////////////////////////////////////////////////
 // functions for complex values
