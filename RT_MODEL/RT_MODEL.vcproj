@@ -78,6 +78,7 @@
 				GlobalOptimizations="TRUE"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="TRUE"
+				ImproveFloatingPointConsistency="TRUE"
 				FavorSizeOrSpeed="1"
 				OptimizeForProcessor="3"
 				AdditionalIncludeDirectories="include,..\OptimizeN\include,..\GEOM_MODEL\include,..\MTL,..\XMLLogging"
