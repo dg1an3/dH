@@ -132,6 +132,10 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y)
 	// clear to all zeros
 	if (DIM > 2)
 	{
+		// DGL 2005-Sep-24
+		// OK compiler warning 
+		// warning C4318: passing constant zero as the length to memset
+		//		when DIM == 2
 		memset(&(*this)[2], 0, (DIM-2) * sizeof(TYPE));
 	}
 
