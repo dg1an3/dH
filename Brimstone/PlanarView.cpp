@@ -107,9 +107,7 @@ void CPlanarView::OnPaint()
 	dcMem.SelectStockObject(HOLLOW_BRUSH);
 	dcMem.Rectangle(rect);
 
-	// DrawContours(pDC, rect, &density);
-	DrawContours(&dcMem);
-	
+	// draw isocurves
 	if (m_pVolume[1] != NULL && m_pVolume[1]->GetHeight() > 0)
 	{
 		VOXEL_REAL c = (VOXEL_REAL) 0.425;
@@ -133,6 +131,9 @@ void CPlanarView::OnPaint()
 			c += (VOXEL_REAL) 0.05;
 		}
 	}
+
+	// draw contours
+	DrawContours(&dcMem);
 
 	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &dcMem, 0, 0, SRCCOPY);
 
