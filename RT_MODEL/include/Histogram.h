@@ -74,7 +74,8 @@ public:
 	int Get_dVolumeCount() const;
 	int GetGroupCount() const;
 	CVolume<VOXEL_REAL> *Get_dVolume(int nAt, int *pnGroup = NULL) const;
-	int Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup);
+	int Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup, int nLevel = -1, 
+		CVolume<VOXEL_REAL> *pIsoVolume = NULL);
 
 	// partial derivatives
 	const CVectorN<>& Get_dBins(int nAt) const;

@@ -99,6 +99,7 @@ public:
 	// beamlet accessors
 	int GetBeamletCount(int nLevel = 0);
 	CVolume<VOXEL_REAL> *GetBeamlet(int nShift, int nLevel = 0);
+	CVolume<VOXEL_REAL> *GetBeamletAdapt(int nShift, int nLevel = 0);
 
 	// intensity map accessors
 	const CVectorN<>& GetIntensityMap() const;
@@ -169,10 +170,14 @@ private:
 	// flag to indicate whether the plan's dose is valid
 //	BOOL m_bDoseValid;
 
-	mutable BOOL m_bRecalcDose;
+	mutable bool m_bRecalcDose;
 
 	// the beamlets for the beam
 	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamlets[MAX_SCALES];
+
+	// the adaptive beamlets for the beam
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamletsAdapt[MAX_SCALES];
+	bool m_bRecomputeBeamletAdapt;
 
 	// the intensity map
 	CVectorN<> m_vBeamletWeights;

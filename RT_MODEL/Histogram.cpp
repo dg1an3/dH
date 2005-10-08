@@ -671,7 +671,8 @@ CVolume<VOXEL_REAL> *CHistogram::Get_dVolume(int nAt, int *pnGroup) const
 // 
 // adds another dVolume
 //////////////////////////////////////////////////////////////////////
-int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup)
+int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
+							int nLevel, CVolume<VOXEL_REAL> *pIsoVolume)
 {
 	int nNewVolumeIndex = m_arr_dVolumes.Add(p_dVolume);
 	m_arrVolumeGroups.Add(nGroup);
@@ -699,7 +700,68 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup)
 		m_arrRegionRotate[nGroup].Attach(new CVolume<VOXEL_REAL>());
 		m_arrRegionRotate[nGroup]->ConformTo(p_dVolume);
 		m_arrRegionRotate[nGroup]->ClearVoxels();
+
+#ifdef DVOLUME_ADAPT
+		// if this is an adaptive beamlet grid, then resampling is not enough (need to sub-filter first)
+
+		if (nLevel <= 1)
+		{
+			// calc coeffecients
+			CVectorN<> vCoeff;
+			vCoeff.SetDim((0 == nLevel) ? 9 : 5);
+			CalcBinomialCoeff(vCoeff);
+
+			// calc normalization constant
+			REAL norm = 0.0; 
+			ITERATE_VECTOR(vCoeff, nAt, norm += vCoeff[nAt]);
+
+			// compute filter
+			CVolume<VOXEL_REAL> kernel;
+			kernel.SetDimensions(vCoeff.GetDim(), 1, 1);
+			kernel.ClearVoxels();
+
+			for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); nAtCol++)
+			{
+				kernel.GetVoxels()[0][0][nAtCol] = 
+					vCoeff[nAtCol] / norm;
+			}
+
+			ASSERT(pIsoVolume != NULL);
+			// stores pre-decimated beamlet
+			CVolume<VOXEL_REAL> regionRotatePre(*pIsoVolume);
+			regionRotatePre.ClearVoxels();
+			Resample(m_pRegion, &regionRotatePre, TRUE);
+
+			// TODO: need to rotate m_pRegion _first_, then filter / decimate
+			CVolume<VOXEL_REAL> regionRotatePreFilter(regionRotatePre);
+			regionRotatePreFilter.ClearVoxels();
+			::Convolve(&regionRotatePre, &kernel, &regionRotatePreFilter, vCoeff.GetDim());
+
+			// decimate
+			int nFactor = (nLevel == 0) ? // 1 : 1; 
+				2 : 1;
+			ASSERT(pIsoVolume->GetHeight() / nFactor + 1 == 
+				m_arrRegionRotate[nGroup]->GetHeight());
+
+			m_arrRegionRotate[nGroup]->ClearVoxels();
+			for (int nY = 0; nFactor*nY < regionRotatePreFilter.GetHeight(); nY++)
+			{
+				for (int nX = 0; nX < m_arrRegionRotate[nGroup]->GetWidth(); nX++)
+				{
+					m_arrRegionRotate[nGroup]->GetVoxels()[0][nY][nX] = 
+						regionRotatePreFilter.GetVoxels()[0][nFactor*nY][nX];
+				}
+			}
+
+			m_arrRegionRotate[nGroup]->VoxelsChanged();
+		}
+		else
+		{
+			Resample(m_pRegion, m_arrRegionRotate[nGroup], TRUE);
+		}
+#else
 		Resample(m_pRegion, m_arrRegionRotate[nGroup], TRUE);
+#endif
 		m_arrRegionRotate[nGroup]->SetThreshold(m_pRegion->GetThreshold()); //  / 2.0);
 	}
 
@@ -1105,11 +1167,14 @@ const CVolume<VOXEL_REAL> * CHistogram::Get_dVolume_x_Region(int nAt) const
 		VOXEL_REAL *p_dVoxels = &Get_dVolume(nAt)->GetVoxels()[0][0][0];
 
 		// get the region voxels
-		VOXEL_REAL *pRegionVoxel = m_pRegion ? 
-			&m_arrRegionRotate[nGroup]->GetVoxels()[0][0][0] : NULL;
+		ASSERT(m_pRegion != NULL);
+		VOXEL_REAL *pRegionVoxel = &m_arrRegionRotate[nGroup]->GetVoxels()[0][0][0];
+
+		// check they are conformant
+		ASSERT(m_arrRegionRotate[nGroup]->GetBasis().IsApproxEqual(Get_dVolume(nAt)->GetBasis()));
 
 		VOXEL_REAL *p_dVoxels_x_Region = &m_arr_dVolumes_x_Region[nAt]->GetVoxels()[0][0][0];
-		for (int nAtVoxel = 0; nAtVoxel < m_pRegion->GetVoxelCount(); nAtVoxel++)
+		for (int nAtVoxel = 0; nAtVoxel < m_arrRegionRotate[nGroup]->GetVoxelCount(); nAtVoxel++)
 		{
 			p_dVoxels_x_Region[nAtVoxel] = pRegionVoxel[nAtVoxel] * p_dVoxels[nAtVoxel];
 		}

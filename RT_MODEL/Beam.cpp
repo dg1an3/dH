@@ -41,18 +41,20 @@ CMatrixNxM<> CBeam::m_mFilter[MAX_SCALES - 1];
 // constructs a new CBeam object
 ///////////////////////////////////////////////////////////////////////////////
 CBeam::CBeam()
-	: m_collimAngle(0.0),
-		m_gantryAngle(PI),
-		m_couchAngle(0.0),
+	: m_collimAngle(0.0)
+		, m_gantryAngle(PI)
+		, m_couchAngle(0.0)
 
-		m_vTableOffset(CVectorD<3>(0.0, 0.0, 0.0)),
+		, m_vTableOffset(CVectorD<3>(0.0, 0.0, 0.0))
 
-		m_vCollimMin(CVectorD<2>(-20.0, -20.0)),
-		m_vCollimMax(CVectorD<2>(20.0, 20.0)),
+		, m_vCollimMin(CVectorD<2>(-20.0, -20.0))
+		, m_vCollimMax(CVectorD<2>(20.0, 20.0))
 
-		m_weight(1.0),
-		m_bHasShieldingBlocks(FALSE),
-		m_bRecalcDose(TRUE)
+		, m_weight(1.0)
+		, m_bHasShieldingBlocks(FALSE)
+		, m_bRecalcDose(TRUE)
+
+		, m_bRecomputeBeamletAdapt(true)
 {
 	if (m_vWeightFilter.GetDim() == 0)
 	{
@@ -97,6 +99,10 @@ CBeam::~CBeam()
 		for (nAt = 0; nAt < m_arrBeamlets[nAtLevel].GetSize(); nAt++)
 		{
 			delete m_arrBeamlets[nAtLevel][nAt];
+			if (m_arrBeamletsAdapt[nAtLevel].GetSize() > 0)
+			{
+				delete m_arrBeamletsAdapt[nAtLevel][nAt];
+			}
 		}
 	}
 
@@ -452,10 +458,118 @@ int CBeam::GetBeamletCount(int nLevel)
 ///////////////////////////////////////////////////////////////////////////////
 CVolume<VOXEL_REAL> * CBeam::GetBeamlet(int nShift, int nLevel)
 {
-	return (CVolume<VOXEL_REAL> *) m_arrBeamlets[nLevel]
-		[nShift + GetBeamletCount(nLevel) / 2];
+	int nBeamletAt = nShift + GetBeamletCount(nLevel) / 2;
+
+	return m_arrBeamlets[nLevel][nBeamletAt];
 
 }	// CBeam::GetBeamlet
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetBeamletAdapt
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
+{
+	if (m_bRecomputeBeamletAdapt)
+	{
+		// allocate beamlet arrays
+		for (int nAtLevel = 0; nAtLevel < MAX_SCALES; nAtLevel++)
+		{
+			m_arrBeamletsAdapt[nAtLevel].SetSize(GetBeamletCount(nAtLevel));
+
+			// calc coeffecients
+			CVectorN<> vCoeff;
+			vCoeff.SetDim((0 == nAtLevel) ? 9 : 5);
+			CalcBinomialCoeff(vCoeff);
+
+			// calc normalization constant
+			REAL norm = 0.0; 
+			ITERATE_VECTOR(vCoeff, nAt, norm += vCoeff[nAt]);
+
+			// compute filter
+			CVolume<VOXEL_REAL> kernel;
+			kernel.SetDimensions(vCoeff.GetDim(), 1, 1);
+			kernel.ClearVoxels();
+
+			for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); nAtCol++)
+			{
+				kernel.GetVoxels()[0][0][nAtCol] = 
+					vCoeff[nAtCol] / norm;
+			}
+
+			REAL sum = 0.0;
+			for (int nX = 0; nX < kernel.GetWidth(); nX++) sum += kernel.GetVoxels()[0][0][nX];
+			ASSERT(IsApproxEqual(sum, 1.0));
+
+			for (int nAtBeamlet = 0; nAtBeamlet < GetBeamletCount(nAtLevel); nAtBeamlet++)
+			{
+				// get orig beamlet
+				CVolume<VOXEL_REAL> *pBeamlet = m_arrBeamlets[nAtLevel][nAtBeamlet];
+
+				// new adapted beamlet
+				CVolume<VOXEL_REAL> *pBeamletAdapt = new CVolume<VOXEL_REAL>(*pBeamlet);
+
+				// filter
+				if (nAtLevel <= 1)
+				{
+					// stores pre-decimated beamlet
+					CVolume<VOXEL_REAL> beamletAdaptPre(*pBeamletAdapt);
+					beamletAdaptPre.ClearVoxels();
+					::Convolve(pBeamlet, &kernel, &beamletAdaptPre, vCoeff.GetDim());
+
+					// decimate
+					int nFactor = (nAtLevel == 0) ? // 1 : 1; 
+						2 : 1;
+					pBeamletAdapt->SetDimensions(
+						pBeamletAdapt->GetWidth(),
+						pBeamletAdapt->GetHeight() / nFactor + 1,
+						pBeamletAdapt->GetDepth());
+					pBeamletAdapt->ClearVoxels();
+					for (int nY = 0; nFactor*nY < beamletAdaptPre.GetHeight(); nY++)
+					{
+						for (int nX = 0; nX < pBeamletAdapt->GetWidth(); nX++)
+						{
+							pBeamletAdapt->GetVoxels()[0][nY][nX] = 
+								beamletAdaptPre.GetVoxels()[0][nFactor*nY][nX];
+						}
+					}
+
+					// set basis
+					CMatrixD<4> mBasis = pBeamletAdapt->GetBasis();
+
+					// xlate to origin (to avoid scaling pixel origin)
+					mBasis[3] = CVectorD<4>(0.0, 0.0, 0.0, 1.0);
+
+					CMatrixD<4> mScale;
+					mScale[1][1] = (REAL) nFactor;
+					mBasis = mBasis * mScale;
+
+					// xlate back to pixel origin 
+					mBasis[3] = pBeamletAdapt->GetBasis()[3];
+					// ASSERT(mBasis.IsApproxEqual(pBeamletAdapt->GetBasis()));
+
+					// TODO: fix basis calc
+					pBeamletAdapt->SetBasis(mBasis);
+
+					pBeamletAdapt->VoxelsChanged();
+				}
+
+				// assign
+				m_arrBeamletsAdapt[nAtLevel][nAtBeamlet] = pBeamletAdapt;
+			}
+		}
+
+		m_bRecomputeBeamletAdapt = false;
+	}
+
+	int nBeamletAt = nShift + GetBeamletCount(nLevel) / 2;
+	CVolume<VOXEL_REAL> *pBeamletAdapt = m_arrBeamletsAdapt[nLevel][nBeamletAt];
+
+	return pBeamletAdapt;
+
+}	// CBeam::GetBeamletAdapt
 
 
 ///////////////////////////////////////////////////////////////////////////////

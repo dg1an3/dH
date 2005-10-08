@@ -190,6 +190,16 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 		int nBeamlet;
 		GetBeamletFromSVElem(nAtElem, m_nLevel, &nBeam, &nBeamlet);
 
+#ifdef DVOLUME_ADAPT
+		CVolume<VOXEL_REAL> *pBeamletAdapt = m_pPlan->GetBeamAt(nBeam)->GetBeamletAdapt(nBeamlet, m_nLevel);
+
+		// set default threshold based on config items
+		pBeamletAdapt->SetThreshold(
+			(VOXEL_REAL) GetProfileReal("Prescription", "BeamletThreshold", VOXEL_REAL(0.005)));
+
+		pHisto->Add_dVolume(pBeamletAdapt, nBeam, m_nLevel, 
+			m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel));
+#else
 		CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
 		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
 
@@ -198,6 +208,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 			(VOXEL_REAL) GetProfileReal("Prescription", "BeamletThreshold", VOXEL_REAL(0.005)));
 
 		pHisto->Add_dVolume(pBeamlet, nBeam);
+#endif
 	}
 
 	// add to the current prescription
