@@ -192,18 +192,21 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
-	: m_nWidth(0), 
-		m_nHeight(0), 
-		m_nDepth(0),
-		m_pVoxels(NULL),
-		m_bFreeVoxels(TRUE)
+	: m_nWidth(0) 
+		, m_nHeight(0)
+		, m_nDepth(0)
+		, m_pVoxels(NULL)
+		, m_bFreeVoxels(TRUE)
 #if defined(USE_IPP)
 		, m_pAccumBuffer(NULL)
 #endif
 {
-	SetDimensions(from.GetWidth(), from.GetHeight(), from.GetDepth());
+	// SetDimensions(from.GetWidth(), from.GetHeight(), from.GetDepth());
+	ConformTo(&from);
 	ClearVoxels();
 	Accumulate(&from);
+
+	SetThreshold(from.GetThreshold());
 
 }	// CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>&)
 
@@ -812,7 +815,7 @@ inline void CVolume<VOXEL_TYPE>::LogPlane(int nPlane, CXMLElement *pElem) const
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
 inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel, 
-					 CVolume<VOXEL_TYPE> *pRes)
+					 CVolume<VOXEL_TYPE> *pRes, int nWidth = 0)
 {
 	pRes->SetDimensions(pVol->GetWidth(), pVol->GetHeight(), pVol->GetDepth());
 	pRes->ClearVoxels();
@@ -822,6 +825,10 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 	ASSERT(pKernel->GetHeight() % 2 == 1);
 
 	int nKernelBase = pKernel->GetHeight() / 2;
+	if (nWidth != 0)
+	{
+		nKernelBase = nWidth / 2;
+	}
 
 	VOXEL_TYPE ***pppVoxels = pVol->GetVoxels();
 	VOXEL_TYPE ***pppKernel = pKernel->GetVoxels();
@@ -830,18 +837,35 @@ inline void Convolve(CVolume<VOXEL_TYPE> *pVol, CVolume<VOXEL_TYPE> *pKernel,
 	{
 		for (int nAtCol = 0; nAtCol < pVol->GetWidth(); nAtCol++)
 		{
-			for (int nAtKernRow = -nKernelBase; nAtKernRow <= nKernelBase; nAtKernRow++)
+			if (nWidth == 0)
 			{
+				for (int nAtKernRow = -nKernelBase; nAtKernRow <= nKernelBase; nAtKernRow++)
+				{
+					for (int nAtKernCol = -nKernelBase; nAtKernCol <= nKernelBase; nAtKernCol++)
+					{
+						if (nAtRow + nAtKernRow >= 0 
+							&& nAtRow + nAtKernRow < pRes->GetHeight()
+							&& nAtCol + nAtKernCol >= 0
+							&& nAtCol + nAtKernCol < pRes->GetWidth())
+						{
+							pppRes[0][nAtRow + nAtKernRow][nAtCol + nAtKernCol] += 
+								pppVoxels[0][nAtRow][nAtCol] 
+									* pppKernel[0][nKernelBase + nAtKernRow][nKernelBase + nAtKernCol];
+						}
+					}
+				}
+			}
+			else
+			{
+				// TODO: fix this fuckin shit
 				for (int nAtKernCol = -nKernelBase; nAtKernCol <= nKernelBase; nAtKernCol++)
 				{
-					if (nAtRow + nAtKernRow >= 0 
-						&& nAtRow + nAtKernRow < pRes->GetHeight()
-						&& nAtCol + nAtKernCol >= 0
+					if (nAtCol + nAtKernCol >= 0
 						&& nAtCol + nAtKernCol < pRes->GetWidth())
 					{
-						pppRes[0][nAtRow + nAtKernRow][nAtCol + nAtKernCol] += 
+						pppRes[0][nAtRow][nAtCol + nAtKernCol] += 
 							pppVoxels[0][nAtRow][nAtCol] 
-								* pppKernel[0][nKernelBase + nAtKernRow][nKernelBase + nAtKernCol];
+								* pppKernel[0][0][nKernelBase + nAtKernCol];
 					}
 				}
 			}
@@ -872,7 +896,9 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 	CVectorN<TYPE> vCoeff;
 	vCoeff.SetDim(nMaxDim);
 	CalcBinomialCoeff(vCoeff);
-	TYPE norm = (TYPE) pow(2, 2 * (vCoeff.GetDim()-1));
+
+	// stores the normalization constant
+	TYPE norm = 0.0;
 
 	// populate volume
 	pVol->ClearVoxels();
@@ -881,8 +907,18 @@ inline void CalcBinomialFilter(CVolume<TYPE> *pVol)
 	{
 		for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); /* pVol->GetWidth(); */nAtCol++)
 		{
-			pppVoxels[0][nAtRow][nAtCol] = vCoeff[nAtRow] * vCoeff[nAtCol] 
-				/ norm;
+			pppVoxels[0][nAtRow][nAtCol] = vCoeff[nAtRow] * vCoeff[nAtCol];
+
+			norm += vCoeff[nAtRow] * vCoeff[nAtCol];
+		}
+	}
+
+	// now normalize
+	for (int nAtRow = 0; nAtRow < pVol->GetHeight(); nAtRow++)
+	{
+		for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); /* pVol->GetWidth(); */nAtCol++)
+		{
+			pppVoxels[0][nAtRow][nAtCol] /= norm;
 		}
 	}
 
