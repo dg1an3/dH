@@ -574,6 +574,9 @@
 			</File>
 		</Filter>
 		<File
+			RelativePath=".\devo_log.xml">
+		</File>
+		<File
 			RelativePath="Readme.txt">
 		</File>
 	</Files>
