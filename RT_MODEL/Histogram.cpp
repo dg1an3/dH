@@ -41,6 +41,7 @@ CHistogram::CHistogram(CVolume<VOXEL_REAL> *pVolume, CVolume<VOXEL_REAL> *pRegio
 		, m_pVolume_FracLow(NULL)
 #endif
 		, m_pRegion(pRegion)
+		, m_nLevel(-1)
 
 		, m_binKernelSigma(0.1)	// these are only set here as pre-init
 		, m_minValue(0.0)		//
@@ -690,10 +691,11 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 		m_arr_bRecomputeBinVolume.Add(TRUE);
 	}
 
+//	m_arrRegionRotate.SetAtGrow(nGroup, CAutoPtr<CVolume<VOXEL_REAL> >());
 	while (m_arrRegionRotate.GetCount() <= (size_t) nGroup)
 	{
 		m_arrRegionRotate.Add(CAutoPtr<CVolume<VOXEL_REAL> >());
-	}
+	} 
 	if (m_arrRegionRotate[nGroup] == NULL)
 	{
 		// rotate region
@@ -703,6 +705,9 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 
 #ifdef DVOLUME_ADAPT
 		// if this is an adaptive beamlet grid, then resampling is not enough (need to sub-filter first)
+
+		m_nLevel = nLevel;
+		m_arrRegionIsoRotate.SetAtGrow(nGroup, pIsoVolume);
 
 		if (nLevel <= 1)
 		{
@@ -737,9 +742,9 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 			regionRotatePreFilter.ClearVoxels();
 			::Convolve(&regionRotatePre, &kernel, &regionRotatePreFilter, vCoeff.GetDim());
 
-			// decimate
-			int nFactor = (nLevel == 0) ? // 1 : 1; 
-				2 : 1;
+/*			// decimate
+			int nFactor = (nLevel == 0) ? 1 : 1; 
+				// 2 : 1;
 			ASSERT(pIsoVolume->GetHeight() / nFactor + 1 == 
 				m_arrRegionRotate[nGroup]->GetHeight());
 
@@ -752,6 +757,8 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 						regionRotatePreFilter.GetVoxels()[0][nFactor*nY][nX];
 				}
 			}
+*/
+			::Resample(&regionRotatePreFilter, m_arrRegionRotate[nGroup], TRUE);
 
 			m_arrRegionRotate[nGroup]->VoxelsChanged();
 		}
@@ -1205,7 +1212,84 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 		m_volRotate.ConformTo(Get_dVolume(nAt));
 		m_volRotate.ClearVoxels();
 
+#ifdef DVOLUME_ADAPT
+		// TODO: fix this for DVOLUME_ADAPT
+		if (m_nLevel <= 1)
+		{
+			//
+			// construct filter kernel
+			//
+
+			// calc coeffecients
+			CVectorN<> vCoeff;
+			vCoeff.SetDim((0 == m_nLevel) ? 9 : 5);
+			CalcBinomialCoeff(vCoeff);
+
+			// calc normalization constant
+			REAL norm = 0.0; 
+			ITERATE_VECTOR(vCoeff, nAt, norm += vCoeff[nAt]);
+
+			// compute filter
+			CVolume<VOXEL_REAL> kernel;
+			kernel.SetDimensions(vCoeff.GetDim(), 1, 1);
+			kernel.ClearVoxels();
+
+			for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); nAtCol++)
+			{
+				kernel.GetVoxels()[0][0][nAtCol] = 
+					vCoeff[nAtCol] / norm;
+			}
+
+			//
+			// Resample to corresponding pIsoVolume
+			//
+
+			// stores pre-decimated beamlet
+			ASSERT(m_arrRegionIsoRotate[nGroup] != NULL);
+			CVolume<VOXEL_REAL> volumeRotatePre(*m_arrRegionIsoRotate[nGroup]);
+			volumeRotatePre.ClearVoxels();
+			Resample(GetBinScaledVolume(), &volumeRotatePre, TRUE);
+
+			// filter pre to adapt
+
+			// TODO: need to rotate m_pRegion _first_, then filter / decimate
+			CVolume<VOXEL_REAL> volumeRotatePreFilter(volumeRotatePre);
+			volumeRotatePreFilter.ClearVoxels();
+			::Convolve(&volumeRotatePre, &kernel, &volumeRotatePreFilter, vCoeff.GetDim());
+
+			::Resample(&volumeRotatePreFilter, &m_volRotate, TRUE);
+
+/*			//
+			// decimate adapt
+			//
+
+			int nFactor = (m_nLevel == 0) ? 1 : 1; 
+				// 2 : 1;
+			ASSERT(volumeRotatePreFilter.GetHeight() / nFactor + 1 == 
+				m_volRotate.GetHeight());
+
+			m_volRotate.ClearVoxels();
+			for (int nY = 0; nFactor*nY < volumeRotatePreFilter.GetHeight(); nY++)
+			{
+				for (int nX = 0; nX < m_volRotate.GetWidth(); nX++)
+				{
+					m_volRotate.GetVoxels()[0][nY][nX] = 
+						volumeRotatePreFilter.GetVoxels()[0][nFactor*nY][nX];
+				}
+			}
+
+			m_volRotate.VoxelsChanged(); */
+		}
+		else
+		{
+			Resample(GetBinScaledVolume(), &m_volRotate, TRUE);
+		}
+		// Resample(GetBinScaledVolume(), &m_volRotate, TRUE);
+#else
+
 		Resample(GetBinScaledVolume(), &m_volRotate, TRUE);
+#endif
+	
 		m_arrBinVolume[nGroup]->ConformTo(&m_volRotate);
 		m_arrBinVolume[nGroup]->ClearVoxels();
 

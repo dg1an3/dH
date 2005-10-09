@@ -521,20 +521,12 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 
 					// decimate
 					int nFactor = (nAtLevel == 0) ? // 1 : 1; 
-						2 : 1;
+						2 : 2;
 					pBeamletAdapt->SetDimensions(
 						pBeamletAdapt->GetWidth(),
 						pBeamletAdapt->GetHeight() / nFactor + 1,
 						pBeamletAdapt->GetDepth());
 					pBeamletAdapt->ClearVoxels();
-					for (int nY = 0; nFactor*nY < beamletAdaptPre.GetHeight(); nY++)
-					{
-						for (int nX = 0; nX < pBeamletAdapt->GetWidth(); nX++)
-						{
-							pBeamletAdapt->GetVoxels()[0][nY][nX] = 
-								beamletAdaptPre.GetVoxels()[0][nFactor*nY][nX];
-						}
-					}
 
 					// set basis
 					CMatrixD<4> mBasis = pBeamletAdapt->GetBasis();
@@ -552,6 +544,8 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 
 					// TODO: fix basis calc
 					pBeamletAdapt->SetBasis(mBasis);
+
+					::Resample(&beamletAdaptPre, pBeamletAdapt, TRUE);
 
 					pBeamletAdapt->VoxelsChanged();
 				}

@@ -113,6 +113,10 @@ private:
 	CVolume<VOXEL_REAL> *m_pRegion;
 	CAutoPtrArray<CVolume<VOXEL_REAL> > m_arrRegionRotate;
 
+	// helpers for adaptive beamlets
+	int m_nLevel;
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrRegionIsoRotate;
+
 	// binning parameters
 	REAL m_minValue;
 	REAL m_binWidth;
