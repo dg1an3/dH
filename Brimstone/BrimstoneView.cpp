@@ -6,6 +6,7 @@
 
 #include <Dib.h>
 #include <HistogramDataSeries.h>
+#include <TargetDVHSeries.h>
 
 #include "BrimstoneDoc.h"
 #include "BrimstoneView.h"
@@ -334,17 +335,18 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		RemoveHistogram(pStruct);
 	}
-/*	else if (IDD_ADDPRESC == lHint)
+	else if (IDD_ADDPRESC == lHint)
 	{
 		CStructure *pStruct = (CStructure *) pHint;
-		CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct);
-		CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
+		CKLDivTerm *pKLDT = (CKLDivTerm *) GetDocument()->m_pPresc->GetStructureTerm(pStruct);
+		CTargetDVHSeries *pSeries = new CTargetDVHSeries(pKLDT);
 		pSeries->SetColor(pStruct->GetColor());
+		pSeries->m_nPenStyle = PS_DASHDOT;
 		m_graph.AddDataSeries(pSeries);
-		m_graph.AutoScale();
-		m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
+		// m_graph.AutoScale();
+		// m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
 	}
-*/	
+
 	Invalidate(FALSE);
 	m_graph.Invalidate(TRUE);
 	m_wndPlanarView.Invalidate(TRUE);
@@ -461,7 +463,9 @@ void CBrimstoneView::ScanBeamlets(int nLevel)
 				CBeam *pBeam = pPlan->GetBeamAt(nAtBeam);
 				pBeam->SetIntensityMap(vWeights);
 			}
-			pPlan->GetDoseMatrix();
+			CVolume<VOXEL_REAL> *pDose = pPlan->GetDoseMatrix();
+			VOXEL_REAL maxDose = pDose->GetMax();
+			TRACE("maxDose = %f\n", maxDose);
 
 			m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
 		}	
@@ -474,7 +478,7 @@ void CBrimstoneView::ScanBeamlets(int nLevel)
 			for (int nShift = -pBeam->GetBeamletCount(nLevel) / 2; 
 					nShift<= pBeam->GetBeamletCount(nLevel) / 2; nShift++)
 			{
-				CVolume<VOXEL_REAL> *pBeamlet = pBeam->GetBeamlet(nShift, nLevel);
+				CVolume<VOXEL_REAL> *pBeamlet = pBeam->GetBeamlet(nShift);
 				m_wndPlanarView.SetVolume(pBeamlet, 1);
 				m_wndPlanarView.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
 			}
