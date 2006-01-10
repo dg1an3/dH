@@ -138,6 +138,9 @@ void CKLDivTerm::SetDVPs(const CMatrixNxM<>& mDVPs)
 		static_cast<CKLDivTerm*>(m_pNextScale)->SetDVPs(mDVPs);
 	}
 
+	// notify of change
+	GetChangeEvent().Fire();
+
 	END_LOG_SECTION();	// CKLDivTerm::SetInterval
 
 }	// CKLDivTerm::SetInterval
