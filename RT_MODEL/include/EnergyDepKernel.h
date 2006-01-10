@@ -66,10 +66,10 @@ private:
 	double m_mu;
 
 	// mean angle values from kernel
-	CVectorN<REAL> m_vAnglesIn;
+	CVectorN<double> m_vAnglesIn;
 
 	// interpolated energy lookup table
-	CMatrixNxM<REAL> m_mCumEnergy;
+	CMatrixNxM<double> m_mCumEnergy;
 
 	// spherical xform lookup table
 	CVectorD<3> m_vPixSpacing;
