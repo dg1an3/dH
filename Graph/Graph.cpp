@@ -272,11 +272,11 @@ void CGraph::OnPaint()
 	dcMem.SelectObject(m_dib);
 
 	// draw the axes
-	CBrush brushBack(RGB(192, 192, 192));
+	CBrush brushBack(RGB(128, 128, 128));
 	dcMem.SelectObject(&brushBack);
 	dcMem.Rectangle(rect);
 
-	dcMem.SetBkColor(RGB(192, 192, 192));
+	dcMem.SetBkColor(RGB(128, 128, 128));
 
 	if (m_arrDataSeries.GetSize() != 0)
 	{
@@ -504,7 +504,7 @@ void CGraph::DrawSeries(CDC * pDC, const CRect& rect)
 	{
 		CDataSeries *pSeries = (CDataSeries *)m_arrDataSeries[nAt];
 
-		CPen pen(PS_SOLID, 2, pSeries->GetColor());
+		CPen pen(pSeries->m_nPenStyle /* PS_SOLID */, 1 /* 2 */, pSeries->GetColor());
 		// CPen *pOldPen = 
 		pDC->SelectObject(&pen);
 

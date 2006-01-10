@@ -6,6 +6,7 @@ CDataSeries::CDataSeries(void)
 		, m_pObject(NULL)
 		, m_color(RGB(255, 0, 0))
 		, m_bHandles(FALSE)
+		, m_nPenStyle(PS_SOLID)
 { 
 }
 

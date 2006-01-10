@@ -59,4 +59,7 @@ protected:
 	//		0 for not monotonic
 	int m_nMonotonicDirection;
 
+public:
+	// pen style
+	int m_nPenStyle;
 };	// class CDataSeries
