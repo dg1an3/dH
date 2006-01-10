@@ -52,19 +52,27 @@ void CEnergyDepKernel::Init()
 {
 	CString strFilename;
 
+	// form current path
+	HMODULE hCurrModule = ::GetModuleHandle(NULL);
+	::GetModuleFileName(hCurrModule, strFilename.GetBuffer(255), 255);
+	strFilename.ReleaseBuffer();
+
+	int nLastSlash = strFilename.ReverseFind('\\');
+	strFilename = strFilename.Left(nLastSlash);
+
 	if (IsApproxEqual(m_energy, 15.0))
 	{
-		strFilename = "C:\\15MV_kernel.dat";
+		strFilename += "\\15MV_kernel.dat";
 		m_mu = 1.941E-02;
 	}
 	else if (IsApproxEqual(m_energy, 6.0))
 	{
-		strFilename = "C:\\6MV_kernel.dat";
+		strFilename += "\\6MV_kernel.dat";
 		m_mu = 2.770E-02;
 	}
 	else if (IsApproxEqual(m_energy, 2.0))
 	{
-		strFilename = "C:\\2MV_kernel.dat";
+		strFilename += "\\2MV_kernel.dat";
 		m_mu = 4.942E-02;
 
 	}
@@ -75,6 +83,11 @@ void CEnergyDepKernel::Init()
 
 	// The dose spread arrays produced by SUM_ELEMENT.FOR are read.
 	FILE *pFile = fopen(strFilename, "rt");
+	if (pFile == NULL)
+	{
+		::AfxMessageBox("Problem reading kernel...");
+		return;
+	}
 	
 	char pszLine[100];
 	
