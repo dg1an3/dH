@@ -70,7 +70,7 @@ public:
 	int GetDepth() const;
 
 	// total voxels
-	int GetVoxelCount();
+	int GetVoxelCount() const;
 
 	// sets the dimensions
 	void SetDimensions(int nWidth, int nHeight, int nDepth);
@@ -88,6 +88,25 @@ public:
 			pVolume->GetDepth());
 
 	}	// CVolume<VOXEL_TYPE>::ConformTo
+
+	template<class OTHER_VOXEL_TYPE>
+	void ScaleFitTo(const CVolume<OTHER_VOXEL_TYPE> *pVolume, REAL voxelSize)
+	{
+		// orthogonalize 3x3
+
+		// scale 3x3
+
+		// determine bounds
+	}
+
+	template<class OTHER_VOXEL_TYPE>
+	void RotateFitTo(const CVolume<OTHER_VOXEL_TYPE> *pVolume, 
+		REAL angle, const CVectorD<3>& vAxis)
+	{
+		// rotate 3x3
+
+		// determine bounds
+	}
 
 	// retrieves a single voxel value
 	VOXEL_TYPE GetVoxelAt(int nX, int nY, int nZ);
@@ -107,15 +126,15 @@ public:
 	void Accumulate(const CVolume *pVolume, double weight = 1.0, BOOL bUseBoundingBox = FALSE);
 
 	// sum of voxels
-	VOXEL_TYPE GetSum();
+	VOXEL_TYPE GetSum() const;
 
 	// max / min of the volume voxel values
-	VOXEL_TYPE GetMax();
-	VOXEL_TYPE GetMin();
-	VOXEL_TYPE GetAvg();
+	VOXEL_TYPE GetMax() const;
+	VOXEL_TYPE GetMin() const;
+	VOXEL_TYPE GetAvg() const;
 
 	// threshold bounds
-	VOXEL_TYPE GetThreshold() const { return m_thresh; }
+	VOXEL_TYPE GetThreshold() const;
 	void SetThreshold(VOXEL_TYPE thresh);
 	const CRect& GetThresholdBounds() const;
 
@@ -128,7 +147,8 @@ public:
 
 	// logging
 	virtual void Log(CXMLElement *pElem) const;
-	void LogPlane(int nPlane, CXMLElement *pElem) const;
+	void LogPlane(int nPlane, const char *pszName, 
+						const char *pszModule) const;
 
 private:
 	// dimensions
@@ -163,6 +183,8 @@ private:
 	CVolume<VOXEL_TYPE> *m_pAccumBuffer;
 #endif
 
+public:
+	virtual void AssertValid() const;
 };	// class CVolume
 
 
@@ -275,7 +297,7 @@ inline int CVolume<VOXEL_TYPE>::GetDepth() const
 // returns total voxels in volume
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline int CVolume<VOXEL_TYPE>::GetVoxelCount()
+inline int CVolume<VOXEL_TYPE>::GetVoxelCount() const
 {
 	return GetWidth() * GetHeight() * GetDepth();
 
@@ -525,12 +547,12 @@ inline void CVolume<VOXEL_TYPE>::Accumulate(const CVolume<VOXEL_TYPE> *pVolume,
 // forms the sum of the volume
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetSum()
+inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetSum() const
 {
 	if (m_bRecomputeSum)
 	{
 		m_sum = (VOXEL_TYPE) 0;
-		VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
+		const VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
 
 		int nCount = GetVoxelCount();
 		for (int nAt = 0; nAt < nCount; nAt++)
@@ -551,11 +573,11 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetSum()
 // forms the max of the volume voxel values
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMax()
+inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMax() const 
 {
 	VOXEL_TYPE nMaxValue = -numeric_limits<VOXEL_TYPE>::max();
 
-	VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
+	const VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
 
 	int nCount = GetVoxelCount();
 	for (int nAt = 0; nAt < nCount; nAt++)
@@ -574,11 +596,11 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMax()
 // forms the min of the volume voxel values
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMin()
+inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMin() const 
 {
 	VOXEL_TYPE nMinValue = numeric_limits<VOXEL_TYPE>::max();
 
-	VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
+	const VOXEL_TYPE *pVoxels = &GetVoxels()[0][0][0];
 
 	int nCount = GetVoxelCount();
 	for (int nAt = 0; nAt < nCount; nAt++)
@@ -592,15 +614,27 @@ inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetMin()
 
 
 //////////////////////////////////////////////////////////////////////
-// CVolume<VOXEL_TYPE>::GetMin
+// CVolume<VOXEL_TYPE>::GetAvg
 // 
-// forms the min of the volume voxel values
+// forms the avg of the volume voxel values
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetAvg()
+inline VOXEL_TYPE CVolume<VOXEL_TYPE>::GetAvg() const
 {
 	return GetSum() / (VOXEL_TYPE) GetVoxelCount();
 }
+
+//////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::GetThreshold
+// 
+// threshold bounds
+//////////////////////////////////////////////////////////////////////
+template<class VOXEL_TYPE>
+VOXEL_TYPE CVolume<VOXEL_TYPE>::GetThreshold() const 
+{ 
+	return m_thresh; 
+
+}	// CVolume<VOXEL_TYPE>::GetThreshold
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -754,6 +788,27 @@ inline void CVolume<VOXEL_TYPE>::Serialize(CArchive& ar)
 }	// CVolume<VOXEL_TYPE>::Serialize
 
 
+
+
+//////////////////////////////////////////////////////////////////////
+// CVolume<VOXEL_TYPE>::AssertValid
+// 
+// asserts validity of the volume
+//////////////////////////////////////////////////////////////////////
+template<typename VOXEL_TYPE>
+void CVolume<VOXEL_TYPE>::AssertValid() const
+{
+	CModelObject::AssertValid();
+
+	m_bRecomputeSum = TRUE;
+	m_bRecomputeThresh = TRUE;
+
+	VOXEL_TYPE sum = GetSum();
+	ASSERT(_finite(sum));
+
+}	// CVolume<VOXEL_TYPE>::AssertValid
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // CVolume<VOXEL_TYPE>::Log
 // 
@@ -771,13 +826,11 @@ inline void CVolume<VOXEL_TYPE>::Log(CXMLElement *pElem) const
 	VOXEL_TYPE ***pppVoxels = ((CVolume<VOXEL_TYPE>&)(*this)).GetVoxels();
 	for (int nAt = 0; nAt < m_nDepth; nAt++)
 	{
-		LogPlane(nAt, pElem);
-
-/*		for (int nAtCol = 0; nAtCol < GetWidth(); nAtCol++)
+		for (int nAtCol = 0; nAtCol < GetWidth(); nAtCol++)
 			for (int nAtRow = 0; nAtRow < GetHeight(); nAtRow++)
 				mPlane[nAtCol][nAtRow] = pppVoxels[nAt][nAtRow][nAtCol];
 		// LogExprExt(mPlane, FMT("mPlane %i", nAt), "");
-		LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nAt)); */
+		LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nAt)); 
 	}
 
 }	// Log
@@ -789,8 +842,13 @@ inline void CVolume<VOXEL_TYPE>::Log(CXMLElement *pElem) const
 // log the volume object
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline void CVolume<VOXEL_TYPE>::LogPlane(int nPlane, CXMLElement *pElem) const
+inline void CVolume<VOXEL_TYPE>::LogPlane(int nPlane, const char *pszName, 
+										const char *pszModule) const
 {
+	CXMLElement *pElem = CXMLLogFile::GetLogFile()->NewElement("lo", pszModule);
+	pElem->Attribute("type", "CMatrix");
+	pElem->Attribute("name", FMT("%s Plane %i", pszName, nPlane));
+
 	CMatrixNxM<VOXEL_TYPE> mPlane(GetWidth(), GetHeight());
 
 	VOXEL_TYPE ***pppVoxels = ((CVolume<VOXEL_TYPE>&)(*this)).GetVoxels();
@@ -804,6 +862,8 @@ inline void CVolume<VOXEL_TYPE>::LogPlane(int nPlane, CXMLElement *pElem) const
 	}
 
 	LOG_EXPR_EXT_DESC(mPlane, FMT("mPlane %i", nPlane));
+
+	CXMLLogFile::GetLogFile()->CloseElement();
 
 }	// LogPlane
 
@@ -1088,10 +1148,10 @@ inline void Resample(const CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew
 
 }	// Resample
 
-#else
+#endif
 
 template<class VOXEL_TYPE>
-inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew, 
+inline void Resample_NOIPP(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew, 
 					 BOOL bBilinear = FALSE)
 {
 	// form translation basis
@@ -1191,7 +1251,6 @@ inline void Resample(CVolume<VOXEL_TYPE> *pOrig, CVolume<VOXEL_TYPE> *pNew,
 
 }	// Resample
 
-#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////
