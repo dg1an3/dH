@@ -82,6 +82,9 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
+public:
+	// add new structure term
+	void AddStructTerm(CVOITerm * pVOIT);
 };
 
 /////////////////////////////////////////////////////////////////////////////

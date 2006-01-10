@@ -341,6 +341,8 @@ void InitVolumes(CSeries *pSeries, CPlan *pPlan, CPrescription *pPresc)
 
 void CBrimstoneDoc::OnOptimize() 
 {
+	CWaitCursor cursor;
+
 	// call optimize
 	CVectorN<> vInit;
 	m_pPresc->GetInitStateVector(vInit);
@@ -407,12 +409,18 @@ void CBrimstoneDoc::OnGenbeamlets()
 	{
 		int nBeams = dlgSetup.m_nBeamCount; // m_pPlan->GetBeamCount();
 
+		// TODO: set as parameter
+		const REAL dosePixSpacing = 2.0; // mm
 		CMatrixD<4> mBasis;
-		mBasis[0][0] = 4.0; // mm
-		mBasis[1][1] = 4.0;	// mm
-		mBasis[2][2] = 4.0; // mm
+		mBasis[0][0] = dosePixSpacing; // mm
+		mBasis[1][1] = dosePixSpacing;	// mm
+		mBasis[2][2] = dosePixSpacing; // mm
 
 		CVolume<VOXEL_REAL> *pOrigDensity = m_pSeries->m_pDens;
+		pOrigDensity->VoxelsChanged();
+		TRACE("pOrigDensity->GetMax() = %f\n", pOrigDensity->GetMax());
+		TRACE("pOrigDensity->GetMin() = %f\n", pOrigDensity->GetMin());
+
 		int nHeight = 
 			Round<int>(pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[0][0] / mBasis[0][0]);
 		int nWidth = 
@@ -449,6 +457,10 @@ void CBrimstoneDoc::OnGenbeamlets()
 					}
 				}
 
+		massDensity.VoxelsChanged();
+		TRACE("massDensity.GetMax() = %f\n", massDensity.GetMax());
+		TRACE("massDensity.GetMin() = %f\n", massDensity.GetMin());
+
 		for (int nAt = nBeams-1; nAt >= 0; nAt--)
 		{
 			TRACE("Generating Beamlets for Beam %i\n", nAt);
@@ -461,6 +473,7 @@ void CBrimstoneDoc::OnGenbeamlets()
 			pBeam->m_pDoseCalc = new CBeamDoseCalc(pBeam, m_pPlan->m_pKernel);
 			pBeam->m_dose.ConformTo(&m_pPlan->m_dose);
 
+			// TODO: move this to the beam -- it should create it's own basis, rotated about center of plan's dose volume
 			// rotate basis to beam orientation
 			CMatrixD<2> mRotateBasis2D;
 			mRotateBasis2D[0][0] = mBasis[0][0];
@@ -477,22 +490,13 @@ void CBrimstoneDoc::OnGenbeamlets()
 
 
 			CMatrixD<4> mDoseBasis = pBeam->m_dose.GetBasis();
-//			mDoseBasis.Invert();
+			mDoseBasis[3][0] -= m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
+			mDoseBasis[3][1] -= m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
 
 			CMatrixD<4> mBeamBasis = mRotateBasisHG * mDoseBasis; ;
-			// mBeamBasis[0][0] = mRotateBasis2D[0][0];
-			// mBeamBasis[1][1] = mRotateBasis2D[1][1];
+			mBeamBasis[3][0] += m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
+			mBeamBasis[3][1] += m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
 			
-			/* CVectorD<2> vOrigin(mBeamBasis[3][0], mBeamBasis[3][1]);
-			mRotateBasis2D.Invert();
-			vOrigin = mRotateBasis2D * vOrigin;
-			mBeamBasis[3][0] = vOrigin[0];
-			mBeamBasis[3][1] = vOrigin[1]; */
-
-			// CVectorD<3> vPos((REAL) pBeam->m_dose.GetWidth() / 2.0, 
-			//	(REAL) pBeam->m_dose.GetHeight() / 2.0, 0.0);
-			// TRACE_VECTOR("Middle of image position = ", mBeamBasis * ToHG(vPos));
-
 			pBeam->m_dose.SetBasis(mBeamBasis);
 
 			// set up isocenter
@@ -503,11 +507,9 @@ void CBrimstoneDoc::OnGenbeamlets()
 			CVectorD<3> vIso(dlgSetup.m_isoX, dlgSetup.m_isoY, 0.0);
 			pBeam->m_pDoseCalc->m_vIsocenter_vxl = FromHG<3, REAL>(mBeamBasisInv * ToHG<3, REAL>(vIso));
 			pBeam->m_pDoseCalc->m_vIsocenter_vxl[2] = pBeam->m_dose.GetDepth() / 2.0;
-			//	CVectorD<3>((REAL) pBeam->m_dose.GetWidth() / 2.0, 
-			//	(REAL) pBeam->m_dose.GetHeight() / 2.0,
-			//	(REAL) pBeam->m_dose.GetDepth() / 2.0);
+
 			pBeam->m_pDoseCalc->m_vSource_vxl = pBeam->m_pDoseCalc->m_vIsocenter_vxl;
-			pBeam->m_pDoseCalc->m_vSource_vxl[0] -= 1000.0 / 4.0;
+			pBeam->m_pDoseCalc->m_vSource_vxl[0] -= 1000.0 / dosePixSpacing;
 
 			// now trigger convolution
 			pBeam->m_pDoseCalc->CalcPencilBeams(&massDensity); // m_pSeries->m_pDens);
@@ -589,4 +591,11 @@ void CBrimstoneDoc::RemoveHistogram(CStructure * pStruct)
 {
 	UpdateAllViews(NULL, IDD_REMOVEHISTO, pStruct);
 	m_pPlan->RemoveHistogram(pStruct);
+}
+
+// add new structure term
+void CBrimstoneDoc::AddStructTerm(CVOITerm * pVOIT)
+{
+	m_pPresc->AddStructureTerm(pVOIT);
+	UpdateAllViews(NULL, IDD_ADDPRESC, pVOIT->GetVOI());
 }
