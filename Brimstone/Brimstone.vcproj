@@ -60,7 +60,10 @@
 				TypeLibraryName=".\Debug/Brimstone.tlb"
 				HeaderFileName=""/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="copy 15MV_kernel.dat $(TargetDir)
+copy 6MV_kernel.dat $(TargetDir)
+copy 2MV_kernel.dat $(TargetDir)"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -133,7 +136,11 @@
 				TypeLibraryName=".\Release/Brimstone.tlb"
 				HeaderFileName=""/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="copy 15MV_kernel.dat $(TargetDir)
+copy 6MV_kernel.dat $(TargetDir)
+copy 2MV_kernel.dat $(TargetDir)
+"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -201,7 +208,11 @@
 				TypeLibraryName=".\Debug/Brimstone.tlb"
 				HeaderFileName=""/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="copy 15MV_kernel.dat $(TargetDir)
+copy 6MV_kernel.dat $(TargetDir)
+copy 2MV_kernel.dat $(TargetDir)
+"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
