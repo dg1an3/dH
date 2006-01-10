@@ -6,6 +6,7 @@
 #include "PlanarView.h"
 
 #include <Series.h>
+#include ".\planarview.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -17,8 +18,10 @@ static char THIS_FILE[] = __FILE__;
 // CPlanarView
 
 CPlanarView::CPlanarView()
-: m_bWindowLeveling(FALSE),
-	m_pSeries(NULL)
+: m_bWindowLeveling(false)
+	, m_bZooming(false)
+	, m_bPanning(false)
+	, m_pSeries(NULL)
 {
 	m_pVolume[0] = NULL;
 	m_pVolume[1] = NULL;
@@ -36,22 +39,6 @@ CPlanarView::~CPlanarView()
 {
 }
 
-
-BEGIN_MESSAGE_MAP(CPlanarView, CWnd)
-	//{{AFX_MSG_MAP(CPlanarView)
-	ON_WM_PAINT()
-	ON_WM_MBUTTONDOWN()
-	ON_WM_MBUTTONUP()
-	ON_WM_MOUSEMOVE()
-	ON_WM_SIZE()
-	ON_WM_CREATE()
-	//}}AFX_MSG_MAP
-END_MESSAGE_MAP()
-
-
-/////////////////////////////////////////////////////////////////////////////
-// CPlanarView message handlers
-
 void CPlanarView::SetVolume(CVolume<VOXEL_REAL> *pVolume, int nVolumeAt)
 {
 	if (nVolumeAt == 1 && m_pVolume[1] == NULL)
@@ -60,6 +47,15 @@ void CPlanarView::SetVolume(CVolume<VOXEL_REAL> *pVolume, int nVolumeAt)
 	}
 
 	m_pVolume[nVolumeAt] = pVolume;
+
+	if (nVolumeAt == 0)
+	{
+		// set up initial zoom
+		InitZoomCenter();
+
+		// set change listener
+		::AddObserver(&m_pVolume[0]->GetChangeEvent(), this, OnVolumeChanged);
+	}
 }
 
 void CPlanarView::SetBasis(const CMatrixD<4>& mBasis)
@@ -89,56 +85,6 @@ void CPlanarView::AddStructure(CStructure *pStruct)
 	m_arrStructures.Add(pStruct);
 }
 
-void CPlanarView::OnPaint() 
-{
-	CPaintDC dc(this); // device context for painting
-
-	CRect rect;
-	GetClientRect(&rect);
-
-	DrawImages(&dc);
-
-	CDC dcMem;
-	dcMem.CreateCompatibleDC(&dc);
-
-	// selects image objects in to context
-	dcMem.SelectObject(m_dib);
-
-	dcMem.SelectStockObject(HOLLOW_BRUSH);
-	dcMem.Rectangle(rect);
-
-	// draw isocurves
-	if (m_pVolume[1] != NULL && m_pVolume[1]->GetHeight() > 0)
-	{
-		VOXEL_REAL c = (VOXEL_REAL) 0.425;
-		while (c < 1.0)
-		{
-			VOXEL_REAL max_value = (VOXEL_REAL) m_arrLUT[1].GetSize();
-			VOXEL_REAL pix_value1 = (VOXEL_REAL)
-				(max_value * m_window[1] * (c - m_level[1]) + max_value / 2.0);
-
-			// scale to 0..255
-			pix_value1 = (VOXEL_REAL) __min(pix_value1, max_value - 1.0);
-			pix_value1 = (VOXEL_REAL) __max(pix_value1, 0.0);
-
-			//  colorIndex = (int) pix_value1 // * (VOXEL_REAL) (max_value - 1.0));
-			int colorIndex = Round<int>(__min(pix_value1, max_value - 1.0));
-
-			CPen pen(PS_SOLID, 1, m_arrLUT[1][colorIndex]);
-			dcMem.SelectObject(&pen);
-			DrawIsocurves(m_pVolume[1], c, &dcMem);
-
-			c += (VOXEL_REAL) 0.05;
-		}
-	}
-
-	// draw contours
-	DrawContours(&dcMem);
-
-	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &dcMem, 0, 0, SRCCOPY);
-
-	// Do not call CWnd::OnPaint() for painting messages
-}
 
 void CPlanarView::DrawImages(CDC *pDC)
 {
@@ -160,12 +106,14 @@ void CPlanarView::DrawImages(CDC *pDC)
 			ASSERT(rect.Width() % 4 == 0);
 		}
 
-		CMatrixD<4> mBasis = m_pVolume[0]->GetBasis();
+		// InitZoomCenter();
+
+/*		CMatrixD<4> mBasis = m_pVolume[0]->GetBasis();
 		mBasis[0][0] = mBasis[1][1] = 0.5 * (REAL) m_pVolume[0]->GetHeight() / (REAL) rect.Height();
 		mBasis[3][0] += 0.25 * (REAL) m_pVolume[0]->GetHeight();
 		mBasis[3][1] += 0.25 * (REAL) m_pVolume[0]->GetHeight();
 		m_volumeResamp[0].SetBasis(mBasis);
-
+*/
 		m_volumeResamp[0].ClearVoxels();
 		Resample(m_pVolume[0], &m_volumeResamp[0], TRUE);
 
@@ -255,50 +203,6 @@ void CPlanarView::DrawImages(CDC *pDC)
 	// PLDrawBitmap(*pDC, &m_dib, NULL, NULL, SRCCOPY);
 }
 
-
-
-void CPlanarView::OnMButtonDown(UINT nFlags, CPoint point) 
-{
-	m_bWindowLeveling = TRUE;
-	m_ptWinLevStart = point;
-	m_windowStart = m_window[0];
-	m_levelStart = m_level[0];
-	
-	SetCapture();
-
-	CWnd::OnMButtonDown(nFlags, point);
-}
-
-void CPlanarView::OnMButtonUp(UINT nFlags, CPoint point) 
-{
-	m_bWindowLeveling = FALSE;
-	::ReleaseCapture();
-
-	CWnd::OnMButtonUp(nFlags, point);
-}
-
-void CPlanarView::OnMouseMove(UINT nFlags, CPoint point) 
-{
-	if (m_bWindowLeveling)
-	{
-		CRect rectClient;
-		GetClientRect(&rectClient);
-
-		VOXEL_REAL voxelMax = m_pVolume[0]->GetMax();
-
-		CPoint ptDelta = point - m_ptWinLevStart;
-
-		m_window[0] = m_windowStart - voxelMax * (VOXEL_REAL) ptDelta.y / (VOXEL_REAL) rectClient.Height();
-		m_window[0] = __max(m_window[0], 0.001);
-
-		m_level[0] = m_levelStart - voxelMax * (VOXEL_REAL) ptDelta.x / (VOXEL_REAL) rectClient.Width();
-
-		// Invalidate(FALSE);
-		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-	}
-	
-	CWnd::OnMouseMove(nFlags, point);
-}
 
 CPoint ToDC(const CVectorD<2>& vVert, const CMatrixD<4>& mBasis)
 {
@@ -602,3 +506,316 @@ void CPlanarView::DrawIsocurves(CVolume<VOXEL_REAL> *pVolume, REAL c, CDC *pDC)
 } // close k-loop
 
 
+
+// sets up initial zoom / pan state
+void CPlanarView::InitZoomCenter(void)
+{
+	// reset zoom
+	m_zoom = 1.0;
+
+	// calculate new center
+	m_vCenter[0] = (REAL) m_pVolume[0]->GetWidth();
+	m_vCenter[1] = (REAL) m_pVolume[0]->GetHeight();
+	m_vCenter[2] = 0.0;
+	m_vCenter *= 0.5;
+		
+	// set the zoom (to set the basis)
+	SetZoom(m_zoom);
+}
+
+void CPlanarView::SetCenter(const CVectorD<3>& vCenter)
+{
+	CMatrixD<4> mBasisInv = m_pVolume[0]->GetBasis();
+	mBasisInv.Invert();
+
+	// store center value
+	m_vCenter = FromHG<3, REAL>(mBasisInv * ToHG(vCenter));
+
+	// set the zoom (to set the basis)
+	SetZoom(m_zoom);
+}
+
+
+void CPlanarView::SetZoom(REAL zoom /* = 1.0 */)
+{
+	m_zoom = zoom;
+
+	// calculate effective zoom factor
+	CRect rectClient;
+	GetClientRect(&rectClient);
+
+	// define the landmarks on the image segment
+
+	// helper center shift
+	CVectorD<3> vCenterShift(
+		rectClient.Width() / 2, 
+		rectClient.Height() / 2, 
+		0.0);
+
+	// landmark matrix for segment landmarks
+	CMatrixD<4> mLMSeg;
+
+	// center + Z
+	mLMSeg[0] = mLMSeg[3] = ToHG(vCenterShift + CVectorD<3>(0.0, 0.0, 0.0));
+	mLMSeg[3][2] = 1.0;
+
+	// calc scale factor to fit image in segment
+	REAL scale = (REAL) rectClient.Height() / (REAL) m_pVolume[0]->GetHeight();
+	if (scale * (REAL) m_pVolume[0]->GetWidth() < (REAL) rectClient.Width())
+	{
+		scale = (REAL) rectClient.Width() / (REAL) m_pVolume[0]->GetWidth();
+	}
+
+	// scale is the pixel spacing for zoom factor == 1.0
+	scale *= zoom;
+
+	// UL
+	mLMSeg[1] = ToHG(vCenterShift + CVectorD<3>(
+		-scale * (REAL) m_pVolume[0]->GetWidth() / 2.0,
+		-scale * (REAL) m_pVolume[0]->GetHeight() / 2.0, 0.0));
+
+	// UR
+	mLMSeg[2] = ToHG(vCenterShift + CVectorD<3>(
+		scale * (REAL) m_pVolume[0]->GetWidth() / 2.0,
+		-scale * (REAL) m_pVolume[0]->GetHeight() / 2.0, 0.0));
+
+	// invert to solve for basis
+	mLMSeg.Invert();
+
+
+	// define the landmarks on the original image
+	CMatrixD<4> mLMImg;
+
+	// center + Z
+	mLMImg[0] = mLMImg[3] = ToHG(m_vCenter);
+	mLMImg[3][2] = 1.0;
+
+	// UL
+	mLMImg[1] = ToHG(m_vCenter 
+		+ CVectorD<3>(-m_pVolume[0]->GetWidth() / 2, 
+			-m_pVolume[0]->GetHeight() / 2, 0.0));
+
+	// UR
+	mLMImg[2] = ToHG(m_vCenter 
+		+ CVectorD<3>(m_pVolume[0]->GetWidth() / 2, 
+			-m_pVolume[0]->GetHeight() / 2, 0.0));
+		// ToHG(CVectorD<3>(m_pVolume[0]->GetWidth(), 0.0, 0.0));
+
+	// now calculate basis
+	CMatrixD<4> mBasis = m_pVolume[0]->GetBasis() * mLMImg * mLMSeg;
+
+	SetBasis(mBasis);
+}
+
+
+BEGIN_MESSAGE_MAP(CPlanarView, CWnd)
+	//{{AFX_MSG_MAP(CPlanarView)
+	ON_WM_PAINT()
+	ON_WM_MBUTTONDOWN()
+	ON_WM_MBUTTONUP()
+	ON_WM_MOUSEMOVE()
+	ON_WM_SIZE()
+	ON_WM_CREATE()
+	//}}AFX_MSG_MAP
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+END_MESSAGE_MAP()
+
+
+/////////////////////////////////////////////////////////////////////////////
+// CPlanarView message handlers
+
+
+
+void CPlanarView::OnPaint() 
+{
+	CPaintDC dc(this); // device context for painting
+
+	CRect rect;
+	GetClientRect(&rect);
+
+	DrawImages(&dc);
+
+	CDC dcMem;
+	dcMem.CreateCompatibleDC(&dc);
+
+	// selects image objects in to context
+	dcMem.SelectObject(m_dib);
+
+	dcMem.SelectStockObject(HOLLOW_BRUSH);
+	dcMem.Rectangle(rect);
+
+	// draw isocurves
+	if (m_pVolume[1] != NULL && m_pVolume[1]->GetHeight() > 0)
+	{
+		VOXEL_REAL c = (VOXEL_REAL) 0.425;
+		while (c < 1.0)
+		{
+			VOXEL_REAL max_value = (VOXEL_REAL) m_arrLUT[1].GetSize();
+			VOXEL_REAL pix_value1 = (VOXEL_REAL)
+				(max_value * m_window[1] * (c - m_level[1]) + max_value / 2.0);
+
+			// scale to 0..255
+			pix_value1 = (VOXEL_REAL) __min(pix_value1, max_value - 1.0);
+			pix_value1 = (VOXEL_REAL) __max(pix_value1, 0.0);
+
+			//  colorIndex = (int) pix_value1 // * (VOXEL_REAL) (max_value - 1.0));
+			int colorIndex = Round<int>(__min(pix_value1, max_value - 1.0));
+
+			CPen pen(PS_SOLID, 1, m_arrLUT[1][colorIndex]);
+			dcMem.SelectObject(&pen);
+			DrawIsocurves(m_pVolume[1], c, &dcMem);
+
+			c += (VOXEL_REAL) 0.05;
+		}
+	}
+
+	// draw contours
+	DrawContours(&dcMem);
+
+	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &dcMem, 0, 0, SRCCOPY);
+
+	// Do not call CWnd::OnPaint() for painting messages
+}
+
+
+void CPlanarView::OnSize(UINT nType, int cx, int cy) 
+{
+	CWnd::OnSize(nType, cx, cy);
+
+	if (NULL != m_pVolume[0])
+	{
+		// reset basis for new size
+		CMatrixD<4> mBasis = m_pVolume[0]->GetBasis();
+
+		// calculate center value
+		CVectorD<3> vCenter = FromHG<3, REAL>(mBasis * ToHG(m_vCenter));
+
+		// set the zoom (to set the basis)
+		SetCenter(vCenter);
+	}
+}
+
+void CPlanarView::OnMButtonDown(UINT nFlags, CPoint point) 
+{
+	m_bWindowLeveling = true;
+	m_windowStart = m_window[0];
+	m_levelStart = m_level[0];
+	
+	m_ptOpStart = point;
+
+	SetCapture();
+
+	CWnd::OnMButtonDown(nFlags, point);
+}
+
+void CPlanarView::OnMButtonUp(UINT nFlags, CPoint point) 
+{
+	m_bWindowLeveling = false;
+	::ReleaseCapture();
+
+	CWnd::OnMButtonUp(nFlags, point);
+}
+
+void CPlanarView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	// form panning region
+	CRect rectClient;
+	GetClientRect(&rectClient);
+	rectClient.DeflateRect(rectClient.Width() / 3, rectClient.Height() / 3,
+		rectClient.Width() / 3, rectClient.Height() / 3);
+
+	// check for panning
+	if (rectClient.PtInRect(point))
+	{
+		m_bPanning = true;
+
+		m_mBasisStart = m_volumeResamp[0].GetBasis();
+		m_vPtStart = FromHG<3, REAL>(m_mBasisStart * ToHG(CVectorD<3>(point)));
+		m_vCenterStart = FromHG<3, REAL>(m_pVolume[0]->GetBasis() * ToHG(CVectorD<3>(m_vCenter)));
+	}
+	else
+	{
+		m_bZooming = true;
+		m_zoomStart = m_zoom;
+	}
+
+	m_ptOpStart = point;
+
+	SetCapture();
+
+	CWnd::OnLButtonDown(nFlags, point);
+}
+
+void CPlanarView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	m_bZooming = false;
+	m_bPanning = false;
+	::ReleaseCapture();
+
+	CWnd::OnLButtonUp(nFlags, point);
+}
+
+void CPlanarView::OnMouseMove(UINT nFlags, CPoint point) 
+{
+	CRect rectClient;
+	GetClientRect(&rectClient);
+
+	CPoint ptDelta = point - m_ptOpStart;
+
+	if (m_bWindowLeveling)
+	{
+		VOXEL_REAL voxelMax = m_pVolume[0]->GetMax();
+
+		m_window[0] = m_windowStart - voxelMax * (VOXEL_REAL) ptDelta.y / (VOXEL_REAL) rectClient.Height();
+		m_window[0] = __max(m_window[0], 0.001);
+
+		m_level[0] = m_levelStart - voxelMax * (VOXEL_REAL) ptDelta.x / (VOXEL_REAL) rectClient.Width();
+
+		// update display
+		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+	else if (m_bZooming)
+	{
+		REAL newZoom = m_zoomStart * exp( - 0.75 * (REAL) ptDelta.y / (REAL) rectClient.Height());
+
+		SetZoom(newZoom);
+
+		// update display
+		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+	else if (m_bPanning)
+	{
+		CVectorD<3> vPtNext = FromHG<3, REAL>(m_mBasisStart * ToHG(CVectorD<3>(point)));
+
+		// convert m_vCenter to space
+		CVectorD<3> vNewCenter = m_vCenterStart;
+		vNewCenter[0] -= vPtNext[0] - m_vPtStart[0];
+		vNewCenter[1] -= vPtNext[1] - m_vPtStart[1];
+
+		SetCenter(vNewCenter);
+
+		// update display
+		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+
+	CWnd::OnMouseMove(nFlags, point);
+}
+
+
+
+// callback for volume change
+void CPlanarView::OnVolumeChanged(CObservableEvent * pEv, void * pParam)
+{
+	if (NULL != m_pVolume[0])
+	{
+		// reset basis for new size
+		CMatrixD<4> mBasis = m_pVolume[0]->GetBasis();
+
+		// calculate center value
+		CVectorD<3> vCenter = FromHG<3, REAL>(mBasis * ToHG(m_vCenter));
+
+		// set the zoom (to set the basis)
+		SetCenter(vCenter);
+	}
+}
