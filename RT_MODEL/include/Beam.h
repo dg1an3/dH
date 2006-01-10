@@ -98,7 +98,8 @@ public:
 
 	// beamlet accessors
 	int GetBeamletCount(int nLevel = 0);
-	CVolume<VOXEL_REAL> *GetBeamlet(int nShift, int nLevel = 0);
+	CVolume<VOXEL_REAL> *GetBeamlet(int nShift);
+	CVolume<VOXEL_REAL> *GetBeamletSub(int nShift, int nLevel = 0);
 	CVolume<VOXEL_REAL> *GetBeamletAdapt(int nShift, int nLevel = 0);
 
 	// intensity map accessors
@@ -173,7 +174,10 @@ private:
 	mutable bool m_bRecalcDose;
 
 	// the beamlets for the beam
-	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamlets[MAX_SCALES];
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamlets;
+
+	// filtered sub-beamlets
+	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamletsSub[MAX_SCALES];
 
 	// the adaptive beamlets for the beam
 	CTypedPtrArray<CPtrArray, CVolume<VOXEL_REAL>* > m_arrBeamletsAdapt[MAX_SCALES];

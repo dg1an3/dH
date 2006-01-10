@@ -165,7 +165,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 	BEGIN_LOG_SECTION(CPrescription::AddStructure);
 
 	// initialize the sum volume, so as to coincide with the beamlets
-	CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(m_pPlan->GetBeamCount()-1)->GetBeamlet(0, m_nLevel);
+	CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(m_pPlan->GetBeamCount()-1)->GetBeamletSub(0, m_nLevel);
 	m_sumVolume.ConformTo(pBeamlet);
 
 	// initialize the histogram region
@@ -198,9 +198,9 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 			(VOXEL_REAL) GetProfileReal("Prescription", "BeamletThreshold", VOXEL_REAL(0.005)));
 
 		pHisto->Add_dVolume(pBeamletAdapt, nBeam, m_nLevel, 
-			m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel));
+			m_pPlan->GetBeamAt(nBeam)->GetBeamletSub(nBeamlet, m_nLevel));
 #else
-		CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamlet(nBeamlet, m_nLevel);
+		CVolume<VOXEL_REAL> *pBeamlet = m_pPlan->GetBeamAt(nBeam)->GetBeamletSub(nBeamlet, m_nLevel);
 		// ASSERT(pBeamlet->GetBasis().IsApproxEqual(pResampRegion->GetBasis()));
 
 		// set default threshold based on config items

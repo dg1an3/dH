@@ -711,6 +711,8 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 
 		if (nLevel <= 1)
 		{
+			ASSERT(m_nLevel >= 0);
+
 			// calc coeffecients
 			CVectorN<> vCoeff;
 			vCoeff.SetDim((0 == nLevel) ? 9 : 5);
@@ -742,7 +744,9 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 			regionRotatePreFilter.ClearVoxels();
 			::Convolve(&regionRotatePre, &kernel, &regionRotatePreFilter, vCoeff.GetDim());
 
-/*			// decimate
+			// ::Resample(&regionRotatePreFilter, m_arrRegionRotate[nGroup], TRUE);
+
+			// decimate
 			int nFactor = (nLevel == 0) ? 1 : 1; 
 				// 2 : 1;
 			ASSERT(pIsoVolume->GetHeight() / nFactor + 1 == 
@@ -757,8 +761,7 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 						regionRotatePreFilter.GetVoxels()[0][nFactor*nY][nX];
 				}
 			}
-*/
-			::Resample(&regionRotatePreFilter, m_arrRegionRotate[nGroup], TRUE);
+
 
 			m_arrRegionRotate[nGroup]->VoxelsChanged();
 		}
@@ -1216,6 +1219,8 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 		// TODO: fix this for DVOLUME_ADAPT
 		if (m_nLevel <= 1)
 		{
+			ASSERT(m_nLevel >= 0);
+
 			//
 			// construct filter kernel
 			//
@@ -1257,14 +1262,14 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 			volumeRotatePreFilter.ClearVoxels();
 			::Convolve(&volumeRotatePre, &kernel, &volumeRotatePreFilter, vCoeff.GetDim());
 
-			::Resample(&volumeRotatePreFilter, &m_volRotate, TRUE);
+			// ::Resample(&volumeRotatePreFilter, &m_volRotate, TRUE);
 
-/*			//
+			//
 			// decimate adapt
 			//
 
 			int nFactor = (m_nLevel == 0) ? 1 : 1; 
-				// 2 : 1;
+				// 2 : 2;
 			ASSERT(volumeRotatePreFilter.GetHeight() / nFactor + 1 == 
 				m_volRotate.GetHeight());
 
@@ -1278,13 +1283,12 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 				}
 			}
 
-			m_volRotate.VoxelsChanged(); */
+			m_volRotate.VoxelsChanged();
 		}
 		else
 		{
 			Resample(GetBinScaledVolume(), &m_volRotate, TRUE);
 		}
-		// Resample(GetBinScaledVolume(), &m_volRotate, TRUE);
 #else
 
 		Resample(GetBinScaledVolume(), &m_volRotate, TRUE);

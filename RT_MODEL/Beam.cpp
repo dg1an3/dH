@@ -71,12 +71,13 @@ CBeam::CBeam()
 // 
 // supports serialization of beam and subordinate objects
 //////////////////////////////////////////////////////////////////////
-#define BEAM_SCHEMA 5
+#define BEAM_SCHEMA 6
 	// Schema 1: geometry description, blocks
 	// Schema 2: + dose matrix
 	// Schema 3: + call to CModelObject base class serialization
 	// Schema 4: + weight
 	// Schema 5: + beamlets
+	// Schema 6: + subbeamlets & beamlets
 
 IMPLEMENT_SERIAL(CBeam, CModelObject, VERSIONABLE_SCHEMA | BEAM_SCHEMA)
 
@@ -93,12 +94,21 @@ CBeam::~CBeam()
 		delete m_arrBlocks[nAt];
 	}
 
-	int nLevels = MAX_SCALES;
-	for (int nAtLevel = 0; nAtLevel < nLevels; nAtLevel++)
+	for (nAt = 0; nAt < m_arrBeamlets.GetSize(); nAt++)
 	{
-		for (nAt = 0; nAt < m_arrBeamlets[nAtLevel].GetSize(); nAt++)
+		if (m_arrBeamletsSub[0][nAt] != m_arrBeamlets[nAt])
 		{
-			delete m_arrBeamlets[nAtLevel][nAt];
+			delete m_arrBeamletsSub[0][nAt];
+		}
+		delete m_arrBeamlets[nAt];
+	}
+
+	int nLevels = MAX_SCALES;
+	for (int nAtLevel = 1; nAtLevel < nLevels; nAtLevel++)
+	{
+		for (nAt = 0; nAt < m_arrBeamletsSub[nAtLevel].GetSize(); nAt++)
+		{
+			delete m_arrBeamletsSub[nAtLevel][nAt];
 			if (m_arrBeamletsAdapt[nAtLevel].GetSize() > 0)
 			{
 				delete m_arrBeamletsAdapt[nAtLevel][nAt];
@@ -447,7 +457,13 @@ void CBeam::SetWeight(double weight)
 ///////////////////////////////////////////////////////////////////////////////
 int CBeam::GetBeamletCount(int nLevel)
 {
-	return m_arrBeamlets[nLevel].GetSize();
+	// ASSERT(m_arrBeamlets.GetSize() == m_arrBeamletsSub[0].GetSize());
+	if (nLevel == 0)
+	{
+		return m_arrBeamlets.GetSize();
+	}
+
+	return m_arrBeamletsSub[nLevel].GetSize();
 
 }	// CBeam::GetBeamletCount
 
@@ -456,13 +472,28 @@ int CBeam::GetBeamletCount(int nLevel)
 // 
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
-CVolume<VOXEL_REAL> * CBeam::GetBeamlet(int nShift, int nLevel)
+CVolume<VOXEL_REAL> * CBeam::GetBeamlet(int nShift)
+{
+	int nBeamletAt = nShift + GetBeamletCount(0) / 2;
+	return m_arrBeamlets[nBeamletAt];
+
+}	// CBeam::GetBeamlet
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// CBeam::GetBeamletSub
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+CVolume<VOXEL_REAL> * CBeam::GetBeamletSub(int nShift, int nLevel)
 {
 	int nBeamletAt = nShift + GetBeamletCount(nLevel) / 2;
 
-	return m_arrBeamlets[nLevel][nBeamletAt];
+	return m_arrBeamletsSub[nLevel][nBeamletAt];
 
-}	// CBeam::GetBeamlet
+}	// CBeam::GetBeamletSub
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -495,8 +526,8 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 
 			for (int nAtCol = 0; nAtCol < vCoeff.GetDim(); nAtCol++)
 			{
-				kernel.GetVoxels()[0][0][nAtCol] = 
-					vCoeff[nAtCol] / norm;
+				kernel.GetVoxels()[0][0][nAtCol] = (VOXEL_REAL)
+					vCoeff[nAtCol] / (VOXEL_REAL) norm;
 			}
 
 			REAL sum = 0.0;
@@ -506,7 +537,7 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 			for (int nAtBeamlet = 0; nAtBeamlet < GetBeamletCount(nAtLevel); nAtBeamlet++)
 			{
 				// get orig beamlet
-				CVolume<VOXEL_REAL> *pBeamlet = m_arrBeamlets[nAtLevel][nAtBeamlet];
+				CVolume<VOXEL_REAL> *pBeamlet = m_arrBeamletsSub[nAtLevel][nAtBeamlet];
 
 				// new adapted beamlet
 				CVolume<VOXEL_REAL> *pBeamletAdapt = new CVolume<VOXEL_REAL>(*pBeamlet);
@@ -520,8 +551,8 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 					::Convolve(pBeamlet, &kernel, &beamletAdaptPre, vCoeff.GetDim());
 
 					// decimate
-					int nFactor = (nAtLevel == 0) ? // 1 : 1; 
-						2 : 2;
+					int nFactor = (nAtLevel == 0) ? 1 : 1; 
+						// 2 : 2;
 					pBeamletAdapt->SetDimensions(
 						pBeamletAdapt->GetWidth(),
 						pBeamletAdapt->GetHeight() / nFactor + 1,
@@ -545,8 +576,18 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 					// TODO: fix basis calc
 					pBeamletAdapt->SetBasis(mBasis);
 
-					::Resample(&beamletAdaptPre, pBeamletAdapt, TRUE);
+					// ::Resample(&beamletAdaptPre, pBeamletAdapt, TRUE);
 
+					// decimate
+					pBeamletAdapt->ClearVoxels();
+					for (int nY = 0; nFactor*nY < beamletAdaptPre.GetHeight(); nY++)
+					{
+						for (int nX = 0; nX < pBeamletAdapt->GetWidth(); nX++)
+						{
+							pBeamletAdapt->GetVoxels()[0][nY][nX] = 
+								beamletAdaptPre.GetVoxels()[0][nFactor*nY][nX];
+						}
+					}
 					pBeamletAdapt->VoxelsChanged();
 				}
 
@@ -585,7 +626,7 @@ const CVectorN<>& CBeam::GetIntensityMap() const
 ///////////////////////////////////////////////////////////////////////////////
 void CBeam::SetIntensityMap(const CVectorN<>& vWeights)
 {
-	ASSERT(m_arrBeamlets[0].GetSize() == vWeights.GetDim());
+	ASSERT(m_arrBeamlets.GetSize() == vWeights.GetDim());
 
 	m_vBeamletWeights.SetDim(vWeights.GetDim());
 	m_vBeamletWeights = vWeights;
@@ -633,17 +674,17 @@ void CBeam::InvFiltIntensityMap(int nLevel, const CVectorN<>& vWeights,
 CVolume<VOXEL_REAL> *CBeam::GetDoseMatrix()
 {
 	if (m_bRecalcDose 
-		 && m_vBeamletWeights.GetDim() == m_arrBeamlets[0].GetSize())
+		 && m_vBeamletWeights.GetDim() == m_arrBeamlets.GetSize())
 	{ 
 		// set dose matrix size
-		m_dose.ConformTo(m_arrBeamlets[0][0]);
+		m_dose.ConformTo(m_arrBeamlets[0]);
 
 		// clear voxels for accumulation
 		m_dose.ClearVoxels();
 
-		for (int nAt = 0; nAt < m_arrBeamlets[0].GetSize(); nAt++)
+		for (int nAt = 0; nAt < m_arrBeamlets.GetSize(); nAt++)
 		{
-			CVolume<VOXEL_REAL> *pBeamlet = m_arrBeamlets[0][nAt];
+			CVolume<VOXEL_REAL> *pBeamlet = m_arrBeamlets[nAt];
 			m_dose.Accumulate(pBeamlet, m_vBeamletWeights[nAt]);
 		}
 
@@ -744,6 +785,7 @@ void CBeam::Serialize(CArchive &ar)
 	}
 
 	// serialize the beamlets
+	int nBeamlets0 = 0;
 	if (nSchema >= 5)
 	{
 		int nLevels = MAX_SCALES;
@@ -752,27 +794,52 @@ void CBeam::Serialize(CArchive &ar)
 
 		for (int nAtLevel = 0; nAtLevel < nLevels; nAtLevel++)
 		{
-			int nBeamlets = m_arrBeamlets[nAtLevel].GetSize();
+			int nBeamlets = m_arrBeamletsSub[nAtLevel].GetSize();
 			SERIALIZE_VALUE(ar, nBeamlets);
+			if (nAtLevel == 0) nBeamlets0 = nBeamlets;
 
 			// TODO: delete old beamlets
 			if (ar.IsLoading())
 			{
-				m_arrBeamlets[nAtLevel].RemoveAll();
+				m_arrBeamletsSub[nAtLevel].RemoveAll();
 			}
 
 			for (int nAtBeamlet = 0; nAtBeamlet < nBeamlets; nAtBeamlet++)
 			{
 				if (ar.IsLoading())
 				{
-					m_arrBeamlets[nAtLevel].Add(new CVolume<VOXEL_REAL>());
+					m_arrBeamletsSub[nAtLevel].Add(new CVolume<VOXEL_REAL>());
 				}
-				m_arrBeamlets[nAtLevel][nAtBeamlet]->Serialize(ar);
+				m_arrBeamletsSub[nAtLevel][nAtBeamlet]->Serialize(ar);
 			}
 		}
 		
 		// serialize the weights as well
 		SERIALIZE_VALUE(ar, m_vBeamletWeights);
+	}
+
+	// serialize the beamlets + subbeamlets
+	if (nSchema >= 6)
+	{
+		for (int nAtBeamlet = 0; nAtBeamlet < nBeamlets0; nAtBeamlet++)
+		{
+			if (ar.IsLoading())
+			{
+				m_arrBeamlets.Add(new CVolume<VOXEL_REAL>());
+			}
+			m_arrBeamlets[nAtBeamlet]->Serialize(ar);
+		}
+	}
+	else
+	{
+		m_arrBeamlets.SetSize(nBeamlets0);
+
+		// no stored original beamlets, so use level 0 instead
+		for (int nAtBeamlet = 0; nAtBeamlet < nBeamlets0; nAtBeamlet++)
+		{
+			// TODO: fix delete problem caused by this
+			m_arrBeamlets[nAtBeamlet] = m_arrBeamletsSub[0][nAtBeamlet];
+		}
 	}
 
 }	// CBeam::Serialize

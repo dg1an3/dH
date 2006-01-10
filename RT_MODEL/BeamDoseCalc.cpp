@@ -50,7 +50,7 @@ CBeamDoseCalc::CBeamDoseCalc(CBeam *pBeam, CEnergyDepKernel *pKernel)
 		m_pKernel(pKernel),
 		m_pMassDensityPyr(NULL),
 		m_pTerma(new CVolume<VOXEL_REAL>()),
-		m_nBeamletCount(15),
+		m_nBeamletCount(19), // (15),
 		m_raysPerVoxel(12),
 		m_pEnergy(new CVolume<VOXEL_REAL>())
 {
@@ -90,15 +90,23 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 #define DUMB_FILTER_DENSITY
 #ifdef DUMB_FILTER_DENSITY
 
+	// check for valid density
+	VOXEL_REAL sum = pOrigDensity->GetSum();
+	ASSERT(sum > 1e-6);
+
+	// now filter density
+	m_densityFilt.ConformTo(pOrigDensity);
+	m_densityFilt.ClearVoxels();
+	::Convolve(pOrigDensity, &m_kernel, &m_densityFilt);
+	VOXEL_REAL filtered_max = m_densityFilt.GetMax();
+
 	// TODO: check that dose matrix is initialized
 	ASSERT(m_pBeam->m_dose.GetWidth() > 0);
 	m_densityRep.ConformTo(&m_pBeam->m_dose);
-
-	m_densityFilt.ConformTo(pOrigDensity);
-	::Convolve(pOrigDensity, &m_kernel, &m_densityFilt);
-
-	// TODO: check this
+	m_densityRep.ClearVoxels();
 	::Resample(&m_densityFilt, &m_densityRep, TRUE); 
+	VOXEL_REAL resamp_max = m_densityRep.GetMax();
+//	ASSERT(IsApproxEqual(resamp_max, filtered_max));
 
 	// TODO: now, replicate slices
 	for (int nZ = 1; nZ < m_densityRep.GetDepth(); nZ++)
@@ -107,8 +115,18 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 			&m_densityRep.GetVoxels()[0][0][0], 
 			m_densityRep.GetWidth() * m_densityRep.GetHeight() * sizeof(VOXEL_REAL));
 	}
+	m_densityRep.VoxelsChanged();
+	// ASSERT(sum > 1e-6);
+
+	sum = m_densityRep.GetSum();
+	ASSERT(sum > 1e-6);
+
+	m_densityRep.LogPlane(m_densityRep.GetDepth()/2, "m_densityRep", THIS_FILE);
+	m_densityRep.AssertValid();
 
 #else
+
+	ASSERT(FALSE);
 
 	m_pMassDensityPyr = new CPyramid(pOrigDensity);
 	int nLevel = m_pMassDensityPyr->SetLevelBasis(m_pBeam->m_dose.GetBasis());
@@ -130,7 +148,8 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 #endif
 
 	// determine beamlet spacing
-	REAL beamletSpacing = m_densityRep.GetPixelSpacing()[1]; 
+	// TODO: fix this
+	REAL beamletSpacing = 4.0;   /* m_densityRep.GetPixelSpacing()[1]; */
 
 	// iterate for level 0 beamlets
 	for (int nAt = -m_nBeamletCount; nAt <= m_nBeamletCount; nAt++)
@@ -144,8 +163,13 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 		// calculate terma for pencil beam
 		CalcTerma(vMin, vMax);
 
+		m_pTerma->LogPlane(m_pTerma->GetDepth()/2, "m_pTerma", THIS_FILE);
+		m_pTerma->AssertValid();
+
 		// convolve terma with energy deposition kernel to form dose
 		CalcSphereConvolve();
+		m_pEnergy->LogPlane(m_pEnergy->GetDepth()/2, "m_pEnergy", THIS_FILE);
+		m_pEnergy->AssertValid();
 
 		CVolume<VOXEL_REAL> *pEnergy2D = new CVolume<VOXEL_REAL>();
 		pEnergy2D->ConformTo(m_pEnergy);
@@ -159,8 +183,12 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 			&m_pEnergy->GetVoxels()[nCenterPlane][0][0],
 			m_pEnergy->GetWidth() * m_pEnergy->GetHeight() * sizeof(VOXEL_REAL));
 
+		pEnergy2D->VoxelsChanged();
+		TRACE("pEnergy2D->GetMax() == %f\n", pEnergy2D->GetMax());
+		TRACE("m_pEnergy->GetMax() == %f\n", m_pEnergy->GetMax());
+
 		// set pencil beam
-		m_pBeam->m_arrBeamlets[0].Add(pEnergy2D);
+		m_pBeam->m_arrBeamlets.Add(pEnergy2D);
 	}
 
 	// generate the kernel for convolution
@@ -171,15 +199,56 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 	// stores beamlet count for level N
 	int nBeamletCount = m_nBeamletCount;
 
+	// generate level 0 beamlets
+
+	// clear existing beamlets
+	for (int nAt = 0; nAt < m_pBeam->m_arrBeamletsSub[0].GetSize(); nAt++)
+	{
+		delete m_pBeam->m_arrBeamletsSub[0][nAt];
+	}
+	m_pBeam->m_arrBeamletsSub[0].RemoveAll();
+
+	CVolume<VOXEL_REAL> *pBeamlet = m_pBeam->GetBeamlet(0);
+	if (beamletSpacing > pBeamlet->GetPixelSpacing()[0] + DEFAULT_EPSILON)
+	{
+		// generate beamlets for base scale
+		for (int nAtShift = -nBeamletCount; nAtShift <= nBeamletCount; nAtShift++)
+		{
+			CVolume<VOXEL_REAL> *pBeamlet = m_pBeam->GetBeamlet(nAtShift);
+
+			// convolve with gaussian
+			CVolume<VOXEL_REAL> beamletConv;
+			beamletConv.ConformTo(pBeamlet);
+			Convolve(pBeamlet, &kernel, &beamletConv);
+
+			CVolume<VOXEL_REAL> *pBeamletConvDec = new CVolume<VOXEL_REAL>;
+			Decimate(&beamletConv, pBeamletConvDec);
+
+			m_pBeam->m_arrBeamletsSub[0].Add(pBeamletConvDec);
+
+			LOG("Scale %i beamlet %i\n", 0, nAtShift);
+			LOG_OBJECT((*pBeamletConvDec));
+		}
+	}
+	else
+	{
+		// generate beamlets for base scale
+		for (int nAtShift = -nBeamletCount; nAtShift <= nBeamletCount; nAtShift++)
+		{
+			CVolume<VOXEL_REAL> *pBeamlet = m_pBeam->GetBeamlet(nAtShift);
+			m_pBeam->m_arrBeamletsSub[0].Add(pBeamlet);
+		}
+	}
+
 	// now generate level 1..n beamlets
 	for (int nAtScale = 1; nAtScale < MAX_SCALES; nAtScale++)
 	{
 		// clear existing beamlets
-		for (int nAt = 0; nAt < m_pBeam->m_arrBeamlets[nAtScale].GetSize(); nAt++)
+		for (int nAt = 0; nAt < m_pBeam->m_arrBeamletsSub[nAtScale].GetSize(); nAt++)
 		{
-			delete m_pBeam->m_arrBeamlets[nAtScale][nAt];
+			delete m_pBeam->m_arrBeamletsSub[nAtScale][nAt];
 		}
-		m_pBeam->m_arrBeamlets[nAtScale].RemoveAll();
+		m_pBeam->m_arrBeamletsSub[nAtScale].RemoveAll();
 
 		// each level halves the number of beamlets
 		nBeamletCount /= 2;
@@ -188,14 +257,14 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 		for (int nAtShift = -nBeamletCount; nAtShift <= nBeamletCount; nAtShift++)
 		{
 			CVolume<VOXEL_REAL> beamlet;
-			beamlet.ConformTo(m_pBeam->GetBeamlet(0, nAtScale-1));
+			beamlet.ConformTo(m_pBeam->GetBeamletSub(0, nAtScale-1));
 			beamlet.ClearVoxels();
 
-			beamlet.Accumulate(m_pBeam->GetBeamlet(nAtShift * 2 - 1, nAtScale-1), 
+			beamlet.Accumulate(m_pBeam->GetBeamletSub(nAtShift * 2 - 1, nAtScale-1), 
 				2.0 * m_pBeam->m_vWeightFilter[0]);
-			beamlet.Accumulate(m_pBeam->GetBeamlet(nAtShift * 2 + 0, nAtScale-1), 
+			beamlet.Accumulate(m_pBeam->GetBeamletSub(nAtShift * 2 + 0, nAtScale-1), 
 				2.0 * m_pBeam->m_vWeightFilter[1]);
-			beamlet.Accumulate(m_pBeam->GetBeamlet(nAtShift * 2 + 1, nAtScale-1), 
+			beamlet.Accumulate(m_pBeam->GetBeamletSub(nAtShift * 2 + 1, nAtScale-1), 
 				2.0 * m_pBeam->m_vWeightFilter[2]);
 
 			// convolve with gaussian
@@ -206,7 +275,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 			CVolume<VOXEL_REAL> *pBeamletConvDec = new CVolume<VOXEL_REAL>;
 			Decimate(&beamletConv, pBeamletConvDec);
 
-			m_pBeam->m_arrBeamlets[nAtScale].Add(pBeamletConvDec);
+			m_pBeam->m_arrBeamletsSub[nAtScale].Add(pBeamletConvDec);
 
 			LOG("Scale %i beamlet %i\n", nAtScale, nAtShift);
 			LOG_OBJECT((*pBeamletConvDec));
@@ -465,8 +534,8 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 	TRACE("TERMA Integral = %lf\n", m_pTerma->GetSum());
 
 	// fluence surface integral should be equal to integral of TERMA
-	ASSERT(IsApproxEqual(fluenceSurfIntegral, (REAL) m_pTerma->GetSum(), 
-		fluenceSurfIntegral * (REAL) 1e-2));
+	ASSERT(IsApproxEqual(fluenceSurfIntegral, R(m_pTerma->GetSum()), 
+		fluenceSurfIntegral * R(1e-2) + R(1e-6)));
 
 #endif
 
@@ -539,17 +608,19 @@ void CBeamDoseCalc::CalcSphereConvolve()
 	REAL dmax = m_pEnergy->GetMax();
 
 	// now normalize to dmax
-
-	for (nZ = 0; nZ < m_densityRep.GetDepth(); nZ++)          
+	if (dmax > 0.0)
 	{
-		for (int nY = 0; nY < m_densityRep.GetHeight(); nY++)         
+		for (nZ = 0; nZ < m_densityRep.GetDepth(); nZ++)          
 		{
-			for (int nX = 0; nX < m_densityRep.GetWidth(); nX++)        
+			for (int nY = 0; nY < m_densityRep.GetHeight(); nY++)         
 			{
-				pppEnergy[nZ][nY][nX] /= (VOXEL_REAL) dmax;
+				for (int nX = 0; nX < m_densityRep.GetWidth(); nX++)        
+				{
+					pppEnergy[nZ][nY][nX] /= (VOXEL_REAL) dmax;
+				}
 			}
-		}
-	} 
+		} 
+	}
 
 }	// CBeamDoseCalc::CalcSphereConvolve
 
