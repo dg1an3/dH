@@ -296,7 +296,7 @@ void CPrescriptionToolbar::OnPrescriptionChange()
 			CKLDivTerm *pKLDT = new CKLDivTerm(pStruct, 2.5);
 
 			// NOTE: must AddStructureTerm before SetInterval, because it sets up binning parameters
-			m_pDoc->m_pPresc->AddStructureTerm(pKLDT);
+			m_pDoc->AddStructTerm(pKLDT);
 		
 			REAL dose1 = (CStructure::eTARGET == pStruct->GetType()) ? 0.60 : 0.0;
 			REAL dose2 = (CStructure::eTARGET == pStruct->GetType()) ? 0.70 : 0.30;
