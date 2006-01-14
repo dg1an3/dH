@@ -346,7 +346,11 @@ DECLARE_VECTORN_GETLENGTH(double, 64f);
 template<class TYPE> __forceinline
 void CVectorN<TYPE>::Normalize()
 {
-	ScaleValues(&(*this)[0], (TYPE) 1.0 / GetLength(), GetDim());
+	TYPE len = GetLength();
+	if (len > 0.0)
+	{
+		ScaleValues(&(*this)[0], (TYPE) 1.0 / len, GetDim());
+	}
 
 }	// CVectorN<TYPE>::Normalize
 
@@ -437,6 +441,30 @@ void CVectorN<TYPE>::SetElements(int nDim, TYPE *pElements,
 
 }	// CVectorN<TYPE>::SetElements
 
+
+//////////////////////////////////////////////////////////////////
+// CVectorN<TYPE>::CopyElements
+//
+// copy elements from v, starting at start, for length elements, 
+//		and copy them to the destination position
+//////////////////////////////////////////////////////////////////
+template<class TYPE>
+int CVectorN<TYPE>::CopyElements(const CVectorN<TYPE>& v, 
+		int nStart, int nLength, int nDest)
+{
+	int nLastSrcPos = __min(nStart + nLength, v.GetDim());
+	int nLastDstPos = __min(nDest + nLength, GetDim());
+	nLength = __min(nLength, nLastSrcPos - nStart);
+	nLength = __min(nLength, nLastDstPos - nDest);
+	if (nLength > 0
+		&& &(*this)[nDest] != &v[nStart])
+	{
+		memcpy(&(*this)[nDest], &v[nStart], nLength * sizeof(TYPE));
+	}
+
+	return nLength;
+
+}	// CVectorN<TYPE>::CopyElements
 
 
 //////////////////////////////////////////////////////////////////////
@@ -612,7 +640,6 @@ inline void CalcBinomialCoeff(CVectorN<TYPE>& vCoeff)
 	}
 
 }	// CalcBinomialCoeff
-
 
 
 //////////////////////////////////////////////////////////////////////

@@ -367,7 +367,8 @@ TYPE CVectorD<DIM, TYPE>::GetLength() const
 		return length;									\
 	}
 
-DECLARE_VECTORD_GETLENGTH(float, 32f, 3);
+// DGL: this appears to be broken in IPP
+// DECLARE_VECTORD_GETLENGTH(float, 32f, 3);
 DECLARE_VECTORD_GETLENGTH(float, 32f, 4);
 DECLARE_VECTORD_GETLENGTH(float, 32f, 5);
 DECLARE_VECTORD_GETLENGTH(float, 32f, 6);
@@ -385,7 +386,11 @@ DECLARE_VECTORD_GETLENGTH(double, 64f, 6);
 template<int DIM, class TYPE>
 void CVectorD<DIM, TYPE>::Normalize()
 {
-	ScaleValues(&(*this)[0], (TYPE) 1.0 / GetLength(), GetDim());
+ 	TYPE len = GetLength();
+	if (len > 0.0)
+ 	{
+ 		ScaleValues(&(*this)[0], (TYPE) 1.0 / len, GetDim());
+ 	}
 
 }	// CVectorD<DIM, TYPE>::Normalize
 
