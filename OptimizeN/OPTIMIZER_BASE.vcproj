@@ -81,7 +81,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="include,..\MTL,..\XMLLogging"
-				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;REAL_FLOAT;USE_XMLLOGGING;XMLLOGGING_ON;USE_IPP"
+				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;XMLLOGGING_ON;USE_IPP"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="3"
@@ -266,6 +266,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\DFPOptimizer.cpp">
+			</File>
+			<File
 				RelativePath="GradDescOptimizer.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
@@ -448,6 +451,9 @@
 			</File>
 			<File
 				RelativePath="include\CubicInterpOptimizer.h">
+			</File>
+			<File
+				RelativePath=".\DFPOptimizer.h">
 			</File>
 			<File
 				RelativePath="include\GradDescOptimizer.h">
