@@ -8,8 +8,9 @@
 #include <valarray>
 using namespace std;
 
+#define INLINE __forceinline
 
-template<class MATRIX_TYPE, class VECTOR_TYPE> __forceinline
+template<class MATRIX_TYPE, class VECTOR_TYPE> INLINE
 void MultMatrixVector(VECTOR_TYPE& vProd, const MATRIX_TYPE& mLeft, 
 					  const VECTOR_TYPE& vRight)
 {
@@ -28,6 +29,89 @@ void MultMatrixVector(VECTOR_TYPE& vProd, const MATRIX_TYPE& mLeft,
 		}
 	}
 }
+
+
+template<class TYPE> INLINE
+void MultMatrixVectorN(TYPE *vProd, 
+				const TYPE* mLeft, int nRows, int nCols,
+				const TYPE *vRight)
+{
+	// step through the rows of the matrix
+	for (int nRow = 0; nRow < nRows; nRow++)
+	{
+		ASSERT(vProd[nRow] == 0.0);
+
+		// step through the columns of the matrix
+		for (int nCol = 0; nCol < nCols; nCol++)
+		{
+			vProd[nRow] += mLeft[nCol * nRows + nRow] * vRight[nCol];
+		}
+	}
+}
+
+
+#ifdef USE_IPP
+
+#define DECLARE_MULTMATRIXVECTORN(TYPE, TYPE_IPP) \
+template<> INLINE											\
+void MultMatrixVectorN(TYPE *vProd,							\
+				const TYPE* mLeft, int nRows, int nCols,	\
+				const TYPE *vRight)							\
+{															\
+	IppStatus stat = ippmMul_mv_##TYPE_IPP(					\
+			mLeft,											\
+				/* src1Stride1 */ nRows * sizeof(TYPE),		\
+				nCols, nRows,								\
+			vRight,											\
+				nRows,										\
+			vProd);											\
+}
+
+DECLARE_MULTMATRIXVECTORN(float, 32f);
+DECLARE_MULTMATRIXVECTORN(double, 64f);
+
+#endif
+
+
+template<class TYPE> INLINE
+void OuterProdN(TYPE *mProd, 
+				const TYPE* vLeft, int nLeftDim,
+				const TYPE *vRight, int nRightDim)
+{
+	// compute the matrix product
+	for (int nRow = 0; nRow < nLeftDim; nRow++)
+	{
+		for (int nCol = 0; nCol < nRightDim; nCol++)
+		{
+			mProd[nCol * nLeftDim + nRow] = vLeft[nRow] * vRight[nCol];
+		}
+	}
+}
+
+
+#ifdef USE_IPP
+
+#define DECLARE_OUTERPRODN(TYPE, TYPE_IPP) \
+template<> INLINE											\
+void OuterProdN(TYPE *mProd,								\
+				const TYPE* vLeft, int nLeftDim,			\
+				const TYPE *vRight, int nRightDim)			\
+{															\
+	IppStatus stat = ippmMul_mm_##TYPE_IPP(					\
+		vLeft,												\
+			/* src1Stride1 */ 1 * sizeof(TYPE),				\
+			1, nLeftDim,									\
+		vRight,												\
+			/* src2Stride1 */ nRightDim * sizeof(TYPE),		\
+			nRightDim, 1,									\
+		mProd,												\
+			/* dstStride1 */ nRightDim * sizeof(TYPE));		\
+}
+
+DECLARE_OUTERPRODN(float, 32f);
+DECLARE_OUTERPRODN(double, 64f);
+
+#endif
 
 
 
@@ -114,6 +198,7 @@ void Orthogonalize(MATRIX_TYPE& mMat)
 	}
 
 }	// CMatrixBase<TYPE>::Orthogonalize
+
 
 //////////////////////////////////////////////////////////////////////
 // CMatrixBase<TYPE>::Invert
