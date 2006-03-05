@@ -564,17 +564,17 @@ BOOL CMatrixNxM<TYPE>::Pseudoinvert()
 // transposes the matrix
 //////////////////////////////////////////////////////////////////////
 #define DECLARE_MATRIXN_TRANSPOSE(TYPE, TYPE_IPP) \
-	template<> __forceinline									\
-	void CMatrixNxM<TYPE>::Transpose()							\
-	{															\
-		TYPE *pElements = NULL;									\
-		AllocValues(GetRows() * GetCols(), pElements);			\
-		ippmTranspose_m_##TYPE_IPP(&(*this)[0][0],				\
-			GetCols() * sizeof(TYPE),							\
-			GetCols(), GetRows(),								\
-			pElements, GetCols() * sizeof(TYPE));				\
-		SetElements(GetRows(), GetCols(), pElements, TRUE);		\
-	}	// CMatrixNxM<TYPE>::Transpose
+template<> __forceinline									\
+void CMatrixNxM<TYPE>::Transpose()							\
+{															\
+	TYPE *pElements = NULL;									\
+	AllocValues(GetRows() * GetCols(), pElements);			\
+	ippmTranspose_m_##TYPE_IPP(&(*this)[0][0],				\
+		GetCols() * sizeof(TYPE),							\
+		GetCols(), GetRows(),								\
+		pElements, GetCols() * sizeof(TYPE));				\
+	SetElements(GetRows(), GetCols(), pElements, TRUE);		\
+}	// CMatrixNxM<TYPE>::Transpose
 
 // declare specific class functions
 DECLARE_MATRIXN_TRANSPOSE(float, 32f);
@@ -841,6 +841,7 @@ CVectorN<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
 }	// operator*(const CMatrixNxM<TYPE>&, const CVectorN<TYPE>&)
 
 
+// TODO: move this to MultMatrixVector
 #ifdef USE_IPP
 #define DECLARE_MATRIXN_VECPRODUCT(TYPE, TYPE_IPP) \
 	template<> __forceinline	\
