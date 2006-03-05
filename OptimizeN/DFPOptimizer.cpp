@@ -1,5 +1,54 @@
 #include "stdafx.h"
+
+#include <limits>
+
+#include <VectorN.h>
+#include <MatrixNxM.h>
+
 #include <DFPOptimizer.h>
+
+
+template<class T>
+inline const T SQR(const T a) {return a*a;}
+
+
+
+
+bool TestDirTol(const CVectorN<>& vDir, const CVectorN<>& vP, const REAL tol)
+{
+	// form max of absolute value of ratio of direction to vP for all 
+	REAL test = 0.0;
+	for (int nI = 0; nI < vDir.GetDim(); nI++) 
+	{
+		REAL temp = fabs(vDir[nI]) / __max(fabs(vP[nI]), 1.0);
+		if (temp > test) 
+		{
+			test = temp;
+		}
+	}
+
+	// test if max is below tolerance
+	return (test < tol);
+}
+
+
+bool TestGradTol(const CVectorN<>& vG, const CVectorN<>& vP, const REAL fret, const REAL tol)
+{
+	REAL test = 0.0;
+	REAL den = __max(fret, 1.0);
+	for (int nI = 0; nI < vG.GetDim(); nI++) 
+	{
+		REAL temp = fabs(vG[nI]) * __max(fabs(vP[nI]), 1.0) / den;
+		if (temp > test) 
+		{
+			test = temp;
+		}
+	}
+
+	// test if max is below tolerance
+	return (test < tol);
+}
+
 
 CDFPOptimizer::CDFPOptimizer(CObjectiveFunction *pFunc)
 	: COptimizer(pFunc)
@@ -10,56 +59,11 @@ CDFPOptimizer::~CDFPOptimizer(void)
 {
 }
 
-
-#ifdef REWQRITE
-
-
-
-bool TestDirTol(const CVectorN<>& vDir, const CVectorN<>& vP, const REAL Tol)
-{
-	// form max of absolute value of ratio of direction to vP for all 
-	REAL test = 0.0;
-	for (int nI = 0; nI < vDir.GetDim(); nI++) 
-	{
-		REAL temp = fabs(vDir[nI]) / MAX(fabs(vP[nI]), 1.0);
-		if (temp > test) 
-		{
-			test = temp;
-		}
-	}
-
-	// test if max is below tolerance
-	return (test < Tol);
-}
+#define REWRITE_MTL
+#ifdef REWRITE_MTL
 
 
-// solves for vector y = Mx
-bool CholeskySolve(const CMatrixNxM<>& mA, const CVectorN<>& vY, CVectorN<>& vX)
-{
-	return true;
-}
-
-bool TestGradTol(const CVectorN<>& vDir, const CVectorN<>& vP, const REAL fret, const REAL tol)
-{
-	REAL test = 0.0;
-	REAL den = MAX(fret, 1.0);
-	for (nI = 0; nI < n; nI++) 
-	{
-		temp = fabs(vG[nI]) * MAX(fabs(vP[nI]), 1.0) / den;
-		if (temp > test) 
-		{
-			test = temp;
-		}
-	}
-
-	// test if max is below tolerance
-	return (test < Tol);
-}
-
-
-void dfpmin(CVectorN<>& vP, 
-			const REAL gtol, 
-			REAL (*pFunc)(const CVectorN<>&, CVectorN<> *))
+const CVectorN<>& CDFPOptimizer::Optimize(const CVectorN<>& vP)
 {
 	const REAL EPS = numeric_limits<REAL>::epsilon();
 	const REAL TOLX = 4*EPS;
@@ -68,51 +72,62 @@ void dfpmin(CVectorN<>& vP,
 
 	int nN = vP.GetDim();
 
-	CMatrixNxM<> mHess_inv; 		
-	mHess_inv.Reshape(nN, nN);					
-	mHess_inv.SetIdentity();				
+	CVectorN<>& vP_curr = m_vFinalParam;
+	vP_curr.SetDim(nN);
+	vP_curr = vP;
+
+	// shape hessian
+	m_mHess_inv.Reshape(nN, nN);					
+	m_mHess_inv.SetIdentity();				
+
+	m_vHDG_out_vHDG.Reshape(nN, nN);
+	m_vDG_out_vDG.Reshape(nN, nN);
+	m_vXi_out_vXi.Reshape(nN, nN);
+
+	// shape temp parameters
+	m_vG.SetDim(nN);
+	m_vXi.SetDim(nN);
+	m_vP_next.SetDim(nN);
+	m_vG_next.SetDim(nN);
+	m_vDeltaG.SetDim(nN);
+	m_vHDG.SetDim(nN);
 
 	// initialize convergence max
 	const REAL STPMX = 100.0;
-	REAL stpmax = STPMX * MAX(vP.GetLength(), REAL(nN));
+	REAL stpmax = STPMX * __max(vP_curr.GetLength(), REAL(nN));
 
 	// initial eval
-	CVectorN<> vG(nN);
-	REAL f = (*pFunc)(vP, &vG);
+	REAL f = (*m_pFunc)(vP_curr, &m_vG);
 
 	// initialize direction
-	CVectorN<> vXi = -vG;
+	m_vXi = m_vG;
+	m_vXi *= -1.0;
 
 	const int ITMAX = 200;
 	for (int nIter = 0; nIter < ITMAX; nIter++) 
 	{
-		//
 		// perform line search
-		//
-
-		CVectorN<> vP_next(nN);
-		REAL f_next = 0.0;
-		lnsrch(vP, fp, vG, vXi, vP_next, fret, stpmax, check, pFunc);
+		lnsrch(vP_curr, f, m_vG, m_vXi, m_vP_next, m_finalValue, stpmax, check);
 
 		// update P and direction
-		vXi = vP_next - vP;
-		vP = vP_next;						
-		f = f_next;
+		m_vXi = m_vP_next;
+		m_vXi -= vP_curr;
+		vP_curr = m_vP_next;						
+		f = m_finalValue;
 
 		// test for direction tolerance
-		if (TestDirTol(vXi, vP, TOLX))
+		if (TestDirTol(m_vXi, vP_curr, TOLX))
 		{
-			return;
+			return vP_curr;
 		}
 
 		// calc new gradient
-		CVectorN<> vG_next(nN);
-		(*pFunc)(vP, vG_next);
+		(*m_pFunc)(vP_curr, &m_vG_next);
 
 		// test for gradient tolerance
-		if (TestGradTol(vG_next, vP, fret, gtol))
+		if (TestGradTol(m_vG_next, vP_curr, m_finalValue, GetTolerance()))
 		{
-			return;
+			return vP_curr;
 		}
 
 		//
@@ -120,259 +135,57 @@ void dfpmin(CVectorN<>& vP,
 		//
 
 		// to compute gradient delta -- next update (delta) gradient
-		CVectorN<> vDeltaG = vG_next - vG;
-		vG = vG_next;
+		m_vDeltaG = m_vG_next;
+		m_vDeltaG -= m_vG;
+		m_vG = m_vG_next;
 
-		REAL vDG_dot_vXi = vDeltaG * vXi;
+		REAL vDG_dot_vXi = m_vDeltaG * m_vXi;
 
 		// is denominator sufficiently large (test for matrix conditioning?)
-		if (vDG_dot_vXi > sqrt((vDeltaG * vDeltaG) * (vXi * vXi) * EPS)
+		if (vDG_dot_vXi > sqrt((m_vDeltaG * m_vDeltaG) * (m_vXi * m_vXi) * EPS))
 		{
-			CVectorN<> vHDG = mHess_inv * vDG;				
-			REAL vDG_dot_vHDG = vDG * vHDG;	
+			m_vHDG.SetZero();
+			::MultMatrixVectorN(&m_vHDG[0], 
+				&m_mHess_inv[0][0], nN, nN,
+				&m_vDeltaG[0]);
 
-			vDG = vXi / vDG_dot_vXi				
-				-  vHDG / vDG_dot_vHDG;	
+			REAL vDG_dot_vHDG = m_vDeltaG * m_vHDG;	
+			::OuterProdN(&m_vHDG_out_vHDG[0][0], 
+				&m_vHDG[0], nN, &m_vHDG[0], nN);	
 
-			CMatrixNxM<> m_vDG_out_vDG;			
-			m_vDG_out_vDG.Outer(vDeltaG, vDeltaG);		
-			mHess_inv += vDG_dot_vHDG * m_vDG_out_vDG;	
-												
-			CMatrixNxM<> m_vXi_out_vXi;			
-			m_vXi_out_vXi.Outer(vXi, vXi);		
-			mHess_inv += m_vXi_out_vXi / vDG_dot_vXi;	
+			m_vDeltaG = m_vXi;
+			m_vDeltaG *= 1.0 / vDG_dot_vXi; 
+			m_vHDG *= 1.0 / vDG_dot_vHDG;
+			m_vDeltaG -=  m_vHDG;	
+
+			::OuterProdN(&m_vDG_out_vDG[0][0], 
+				&m_vDeltaG[0], nN, &m_vDeltaG[0], nN);		
+			m_vDG_out_vDG *= vDG_dot_vHDG;
+			m_mHess_inv += m_vDG_out_vDG;	
+			
+			::OuterProdN(&m_vXi_out_vXi[0][0], 
+				&m_vXi[0], nN, &m_vXi[0], nN);	
+			m_vXi_out_vXi *= 1.0 / vDG_dot_vXi;
+			m_mHess_inv += m_vXi_out_vXi;	
 															
-			CMatrixNxM<> m_vHDG_out_vHDG;		
-			m_vHDG_out_vHDG.Outer(vHDG, vHDG);	
-			mHess_inv -= m_vHDG_out_vHDG / vDG_dot_vHDG;
+			m_vHDG_out_vHDG *= 1.0 / vDG_dot_vHDG;
+			m_mHess_inv -= m_vHDG_out_vHDG;
 		}
 
 		// compute next estimate for X (direction)
-		vXi = mHess_inv * vG;					
-		vXi *= -1.0;							
+		m_vXi.SetZero();
+		::MultMatrixVectorN(&m_vXi[0], 
+			&m_mHess_inv[0][0], nN, nN, 
+			&m_vG[0]);
+		m_vXi *= -1.0;							
 	}
 
-	nrerror("too many iterations in dfpmin");
+	TRACE("too many iterations in dfpmin");
+
+	return vP_curr;
 }
 
-
-
-
-
-
-void bfgsmin(CVectorN<>& vP, 
-			const REAL gtol, 
-			REAL (*pFunc)(const CVectorN<>&, CVectorN<> *))
-{
-	const REAL EPS = numeric_limits<REAL>::epsilon();
-	const REAL TOLX = 4*EPS;
-
-	bool check;
-
-	int nN = vP.GetDim();
-
-	CMatrixNxM<> mHess; 
-	mHess.Reshape(nN, nN);					
-	mHess.SetIdentity();					
-
-	// initialize convergence max
-	const REAL STPMX = 100.0;
-	REAL stpmax = STPMX * MAX(vP.GetLength(), REAL(nN));
-
-	// initial eval
-	CVectorN<> vGrad(nN);
-	REAL f = (*pFunc)(vP, &vGrad);
-
-	// initialize direction
-	CVectorN<> vDir = -k * vGrad;
-
-	const int ITMAX = 200;
-	for (int nIter = 0; nIter < ITMAX; nIter++) 
-	{
-		// perform line search
-		CVectorN<> vP_next;
-		REAL f_next = 0.0;
-		lnsrch(vP, f, vGrad, vDir, vP_next, f_next, stpmax, check, pFunc);
-
-		// update gradient
-		CVectorN<> vGrad_next;
-		(*pFunc)(vP_next, &vGrad_next);
-
-		// test for gradient tolerance
-		if (TestGradTol(vG, vP, fret, gtol))
-		{
-			return;
-		}
-
-		// bump function value and parameters
-		f = f_next;
-		vP = vP_next;						
-
-		// calculate gamma = gradient delta
-		CVectorN<> vGamma = vGrad_next - vGrad;
-		vGrad = vGrad_next;
-
-		// compute H*vGamma
-		CVectorN<> vHG = mHess * vGamma;
-
-		// compute denominator
-		REAL vGamma_dot_vDir = vGamma * vDir;
-
-		CMatrixNxM<> m_vDir_out_vHG;
-		m_vDir_out_vHG.Outer(vDir, vHG);
-		m_vDir_out_vHG *= 1.0 / vGamma_dot_vDir;
-		mHess -= m_vDir_out_vHG;
-
-		// TODO: check this
-		m_vDir_out_vHG.Transpose();
-		mHess -= m_vDir_out_vHG;	
-
-		CMatrixNxM<> m_vDir_out_vDir;
-		m_vDir_out_vDir.Outer(vDir, vDir);
-		REAL Q = 1.0 + vGamma * vHG / vGamma_dot_vDir;
-		m_vDir_out_vDir *= Q / vGamma_dot_vDir;
-		mHess += m_vDir_out_vDir;
-
-		// solve for new vGrad
-		CholeskySolve(mHess, vP, vGrad);
-
-		// update direction
-		vDir = -k * mHess * vGrad;
-
-		// test for direction tolerance
-		if (TestDirTol(vDir, vP, TOLX))
-		{
-			return;
-		}
-	}
-
-	nrerror("too many iterations in dfpmin");
-}
-
-
-
-
-
-
-void lnsrch(const CVectorN<>& vP, 
-			const REAL f_prev, 
-			const CVectorN<>& vG, 
-			CVectorN<>& vXi,
-			CVectorN<>& vP_next, 
-			REAL &f_next, 
-			const REAL stpmax, 
-			bool &check, 
-			REAL (*pFunc)(const CVectorN<>&, CVectorN<> *))
-{
-
-	const REAL ALF = 1.0e-4;
-	const REAL TOLX = numeric_limits<REAL>::epsilon();
-
-	int nN = vP.size();
-
-	check = false;
-
-	REAL sum = vXi * vXi;
-	sum = sqrt(sum);
-	if (sum > stpmax)
-	{
-		vXi *= stpmax / sum;
-	}
-
-	REAL slope = vG * vXi;
-	if (slope >= 0.0) 
-	{
-		nrerror("Roundoff problem in lnsrch.");
-	}
-
-	REAL test = 0.0;
-	for (nI = 0; nI < nN; nI++) 
-	{
-		REAL temp = fabs(vXi[nI]) 
-			/ MAX(fabs(vP[nI]), 1.0);
-		if (temp > test) 
-		{
-			test = temp;
-		}
-	}
-
-	REAL alamin = TOLX / test;
-	REAL alam = 1.0;
-	REAL alam2 = 0.0;
-	REAL f2 = 0.0;
-
-	for (;;) 
-	{
-		vP_next = vP + alam * vXi;
-
-		f_next = (*pFunc)(vP_next, NULL);
-
-		// stores temporary ???
-		REAL tmplam = 0.0;
-
-		if (alam < alamin) 
-		{
-			vP_next = vP;
-
-			check = true;
-
-			return;
-		} 
-		else if (f_next <= f_prev + ALF*alam*slope)
-		{
-			return;
-		}
-		else 
-		{
-			if (alam == 1.0)
-			{
-				tmplam = -slope/(2.0*(f_next-f_prev-slope));
-			}
-			else 
-			{
-				REAL rhs1 = f_next - f_prev - alam * slope;
-				REAL rhs2 = f2 - f_prev - alam2 * slope;
-
-				REAL a = (rhs1 / (alam*alam) - rhs2 / (alam2*alam2))
-						/ (alam - alam2);
-
-				REAL b = (-alam2 * rhs1 / (alam*alam) + alam * rhs2 / (alam2*alam2))
-						/ (alam - alam2);
-
-				if (a == 0.0) 
-				{
-					tmplam = -slope / (2.0 * b);
-				}
-				else 
-				{
-					REAL disc = b * b - 3.0 * a * slope;
-					if (disc < 0.0) 
-					{
-						tmplam = 0.5 * alam;
-					}
-					else if (b <= 0.0) 
-					{
-						tmplam = (-b + sqrt(disc)) / (3.0 * a);
-					}
-					else 
-					{
-						tmplam = -slope / (b + sqrt(disc));
-					}
-				}
-				if (tmplam > 0.5 * alam)
-				{
-					tmplam = 0.5 * alam;
-				}
-			}
-		}
-		alam2 = alam;
-		f2 = f_next;
-		alam = MAX(tmplam, 0.1 * alam);
-	}
-}
-#endif
-
-#ifdef ORIGINAL
+#ifdef ORIGINAL_REWRITE
 
 void dfpmin(CVectorN<>& vP, const REAL gtol, int &iter, REAL &fret,
 				REAL func(const CVectorN<>& ), void dfunc(const CVectorN<>& , CVectorN<>& ))
@@ -540,43 +353,130 @@ void dfpmin(CVectorN<>& vP, const REAL gtol, int &iter, REAL &fret,
 
 	nrerror("too many iterations in dfpmin");
 }
+#endif 
+
+#else
+
+const CVectorN<>& CDFPOptimizer::Optimize(const CVectorN<>& vInit)
+{
+	m_vFinalParam.SetDim(vInit.GetDim());
+	m_vFinalParam = vInit;
+
+	const int ITMAX=200;
+	const REAL EPS=numeric_limits<REAL>::epsilon();
+	const REAL TOLX=4*EPS,STPMX=100.0;
+	bool check;
+	int i,its,j;
+	REAL den,fac,fad,fae,fp,stpmax,sum=0.0,sumdg,sumxi,temp,test;
+
+	int n=m_vFinalParam.GetDim();
+	CVectorN<> dg(n),g(n),hdg(n),pnew(n),xi(n);
+	CMatrixNxM<> hessin(n,n);
+	fp=(*m_pFunc)(m_vFinalParam,&g); 
+	for (i=0;i<n;i++) {
+		for (j=0;j<n;j++) hessin[i][j]=0.0;
+		hessin[i][i]=1.0;
+		xi[i] = -g[i];
+		sum += m_vFinalParam[i]*m_vFinalParam[i];
+	}
+	stpmax=STPMX*__max(sqrt(sum),REAL(n));
+	for (its=0;its<ITMAX;its++) {
+		m_nIteration=its;
+		lnsrch(m_vFinalParam,fp,g,xi,pnew,m_finalValue,stpmax,check);
+		fp=m_finalValue;
+		for (i=0;i<n;i++) {
+			xi[i]=pnew[i]-m_vFinalParam[i];
+			m_vFinalParam[i]=pnew[i];
+		}
+		test=0.0;
+		for (i=0;i<n;i++) {
+			temp=fabs(xi[i])/__max(fabs(m_vFinalParam[i]),1.0);
+			if (temp > test) test=temp;
+		}
+		if (test < TOLX)
+			return m_vFinalParam;
+		for (i=0;i<n;i++) dg[i]=g[i];
+		(*m_pFunc)(m_vFinalParam,&g); 
+		test=0.0;
+		den=__max(m_finalValue,1.0);
+		for (i=0;i<n;i++) {
+			temp=fabs(g[i])*__max(fabs(m_vFinalParam[i]),1.0)/den;
+			if (temp > test) test=temp;
+		}
+		if (test < GetTolerance())
+			return m_vFinalParam;
+		for (i=0;i<n;i++) dg[i]=g[i]-dg[i];
+		for (i=0;i<n;i++) {
+			hdg[i]=0.0;
+			for (j=0;j<n;j++) hdg[i] += hessin[i][j]*dg[j];
+		}
+		fac=fae=sumdg=sumxi=0.0;
+		for (i=0;i<n;i++) {
+			fac += dg[i]*xi[i];
+			fae += dg[i]*hdg[i];
+			sumdg += SQR(dg[i]);
+			sumxi += SQR(xi[i]);
+		}
+		if (fac > sqrt(EPS*sumdg*sumxi)) {
+			fac=1.0/fac;
+			fad=1.0/fae;
+			for (i=0;i<n;i++) dg[i]=fac*xi[i]-fad*hdg[i];
+			for (i=0;i<n;i++) {
+				for (j=i;j<n;j++) {
+					hessin[i][j] += fac*xi[i]*xi[j]
+						-fad*hdg[i]*hdg[j]+fae*dg[i]*dg[j];
+					hessin[j][i]=hessin[i][j];
+				}
+			}
+		}
+		for (i=0;i<n;i++) {
+			xi[i]=0.0;
+			for (j=0;j<n;j++) xi[i] -= hessin[i][j]*g[j];
+		}
+	}
+	ASSERT(FALSE);	
+	TRACE("too many iterations in dfpmin\n");
+
+	return m_vFinalParam;
+}
+
+#endif
+
+#ifdef REWRITE_MTL
 
 
-
-
-void NR::lnsrch(const CVectorN<>& xold, const REAL fold, const CVectorN<>& vG, CVectorN<>& vP,
-	CVectorN<>& x, REAL &f, const REAL stpmax, bool &check, REAL func(const CVectorN<>& ))
+void CDFPOptimizer::lnsrch(const CVectorN<>& xold, 
+						   const REAL fold, 
+						   const CVectorN<>& vG, 
+						   CVectorN<>& vP,
+						   CVectorN<>& x, 
+						   REAL &f, 
+						   const REAL stpmax, 
+						   bool &check)
 {
 	const REAL ALF=1.0e-4, TOLX=numeric_limits<REAL>::epsilon();
 	int i;
 	REAL a,alam,alam2=0.0,alamin,b,disc,f2=0.0;
 	REAL rhs1,rhs2,slope,sum,temp,test,tmplam;
 
-	int n=xold.size();
+	int n=xold.GetDim();
 	check=false;
-	sum=0.0;
-	for (i=0;i<n;i++) sum += vP[i]*vP[i];
-	sum=sqrt(sum);
+	sum = vP * vP;
+	sum = sqrt(sum);
 	if (sum > stpmax)
 	{
-		for (i=0;i<n;i++) 
-		{
-			vP[i] *= stpmax/sum;
-		}
+		vP *= stpmax/sum;
 	}
-	slope=0.0;
-	for (i=0;i<n;i++)
-	{
-		slope += vG[i]*vP[i];
-	}
+	slope = vG * vP;
 	if (slope >= 0.0) 
 	{
-		nrerror("Roundoff problem in lnsrch.");
+		// TRACE("Roundoff problem in lnsrch.");
 	}
+
 	test=0.0;
 	for (i=0;i<n;i++) 
 	{
-		temp=fabs(vP[i])/MAX(fabs(xold[i]),1.0);
+		temp=fabs(vP[i])/__max(fabs(xold[i]),1.0);
 		if (temp > test) 
 			test=temp;
 	}
@@ -584,14 +484,16 @@ void NR::lnsrch(const CVectorN<>& xold, const REAL fold, const CVectorN<>& vG, C
 	alam=1.0;
 	for (;;) 
 	{
-		for (i=0;i<n;i++) x[i]=xold[i]+alam*vP[i];
-		f=func(x);
+		x = vP;				// for (i=0;i<n;i++) x[i]=xold[i]+alam*vP[i];
+		x *= alam;
+		x += xold;
+
+		f=(*m_pFunc)(x); 
 		if (alam < alamin) 
 		{
-			for (i=0;i<n;i++) 
-			{
-				x[i]=xold[i];
-			}
+			x = xold;		//			for (i=0;i<n;i++) 
+							//					x[i]=xold[i];
+
 			check=true;
 			return;
 		} 
@@ -639,8 +541,207 @@ void NR::lnsrch(const CVectorN<>& xold, const REAL fold, const CVectorN<>& vG, C
 		}
 		alam2=alam;
 		f2 = f;
-		alam=MAX(tmplam,0.1*alam);
+		alam=__max(tmplam,0.1*alam);
 	}
 }
 
-#endif 
+
+#ifdef REFORMATTED
+
+void lnsrch(const CVectorN<>& vP, 
+			const REAL f_prev, 
+			const CVectorN<>& vG, 
+			CVectorN<>& vXi,
+			CVectorN<>& vP_next, 
+			REAL &f_next, 
+			const REAL stpmax, 
+			bool &check, 
+			REAL (*pFunc)(const CVectorN<>&, CVectorN<> *))
+{
+
+	const REAL ALF = 1.0e-4;
+	const REAL TOLX = numeric_limits<REAL>::epsilon();
+
+	int nN = vP.size();
+
+	check = false;
+
+	REAL sum = vXi * vXi;
+	sum = sqrt(sum);
+	if (sum > stpmax)
+	{
+		vXi *= stpmax / sum;
+	}
+
+	REAL slope = vG * vXi;
+	if (slope >= 0.0) 
+	{
+		nrerror("Roundoff problem in lnsrch.");
+	}
+
+	REAL test = 0.0;
+	for (nI = 0; nI < nN; nI++) 
+	{
+		REAL temp = fabs(vXi[nI]) 
+			/ MAX(fabs(vP[nI]), 1.0);
+		if (temp > test) 
+		{
+			test = temp;
+		}
+	}
+
+	REAL alamin = TOLX / test;
+	REAL alam = 1.0;
+	REAL alam2 = 0.0;
+	REAL f2 = 0.0;
+
+	for (;;) 
+	{
+		vP_next = vXi;
+		vP_next *= alam;
+		vP_next += vP;
+
+		f_next = (*pFunc)(vP_next, NULL);
+
+		// stores temporary ???
+		REAL tmplam = 0.0;
+
+		if (alam < alamin) 
+		{
+			vP_next = vP;
+
+			check = true;
+
+			return;
+		} 
+		else if (f_next <= f_prev + ALF*alam*slope)
+		{
+			return;
+		}
+		else 
+		{
+			if (alam == 1.0)
+			{
+				tmplam = -slope/(2.0*(f_next-f_prev-slope));
+			}
+			else 
+			{
+				REAL rhs1 = f_next - f_prev - alam * slope;
+				REAL rhs2 = f2 - f_prev - alam2 * slope;
+
+				REAL a = (rhs1 / (alam*alam) - rhs2 / (alam2*alam2))
+						/ (alam - alam2);
+
+				REAL b = (-alam2 * rhs1 / (alam*alam) + alam * rhs2 / (alam2*alam2))
+						/ (alam - alam2);
+
+				if (a == 0.0) 
+				{
+					tmplam = -slope / (2.0 * b);
+				}
+				else 
+				{
+					REAL disc = b * b - 3.0 * a * slope;
+					if (disc < 0.0) 
+					{
+						tmplam = 0.5 * alam;
+					}
+					else if (b <= 0.0) 
+					{
+						tmplam = (-b + sqrt(disc)) / (3.0 * a);
+					}
+					else 
+					{
+						tmplam = -slope / (b + sqrt(disc));
+					}
+				}
+				if (tmplam > 0.5 * alam)
+				{
+					tmplam = 0.5 * alam;
+				}
+			}
+		}
+		alam2 = alam;
+		f2 = f_next;
+		alam = MAX(tmplam, 0.1 * alam);
+	}
+}
+#endif
+
+#else
+
+void CDFPOptimizer::lnsrch(const CVectorN<>& xold, 
+			const REAL fold, 
+			const CVectorN<>& g, 
+			CVectorN<>& p,
+			CVectorN<>& x, 
+			REAL &f, 
+			const REAL stpmax, 
+			bool &check)
+{
+	const REAL ALF=1.0e-4, TOLX=numeric_limits<REAL>::epsilon();
+	int i;
+	REAL a,alam,alam2=0.0,alamin,b,disc,f2=0.0;
+	REAL rhs1,rhs2,slope,sum,temp,test,tmplam;
+
+	int n=xold.GetDim();
+	check=false;
+	sum=0.0;
+	for (i=0;i<n;i++) sum += p[i]*p[i];
+	sum=sqrt(sum);
+	if (sum > stpmax)
+		for (i=0;i<n;i++) p[i] *= stpmax/sum;
+	slope=0.0;
+	for (i=0;i<n;i++)
+		slope += g[i]*p[i];
+	if (slope >= 0.0) TRACE("Roundoff problem in lnsrch.");
+	test=0.0;
+	for (i=0;i<n;i++) {
+		temp=fabs(p[i])/__max(fabs(xold[i]),1.0);
+		if (temp > test) test=temp;
+	}
+	alamin=TOLX/test;
+	alam=1.0;
+	for (;;) {
+		for (i=0;i<n;i++) x[i]=xold[i]+alam*p[i];
+		f=(*m_pFunc)(x); 
+		if (alam < alamin) {
+			for (i=0;i<n;i++) x[i]=xold[i];
+			check=true;
+			return;
+		} else if (f <= fold+ALF*alam*slope) return;
+		else {
+			if (alam == 1.0)
+				tmplam = -slope/(2.0*(f-fold-slope));
+			else {
+				rhs1=f-fold-alam*slope;
+				rhs2=f2-fold-alam2*slope;
+				a=(rhs1/(alam*alam)-rhs2/(alam2*alam2))/(alam-alam2);
+				b=(-alam2*rhs1/(alam*alam)+alam*rhs2/(alam2*alam2))/(alam-alam2);
+				if (a == 0.0) tmplam = -slope/(2.0*b);
+				else {
+					disc=b*b-3.0*a*slope;
+					if (disc < 0.0) tmplam=0.5*alam;
+					else if (b <= 0.0) tmplam=(-b+sqrt(disc))/(3.0*a);
+					else tmplam=-slope/(b+sqrt(disc));
+				}
+				if (tmplam>0.5*alam)
+					tmplam=0.5*alam;
+			}
+		}
+		alam2=alam;
+		f2 = f;
+		alam=__max(tmplam,0.1*alam);
+	}
+}
+
+#endif
+
+
+
+
+
+
+
+
+
