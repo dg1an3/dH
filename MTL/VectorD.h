@@ -88,7 +88,7 @@ public:
 // default constructor
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>() 
+CVectorD<DIM, TYPE>::CVectorD() 
 {
 	// clear to all zeros
 	memset(&(*this)[0], 0, DIM * sizeof(TYPE));
@@ -123,7 +123,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x)
 // construct from two elements
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
+CVectorD<DIM, TYPE>::CVectorD(TYPE x, TYPE y) 
 {
 	// set the given elements
 	(*this)[0] = x;
@@ -148,7 +148,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y)
 // construct from three elements
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z) 
+CVectorD<DIM, TYPE>::CVectorD(TYPE x, TYPE y, TYPE z) 
 {
 	// set the given elements
 	(*this)[0] = x;
@@ -170,7 +170,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z)
 // construct from four elements
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w) 
+CVectorD<DIM, TYPE>::CVectorD(TYPE x, TYPE y, TYPE z, TYPE w) 
 { 
 	// set the given elements
 	(*this)[0] = x;
@@ -193,7 +193,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom) 
+CVectorD<DIM, TYPE>::CVectorD(const CVectorD<DIM, TYPE>& vFrom) 
 {
 	// assign to copy 
 	(*this) = vFrom;
@@ -208,7 +208,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CVectorD<DIM, TYPE>& vFrom)
 // construct from a windows CPoint
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
+CVectorD<DIM, TYPE>::CVectorD(const CPoint& pt)
 {
 	// set the given elements
 	(*this)[0] = R(pt.x);
@@ -230,7 +230,7 @@ CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
 // destructor
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
+CVectorD<DIM, TYPE>::~CVectorD()
 {
 }	// CVectorD<DIM, TYPE>::~CVectorD<DIM, TYPE>()
 

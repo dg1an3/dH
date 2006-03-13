@@ -92,7 +92,7 @@ public:
 // default constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CVectorN<TYPE>::CVectorN<TYPE>() 
+CVectorN<TYPE>::CVectorN() 
 	: m_nDim(0),
 		m_pElements(NULL),
 		m_bFreeElements(TRUE)
@@ -106,7 +106,7 @@ CVectorN<TYPE>::CVectorN<TYPE>()
 // construct an arbitrary dimensioned vector
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CVectorN<TYPE>::CVectorN<TYPE>(int nDim) 
+CVectorN<TYPE>::CVectorN(int nDim) 
 	: m_nDim(0),
 		m_pElements(NULL),
 		m_bFreeElements(TRUE)
@@ -123,7 +123,7 @@ CVectorN<TYPE>::CVectorN<TYPE>(int nDim)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CVectorN<TYPE>::CVectorN<TYPE>(const CVectorN<TYPE>& vFrom)
+CVectorN<TYPE>::CVectorN(const CVectorN<TYPE>& vFrom)
 	: m_nDim(0),
 		m_pElements(NULL),
 		m_bFreeElements(TRUE)
@@ -143,7 +143,7 @@ CVectorN<TYPE>::CVectorN<TYPE>(const CVectorN<TYPE>& vFrom)
 // destructor 
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CVectorN<TYPE>::~CVectorN<TYPE>()
+CVectorN<TYPE>::~CVectorN()
 {
 	if (m_bFreeElements 
 		&& m_pElements != NULL)

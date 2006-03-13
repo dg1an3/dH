@@ -109,7 +109,7 @@ protected:
 // default constructor -- initializes to 0x0 matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>()
+CMatrixNxM<TYPE>::CMatrixNxM()
 	: m_nColumns(0),
 		m_pColumns(NULL),
 		m_pElements(NULL),
@@ -124,7 +124,7 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>()
 // constructs a specific-dimensioned matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
+CMatrixNxM<TYPE>::CMatrixNxM(int nCols, int nRows)
 	: m_nColumns(0),
 		m_pColumns(NULL),
 		m_pElements(NULL),
@@ -142,7 +142,7 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixNxM<TYPE>& fromMatrix)
+CMatrixNxM<TYPE>::CMatrixNxM(const CMatrixNxM<TYPE>& fromMatrix)
 	: m_nColumns(0),
 		m_pColumns(NULL),
 		m_pElements(NULL),
@@ -163,7 +163,7 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixNxM<TYPE>& fromMatrix)
 // destructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE> __forceinline
-CMatrixNxM<TYPE>::~CMatrixNxM<TYPE>()
+CMatrixNxM<TYPE>::~CMatrixNxM()
 {
 	// frees any elements, if needed
 	SetElements(0, 0, NULL, TRUE);

@@ -87,7 +87,7 @@ public:
 // default constructor -- initializes to an identity matrix
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
+CMatrixD<DIM,TYPE>::CMatrixD()
 {
 	// populate as an identity matrix
 	SetIdentity();
@@ -101,7 +101,7 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>()
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
+CMatrixD<DIM,TYPE>::CMatrixD(const CMatrixD& fromMatrix)
 {
 	(*this) = fromMatrix;
 
@@ -114,7 +114,7 @@ CMatrixD<DIM,TYPE>::CMatrixD<DIM,TYPE>(const CMatrixD& fromMatrix)
 // destructor -- frees the row vectors
 //////////////////////////////////////////////////////////////////
 template<int DIM, class TYPE> __forceinline
-CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>()
+CMatrixD<DIM,TYPE>::~CMatrixD()
 {
 }	// CMatrixD<DIM,TYPE>::~CMatrixD<DIM,TYPE>
 

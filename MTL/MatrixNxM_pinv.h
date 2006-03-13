@@ -112,11 +112,13 @@ BOOL SVD(CMatrixNxM<>& mFrom, CVectorN<TYPE>& w, CMatrixNxM<TYPE>& v)
 	// Diagonalization of the bidiagonal form
 	for (int nK = mFrom.GetCols()-1; nK >= 0; nK--)
 	{
-		for (int nIter = 1; nIter < MAX_ITER; nIter++)
+		int nIter;
+		for (nIter = 1; nIter < MAX_ITER; nIter++)
 		{
 			BOOL bFlag = TRUE;
 			int nM;
-			for (int nL = nK; nL >= 0; nL--)
+			int nL;
+			for (nL = nK; nL >= 0; nL--)
 			{
 				nM = nL - 1;
 
@@ -207,7 +209,8 @@ BOOL SVD(CMatrixNxM<>& mFrom, CVectorN<TYPE>& w, CMatrixNxM<TYPE>& v)
 				g = g * c - x * s;
 				h = y * s;
 				y *= c;
-				for (int nJJ = 0; nJJ < mFrom.GetCols(); nJJ++)
+				int nJJ;
+				for (nJJ = 0; nJJ < mFrom.GetCols(); nJJ++)
 				{
 					x = v[nJ][nJJ];
 					z = v[nJ + 1][nJJ];
@@ -300,13 +303,13 @@ TYPE Householder(CMatrixNxM<TYPE>& m, CVectorN<TYPE>& w,
 						s += m[nI][nK] * m[nJ][nK];
 					}
 					TYPE f = s / h;
-					for (nK = nI; nK < m.GetRows(); nK++)
+					for (int nK = nI; nK < m.GetRows(); nK++)
 					{
 						m[nJ][nK] += f * m[nI][nK];
 					}
 				}	// for
 
-				for (nK = nI; nK < m.GetRows(); nK++)
+				for (int nK = nI; nK < m.GetRows(); nK++)
 				{
 					m[nI][nK] *= scale;
 				}
@@ -335,7 +338,7 @@ TYPE Householder(CMatrixNxM<TYPE>& m, CVectorN<TYPE>& w,
 				TYPE h = f * g - s;
 				m[nI + 1][nI] = f - g;
 
-				for (nK = nI + 1; nK < m.GetCols(); nK++)
+				for (int nK = nI + 1; nK < m.GetCols(); nK++)
 				{
 					rv1[nK] = m[nK][nI] / h;
 				}
@@ -347,13 +350,13 @@ TYPE Householder(CMatrixNxM<TYPE>& m, CVectorN<TYPE>& w,
 					{
 						s += m[nK][nJ] * m[nK][nI];
 					}
-					for (nK = nI + 1; nK < m.GetCols(); nK++)
+					for (int nK = nI + 1; nK < m.GetCols(); nK++)
 					{
 						m[nK][nJ] += s * rv1[nK];
 					}
 				}
 
-				for (nK = nI + 1; nK < m.GetCols(); nK++)
+				for (int nK = nI + 1; nK < m.GetCols(); nK++)
 				{
 					m[nK][nI] *= scale;
 				}
@@ -391,7 +394,7 @@ void AccumulateRH(const CMatrixNxM<TYPE>& m, CMatrixNxM<TYPE>& v,
 					/ rv1[nI + 1];
 			}
 
-			for (nJ = nI + 1; nJ < m.GetCols(); nJ++)
+			for (int nJ = nI + 1; nJ < m.GetCols(); nJ++)
 			{
 				TYPE s = 0.0;
 				for (int nK = nI + 1; nK < m.GetCols(); nK++)
@@ -399,7 +402,7 @@ void AccumulateRH(const CMatrixNxM<TYPE>& m, CMatrixNxM<TYPE>& v,
 					s += m[nK][nI] * v[nJ][nK];
 				}
 
-				for (nK = nI + 1; nK < m.GetCols(); nK++)
+				for (int nK = nI + 1; nK < m.GetCols(); nK++)
 				{
 					v[nJ][nK] += s * v[nI][nK];
 				}
@@ -442,21 +445,21 @@ void AccumulateLH(CMatrixNxM<TYPE>& m, CVectorN<TYPE>& w)
 				}
 
 				TYPE f = (s / m[nI][nI]) * g;
-				for (nK = nI; nK < m.GetRows(); nK++)
+				for (int nK = nI; nK < m.GetRows(); nK++)
 				{
 					m[nJ][nK] += f * m[nI][nK];
 				}
 
 			}	// for
 
-			for (nJ = nI; nJ < m.GetRows(); nJ++)
+			for (int nJ = nI; nJ < m.GetRows(); nJ++)
 			{
 				m[nI][nJ] *= g;
 			}
 		}
 		else
 		{
-			for (nJ = nI; nJ < m.GetRows(); nJ++)
+			for (int nJ = nI; nJ < m.GetRows(); nJ++)
 			{
 				m[nI][nJ] = 0.0;
 			}

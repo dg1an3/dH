@@ -21,6 +21,9 @@
 #define WINVER 0x0400		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
 #endif
 
+// use this to suppress warning for deprecated CRT calls (i.e. sscanf is replaced by sscanf_s)
+#define _CRT_SECURE_NO_DEPRECATE
+
 #include <afx.h>
 #ifdef _WINDOWS
 #include <afxwin.h>
@@ -30,6 +33,7 @@
 
 #include <XMLLogging.h>
 USES_FMT;
+
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

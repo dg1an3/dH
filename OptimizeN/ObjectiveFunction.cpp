@@ -97,7 +97,7 @@ void CObjectiveFunction::Gradient(const CVectorN<>& vIn, REAL epsilon,
 	const REAL fp = (*this)(vParam);
 
 	vGrad_out.SetDim(vParam.GetDim());
-	for (nAt = 0; nAt < vParam.GetDim(); nAt++)
+	for (int nAt = 0; nAt < vParam.GetDim(); nAt++)
 	{
 		vParam[nAt] += epsilon;
 
