@@ -338,9 +338,9 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 							  const CVectorD<2>& vMax_in)
 {
 	// consts for index positions
-	const X = 1;
-	const Y = 2;
-	const Z = 0;
+	const int X = 1;
+	const int Y = 2;
+	const int Z = 0;
 
 	// vPixSpacing is spacing factor for three coordinates
 	//		= conversion from voxel to physical coordinates
@@ -509,7 +509,7 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 				}
 
 				// find next intersections
-				for (nDim = 0; nDim <= 2; nDim++)
+				for (int nDim = 0; nDim <= 2; nDim++)
 				{
 					dist[nDim] = DistToIntersectPlane(vRay[nDim], vDir[nDim], nNdx[nDim]);
 				}
@@ -610,7 +610,7 @@ void CBeamDoseCalc::CalcSphereConvolve()
 	// now normalize to dmax
 	if (dmax > 0.0)
 	{
-		for (nZ = 0; nZ < m_densityRep.GetDepth(); nZ++)          
+		for (int nZ = 0; nZ < m_densityRep.GetDepth(); nZ++)          
 		{
 			for (int nY = 0; nY < m_densityRep.GetHeight(); nY++)         
 			{

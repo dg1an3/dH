@@ -37,7 +37,7 @@ CKLDivTerm::CKLDivTerm(CStructure *pStructure, REAL weight)
 		
 	// set up to receive binning change events
 	m_histogram.GetBinningChangeEvent().AddObserver(this, 
-		(ListenerFunction) OnHistogramBinningChange);
+		(ListenerFunction) &CKLDivTerm::OnHistogramBinningChange);
 
 }	// CKLDivTerm::CKLDivTerm
 

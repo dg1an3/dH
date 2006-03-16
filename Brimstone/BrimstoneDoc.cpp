@@ -136,7 +136,7 @@ void CBrimstoneDoc::Serialize(CArchive& ar)
 		// set up the structure regions for histograms
 
 		m_pPlan->GetDoseMatrix()->GetChangeEvent().AddObserver(this,
-			(ListenerFunction) OnDoseChange);
+			(ListenerFunction) &CBrimstoneDoc::OnDoseChange);
 
 		// set up element includes
 		// TODO: wire this up properly
@@ -265,7 +265,7 @@ void InitUTarget(CPlan *pPlan, CStructure *pTarget, CStructure *pAvoid)
 		CVectorD<2>(inMin + 1.0, nMargin), 
 	};
 
-	for (nAt = 0; nAt < 5; nAt++)
+	for (int nAt = 0; nAt < 5; nAt++)
 	{
 		arrVertAvoid[nAt] += CVectorD<2>(0.5, 0.5);
 		pAvoidContour->AddVertex(arrVertAvoid[nAt]);

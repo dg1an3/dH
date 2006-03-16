@@ -94,7 +94,7 @@ CBeam::~CBeam()
 		delete m_arrBlocks[nAt];
 	}
 
-	for (nAt = 0; nAt < m_arrBeamlets.GetSize(); nAt++)
+	for (int nAt = 0; nAt < m_arrBeamlets.GetSize(); nAt++)
 	{
 		if (m_arrBeamletsSub[0][nAt] != m_arrBeamlets[nAt])
 		{
@@ -106,7 +106,7 @@ CBeam::~CBeam()
 	int nLevels = MAX_SCALES;
 	for (int nAtLevel = 1; nAtLevel < nLevels; nAtLevel++)
 	{
-		for (nAt = 0; nAt < m_arrBeamletsSub[nAtLevel].GetSize(); nAt++)
+		for (int nAt = 0; nAt < m_arrBeamletsSub[nAtLevel].GetSize(); nAt++)
 		{
 			delete m_arrBeamletsSub[nAtLevel][nAt];
 			if (m_arrBeamletsAdapt[nAtLevel].GetSize() > 0)
@@ -532,7 +532,7 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletAdapt(int nShift, int nLevel)
 
 			REAL sum = 0.0;
 			for (int nX = 0; nX < kernel.GetWidth(); nX++) sum += kernel.GetVoxels()[0][0][nX];
-			ASSERT(IsApproxEqual(sum, 1.0));
+			ASSERT(IsApproxEqual<REAL>(sum, 1.0));
 
 			for (int nAtBeamlet = 0; nAtBeamlet < GetBeamletCount(nAtLevel); nAtBeamlet++)
 			{
@@ -749,7 +749,7 @@ void CBeam::Serialize(CArchive &ar)
 		m_arrBlocks.SetSize(0);
 
 		DWORD nCount = ar.ReadCount();
-		for (nAt = 0; nAt < (int) nCount; nAt++)
+		for (int nAt = 0; nAt < (int) nCount; nAt++)
 		{
 			// and add it to the array
 			AddBlock(new CPolygon());

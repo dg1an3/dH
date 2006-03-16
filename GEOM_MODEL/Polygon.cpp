@@ -245,7 +245,7 @@ void CPolygon::MakeConvexHull()
 		}
 	}
 
-	for (nAt = GetVertexCount(); nAt >= 0; nAt--)
+	for (int nAt = GetVertexCount(); nAt >= 0; nAt--)
 	{
 		// compute the signed area of the current triangle
 		CVectorD<2> v1 = GetVertexAt(nAt-1);

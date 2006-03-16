@@ -423,12 +423,14 @@ int CMesh::FindTriangleWithVertices(int nSkip, const CVectorD<3>& v1,
 	for (int nAt = nSkip-1; nAt >= 0; nAt--)
 	{
 		// see if the first vertex matches any
-		for (int nv1Match = 0; nv1Match < 3
+		int nv1Match;
+		for (nv1Match = 0; nv1Match < 3
 			&& !v1.IsApproxEqual(GetTriVert(nAt, nv1Match));
 			nv1Match++);
 
 		// see if the second vertex matches any
-		for (int nv2Match = 0; nv2Match < 3
+		int nv2Match;
+		for (nv2Match = 0; nv2Match < 3
 			&& !v2.IsApproxEqual(GetTriVert(nAt, nv2Match));
 			nv2Match++);
 
@@ -448,15 +450,17 @@ int CMesh::FindTriangleWithVertices(int nSkip, const CVectorD<3>& v1,
 	}
 
 	// search for the vertices
-	for (nAt = nSkip+1; nAt < GetTriangleCount(); nAt++)
+	for (int nAt = nSkip+1; nAt < GetTriangleCount(); nAt++)
 	{
 		// see if the first vertex matches any
-		for (int nv1Match = 0; nv1Match < 3
+		int nv1Match;
+		for (nv1Match = 0; nv1Match < 3
 			&& !v1.IsApproxEqual(GetTriVert(nAt, nv1Match));
 			nv1Match++);
 
 		// see if the second vertex matches any
-		for (int nv2Match = 0; nv2Match < 3
+		int nv2Match;
+		for (nv2Match = 0; nv2Match < 3
 			&& !v2.IsApproxEqual(GetTriVert(nAt, nv2Match));
 			nv2Match++);
 

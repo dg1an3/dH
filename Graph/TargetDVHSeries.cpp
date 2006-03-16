@@ -6,7 +6,8 @@
 CTargetDVHSeries::CTargetDVHSeries(CKLDivTerm *pKLDT)
 : m_pKLDivTerm(pKLDT)
 {
-	m_pKLDivTerm->GetChangeEvent().AddObserver(this, (ListenerFunction) OnKLDTChanged);
+	m_pKLDivTerm->GetChangeEvent().AddObserver(this, 
+		(ListenerFunction) &CTargetDVHSeries::OnKLDTChanged);
 
 	OnKLDTChanged(NULL, NULL);
 }

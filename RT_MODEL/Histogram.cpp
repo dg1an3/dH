@@ -54,13 +54,13 @@ CHistogram::CHistogram(CVolume<VOXEL_REAL> *pVolume, CVolume<VOXEL_REAL> *pRegio
 	if (m_pVolume)
 	{
 		AddObserver<CHistogram>(&m_pVolume->GetChangeEvent(), this, 
-			OnVolumeChange);
+			&CHistogram::OnVolumeChange);
 	}
 
 	if (m_pRegion)
 	{
 		AddObserver<CHistogram>(&m_pRegion->GetChangeEvent(), this, 
-			OnVolumeChange);
+			&CHistogram::OnVolumeChange);
 	}
 
 }	// CHistogram::CHistogram
@@ -176,7 +176,7 @@ void CHistogram::SetVolume(CVolume<VOXEL_REAL> *pVolume)
 	if (m_pVolume)
 	{
 		RemoveObserver<CHistogram>(&m_pVolume->GetChangeEvent(), this, 
-			OnVolumeChange);
+			&CHistogram::OnVolumeChange);
 	}
 
 	// set the pointer
@@ -188,7 +188,7 @@ void CHistogram::SetVolume(CVolume<VOXEL_REAL> *pVolume)
 	if (m_pVolume)
 	{
 		AddObserver<CHistogram>(&m_pVolume->GetChangeEvent(), this, 
-			OnVolumeChange);
+			&CHistogram::OnVolumeChange);
 	}
 
 	// fire a change event
@@ -345,7 +345,7 @@ void CHistogram::SetGBinSigma(REAL sigma)
 #endif
 
 	m_bin_dKernel.SetDim(nNeighborhood * 2 + 1);
-    for (nZ = -nNeighborhood; nZ <= nNeighborhood; nZ++)
+    for (int nZ = -nNeighborhood; nZ <= nNeighborhood; nZ++)
 	{
         m_bin_dKernel[nZ + nNeighborhood] = 
 			dx * dGauss<REAL>(-nZ * dx, m_binKernelSigma);
@@ -1149,7 +1149,7 @@ void CHistogram::OnVolumeChange(CObservableEvent *pSource, void *)
 	}
 
 	// set recalc flag for dBins
-	for (nAt = 0; nAt < Get_dVolumeCount(); nAt++)
+	for (int nAt = 0; nAt < Get_dVolumeCount(); nAt++)
 	{
 		m_arr_bRecompute_dBins[nAt] = TRUE;
 	}

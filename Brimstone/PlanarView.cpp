@@ -54,7 +54,8 @@ void CPlanarView::SetVolume(CVolume<VOXEL_REAL> *pVolume, int nVolumeAt)
 		InitZoomCenter();
 
 		// set change listener
-		::AddObserver(&m_pVolume[0]->GetChangeEvent(), this, OnVolumeChanged);
+		::AddObserver(&m_pVolume[0]->GetChangeEvent(), this, 
+			&CPlanarView::OnVolumeChanged);
 	}
 }
 
@@ -648,7 +649,7 @@ void CPlanarView::OnPaint()
 	// draw isocurves
 	if (m_pVolume[1] != NULL && m_pVolume[1]->GetHeight() > 0)
 	{
-		VOXEL_REAL c = (VOXEL_REAL) 0.425;
+		VOXEL_REAL c = (VOXEL_REAL) 0.4;
 		while (c < 1.0)
 		{
 			VOXEL_REAL max_value = (VOXEL_REAL) m_arrLUT[1].GetSize();

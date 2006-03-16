@@ -7,7 +7,8 @@
 CHistogramDataSeries::CHistogramDataSeries(CHistogram *pHisto)
 : m_pHisto(pHisto)
 {
-	m_pHisto->GetChangeEvent().AddObserver(this, (ListenerFunction) OnHistogramChanged);
+	m_pHisto->GetChangeEvent().AddObserver(this, 
+		(ListenerFunction) &CHistogramDataSeries::OnHistogramChanged);
 
 	OnHistogramChanged(NULL, NULL);
 }

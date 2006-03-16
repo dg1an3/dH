@@ -139,7 +139,7 @@ CBeam * CPlan::GetBeamAt(int nAt)
 int CPlan::AddBeam(CBeam *pBeam)
 {
 	int nIndex = m_arrBeams.Add(pBeam);
-	pBeam->GetChangeEvent().AddObserver(this, (ListenerFunction) OnBeamChange);
+	pBeam->GetChangeEvent().AddObserver(this, (ListenerFunction) &CPlan::OnBeamChange);
 
 	m_bRecomputeTotalDose = TRUE;
 
@@ -303,7 +303,7 @@ void CPlan::Serialize(CArchive& ar)
 		for (int nAt = 0; nAt < GetBeamCount(); nAt++)
 		{
 			GetBeamAt(nAt)->GetChangeEvent().AddObserver(this, 
-				(ListenerFunction) OnBeamChange);
+				(ListenerFunction) &CPlan::OnBeamChange);
 		}
 	}
 

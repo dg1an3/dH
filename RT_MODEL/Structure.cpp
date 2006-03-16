@@ -46,12 +46,12 @@ CStructure::~CStructure()
 		delete m_arrContours[nAt];
 	}
 
-	for (nAt = 0; nAt < m_arrRegions.GetSize(); nAt++)
+	for (int nAt = 0; nAt < m_arrRegions.GetSize(); nAt++)
 	{
 		delete m_arrRegions[nAt];
 	}
 
-	for (nAt = 0; nAt < m_arrConformRegions.GetSize(); nAt++)
+	for (int nAt = 0; nAt < m_arrConformRegions.GetSize(); nAt++)
 	{
 		delete m_arrConformRegions[nAt];
 	}

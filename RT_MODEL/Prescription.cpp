@@ -397,7 +397,7 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 
 	// compute final state vector (add a small amount if zero)
 	// TODO: use Transform to do this
-	for (nAt = 0; nAt < vRes.GetDim(); nAt++)
+	for (int nAt = 0; nAt < vRes.GetDim(); nAt++)
 	{
 		vInit[nAt] = R(__max(Sigmoid<double>(vRes[nAt], m_inputScale), 1e-4));
 	}

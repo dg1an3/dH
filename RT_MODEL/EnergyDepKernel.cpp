@@ -124,7 +124,7 @@ void CEnergyDepKernel::Init()
 	
 	// set up angle vector
 	m_vAnglesIn.SetDim(nNumPhiIn+1);
-	for (nA = 1; nA <= nNumPhiIn; nA++)
+	for (int nA = 1; nA <= nNumPhiIn; nA++)
 	{        
 		// read mean angle of spherical voxels 
 		fscanf(pFile, "%lf", &m_vAnglesIn[nA-1]);      

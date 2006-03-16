@@ -338,7 +338,7 @@ void CTPSTransform::RecalcWeights()
 
 #ifdef _DEBUG
 	// now check to ensure the offsets at each landmark is correct
-	for (nAtLandmark = 0; nAtLandmark < GetLandmarkCount(); nAtLandmark++)
+	for (int nAtLandmark = 0; nAtLandmark < GetLandmarkCount(); nAtLandmark++)
 	{
 		const CVectorD<3>& vL0 = GetLandmark(0, nAtLandmark);
 		const CVectorD<3>& vL1 = GetLandmark(1, nAtLandmark);
