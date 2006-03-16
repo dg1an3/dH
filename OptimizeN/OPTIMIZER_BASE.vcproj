@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="OPTIMIZER_BASE"
-	ProjectGUID="{EA575145-B3A6-4FD0-AE0D-C7B1EC7CD2F7}"
+	ProjectGUID="{1AE56DD0-0829-4921-B831-BB798E779622}"
 	RootNamespace="OPTIMIZER_BASE"
 	Keyword="MFCProj"
 	>
@@ -47,7 +47,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="include,..\MTL,..\XMLLogging"
-				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;USE_IPP"
+				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;USE_IPP;_CRT_SECURE_NO_DEPRECATE"
 				RuntimeLibrary="2"
 				EnableEnhancedInstructionSet="2"
 				UsePrecompiledHeader="2"
@@ -121,82 +121,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="include,..\MTL,..\XMLLogging"
-				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;XMLLOGGING_ON;USE_IPP"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				UsePrecompiledHeader="2"
-				PrecompiledHeaderThrough="stdafx.h"
-				PrecompiledHeaderFile=".\Debug/OPTIMIZER_BASE.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
-				CompileAs="0"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
-				Culture="1033"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLibrarianTool"
-				OutputFile=".\Debug\OPTIMIZER_BASE.lib"
-				SuppressStartupBanner="true"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="Debug REAL=double|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="2"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				AdditionalIncludeDirectories="include,..\MTL,..\XMLLogging"
-				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;XMLLOGGING_ON;USE_IPP"
+				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;XMLLOGGING_ON;_CRT_SECURE_NO_DEPRECATE;USE_IPP"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
@@ -351,17 +276,6 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug REAL=double|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
 					Name="Release_f|Win32"
 					>
 					<Tool
@@ -385,17 +299,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug REAL=double|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -430,17 +333,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug REAL=double|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -489,17 +381,6 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug REAL=double|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
 					Name="Release_f|Win32"
 					>
 					<Tool
@@ -523,17 +404,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug REAL=double|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -577,17 +447,6 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug REAL=double|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
 					Name="Release_f|Win32"
 					>
 					<Tool
@@ -611,17 +470,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug REAL=double|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -665,17 +513,6 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug REAL=double|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
 					Name="Release_f|Win32"
 					>
 					<Tool
@@ -700,18 +537,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug REAL=double|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

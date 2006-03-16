@@ -194,7 +194,7 @@ public:
 // default constructor
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
+inline CVolume<VOXEL_TYPE>::CVolume()
 	: m_nWidth(0), 
 		m_nHeight(0), 
 		m_nDepth(0),
@@ -213,7 +213,7 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>()
 // copy constructor
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
+inline CVolume<VOXEL_TYPE>::CVolume(const CVolume<VOXEL_TYPE>& from)
 	: m_nWidth(0) 
 		, m_nHeight(0)
 		, m_nDepth(0)
@@ -239,7 +239,7 @@ inline CVolume<VOXEL_TYPE>::CVolume<VOXEL_TYPE>(const CVolume<VOXEL_TYPE>& from)
 // destructor
 //////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-inline CVolume<VOXEL_TYPE>::~CVolume<VOXEL_TYPE>()
+inline CVolume<VOXEL_TYPE>::~CVolume()
 {
 	if (m_bFreeVoxels)
 	{
