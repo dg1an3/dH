@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="MTL"
-	ProjectGUID="{8851F5EA-FBCF-43D9-A23B-AB7477ECAF05}"
+	ProjectGUID="{ABEB75F5-3124-498B-8F1A-9B574CA42815}"
 	RootNamespace="MTL"
 	Keyword="MFCProj"
 	>
