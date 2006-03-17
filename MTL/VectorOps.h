@@ -6,46 +6,311 @@
 #include <ippm.h>
 #endif
 
+// subst for forcing inline of function expansions
+#define INLINE __forceinline
 
-template<class TYPE> __forceinline
+///////////////////////////////////////////////////////////////////////////////////////////
+// Allocate / Free values
+///////////////////////////////////////////////////////////////////////////////////////////
+
+template<class TYPE> INLINE
 void AllocValues(int nCount, TYPE*& pValues)
 {
 	pValues = new TYPE[nCount];
 }
 
-template<class TYPE> __forceinline
+template<class TYPE> INLINE
 void FreeValues(TYPE*& pValues)
 {
 	delete pValues;
 	pValues = NULL;
 }
 
-
 #ifdef USE_IPP
+// alloc / free macros
+#define IPP_ALLOC_FREE(TYPE_IPP)									\
+	template<> INLINE												\
+	void AllocValues(int nCount, Ipp##TYPE_IPP*& pValues)			\
+	{	pValues = ippsMalloc_##TYPE_IPP(nCount);	}				\
+	template<> INLINE												\
+	void FreeValues(Ipp##TYPE_IPP*& pValues)						\
+	{	ippsFree(pValues); pValues = NULL;	}
 
-#define DECLARE_ALLOC_FREE(TYPE, TYPE_IPP) \
-	template<> __forceinline					\
-	void AllocValues(int nCount, TYPE*& pValues) \
-	{											\
-		pValues = ippsMalloc_##TYPE_IPP(nCount);	\
-	}											\
-	template<> __forceinline					\
-	void FreeValues(TYPE*& pValues)				\
-	{											\
-		ippsFree(pValues);						\
-		pValues = NULL;							\
-	}
-
-DECLARE_ALLOC_FREE(UCHAR, 8u);
-DECLARE_ALLOC_FREE(USHORT, 16u);
-DECLARE_ALLOC_FREE(SHORT, 16s);
-DECLARE_ALLOC_FREE(UINT, 32u);
-DECLARE_ALLOC_FREE(int, 32s);
-DECLARE_ALLOC_FREE(float, 32f);
-DECLARE_ALLOC_FREE(double, 64f);
-
+// declarations for different types
+IPP_ALLOC_FREE(8u);
+IPP_ALLOC_FREE(16u);
+IPP_ALLOC_FREE(16s);
+IPP_ALLOC_FREE(32u);
+IPP_ALLOC_FREE(32s);
+IPP_ALLOC_FREE(32f);
+IPP_ALLOC_FREE(64f);
 #endif
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Monadic op base macros
+///////////////////////////////////////////////////////////////////////////////////////////
+
+#define BASE_MONADIC_OP(NAME, BODY)												\
+	template<class TYPE> INLINE													\
+	void NAME(TYPE *pDst, const TYPE *pSrc, int nLength)						\
+	{	for (int nAt = 0; nAt < nLength; nAt++) BODY; }
+
+#define IPP_MONADIC_OP(NAME, TYPE, FUNC)										\
+	template<> INLINE															\
+	void NAME(TYPE *pDst, const TYPE *pSrc, int nLength)						\
+	{	FUNC(pSrc, pDst, nLength); }
+
+
+#define BASE_MONADIC_OP_I(NAME, BODY)											\
+	template<class TYPE> INLINE													\
+	void NAME(TYPE *pSrcDst, int nLength)										\
+	{	for (int nAt = 0; nAt < nLength; nAt++) BODY; }
+
+#define IPP_MONADIC_OP_I(NAME, TYPE, FUNC)										\
+	template<> INLINE															\
+	void NAME(TYPE *pSrcDst, int nLength)										\
+	{	FUNC(pSrcDst, nLength); }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Dyadic op base macros
+///////////////////////////////////////////////////////////////////////////////////////////
+
+#define BASE_DYADIC_OP(NAME, BODY)												\
+	template<class TYPE> INLINE													\
+	void NAME(TYPE *pDst, const TYPE *pSrcL, const TYPE *pSrcR, int nLength)	\
+	{	for (int nAt = 0; nAt < nLength; nAt++) BODY; }
+
+#define IPP_DYADIC_OP(NAME, TYPE, FUNC)											\
+	template<> INLINE															\
+	void NAME(TYPE *pDst, const TYPE *pSrcL, const TYPE *pSrcR, int nLength)	\
+	{	FUNC(pSrcL, pSrcR, pDst, nLength); }
+
+
+#define BASE_DYADIC_OP_C(NAME, BODY)											\
+	template<class TYPE> INLINE													\
+	void NAME(TYPE *pDst, const TYPE *pSrcL, const TYPE& valueR, int nLength)	\
+	{	for (int nAt = 0; nAt < nLength; nAt++) BODY; }
+
+#define IPP_DYADIC_OP_C(NAME, TYPE, FUNC)										\
+	template<> INLINE															\
+	void NAME(TYPE *pDst, const TYPE *pSrcL, const TYPE& valueR, int nLength)	\
+	{	FUNC(pSrcL, valueR, pDst, nLength); }
+
+
+#define BASE_DYADIC_OP_I(NAME, BODY)											\
+	template<class TYPE> INLINE													\
+	void NAME(TYPE *pSrcLDst, const TYPE *pSrcR, int nLength)					\
+	{	for (int nAt = 0; nAt < nLength; nAt++) { BODY; } }
+
+#define IPP_DYADIC_OP_I(NAME, TYPE, FUNC)										\
+	template<> INLINE															\
+	void NAME(TYPE *pSrcLDst, const TYPE *pSrcR, int nLength)					\
+	{	FUNC(pSrcR, pSrcLDst, nLength); }
+
+
+#define BASE_DYADIC_OP_C_I(NAME, BODY)											\
+	template<class TYPE> INLINE													\
+	void NAME(TYPE *pSrcLDst, const TYPE& valueR, int nLength)					\
+	{	for (int nAt = 0; nAt < nLength; nAt++) { BODY; } }
+
+#define IPP_DYADIC_OP_C_I(NAME, TYPE, FUNC)										\
+	template<> INLINE															\
+	void NAME(TYPE *pSrcLDst, const TYPE& valueR, int nLength)					\
+	{	FUNC(valueR, pSrcLDst, nLength); }
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Copying
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_MONADIC_OP(CopyValues, pDst[nAt] = pSrc[nAt]);
+#ifdef USE_IPP
+	IPP_MONADIC_OP(CopyValues, Ipp16s, ippsCopy_16s);
+	IPP_MONADIC_OP(CopyValues, Ipp32f, ippsCopy_32f);
+	IPP_MONADIC_OP(CopyValues, Ipp64f, ippsCopy_64f);
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Init to zero
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_MONADIC_OP_I(ZeroValues, pSrcDst[nAt] = (TYPE) 0.0);
+#ifdef USE_IPP
+	IPP_MONADIC_OP_I(ZeroValues, Ipp8u, ippsZero_8u);
+	IPP_MONADIC_OP_I(ZeroValues, Ipp16s, ippsZero_16s);
+	IPP_MONADIC_OP_I(ZeroValues, Ipp32f, ippsZero_32f);
+	IPP_MONADIC_OP_I(ZeroValues, Ipp64f, ippsZero_64f);
+#endif
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Sum
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_DYADIC_OP(SumValues, pDst[nAt] = pSrcL[nAt] + pSrcR[nAt]);
+#ifdef USE_IPP
+	IPP_DYADIC_OP(SumValues, Ipp16s, ippsAdd_16s);
+	IPP_DYADIC_OP(SumValues, Ipp32f, ippsAdd_32f);
+	IPP_DYADIC_OP(SumValues, Ipp64f, ippsAdd_64f);
+#endif
+
+BASE_DYADIC_OP_C(SumValues, (pDst[nAt] = pSrcL[nAt] + valueR));
+#ifdef USE_IPP
+	// IPP_DYADIC_OP_C(SumValues, Ipp16s, ippsAddC_16s);
+	IPP_DYADIC_OP_C(SumValues, Ipp32f, ippsAddC_32f);
+	IPP_DYADIC_OP_C(SumValues, Ipp64f, ippsAddC_64f);
+#endif
+
+BASE_DYADIC_OP_I(SumValues, pSrcLDst[nAt] += pSrcR[nAt]);
+#ifdef USE_IPP
+	IPP_DYADIC_OP_I(SumValues, Ipp16s, ippsAdd_16s_I);
+	IPP_DYADIC_OP_I(SumValues, Ipp32f, ippsAdd_32f_I);
+	IPP_DYADIC_OP_I(SumValues, Ipp64f, ippsAdd_64f_I);
+#endif
+
+BASE_DYADIC_OP_C_I(SumValues, pSrcLDst[nAt] += valueR);
+#ifdef USE_IPP
+	IPP_DYADIC_OP_C_I(SumValues, Ipp16s, ippsAddC_16s_I);
+	IPP_DYADIC_OP_C_I(SumValues, Ipp32f, ippsAddC_32f_I);
+	IPP_DYADIC_OP_C_I(SumValues, Ipp64f, ippsAddC_64f_I);
+#endif
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Difference
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_DYADIC_OP(DiffValues, pDst[nAt] = pSrcL[nAt] - pSrcR[nAt]);
+#ifdef USE_IPP
+	IPP_DYADIC_OP(DiffValues, Ipp16s, ippsSub_16s);
+	IPP_DYADIC_OP(DiffValues, Ipp32f, ippsSub_32f);
+	IPP_DYADIC_OP(DiffValues, Ipp64f, ippsSub_64f);
+#endif
+
+BASE_DYADIC_OP_C(DiffValues, pDst[nAt] = pSrcL[nAt] - valueR);
+#ifdef USE_IPP
+	// IPP_DYADIC_OP_C(DiffValues, Ipp16s, ippsSubC_16s);
+	IPP_DYADIC_OP_C(DiffValues, Ipp32f, ippsSubC_32f);
+	IPP_DYADIC_OP_C(DiffValues, Ipp64f, ippsSubC_64f);
+#endif
+
+BASE_DYADIC_OP_I(DiffValues, pSrcLDst[nAt] -= pSrcR[nAt]);
+#ifdef USE_IPP
+	IPP_DYADIC_OP_I(DiffValues, Ipp16s, ippsSub_16s_I);
+	IPP_DYADIC_OP_I(DiffValues, Ipp32f, ippsSub_32f_I);
+	IPP_DYADIC_OP_I(DiffValues, Ipp64f, ippsSub_64f_I);
+#endif
+
+BASE_DYADIC_OP_C_I(DiffValues, pSrcLDst[nAt] -= valueR);
+#ifdef USE_IPP
+	IPP_DYADIC_OP_C_I(DiffValues, Ipp16s, ippsSubC_16s_I);
+	IPP_DYADIC_OP_C_I(DiffValues, Ipp32f, ippsSubC_32f_I);
+	IPP_DYADIC_OP_C_I(DiffValues, Ipp64f, ippsSubC_64f_I);
+#endif
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Multiplication
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_DYADIC_OP(MultValues, pDst[nAt] = pSrcL[nAt] * pSrcR[nAt]);
+#ifdef USE_IPP
+	IPP_DYADIC_OP(MultValues, Ipp16s, ippsMul_16s);
+	IPP_DYADIC_OP(MultValues, Ipp32f, ippsMul_32f);
+	IPP_DYADIC_OP(MultValues, Ipp64f, ippsMul_64f);
+#endif
+
+BASE_DYADIC_OP_C(MultValues, pDst[nAt] = pSrcL[nAt] * valueR);
+#ifdef USE_IPP
+	// IPP_DYADIC_OP_C(MultValues, Ipp16s, ippsMulC_16s);
+	IPP_DYADIC_OP_C(MultValues, Ipp32f, ippsMulC_32f);
+	IPP_DYADIC_OP_C(MultValues, Ipp64f, ippsMulC_64f);
+#endif
+
+BASE_DYADIC_OP_I(MultValues, pSrcLDst[nAt] *= pSrcR[nAt]);
+#ifdef USE_IPP
+	IPP_DYADIC_OP_I(MultValues, Ipp16s, ippsMul_16s_I);
+	IPP_DYADIC_OP_I(MultValues, Ipp32f, ippsMul_32f_I);
+	IPP_DYADIC_OP_I(MultValues, Ipp64f, ippsMul_64f_I);
+#endif
+
+BASE_DYADIC_OP_C_I(MultValues, pSrcLDst[nAt] *= valueR);
+#ifdef USE_IPP
+	IPP_DYADIC_OP_C_I(MultValues, Ipp16s, ippsMulC_16s_I);
+	IPP_DYADIC_OP_C_I(MultValues, Ipp32f, ippsMulC_32f_I);
+	IPP_DYADIC_OP_C_I(MultValues, Ipp64f, ippsMulC_64f_I);
+#endif
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Division
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_DYADIC_OP(DivValues, pDst[nAt] = pSrcL[nAt] / pSrcR[nAt]);
+#ifdef USE_IPP
+	// IPP_DYADIC_OP(DivValues, Ipp16s, ippsDiv_16s);
+	IPP_DYADIC_OP(DivValues, Ipp32f, ippsDiv_32f);
+	IPP_DYADIC_OP(DivValues, Ipp64f, ippsDiv_64f);
+#endif
+
+BASE_DYADIC_OP_C(DivValues, pDst[nAt] = pSrcL[nAt] / valueR);
+#ifdef USE_IPP
+	// IPP_DYADIC_OP_C(DivValues, Ipp16s, ippsDivC_16s);
+	IPP_DYADIC_OP_C(DivValues, Ipp32f, ippsDivC_32f);
+	IPP_DYADIC_OP_C(DivValues, Ipp64f, ippsDivC_64f);
+#endif
+
+BASE_DYADIC_OP_I(DivValues, pSrcLDst[nAt] /= pSrcR[nAt]);
+#ifdef USE_IPP
+	// IPP_DYADIC_OP_I(DivValues, Ipp16s, ippsDiv_16s_I);
+	IPP_DYADIC_OP_I(DivValues, Ipp32f, ippsDiv_32f_I);
+	IPP_DYADIC_OP_I(DivValues, Ipp64f, ippsDiv_64f_I);
+#endif
+
+BASE_DYADIC_OP_C_I(DivValues, pSrcLDst[nAt] /= valueR);
+#ifdef USE_IPP
+	// IPP_DYADIC_OP_C_I(DivValues, Ipp16s, ippsDivC_16s_I);
+	IPP_DYADIC_OP_C_I(DivValues, Ipp32f, ippsDivC_32f_I);
+	IPP_DYADIC_OP_C_I(DivValues, Ipp64f, ippsDivC_64f_I);
+#endif
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Square / root
+///////////////////////////////////////////////////////////////////////////////////////////
+
+BASE_MONADIC_OP(SqrValues, pDst[nAt] = pSrc[nAt] * pSrc[nAt]);
+#ifdef USE_IPP
+	IPP_MONADIC_OP(SqrValues, Ipp32f, ippsSqr_32f);
+	IPP_MONADIC_OP(SqrValues, Ipp64f, ippsSqr_64f);
+#endif
+
+BASE_MONADIC_OP_I(SqrValues, pSrcDst[nAt] *= pSrcDst[nAt]);
+#ifdef USE_IPP
+	IPP_MONADIC_OP_I(SqrValues, Ipp32f, ippsSqr_32f_I);
+	IPP_MONADIC_OP_I(SqrValues, Ipp64f, ippsSqr_64f_I);
+#endif
+
+
+BASE_MONADIC_OP(SqrtValues, pDst[nAt] = sqrt(pSrc[nAt]));
+#ifdef USE_IPP
+	IPP_MONADIC_OP(SqrtValues, Ipp32f, ippsSqrt_32f);
+	IPP_MONADIC_OP(SqrtValues, Ipp64f, ippsSqrt_64f);
+#endif
+
+BASE_MONADIC_OP_I(SqrtValues, pSrcDst[nAt] = sqrt(pSrcDst[nAt]));
+#ifdef USE_IPP
+	IPP_MONADIC_OP_I(SqrtValues, Ipp32f, ippsSqrt_32f_I);
+	IPP_MONADIC_OP_I(SqrtValues, Ipp64f, ippsSqrt_64f_I);
+#endif
+
+
+
+#ifdef OLD_DEFS
 
 template<class TYPE> __forceinline
 void AssignValues(TYPE *pTo, const TYPE *pFrom, int nCount)
@@ -176,10 +441,10 @@ void ScaleValues(double *pSrcDst, double scale, int nCount)
 	ippsMulC_64f_I(scale, pSrcDst, nCount);
 }
 #endif
+#endif
 
 
-
-template<class ELEM_TYPE> __forceinline
+template<class ELEM_TYPE> INLINE
 ELEM_TYPE VectorLength(const ELEM_TYPE *pV, int nLength)
 {
 	// form the sum of the square of each element
@@ -194,7 +459,7 @@ ELEM_TYPE VectorLength(const ELEM_TYPE *pV, int nLength)
 
 
 
-template<class ELEM_TYPE> __forceinline
+template<class ELEM_TYPE> INLINE
 ELEM_TYPE DotProduct(const ELEM_TYPE *pLeft, 
 						const ELEM_TYPE *pRight, int nLength)
 {
