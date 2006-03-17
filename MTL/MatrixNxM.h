@@ -186,7 +186,7 @@ CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator=(const CMatrixNxM<TYPE>& fromMatrix
 	ASSERT(GetRows() == fromMatrix.GetRows());
 
 	// assign values
-	AssignValues(&(*this)[0][0], &fromMatrix[0][0], GetCols() * GetRows());
+	CopyValues(&(*this)[0][0], &fromMatrix[0][0], GetCols() * GetRows());
 
 	return (*this);
 
@@ -200,7 +200,7 @@ CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator=(const CMatrixNxM<TYPE>& fromMatrix
 template<class TYPE> __forceinline
 void CMatrixNxM<TYPE>::SetIdentity()
 {
-	memset(m_pElements, 0, GetRows() * GetCols() * sizeof(TYPE));
+	ZeroValues(&(*this)[0][0], GetRows() * GetCols());
 
 	// for each element in the matrix,
 	for (int nAt = 0; nAt < __min(GetCols(), GetRows()); nAt++)
@@ -259,7 +259,7 @@ void CMatrixNxM<TYPE>::Reshape(int nCols, int nRows, BOOL bPreserve)
 	if (pOldElements)
 	{
 		// set the new elements to 0 initially
-		memset(pNewElements, 0, sizeof(TYPE) * nCols * nRows);
+		ZeroValues(pNewElements, nCols * nRows);
 
 		// create a temporary matrix to hold the old elements
 		CMatrixNxM<TYPE> mTemp;
@@ -511,7 +511,7 @@ CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator*=(const CMatrixNxM<TYPE>& mRight)
 template<class TYPE> __forceinline
 CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator*=(const TYPE& scale)
 {
-	ScaleValues(&(*this)[0][0], scale, GetCols() * GetRows());
+	MultValues(&(*this)[0][0], scale, GetCols() * GetRows());
 
 	// return a reference to this
 	return (*this);

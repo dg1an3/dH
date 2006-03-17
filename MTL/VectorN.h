@@ -45,7 +45,7 @@ public:
 	typedef TYPE ELEM_TYPE;
 
 	// initializes all elements to zero
-	void SetZero() { memset(&(*this)[0], 0, sizeof(TYPE) * GetDim()); }
+	void SetZero() { ZeroValues(&(*this)[0], GetDim()); }
 
 	// element accessors
 	TYPE& operator[](int nAtRow);
@@ -170,14 +170,14 @@ CVectorN<TYPE>& CVectorN<TYPE>::operator=(const CVectorN<TYPE>& vFrom)
 
 	if (GetDim() > 0)
 	{
-		AssignValues(&(*this)[0], &vFrom[0], __min(GetDim(), vFrom.GetDim()));
+		CopyValues(&(*this)[0], &vFrom[0], __min(GetDim(), vFrom.GetDim()));
 	}
 
 	// set remainder of elements to 0
 	if (GetDim() > vFrom.GetDim())
 	{
-		memset(&(*this)[vFrom.GetDim()], 0, 
-			(GetDim() - vFrom.GetDim()) * sizeof(TYPE));
+		// zero initial
+		ZeroValues(&(*this)[vFrom.GetDim()], GetDim() - vFrom.GetDim());
 	}
 
 	// return a reference to this
@@ -288,14 +288,13 @@ void CVectorN<TYPE>::SetDim(int nDim)
 			if (pOldElements)
 			{
 				// copy the elements
-				memcpy(&(*this)[0], pOldElements, __min(GetDim(), nOldDim) * sizeof(TYPE));
+				CopyValues(&(*this)[0], pOldElements, __min(GetDim(), nOldDim));
 			}
 
 			// set remainder of elements to 0
 			if (GetDim() > nOldDim)
 			{
-				memset(&(*this)[nOldDim], 0, 
-					(GetDim() - nOldDim) * sizeof(TYPE));
+				ZeroValues(&(*this)[nOldDim], GetDim() - nOldDim);
 			}
 		}
 
@@ -349,7 +348,7 @@ void CVectorN<TYPE>::Normalize()
 	TYPE len = GetLength();
 	if (len > 0.0)
 	{
-		ScaleValues(&(*this)[0], (TYPE) 1.0 / len, GetDim());
+		MultValues(&(*this)[0], (TYPE) 1.0 / len, GetDim());
 	}
 
 }	// CVectorN<TYPE>::Normalize
@@ -412,7 +411,7 @@ CVectorN<TYPE>& CVectorN<TYPE>::operator-=(const CVectorN<TYPE>& vRight)
 template<class TYPE> __forceinline
 CVectorN<TYPE>& CVectorN<TYPE>::operator*=(const TYPE& scalar)
 {
-	ScaleValues(&(*this)[0], scalar, GetDim());
+	MultValues(&(*this)[0], scalar, GetDim());
 
 	return (*this);
 
@@ -459,7 +458,7 @@ int CVectorN<TYPE>::CopyElements(const CVectorN<TYPE>& v,
 	if (nLength > 0
 		&& &(*this)[nDest] != &v[nStart])
 	{
-		memcpy(&(*this)[nDest], &v[nStart], nLength * sizeof(TYPE));
+		CopyValues(&(*this)[nDest], &v[nStart], nLength);
 	}
 
 	return nLength;

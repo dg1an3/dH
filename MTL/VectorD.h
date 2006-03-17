@@ -29,8 +29,6 @@ class CVectorD
 public:
 	// constructors / destructor
 	CVectorD();
-	/* DGL Deprecated 
-	CVectorD(TYPE x); */
 	CVectorD(TYPE x, TYPE y);
 	CVectorD(TYPE x, TYPE y, TYPE z);
 	CVectorD(TYPE x, TYPE y, TYPE z, TYPE w);
@@ -91,31 +89,11 @@ template<int DIM, class TYPE> __forceinline
 CVectorD<DIM, TYPE>::CVectorD() 
 {
 	// clear to all zeros
-	memset(&(*this)[0], 0, DIM * sizeof(TYPE));
+	ZeroValues(&(*this)[0], DIM);
 
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>() 
 
 
-//////////////////////////////////////////////////////////////////
-// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
-//
-// construct from one element
-//////////////////////////////////////////////////////////////////
-/*
-template<int DIM, class TYPE> __forceinline
-CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
-{
-	// set the given elements
-	(*this)[0] = x;
-
-	// clear to all zeros
-	if (DIM > 1)
-	{
-		memset(&(*this)[1], 0, (DIM-1) * sizeof(TYPE));
-	}
-
-}	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x) 
-*/
 
 //////////////////////////////////////////////////////////////////
 // CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
@@ -132,11 +110,8 @@ CVectorD<DIM, TYPE>::CVectorD(TYPE x, TYPE y)
 	// clear to all zeros
 	if (DIM > 2)
 	{
-		// DGL 2005-Sep-24
-		// OK compiler warning 
-		// warning C4318: passing constant zero as the length to memset
-		//		when DIM == 2
-		memset(&(*this)[2], 0, (DIM-2) * sizeof(TYPE));
+		// zero initial
+		ZeroValues(&(*this)[2], DIM-2);
 	}
 
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y) 
@@ -158,7 +133,7 @@ CVectorD<DIM, TYPE>::CVectorD(TYPE x, TYPE y, TYPE z)
 	// clear to all zeros
 	if (DIM > 3)
 	{
-		memset(&(*this)[3], 0, (DIM-3) * sizeof(TYPE));
+		ZeroValues(&(*this)[3], DIM-3);
 	}
 
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z) 
@@ -181,7 +156,7 @@ CVectorD<DIM, TYPE>::CVectorD(TYPE x, TYPE y, TYPE z, TYPE w)
 	// clear to all zeros
 	if (DIM > 4)
 	{
-		memset(&(*this)[4], 0, (DIM-4) * sizeof(TYPE));
+		ZeroValues(&(*this)[4], DIM-4);
 	}
 
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(TYPE x, TYPE y, TYPE z, TYPE w) 
@@ -217,7 +192,7 @@ CVectorD<DIM, TYPE>::CVectorD(const CPoint& pt)
 	// clear to all zeros
 	if (DIM > 2)
 	{
-		memset(&(*this)[2], 0, (DIM-2) * sizeof(TYPE));
+		ZeroValues(&(*this)[2], DIM-2);
 	}
 
 }	// CVectorD<DIM, TYPE>::CVectorD<DIM, TYPE>(const CPoint& pt)
@@ -260,7 +235,7 @@ template<int DIM, class TYPE> __forceinline
 CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator=(const CVectorD<DIM, TYPE>& vFrom)
 {
 	// copy the elements
-	AssignValues(&(*this)[0], &vFrom[0], GetDim());
+	CopyValues(&(*this)[0], &vFrom[0], GetDim());
 
 	// return a reference to this
 	return (*this);
@@ -389,7 +364,7 @@ void CVectorD<DIM, TYPE>::Normalize()
  	TYPE len = GetLength();
 	if (len > 0.0)
  	{
- 		ScaleValues(&(*this)[0], (TYPE) 1.0 / len, GetDim());
+ 		MultValues(&(*this)[0], (TYPE) 1.0 / len, GetDim());
  	}
 
 }	// CVectorD<DIM, TYPE>::Normalize
@@ -452,7 +427,7 @@ CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator-=(const CVectorD<DIM, TYPE>& 
 template<int DIM, class TYPE> __forceinline
 CVectorD<DIM, TYPE>& CVectorD<DIM, TYPE>::operator*=(const TYPE& scalar)
 {
-	ScaleValues(&(*this)[0], scalar, GetDim());
+	MultValues(&(*this)[0], scalar, GetDim());
 
 	return (*this);
 

@@ -19,12 +19,12 @@ public:
 	{
 		if (DIM <= OTHER_DIM)
 		{
-			AssignValues(&(*this)[0], &vFrom[0], DIM);
+			CopyValues(&(*this)[0], &vFrom[0], DIM);
 		}
 		else
 		{
-			AssignValues(&(*this)[0], &vFrom[0], OTHER_DIM);
-			memset(&(*this)[OTHER_DIM], 0, (DIM - OTHER_DIM) * sizeof)TYPE);
+			CopyValues(&(*this)[0], &vFrom[0], OTHER_DIM);
+			ZeroValues(&(*this)[OTHER_DIM], DIM - OTHER_DIM);
 		}
 	}
 
@@ -33,12 +33,12 @@ public:
 	{
 		if (DIM <= vFrom.GetDim())
 		{
-			AssignValues(&(*this)[0], &vFrom[0], DIM);
+			CopyValues(&(*this)[0], &vFrom[0], DIM);
 		}
 		else
 		{
-			AssignValues(&(*this)[0], &vFrom[0], vFrom.GetDim());
-			memset(&(*this)[vFrom.GetDim()], 0, (DIM - vFrom.GetDim()) * sizeof(TYPE));
+			CopyValues(&(*this)[0], &vFrom[0], vFrom.GetDim());
+			ZeroValues(&(*this)[vFrom.GetDim()], DIM - vFrom.GetDim());
 		}
 	}
 };

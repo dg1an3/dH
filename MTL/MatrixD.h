@@ -127,7 +127,7 @@ CMatrixD<DIM,TYPE>::~CMatrixD()
 template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator=(const CMatrixD<DIM,TYPE>& fromMatrix)
 {
-	AssignValues(&(*this)[0][0], &fromMatrix[0][0], DIM * DIM);
+	CopyValues(&(*this)[0][0], &fromMatrix[0][0], DIM * DIM);
 
 	return (*this);
 
@@ -142,7 +142,8 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator=(const CMatrixD<DIM,TYPE>& from
 template<int DIM, class TYPE> __forceinline
 void CMatrixD<DIM, TYPE>::SetIdentity()
 {
-	memset(m_arrColumns, 0, sizeof(m_arrColumns));
+	ZeroValues(&(*this)[0][0], DIM * DIM);
+	// memset(m_arrColumns, 0, sizeof(m_arrColumns));
 
 	// for each element in the matrix,
 	for (int nAt = 0; nAt < GetCols(); nAt++)
@@ -303,7 +304,7 @@ CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator-=(const CMatrixD& mRight)
 template<int DIM, class TYPE> __forceinline
 CMatrixD<DIM,TYPE>& CMatrixD<DIM,TYPE>::operator*=(const TYPE& scale)
 {
-	ScaleValues(&(*this)[0][0], scale, DIM * DIM);
+	MultValues(&(*this)[0][0], scale, DIM * DIM);
 
 	// return a reference to this
 	return (*this);
@@ -371,8 +372,8 @@ BOOL CMatrixD<DIM, TYPE>::Invert(BOOL bFlag)
 			&arrBuffer[0][0],									\
 			&arrElements[0][0], DIM * sizeof(TYPE));			\
 		if (stat == ippStsOk)									\
-			memcpy(&(*this)[0][0], arrElements,					\
-				sizeof(arrElements));							\
+			CopyValues(&(*this)[0][0], &arrElements[0][0],		\
+				DIM * DIM);										\
 		else if (stat == ippStsDivByZeroErr)					\
 			TRACE("Singular matrix\n");							\
 		return (stat == ippStsOk);								\
