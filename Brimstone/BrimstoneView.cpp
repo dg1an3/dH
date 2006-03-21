@@ -342,6 +342,8 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CTargetDVHSeries *pSeries = new CTargetDVHSeries(pKLDT);
 		pSeries->SetColor(pStruct->GetColor());
 		pSeries->m_nPenStyle = PS_DASHDOT;
+		pSeries->SetHasHandles(TRUE);
+
 		m_graph.AddDataSeries(pSeries);
 		// m_graph.AutoScale();
 		// m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
