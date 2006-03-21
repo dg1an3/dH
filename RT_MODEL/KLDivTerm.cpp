@@ -5,9 +5,8 @@
 #include "stdafx.h"
 #include ".\include\kldivterm.h"
 
-#include <UtilMacros.h>
 
-#include <Structure.h>
+const REAL EPS = (REAL) 1e-5;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -25,7 +24,7 @@ CKLDivTerm::CKLDivTerm(CStructure *pStructure, REAL weight)
 		, m_bTargetCrossEntropy(false)
 {
 	// default interval
-	SetInterval(0.0, 0.01, 1.0);
+	SetInterval(0.0, 0.01, 1.0, FALSE);
 
 	// initialize flag
 	int nTargetCrossEntropy = 
@@ -150,7 +149,7 @@ void CKLDivTerm::SetDVPs(const CMatrixNxM<>& mDVPs)
 // 
 // sets the target histgram to an interval
 //////////////////////////////////////////////////////////////////////
-void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction)
+void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction, BOOL bMid)
 {
 	BEGIN_LOG_SECTION(CKLDivTerm::SetInterval);
 	LOG_EXPR(low);
@@ -158,11 +157,16 @@ void CKLDivTerm::SetInterval(REAL low, REAL high, REAL fraction)
 	LOG_EXPR(fraction);
 
 	CMatrixNxM<> mDVPs;
-	mDVPs.Reshape(2,2);
+	mDVPs.Reshape(bMid ? 3 : 2, 2);
 	mDVPs[0][0] = low;
 	mDVPs[0][1] = 1.0;
-	mDVPs[1][0] = high;
-	mDVPs[1][1] = 0.0;
+	if (bMid)
+	{
+		mDVPs[1][0] = (low + high) / 2.0;
+		mDVPs[1][1] = 0.5;
+	}
+	mDVPs[bMid ? 2 : 1][0] = high;
+	mDVPs[bMid ? 2 : 1][1] = 0.0;
 
 	// set up the DVPs
 	SetDVPs(mDVPs);
@@ -261,7 +265,7 @@ const CVectorN<>& CKLDivTerm::GetTargetGBins() const
 		// normalize
 		REAL sum = 0.0;
 		ITERATE_VECTOR(m_vTargetGBins, nAt, sum += m_vTargetGBins[nAt]);
-		m_vTargetGBins *= R(1.0) / (sum * GetHistogram()->GetBinWidth());
+		m_vTargetGBins *= R(1.0) / sum;
 
 		m_bReconvolve = false;
 
@@ -285,31 +289,8 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 	BEGIN_LOG_SECTION(CKLDivTerm::Eval);
 	LOG_EXPR(m_weight);
 
-#define TEST_REGION_SUM
-#ifdef TEST_REGION_SUM
-	if (m_pNextScale)
-	{
-		REAL calcSum = GetHistogram()->GetRegion()->GetSum();
-		CVectorD<3> vPixSpacing = GetHistogram()->GetRegion()->GetPixelSpacing();
-		calcSum *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
-
-		REAL calcSumNext = m_pNextScale->GetHistogram()->GetRegion()->GetSum();
-		vPixSpacing = m_pNextScale->GetHistogram()->GetRegion()->GetPixelSpacing();
-		calcSumNext *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
-
-		ASSERT(IsApproxEqual<REAL>(calcSum, calcSumNext, R(0.1)));
-	}
-#endif
-
 	// get the calculated histogram bins
 	const CVectorN<>& calcGPDF = GetHistogram()->GetGBins();
-
-#define TEST_NORM
-#ifdef TEST_NORM
-	double vec_sum = 0.0;
-	ITERATE_VECTOR(calcGPDF, nAt, vec_sum += calcGPDF[nAt]);
-	ASSERT(vec_sum < 10.0 * (1.0 / GetHistogram()->GetBinWidth()));
-#endif
 
 	LOG_EXPR_EXT(calcGPDF);
 
@@ -318,17 +299,16 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 	LOG_EXPR_EXT(targetGPDF);
 
 	// form the sum of the sq. difference for target - calc
-	const REAL EPS = (REAL) 1e-5;
 	LOG_EXPR(EPS);
 
 	if (!m_bTargetCrossEntropy)
-	{
+	{	
 		for (int nAtBin = 0; nAtBin < calcGPDF.GetDim(); nAtBin++)
 		{
 			if (nAtBin < targetGPDF.GetDim())
 			{
 				ASSERT(targetGPDF[nAtBin] >= 0.0);
-				sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS);	
+				sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS);
 			}
 			else
 			{
@@ -339,6 +319,44 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 	}
 	else // if (m_bTargetCrossEntropy)
 	{
+#define IPP_CALC_KLDIV
+#ifdef IPP_CALC_KLDIV
+		if (m_vCalc_EPS.GetDim() < calcGPDF.GetDim())
+		{
+			m_vCalc_EPS.SetDim(calcGPDF.GetDim());
+		}
+		SumValues<REAL>(&m_vCalc_EPS[0], &calcGPDF[0], EPS, calcGPDF.GetDim());
+
+		if (m_vTarget_div_Calc.GetDim() < targetGPDF.GetDim())
+		{
+			m_vTarget_div_Calc.SetDim(targetGPDF.GetDim());
+		}
+
+		// CAREFUL about the order of operands for DivValues
+		DivValues<REAL>(&m_vTarget_div_Calc[0], &m_vCalc_EPS[0], 
+			&targetGPDF[0], __min(calcGPDF.GetDim(), targetGPDF.GetDim()));
+		if (calcGPDF.GetDim() < targetGPDF.GetDim())
+		{
+			DivValues<REAL>(&m_vTarget_div_Calc[calcGPDF.GetDim()], 
+				&targetGPDF[calcGPDF.GetDim()], EPS, targetGPDF.GetDim() - calcGPDF.GetDim());
+		}
+
+		if (m_vTarget_div_Calc_EPS.GetDim() < targetGPDF.GetDim())
+		{
+			m_vTarget_div_Calc_EPS.SetDim(targetGPDF.GetDim());
+		}
+		SumValues<REAL>(&m_vTarget_div_Calc_EPS[0], &m_vTarget_div_Calc[0], EPS, targetGPDF.GetDim());
+
+		if (m_vLogTarget_div_Calc.GetDim() < targetGPDF.GetDim())
+		{
+			m_vLogTarget_div_Calc.SetDim(targetGPDF.GetDim());
+		}
+		::ippsLn_64f(&m_vTarget_div_Calc_EPS[0], &m_vLogTarget_div_Calc[0], targetGPDF.GetDim());
+		MultValues<REAL>(&m_vLogTarget_div_Calc[0], &targetGPDF[0], targetGPDF.GetDim());
+
+		// now sum all values
+		::ippsSum_64f(&m_vLogTarget_div_Calc[0], targetGPDF.GetDim(), &sum); 
+#else
 		for (int nAtBin = 0; nAtBin < targetGPDF.GetDim(); nAtBin++)
 		{
 			if (nAtBin < calcGPDF.GetDim())
@@ -352,6 +370,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 					* log(targetGPDF[nAtBin] / (EPS) + EPS);
 			}
 		}
+#endif
 	}
 	ASSERT(_finite(sum));
 
@@ -360,6 +379,31 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 	{
 		BEGIN_LOG_SECTION(CKLDivTerm::Eval!CalcGrad);
 
+#ifdef IPP_CALC_KLDIV
+
+		if (m_v_dx_Target_div_Calc.GetDim() < targetGPDF.GetDim())
+		{
+			m_v_dx_Target_div_Calc.SetDim(targetGPDF.GetDim());
+		}
+
+		// divide by derivative of log term (target / calc)
+		DivValues<REAL>(&m_v_dx_Target_div_Calc[0], 
+			&m_vTarget_div_Calc_EPS[0], &m_vTarget_div_Calc[0], targetGPDF.GetDim());
+
+		// multiply to form target / (calc * calc) (chain rule) term
+		DivValues<REAL>(&m_v_dx_Target_div_Calc[0], 
+			&m_vCalc_EPS[0], &m_v_dx_Target_div_Calc[0], __min(calcGPDF.GetDim(), targetGPDF.GetDim()));
+		if (calcGPDF.GetDim() < targetGPDF.GetDim())
+		{
+			DivValues<REAL>(&m_v_dx_Target_div_Calc[calcGPDF.GetDim()], 
+				&m_v_dx_Target_div_Calc[calcGPDF.GetDim()], EPS, targetGPDF.GetDim() - calcGPDF.GetDim());
+		}
+
+		// multiply (scale) by target GPDF
+		MultValues<REAL>(&m_v_dx_Target_div_Calc[0], 
+			&targetGPDF[0], &m_v_dx_Target_div_Calc[0], targetGPDF.GetDim());
+
+#endif
 		const int n_dVolCount = GetHistogram()->Get_dVolumeCount();
 		pvGrad->SetDim(n_dVolCount);
 		pvGrad->SetZero();
@@ -376,6 +420,18 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 			const CVectorN<>& arrCalc_dGPDF = GetHistogram()->Get_dGBins(nAt_dVol);
 			LOG_EXPR_EXT(arrCalc_dGPDF);
 
+#ifdef IPP_CALC_KLDIV
+			
+			int nFinalSize = __min(targetGPDF.GetDim(), arrCalc_dGPDF.GetDim());
+			if (m_v_dVol_Target.GetDim() < nFinalSize)
+			{
+				m_v_dVol_Target.SetDim(nFinalSize);
+			}
+			MultValues<REAL>(&m_v_dVol_Target[0], 
+				&arrCalc_dGPDF[0], &m_v_dx_Target_div_Calc[0], nFinalSize);
+			::ippsSum_64f(&m_v_dVol_Target[0], nFinalSize, &(*pvGrad)[nAt_dVol]);
+
+#else
 			ASSERT(arrCalc_dGPDF.GetDim() >= calcGPDF.GetDim());
 			if (!m_bTargetCrossEntropy)
 			{
@@ -386,13 +442,13 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 						// u * v'
 						(*pvGrad)[nAt_dVol] += 
 							calcGPDF[nAtBin] 
-								* R(1.0) / (calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS) 
-									* arrCalc_dGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS);
+								* R(1.0) / (calcGPDF[nAtBin] / targetGPDF_EPS[nAtBin] + EPS) 
+									* arrCalc_dGPDF[nAtBin] / targetGPDF_EPS[nAtBin];
 
 						// + u' * v
 						(*pvGrad)[nAt_dVol] += 
 							arrCalc_dGPDF[nAtBin]
-								* log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS);
+								* log(calcGPDF[nAtBin] / targetGPDF_EPS[nAtBin] + EPS);
 					}
 					else if (nAtBin < calcGPDF.GetDim())
 					{
@@ -415,7 +471,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 						// + u' * v
 						(*pvGrad)[nAt_dVol] += 
 							arrCalc_dGPDF[nAtBin]
-								* log(targetGPDF[nAtBin] + EPS);
+								* log(targetGPDF_EPS[nAtBin]);
 					}
 					else if (nAtBin < arrCalc_dGPDF.GetDim())
 					{
@@ -450,6 +506,7 @@ REAL CKLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
 					} 
 				}
 			}
+#endif
 		}
 
 		// now adjust or integral 
