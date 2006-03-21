@@ -5,11 +5,6 @@
 #include "stdafx.h"
 #include ".\include\histogram.h"
 
-#include <MathUtil.h>
-
-#include <ipps.h>
-#include <ippcv.h>
-
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -221,6 +216,7 @@ void CHistogram::SetRegion(CVolume<VOXEL_REAL> *pRegion)
 	// set the pointer
 	m_pRegion = pRegion;
 
+#ifdef _DEBUG
 	// check region for negatives
 	for (int nAtY = 0; nAtY < m_pRegion->GetHeight(); nAtY++)
 	{
@@ -229,6 +225,7 @@ void CHistogram::SetRegion(CVolume<VOXEL_REAL> *pRegion)
 			ASSERT(m_pRegion->GetVoxels()[0][nAtY][nAtX] >= 0.0);
 		}
 	}
+#endif
 
 	// flag recomputation
 	m_bRecomputeBins = TRUE;
@@ -489,7 +486,7 @@ const CVectorN<>& CHistogram::GetBins() const
 
 		// now set up the bins
 		REAL maxValue = m_pVolume->GetMax();
-		// if (m_arrBins.GetDim() < GetBinForValue(maxValue)+2)
+		if (m_arrBins.GetDim() < GetBinForValue(maxValue)+2)
 			m_arrBins.SetDim(GetBinForValue(maxValue)+2);
 		m_arrBins.SetZero();
 
@@ -501,12 +498,6 @@ const CVectorN<>& CHistogram::GetBins() const
 				for (int nAtX = rectBounds.left; nAtX <= rectBounds.right; nAtX++)
 				{
 					const int nLowBin = pppVoxelsBinLow[nAtZ][nAtY][nAtX];
-
-					// check that Frac and FracLow are summing to 1.0
-					ASSERT(IsApproxEqual<VOXEL_REAL>(pppVoxelsFracLow[nAtZ][nAtY][nAtX]
-							- pppVoxelsFrac[nAtZ][nAtY][nAtX],
-						m_pRegion->GetVoxels()[nAtZ][nAtY][nAtX], 
-							(VOXEL_REAL) 1e-3));
 
 					// check that region is positive definite
 					ASSERT(m_pRegion->GetVoxels()[nAtZ][nAtY][nAtX] >= 0.0);
@@ -524,25 +515,19 @@ const CVectorN<>& CHistogram::GetBins() const
 
 		if (m_binKernelSigma > 0.0)
 		{			
-			// if (m_arrGBins.GetDim() < GetBinForValue(maxValue + GBINS_BUFFER * m_binKernelSigma) + 1)
-			m_arrGBins.SetDim(GetBinForValue(maxValue + GBINS_BUFFER * m_binKernelSigma) + 1);
+			if (m_arrGBins.GetDim() < GetBinForValue(maxValue + GBINS_BUFFER * m_binKernelSigma) + 1)
+			{
+				m_arrGBins.SetDim(GetBinForValue(maxValue + GBINS_BUFFER * m_binKernelSigma) + 1);
+			}
 			ConvGauss(m_arrBins, m_arrGBins);
 		}
 
 		// now normalize
 		REAL calcSum = GetRegion()->GetSum();
-		CVectorD<3> vPixSpacing = GetRegion()->GetPixelSpacing();
-		calcSum *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
-		//REAL calcSum = R(0.0); // GetRegion()->GetSum();
-		//for (int nAtBin = 0; nAtBin < m_arrGBins.GetDim(); nAtBin++)
-		//{
-		//	calcSum += m_arrGBins[nAtBin];
-		//}
-		
 		if (calcSum > 0.0)
 		{
 			// normalize each bin
-			m_arrGBins *= R(1.0 / ((double) calcSum * (double) GetBinWidth()));
+			m_arrGBins *= R(1.0 / ((double) calcSum));
 		}
 
 		m_bRecomputeBins = FALSE;
@@ -875,20 +860,11 @@ const CVectorN<>& CHistogram::Get_dBins(int nAt) const
 			Conv_dGauss(arr_dBins, m_arr_dGBins[nAt]);
 
 			// now normalize
-			REAL calcSum = // R(0.0); // 
-				GetRegion()->GetSum();
-			CVectorD<3> vPixSpacing = GetRegion()->GetPixelSpacing();
-			calcSum *= vPixSpacing[0] * vPixSpacing[1]; // * vPixSpacing[2];
-
-			//for (int nAtBin = 0; nAtBin < m_arrGBins.GetDim(); nAtBin++)
-			//{
-			//	calcSum += m_arrGBins[nAtBin];
-			//}
-
+			REAL calcSum = GetRegion()->GetSum();
 			if (calcSum > 0.0)
 			{
 				// normalize this bin
-				m_arr_dGBins[nAt] *= R(1.0 / ((double) calcSum * (double) GetBinWidth()));
+				m_arr_dGBins[nAt] *= R(1.0 / ((double) calcSum));
 			}
 		}
 		LOG_EXPR_EXT(m_arr_dGBins[nAt]);
@@ -1184,10 +1160,8 @@ const CVolume<VOXEL_REAL> * CHistogram::Get_dVolume_x_Region(int nAt) const
 		ASSERT(m_arrRegionRotate[nGroup]->GetBasis().IsApproxEqual(Get_dVolume(nAt)->GetBasis()));
 
 		VOXEL_REAL *p_dVoxels_x_Region = &m_arr_dVolumes_x_Region[nAt]->GetVoxels()[0][0][0];
-		for (int nAtVoxel = 0; nAtVoxel < m_arrRegionRotate[nGroup]->GetVoxelCount(); nAtVoxel++)
-		{
-			p_dVoxels_x_Region[nAtVoxel] = pRegionVoxel[nAtVoxel] * p_dVoxels[nAtVoxel];
-		}
+		::MultValues<VOXEL_REAL>(p_dVoxels_x_Region, pRegionVoxel, p_dVoxels, 
+			m_arrRegionRotate[nGroup]->GetVoxelCount());
 		m_arr_dVolumes_x_Region[nAt]->VoxelsChanged();
 
 		m_arr_dVolumes_x_Region[nAt]->SetThreshold(
