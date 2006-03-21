@@ -21,7 +21,7 @@ public:
 
 	// accessors for the data series data
 	const CMatrixNxM<>& GetDataMatrix() const;
-	void SetDataMatrix(const CMatrixNxM<>& mData);
+	virtual void SetDataMatrix(const CMatrixNxM<>& mData);
 	void AddDataPoint(const CVectorD<2>& vDataPt);
 
 	// flag to indicate whether the data series should have handles
