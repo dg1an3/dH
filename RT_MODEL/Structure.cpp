@@ -221,6 +221,20 @@ CVolume<VOXEL_REAL> * CStructure::GetRegion(int nScale)
 			Decimate(&convRegion, pNewRegion);
 		}
 
+		// scale for pixel volume
+		CVectorD<3> vPixSpacing = pNewRegion->GetPixelSpacing();
+		REAL pixelVolume = vPixSpacing[0] * vPixSpacing[1] * vPixSpacing[2];
+
+		CRect rectBounds(0, 0, pNewRegion->GetWidth()-1, pNewRegion->GetHeight()-1);
+		IppiSize roiSize = { rectBounds.Width(), rectBounds.Height() };
+		IppStatus stat = ippiMulC_32f_C1R(
+			&pNewRegion->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+			pNewRegion->GetWidth() * sizeof(VOXEL_REAL),
+			(VOXEL_REAL) pixelVolume,
+			&pNewRegion->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+			pNewRegion->GetWidth() * sizeof(VOXEL_REAL),
+			roiSize);
+
 		m_arrRegions.Add(pNewRegion);
 
 		END_LOG_SECTION();
