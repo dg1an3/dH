@@ -327,12 +327,12 @@ void InitVolumes(CSeries *pSeries, CPlan *pPlan, CPrescription *pPresc)
 	// need to call after adding to prescription (so that binning has been set)
 	const REAL MAX_DOSE = (REAL) 0.65;
 
-	pKLDT_Target->SetInterval(MAX_DOSE, MAX_DOSE * /* 1.05 */ 1.01, 1.0);
+	pKLDT_Target->SetInterval(MAX_DOSE, MAX_DOSE * /* 1.05 */ 1.01, 1.0, TRUE);
 
 	CKLDivTerm *pKLDT_Avoid = new CKLDivTerm(pStructAvoid, 0.5);
 	pPresc->AddStructureTerm(pKLDT_Avoid);
 	pKLDT_Avoid->SetInterval((REAL) 0.0, (REAL) 0.40,
-		/* MAX_DOSE * 0.50 */ (REAL) 1.0);
+		/* MAX_DOSE * 0.50 */ (REAL) 1.0, TRUE);
 
 	END_LOG_SECTION();	// InitVolumes
 

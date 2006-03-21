@@ -81,8 +81,8 @@ void CPrescDlg::OnOK()
 	CKLDivTerm *pKLDT2 = new CKLDivTerm(m_pStruct, 2.5);
 	m_pPresc->AddStructureTerm(pKLDT2);
 	
-	pKLDT1->SetInterval(m_Dose1, m_Dose2, 1.0);
-	pKLDT2->SetInterval(m_Dose1, m_Dose2, 1.0);
+	pKLDT1->SetInterval(m_Dose1, m_Dose2, 1.0, TRUE);
+	pKLDT2->SetInterval(m_Dose1, m_Dose2, 1.0, TRUE);
 
 	m_pPresc->SetElementInclude();
 

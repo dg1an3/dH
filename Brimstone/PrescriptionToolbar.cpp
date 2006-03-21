@@ -111,7 +111,7 @@ void CPrescriptionToolbar::UpdatePresc(void)
 	{
 		CKLDivTerm *pKLDT = static_cast<CKLDivTerm *>(pVOIT);
 		pKLDT->SetInterval((REAL) nDose1 / 100.0, 
-			(REAL) nDose2 / 100.0, 1.0);
+			(REAL) nDose2 / 100.0, 1.0, TRUE);
 		ASSERT((int) floor(pKLDT->GetMinDose() * 100.0 + 0.5) == nDose1);
 		ASSERT((int) floor(pKLDT->GetMaxDose() * 100.0 + 0.5) == nDose2);
 	}
@@ -302,7 +302,7 @@ void CPrescriptionToolbar::OnPrescriptionChange()
 			REAL dose2 = (CStructure::eTARGET == pStruct->GetType()) ? 0.70 : 0.30;
 
 			// sets the term prescription interval
-			pKLDT->SetInterval(dose1, dose2, 1.0);
+			pKLDT->SetInterval(dose1, dose2, 1.0, TRUE);
 
 			// update tool bar
 			OnSelchangeStructselectcombo();
