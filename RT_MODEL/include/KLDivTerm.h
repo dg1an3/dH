@@ -33,7 +33,7 @@ public:
 	void SetDVPs(const CMatrixNxM<>& mDVP);
 
 	// special-purpose
-	void SetInterval(REAL low, REAL high, REAL fraction);
+	void SetInterval(REAL low, REAL high, REAL fraction, BOOL bMid);
 
 	// returns minimum / maximum target dose to the structure
 	REAL GetMinDose(void) const;
@@ -63,7 +63,16 @@ private:
 
 	// the convolved bins
 	mutable CVectorN<> m_vTargetGBins;
+	// mutable CVectorN<> m_vTargetGBins_EPS;	// adds epsilon
 	mutable bool m_bReconvolve;
+
+	// temp to hold calc + EPS
+	CVectorN<> m_vCalc_EPS;
+	CVectorN<> m_vTarget_div_Calc;
+	CVectorN<> m_vTarget_div_Calc_EPS;
+	CVectorN<> m_vLogTarget_div_Calc;
+	CVectorN<> m_v_dx_Target_div_Calc;
+	CVectorN<> m_v_dVol_Target;
 
 	// use if cross entropy of calc w.r.t. target is needed
 	bool m_bTargetCrossEntropy;
