@@ -4,15 +4,12 @@
 
 #include "stdafx.h"
 
-#include <UtilMacros.h>
-
 #include "Prescription.h"
 
 #include <ConjGradOptimizer.h>
 
 #include <iostream>
 #include ".\include\prescription.h"
-// s#include ".\include\prescription.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -342,6 +339,34 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 	BEGIN_LOG_SECTION(CPrescription::Optimize);
 	LOG(FMT("Optimizing Scale %i", m_nLevel));
 
+/*
+	// set up tolerances
+	if (m_nLevel == 0)
+	{
+		REAL sumWeight = 0.0;
+		POSITION pos = m_mapVOITs.GetStartPosition();
+		while (pos != NULL)
+		{
+			CStructure *pStruct = NULL;
+			CVOITerm *pVOIT = NULL;
+			m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+			sumWeight += pVOIT->GetWeight();
+		}
+
+		REAL tol[3];
+		tol[0] = GetProfileReal("Prescription", "Tolerance0", 1e-3) * sumWeight;
+		tol[1] = GetProfileReal("Prescription", "Tolerance1", 1e-3) * sumWeight;
+		tol[2] = GetProfileReal("Prescription", "Tolerance2", 1e-3) * sumWeight;
+
+		CPrescription *pPresc = this;
+		pPresc->m_tolerance = tol[0];
+		for (int nAtLevel = 1; nAtLevel < MAX_SCALES; nAtLevel++)
+		{
+			pPresc = pPresc->m_pNextLevel;
+			pPresc->m_tolerance = tol[nAtLevel];
+		}
+	}
+*/
 	if (m_pNextLevel)
 	{
 		// FilterStateVector(vInit, m_nLevel, vInit);
