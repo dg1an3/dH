@@ -78,7 +78,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib"
+				AdditionalDependencies="$(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmimgle\libsrc\Debug\dcmimgle.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmdata\libsrc\Debug\dcmdata.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\ofstd\libsrc\Debug\ofstd.lib ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib"
 				OutputFile=".\Debug/Brimstone.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -181,7 +181,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib"
+				AdditionalDependencies="$(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmimgle\libsrc\Release\dcmimgle.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmdata\libsrc\Release\dcmdata.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\ofstd\libsrc\Release\ofstd.lib ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib"
 				OutputFile=".\Release/Brimstone.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
