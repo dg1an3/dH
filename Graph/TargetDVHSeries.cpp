@@ -16,6 +16,21 @@ CTargetDVHSeries::~CTargetDVHSeries(void)
 {
 }
 
+void CTargetDVHSeries::SetDataMatrix(const CMatrixNxM<>& mData)
+{
+	CDataSeries::SetDataMatrix(mData);
+
+	CMatrixNxM<REAL> mTemp(mData.GetCols(), mData.GetRows());
+	mTemp = mData;
+	for (int nAt = 0; nAt < mData.GetCols(); nAt++)
+	{
+		mTemp[nAt][0] /= R(100.0);
+		mTemp[nAt][1] /= R(100.0);
+	}
+
+	m_pKLDivTerm->SetDVPs(mTemp);
+}
+
 void CTargetDVHSeries::OnKLDTChanged(CObservableEvent * pEv, void * pVoid)
 {
 		// m_mData.Reshape(0, 2);
