@@ -250,7 +250,8 @@ BASE_DYADIC_OP_C_I(MultValues, pSrcLDst[nAt] *= valueR);
 // Division
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-BASE_DYADIC_OP(DivValues, pDst[nAt] = pSrcL[nAt] / pSrcR[nAt]);
+// TODO: check this out (IPP uses strange order)
+BASE_DYADIC_OP(DivValues, pDst[nAt] = pSrcR[nAt] / pSrcL[nAt]);
 #ifdef USE_IPP
 	// IPP_DYADIC_OP(DivValues, Ipp16s, ippsDiv_16s);
 	IPP_DYADIC_OP(DivValues, Ipp32f, ippsDiv_32f);
