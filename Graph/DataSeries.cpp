@@ -44,6 +44,7 @@ const CMatrixNxM<>& CDataSeries::GetDataMatrix() const
 
 void CDataSeries::SetDataMatrix(const CMatrixNxM<>& mData)
 {
+	m_mData.Reshape(mData.GetCols(), mData.GetRows());
 	m_mData = mData;
 	GetChangeEvent().Fire();
 }
@@ -62,10 +63,11 @@ void CDataSeries::AddDataPoint(const CVectorD<2>& vDataPt)
 	mTemp[mTemp.GetCols()-1][0] = vDataPt[0];
 	mTemp[mTemp.GetCols()-1][1] = vDataPt[1];
 
-	m_mData.Reshape(mTemp.GetCols(), mTemp.GetRows());
-	m_mData = (const CMatrixNxM<>&)(mTemp);
+	SetDataMatrix(mTemp);
+	// m_mData.Reshape(mTemp.GetCols(), mTemp.GetRows());
+	// m_mData = (const CMatrixNxM<>&)(mTemp);
 
-	GetChangeEvent().Fire();
+	// GetChangeEvent().Fire();
 }
 
 // flag to indicate whether the data series should have handles
