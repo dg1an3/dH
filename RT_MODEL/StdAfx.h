@@ -33,6 +33,24 @@
 #include <XMLLogging.h>
 USES_FMT;
 
+// math include
+#include <math.h>
+
+// IPP includes
+#include <ipps.h>
+#include <ippcv.h>
+
+// utility macros
+#include <UtilMacros.h>
+
+// MTL includes
+#include <MathUtil.h>
+#include <VectorOps.h>
+
+// geom includes
+#include <Volumep.h>
+#include <Structure.h>
+
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 

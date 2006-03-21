@@ -4,8 +4,6 @@
 #include "stdafx.h"
 #include ".\include\plan.h"
 
-#include <UtilMacros.h>
-
 #include <EnergyDepKernel.h>
 
 #ifdef _DEBUG

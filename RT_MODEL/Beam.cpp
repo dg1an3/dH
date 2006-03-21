@@ -8,16 +8,10 @@
 // pre-compiled headers
 #include "stdafx.h"
 
-// math include
-#include <math.h>
-
-// utility macros
-#include <UtilMacros.h>
-
 // class declaration
 #include "Beam.h"
 
-#include <BeamDoseCalc.h>
+#include "BeamDoseCalc.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE

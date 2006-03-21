@@ -5,12 +5,8 @@
 #include "stdafx.h"
 #include "BeamDoseCalc.h"
 
-
-#include <MathUtil.h>
-
 #include <EnergyDepKernel.h>
 #include <Beam.h>
-
 
 #ifdef _DEBUG
 #undef THIS_FILE

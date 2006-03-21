@@ -5,10 +5,6 @@
 #include "stdafx.h"
 #include "EnergyDepKernel.h"
 
-#include <MathUtil.h>
-
-#include <Volumep.h>
-
 #include <direct.h>
 
 #ifdef _DEBUG
