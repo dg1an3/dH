@@ -365,7 +365,7 @@ BOOL CMatrixD<DIM, TYPE>::Invert(BOOL bFlag)
 	BOOL CMatrixD<DIM, TYPE>::Invert(BOOL bFlag)				\
 	{															\
 		TYPE arrElements[DIM][DIM];								\
-		static TYPE arrBuffer[2 * DIM][DIM];					\
+		__declspec(thread) static TYPE arrBuffer[2 * DIM][DIM];					\
 		IppStatus stat = ippmInvert_m_##TYPE_IPP(&(*this)[0][0],	\
 			DIM * sizeof(TYPE),									\
 			DIM, 												\
