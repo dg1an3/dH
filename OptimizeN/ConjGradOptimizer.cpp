@@ -32,7 +32,8 @@ CConjGradOptimizer::CConjGradOptimizer(CObjectiveFunction *pFunc)
 	: COptimizer(pFunc),
 		m_lineFunction(pFunc),
 		m_pLineOptimizer(&m_optimizeBrent),
-		m_optimizeBrent(&m_lineFunction)
+		m_optimizeBrent(&m_lineFunction),
+		m_bSetLineToleranceEqual(true)
 {
 	// set the Brent optimizer to use the gradient information
 	m_optimizeBrent.SetUseGradientInfo(FALSE);
@@ -63,7 +64,10 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	LOG_EXPR_EXT(vInit);
 
 	// set the tolerance for the line optimizer
-	m_pLineOptimizer->SetTolerance(GetTolerance());
+	if (m_bSetLineToleranceEqual)
+	{
+		m_pLineOptimizer->SetTolerance(GetTolerance());
+	}
 	LOG_EXPR(GetTolerance());
 
 	// store the initial parameter vector
@@ -81,7 +85,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 	LOG_EXPR_EXT(m_vGrad);
 
 	// if we are too short,
-	if (m_vGrad.GetLength() < GetTolerance())
+	if (m_vGrad.GetLength() < 1e-8) // GetTolerance())
 	{
 		LOG("Gradient too small -- adding length");
 		RandomVector(GetTolerance(), &m_vGrad[0], m_vGrad.GetDim());
@@ -132,7 +136,7 @@ const CVectorN<>& CConjGradOptimizer::Optimize(const CVectorN<>& vInit)
 		// need to call-back?
 		if (m_pCallbackFunc)
 		{
-			if (!(*m_pCallbackFunc)(m_finalValue, m_vFinalParam, m_pCallbackParam)) 
+			if (!(*m_pCallbackFunc)(this, m_pCallbackParam)) 
 			{
 				// request to terminate
 				m_nIteration = -1;
