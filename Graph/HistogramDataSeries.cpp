@@ -4,50 +4,71 @@
 #include <Graph.h>
 #include ".\include\histogramdataseries.h"
 
-CHistogramDataSeries::CHistogramDataSeries(CHistogram *pHisto)
-: m_pHisto(pHisto)
+////////////////////////////////////////////////////////////////////////////
+	CHistogramDataSeries::CHistogramDataSeries(CHistogram *pHisto)
+		: m_pHistogram(pHisto)
+		, m_bRecalcCurve(true)
 {
-	m_pHisto->GetChangeEvent().AddObserver(this, 
-		(ListenerFunction) &CHistogramDataSeries::OnHistogramChanged);
+	AddObserver(&m_pHistogram->GetChangeEvent(), this, 
+		&CHistogramDataSeries::OnHistogramChanged);
 
-	OnHistogramChanged(NULL, NULL);
-}
+	// OnHistogramChanged(NULL, NULL);
 
-CHistogramDataSeries::~CHistogramDataSeries(void)
+}	// CHistogramDataSeries::CHistogramDataSeries
+
+////////////////////////////////////////////////////////////////////////////
+	CHistogramDataSeries::~CHistogramDataSeries(void)
 {
-}
+}	// CHistogramDataSeries::~CHistogramDataSeries
 
-void CHistogramDataSeries::OnHistogramChanged(CObservableEvent *, void *)
+////////////////////////////////////////////////////////////////////////////
+const CMatrixNxM<>& 
+	CHistogramDataSeries::GetDataMatrix() const
+	// recalculates the data matrix based on current histogram, if flagged
 {
-		// m_mData.Reshape(0, 2);
-
-	// now draw the histogram
-	const CVectorN<>& arrBins = m_pHisto->GetCumBins();
-
-	m_mData.Reshape(arrBins.GetDim(), 2);
-	REAL sum = m_pHisto->GetRegion()->GetSum();
-	// int nStart = -floor(m_pHisto->GetBinMinValue() / m_pHisto->GetBinWidth());
-	REAL binValue = m_pHisto->GetBinMinValue();
-	for (int nAt = 0; /* nStart; */ nAt < arrBins.GetDim(); nAt++)
+	if (m_bRecalcCurve)
 	{
-		m_mData[nAt][0] = R(100.0) * binValue;
-		m_mData[nAt][1] = R(100.0) * arrBins[nAt] / sum;
-		// AddDataPoint(CVectorD<2>(100.0 * binValue, 100.0 * arrBins[nAt] / sum));
-		// AddDataPoint(CVectorD<2>
-		//	(1000 * (nAt - nStart) / 256, arrBins[nAt] / sum * 4100.0));
-		binValue += m_pHisto->GetBinWidth();
-	}	
+		// now draw the histogram
+		const CVectorN<>& arrBins = GetHistogram()->GetCumBins();
 
-	if (m_pGraph)
-	{
-		m_pGraph->AutoScale();
-		m_pGraph->SetAxesMin(CVectorD<2>(0.0, 0.0));
-		m_pGraph->Invalidate(TRUE);
+		m_mData.Reshape(arrBins.GetDim(), 2);
+		REAL sum = GetHistogram()->GetRegion()->GetSum();
+		REAL binValue = GetHistogram()->GetBinMinValue();
+		for (int nAt = 0; nAt < m_mData.GetCols(); nAt++)
+		{
+			m_mData[nAt][0] = R(100.0) * binValue;
+			m_mData[nAt][1] = R(100.0) * arrBins[nAt] / sum;
+			binValue += GetHistogram()->GetBinWidth();
+			if (IsApproxEqual(m_mData[nAt][1], 0.0))
+			{
+				m_mData.Reshape(nAt+1, 2);
+			}
+		}	
+
+		m_bRecalcCurve = false;
 	}
-}
+
+	return CDataSeries::GetDataMatrix();
+
+}	// CHistogramDataSeries::GetDataMatrix
+
+////////////////////////////////////////////////////////////////////////////
+void 
+	CHistogramDataSeries::OnHistogramChanged(CObservableEvent *, void *)
+{
+	// flag recalc
+	m_bRecalcCurve = true;
+
+	// propagate change
+	GetChangeEvent().Fire();
+
+}	// CHistogramDataSeries::OnHistogramChanged
 
 
+/*
+////////////////////////////////////////////////////////////////////////////
 CHistogram * CHistogramDataSeries::GetHistogram(void)
 {
 	return m_pHisto;
 }
+*/

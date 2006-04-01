@@ -1,55 +1,57 @@
 #include "StdAfx.h"
 #include ".\dataseries.h"
 
-CDataSeries::CDataSeries(void)
-	: m_pGraph(NULL)
+////////////////////////////////////////////////////////////////////////////
+	CDataSeries::CDataSeries(void)
+		: m_pGraph(NULL)
 		, m_pObject(NULL)
-		, m_color(RGB(255, 0, 0))
-		, m_bHandles(FALSE)
-		, m_nPenStyle(PS_SOLID)
+		, m_Color(RGB(255, 0, 0))
+		, m_HasHandles(false)
+		, m_PenStyle(PS_SOLID)
 { 
-}
+}	// CDataSeries::CDataSeries
 
 
-CDataSeries::~CDataSeries(void)
+////////////////////////////////////////////////////////////////////////////
+	CDataSeries::~CDataSeries(void)
 {
-}
+}	// CDataSeries::~CDataSeries
 
 
-CObject * CDataSeries::GetObject()
+////////////////////////////////////////////////////////////////////////////
+void 
+	CDataSeries::SetColor(const COLORREF& color)
 {
-	return m_pObject;
-}
-
-void CDataSeries::SetObject(CObject *pObject)
-{
-	m_pObject = pObject;
-}
-COLORREF CDataSeries::GetColor() const
-{
-	return m_color;
-}
-
-void CDataSeries::SetColor(COLORREF color)
-{
-	m_color = color;
+	m_Color = color;
 	GetChangeEvent().Fire();
-}
 
-// accessors for the data series data
-const CMatrixNxM<>& CDataSeries::GetDataMatrix() const
+}	// CDataSeries::SetColor
+
+////////////////////////////////////////////////////////////////////////////
+const CMatrixNxM<>& 
+	CDataSeries::GetDataMatrix() const
+		// accessor for the data series data
 {
 	return m_mData;
-}
 
-void CDataSeries::SetDataMatrix(const CMatrixNxM<>& mData)
+}	// CDataSeries::GetDataMatrix()
+
+////////////////////////////////////////////////////////////////////////////
+void 
+	CDataSeries::SetDataMatrix(const CMatrixNxM<>& mData)
 {
+	// copy the data
 	m_mData.Reshape(mData.GetCols(), mData.GetRows());
 	m_mData = mData;
-	GetChangeEvent().Fire();
-}
 
-void CDataSeries::AddDataPoint(const CVectorD<2>& vDataPt)
+	// notify
+	GetChangeEvent().Fire();
+
+}	// CDataSeries::SetDataMatrix
+
+////////////////////////////////////////////////////////////////////////////
+void 
+	CDataSeries::AddDataPoint(const CVectorD<2>& vDataPt)
 {
 	// TODO: fix Reshape to correct this problem
 	// ALSO TODO: CMatrixNxM serialization
@@ -60,40 +62,14 @@ void CDataSeries::AddDataPoint(const CVectorD<2>& vDataPt)
 		mTemp[nAt][1] = m_mData[nAt][1];
 	}
 
+	// set the data point
 	mTemp[mTemp.GetCols()-1][0] = vDataPt[0];
 	mTemp[mTemp.GetCols()-1][1] = vDataPt[1];
 
+	// call this, so that virtual over-rides can do their job
 	SetDataMatrix(mTemp);
-	// m_mData.Reshape(mTemp.GetCols(), mTemp.GetRows());
-	// m_mData = (const CMatrixNxM<>&)(mTemp);
 
+	// DON'T call change event, because SetDataMatrix calls it
 	// GetChangeEvent().Fire();
-}
 
-// flag to indicate whether the data series should have handles
-//		for interaction
-BOOL CDataSeries::HasHandles() const
-{
-	return m_bHandles;
-}
-
-void CDataSeries::SetHasHandles(BOOL bHandles)
-{
-	m_bHandles = TRUE;
-}
-
-// accessors to indicate the data series monotonic direction: 
-//		-1 for decreasing, 
-//		1 for increasing,
-//		0 for not monotonic
-int CDataSeries::GetMonotonicDirection() const
-{
-	return m_nMonotonicDirection;
-}
-
-void CDataSeries::SetMonotonicDirection(int nDirection)
-{
-	m_nMonotonicDirection = nDirection;
-}
-
-
+}	// CDataSeries::AddDataPoint
