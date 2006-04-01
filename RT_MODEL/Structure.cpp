@@ -342,7 +342,7 @@ void CStructure::ContoursToRegion(CVolume<VOXEL_REAL> *pRegion)
 
 
 // stores the convolution kernel
-CVolume<VOXEL_REAL> CStructure::m_kernel;
+// CVolume<VOXEL_REAL> CStructure::m_kernel;
 
 ///////////////////////////////////////////////////////////////////////////////
 // CStructure::InitFilter

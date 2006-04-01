@@ -107,7 +107,8 @@ private:
 	COLORREF m_color;
 
 	// static holds the filter kernel
-	static CVolume<VOXEL_REAL> m_kernel;
+	// static 
+		CVolume<VOXEL_REAL> m_kernel;
 
 };	// class CStructure
 
