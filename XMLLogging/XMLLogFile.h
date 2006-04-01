@@ -26,7 +26,7 @@ public:
 	BOOL ClearLog();
 	long m_nNextUID;
 	// construction / destruction
-	CXMLLogFile(const char *pszAppName);
+	CXMLLogFile(const char *pszAppName = NULL);
 	virtual ~CXMLLogFile();
 
 	// creates a new element and places on stack
@@ -121,7 +121,8 @@ public:
 	CMapStringToString m_mapFormats;
 
 	// the singleton
-	static CXMLLogFile m_pGlobalFile;
+	__declspec(thread) 
+	static CXMLLogFile *m_pGlobalFile;
 
 };	// class CXMLLogFile
 
