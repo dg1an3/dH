@@ -21,8 +21,8 @@ static char THIS_FILE[]=__FILE__;
 
 
 // filter for intensity maps
-CVectorN<> CBeam::m_vWeightFilter;
-CMatrixNxM<> CBeam::m_mFilter[MAX_SCALES - 1];
+// CVectorN<> CBeam::m_vWeightFilter;
+// CMatrixNxM<> CBeam::m_mFilter[MAX_SCALES - 1];
 
 
 //////////////////////////////////////////////////////////////////////
@@ -485,7 +485,13 @@ CVolume<VOXEL_REAL> * CBeam::GetBeamletSub(int nShift, int nLevel)
 {
 	int nBeamletAt = nShift + GetBeamletCount(nLevel) / 2;
 
-	return m_arrBeamletsSub[nLevel][nBeamletAt];
+	if (nBeamletAt >= 0 
+		&& nBeamletAt < m_arrBeamletsSub[nLevel].GetSize())
+	{
+		return m_arrBeamletsSub[nLevel][nBeamletAt];
+	}
+
+	return NULL;
 
 }	// CBeam::GetBeamletSub
 
@@ -644,6 +650,8 @@ void CBeam::InvFiltIntensityMap(int nLevel, const CVectorN<>& vWeights,
 	LOG_EXPR(nLevel);
 	LOG_EXPR_EXT(vWeights);
 
+	const CMatrixNxM<>&mFiltMat = GetFilterMat(nLevel-1);
+
 	CVectorN<> vFilterOut;
 	vFilterOut.SetDim(vWeights.GetDim() * 2 + 1);
 	vFilterOut.SetZero();
@@ -653,7 +661,19 @@ void CBeam::InvFiltIntensityMap(int nLevel, const CVectorN<>& vWeights,
 		vFilterOut[nAt * 2 + 1] = vWeights[nAt];
 	}
 
-	vFiltWeights = GetFilterMat(nLevel-1) * vFilterOut;
+	// TODO: fix this (only used for 5 -> 9 transition)
+	if (vFilterOut.GetDim() > mFiltMat.GetCols())
+	{
+		CVectorN<> vTemp(mFiltMat.GetCols());
+		for (int nAt = 0; nAt < mFiltMat.GetCols(); nAt++)
+		{
+			vTemp[nAt] = vFilterOut[nAt+1];
+		}
+		vFilterOut.SetDim(vTemp.GetDim());
+		vFilterOut = vTemp;
+	}
+
+	vFiltWeights = mFiltMat * vFilterOut;
 	vFiltWeights *= 2.0;
 
 	END_LOG_SECTION();
