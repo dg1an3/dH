@@ -40,6 +40,9 @@ public:
 	// optimize the objective function
 	virtual const CVectorN<>& Optimize(const CVectorN<>& vInit);
 
+	// flag to indicate that line opt tolerance should always be same
+	bool m_bSetLineToleranceEqual;
+
 private:
 	// line function that projects the objective function along 
 	//		a given line
