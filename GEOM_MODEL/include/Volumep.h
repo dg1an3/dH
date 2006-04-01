@@ -178,10 +178,10 @@ private:
 	VOXEL_TYPE m_thresh;
 	mutable CRect m_rectThresh;
 
-#if defined(USE_IPP)
+// #if defined(USE_IPP)
 	// accumulator helper buffer
 	CVolume<VOXEL_TYPE> *m_pAccumBuffer;
-#endif
+// #endif
 
 public:
 	virtual void AssertValid() const;
