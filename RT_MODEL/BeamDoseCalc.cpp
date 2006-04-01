@@ -93,14 +93,17 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 	// now filter density
 	m_densityFilt.ConformTo(pOrigDensity);
 	m_densityFilt.ClearVoxels();
-	::Convolve(pOrigDensity, &m_kernel, &m_densityFilt);
+	// ::Convolve(pOrigDensity, &m_kernel, &m_densityFilt);
 	VOXEL_REAL filtered_max = m_densityFilt.GetMax();
 
 	// TODO: check that dose matrix is initialized
 	ASSERT(m_pBeam->m_dose.GetWidth() > 0);
 	m_densityRep.ConformTo(&m_pBeam->m_dose);
 	m_densityRep.ClearVoxels();
-	::Resample(&m_densityFilt, &m_densityRep, TRUE); 
+	::Resample( 
+		// &m_densityFilt,
+		pOrigDensity,
+		&m_densityRep, TRUE); 
 	VOXEL_REAL resamp_max = m_densityRep.GetMax();
 //	ASSERT(IsApproxEqual(resamp_max, filtered_max));
 
@@ -236,6 +239,20 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 		}
 	}
 
+	// now calc subbeamlets
+	CalcPencilSubBeamlets();
+
+}	// CBeamDoseCalc::CalcPencilBeams
+
+void CBeamDoseCalc::CalcPencilSubBeamlets()
+{
+	// stores beamlet count for level N
+	int nBeamletCount = m_nBeamletCount;
+
+	CVolume<VOXEL_REAL> kernel;
+	kernel.SetDimensions(5, 5, 1);
+	CalcBinomialFilter(&kernel);
+
 	// now generate level 1..n beamlets
 	for (int nAtScale = 1; nAtScale < MAX_SCALES; nAtScale++)
 	{
@@ -256,12 +273,18 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 			beamlet.ConformTo(m_pBeam->GetBeamletSub(0, nAtScale-1));
 			beamlet.ClearVoxels();
 
-			beamlet.Accumulate(m_pBeam->GetBeamletSub(nAtShift * 2 - 1, nAtScale-1), 
-				2.0 * m_pBeam->m_vWeightFilter[0]);
+			CVolume<VOXEL_REAL> * pPrevBeamletLow = 
+				m_pBeam->GetBeamletSub(nAtShift * 2 - 1, nAtScale-1);
+			if (pPrevBeamletLow != NULL)
+				beamlet.Accumulate(pPrevBeamletLow, 
+					2.0 * m_pBeam->m_vWeightFilter[0]);
 			beamlet.Accumulate(m_pBeam->GetBeamletSub(nAtShift * 2 + 0, nAtScale-1), 
 				2.0 * m_pBeam->m_vWeightFilter[1]);
-			beamlet.Accumulate(m_pBeam->GetBeamletSub(nAtShift * 2 + 1, nAtScale-1), 
-				2.0 * m_pBeam->m_vWeightFilter[2]);
+			CVolume<VOXEL_REAL> * pPrevBeamletHigh = 
+				m_pBeam->GetBeamletSub(nAtShift * 2 + 1, nAtScale-1);
+			if (pPrevBeamletHigh != NULL)
+				beamlet.Accumulate(pPrevBeamletHigh, 
+					2.0 * m_pBeam->m_vWeightFilter[2]);
 
 			// convolve with gaussian
 			CVolume<VOXEL_REAL> beamletConv;
@@ -277,8 +300,7 @@ void CBeamDoseCalc::CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity)
 			LOG_OBJECT((*pBeamletConvDec));
 		}
 	}
-
-}	// CBeamDoseCalc::CalcPencilBeams
+}
 
 
 
@@ -424,11 +446,11 @@ void CBeamDoseCalc::CalcTerma(const CVectorD<2>& vMin_in,
 			}
 
 			// iterate ray trace until volume boundary is reached 
-			while (nNdx[X] >= 0 
-				&& nNdx[X] < m_pTerma->GetHeight()
-				&& nNdx[Y] >= 0 
-				&& nNdx[Y] < m_pTerma->GetDepth()
-				&& nNdx[Z] < m_pTerma->GetWidth())
+			while (nNdx[X] >= 1 
+				&& nNdx[X] < m_pTerma->GetHeight()-1
+				&& nNdx[Y] >= 1 
+				&& nNdx[Y] < m_pTerma->GetDepth()-1
+				&& nNdx[Z] < m_pTerma->GetWidth()-1)
 			{
 				// delta path = radiological path (based on mass density) through voxel
 				REAL deltaPath;
@@ -580,6 +602,7 @@ void CBeamDoseCalc::CalcSphereConvolve()
 				// dose at zero density?
 				if (pppDensity[nZ][nY][nX] > 0.05) 
 				{
+// #define TERMA_ONLY
 #if !defined(TERMA_ONLY)
 					// spherical convolution at this point
 					CalcSphereTrace(nX, nY, nZ);
