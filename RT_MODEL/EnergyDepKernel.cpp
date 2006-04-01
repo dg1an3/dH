@@ -78,27 +78,27 @@ void CEnergyDepKernel::Init()
 	}
 
 	// The dose spread arrays produced by SUM_ELEMENT.FOR are read.
-	FILE *pFile = fopen(strFilename, "rt");
+	FILE *pFile = NULL;
+	fopen_s(&pFile, strFilename, "rt");
 	if (pFile == NULL)
 	{
 		::AfxMessageBox("Problem reading kernel...");
 		return;
 	}
-	
-	char pszLine[100];
-	
 
-	fscanf(pFile, "%[^\n]\n", pszLine);	
-	fscanf(pFile, "%[^\n]\n", pszLine);	
+	static char pszLine[10000];
+	
+	fscanf_s(pFile, "%[^\n]\n", pszLine, 1000);
+	fscanf_s(pFile, "%[^\n]\n", pszLine, 1000);
 
 	int nNumPhiIn;
 	int nNumRadIn;
 
-	fscanf(pFile, "%i\n", &nNumPhiIn);	
-	fscanf(pFile, "%i\n", &nNumRadIn);	
+	fscanf_s(pFile, "%i\n", &nNumPhiIn);	
+	fscanf_s(pFile, "%i\n", &nNumRadIn);	
 
-	fscanf(pFile, "%[^\n]\n", pszLine);	
-	fscanf(pFile, "%[^\n]\n", pszLine);	
+	fscanf_s(pFile, "%[^\n]\n", pszLine, 1000);
+	fscanf_s(pFile, "%[^\n]\n", pszLine, 1000);
 	
 	
 	// set up increment energy array
@@ -110,25 +110,27 @@ void CEnergyDepKernel::Init()
 		for (int nR = 1; nR <= nNumRadIn; nR++)
 		{
 			// read dose spread values      
-			fscanf(pFile, "%lf", &mIncEnergyIn[nA-1][nR]);
+			fscanf_s(pFile, "%lf", &mIncEnergyIn[nA-1][nR]);
 			mIncEnergyIn[nA-1][nR] += mIncEnergyIn[nA-1][nR-1];
 		}
 	}  
 
 	// read (1,*)
-	fscanf(pFile, "%*s%[^\n]\n", pszLine);		
+	fscanf_s(pFile, "%s", pszLine, 1000);
+	fscanf_s(pFile, "%[^\n]\n", pszLine, 1000);		
 	
 	// set up angle vector
 	m_vAnglesIn.SetDim(nNumPhiIn+1);
 	for (int nA = 1; nA <= nNumPhiIn; nA++)
 	{        
 		// read mean angle of spherical voxels 
-		fscanf(pFile, "%lf", &m_vAnglesIn[nA-1]);      
+		fscanf_s(pFile, "%lf", &m_vAnglesIn[nA-1]);      
 	} 
 	
 	// set up radial bounds vector
 	// read (1,*)
-	fscanf(pFile, "%*s%[^\n]\n", pszLine);		
+	fscanf_s(pFile, "%s", pszLine, 1000);	
+	fscanf_s(pFile, "%[^\n]\n", pszLine, 1000);	
 	
 	CVectorN<REAL> vRadialBoundsIn;
 	vRadialBoundsIn.SetDim(nNumRadIn+1);
@@ -136,7 +138,7 @@ void CEnergyDepKernel::Init()
 	for (int nR = 1; nR <= nNumRadIn; nR++)
 	{              
 		// read radial boundaries of spherical voxels
-		fscanf(pFile, "%lf", &vRadialBoundsIn[nR]);   
+		fscanf_s(pFile, "%lf", &vRadialBoundsIn[nR]);   
 	} 
 
 	fclose(pFile);
@@ -196,7 +198,7 @@ void CEnergyDepKernel::InterpCumEnergy(const CMatrixNxM<>& mIncEnergy,
 			}
 		}
 	}
-	
+
 }	// CEnergyDepKernel::InterpCumEnergy
 
 
