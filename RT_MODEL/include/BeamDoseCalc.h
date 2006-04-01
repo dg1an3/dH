@@ -32,6 +32,7 @@ public:
 
 	// triggers calculation of beam's pencil beams
 	void CalcPencilBeams(CVolume<VOXEL_REAL> *pOrigDensity);
+	void CalcPencilSubBeamlets();
 
 	// vMin, vMax in physical coords at isocentric plane
 	void CalcTerma(const CVectorD<2>& vMin_in,
