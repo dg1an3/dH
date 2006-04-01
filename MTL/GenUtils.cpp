@@ -14,6 +14,7 @@
 
 #include "GenUtils.h"
 
+/*
 static FILE *g_logFile = NULL;
 
 void create_log_file()
@@ -56,3 +57,4 @@ void log_trace(const char *pszFormat, ...)
 	// flush the log file
 	fflush(g_logFile);
 }
+*/
