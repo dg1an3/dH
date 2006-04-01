@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="OPTIMIZER_BASE"
-	ProjectGUID="{1AE56DD0-0829-4921-B831-BB798E779622}"
+	ProjectGUID="{EA575145-B3A6-4FD0-AE0D-C7B1EC7CD2F7}"
 	RootNamespace="OPTIMIZER_BASE"
 	Keyword="MFCProj"
 	>
