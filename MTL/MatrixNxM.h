@@ -185,8 +185,11 @@ CMatrixNxM<TYPE>& CMatrixNxM<TYPE>::operator=(const CMatrixNxM<TYPE>& fromMatrix
 	ASSERT(GetCols() == fromMatrix.GetCols());
 	ASSERT(GetRows() == fromMatrix.GetRows());
 
-	// assign values
-	CopyValues(&(*this)[0][0], &fromMatrix[0][0], GetCols() * GetRows());
+	if (GetCols() > 0)
+	{
+		// assign values
+		CopyValues(&(*this)[0][0], &fromMatrix[0][0], GetCols() * GetRows());
+	}
 
 	return (*this);
 
@@ -625,8 +628,8 @@ void CMatrixNxM<TYPE>::Transpose()
 		ASSERT(GetRows() == GetCols());							\
 		TYPE *pElements = NULL;									\
 		AllocValues(GetRows() * GetCols(), pElements);			\
-		static TYPE *arrBuffer = NULL;							\
-		static int nLength = 0;									\
+		__declspec(thread) static TYPE *arrBuffer = NULL;							\
+		__declspec(thread) static int nLength = 0;									\
 		if (nLength < GetRows() * GetCols())					\
 		{														\
 			FreeValues(arrBuffer);								\
