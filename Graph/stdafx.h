@@ -34,7 +34,11 @@
 #include <afxtempl.h>
 #include <afxdisp.h>
 
-// TODO: reference additional headers your program requires here
-
 #include <atlcoll.h>
+
+#include <VectorD.h>
+#include <MatrixNxM.h>
+
+#include <Attributes.h>
+#include <ModelObject.h>
 
