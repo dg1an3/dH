@@ -32,7 +32,7 @@ using namespace std;
 #include "TreatmentMachine.h"
 
 
-const int MAX_SCALES = 3;
+const int MAX_SCALES = 4;
 
 class CBeamDoseCalc;
 
@@ -187,10 +187,12 @@ private:
 	CVectorN<> m_vBeamletWeights;
 
 	// filter for intensity maps
-	static CVectorN<> m_vWeightFilter;
+	// static 
+		CVectorN<> m_vWeightFilter;
 
 	// corresponding filter matrix 
-	static CMatrixNxM<> m_mFilter[MAX_SCALES - 1];
+	// static 
+		CMatrixNxM<> m_mFilter[MAX_SCALES - 1];
 
 };	// class CBeam
 
