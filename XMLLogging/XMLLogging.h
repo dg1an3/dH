@@ -168,12 +168,12 @@
 }																	\
 
 #define USES_FMT \
-static char g_pszBuffer[1000];						\
+__declspec(thread) static char g_pszBuffer[1000];						\
 static const char *fmt(const char *pszFormat, ...)	\
 {													\
 	va_list args;									\
 	va_start(args, pszFormat);						\
-	vsprintf(g_pszBuffer, pszFormat, args);			\
+	vsprintf_s(g_pszBuffer, pszFormat, args);		\
 	return g_pszBuffer;								\
 }	\
 
