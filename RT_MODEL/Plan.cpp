@@ -178,10 +178,12 @@ CVolume<VOXEL_REAL> *CPlan::GetDoseMatrix()
 
 			for (int nAt = 0; nAt < GetBeamCount(); nAt++)
 			{
-				static CVolume<VOXEL_REAL> beamDoseRot;
+				// __declspec(thread) static 
+					CVolume<VOXEL_REAL> beamDoseRot;
 				beamDoseRot.ConformTo(&m_dose);
 
-				Resample(GetBeamAt(nAt)->GetDoseMatrix(), &beamDoseRot, TRUE);
+				CVolume<VOXEL_REAL> *pBeamDose = GetBeamAt(nAt)->GetDoseMatrix();
+				Resample(pBeamDose, &beamDoseRot, TRUE);
 
 				// add this beam's dose matrix to the total
 				m_dose.Accumulate(&beamDoseRot, GetBeamAt(nAt)->GetWeight());
