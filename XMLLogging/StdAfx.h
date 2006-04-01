@@ -21,9 +21,6 @@
 #define WINVER 0x0400		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
 #endif
 
-// use this to suppress warning for deprecated CRT calls (i.e. sscanf is replaced by sscanf_s)
-#define _CRT_SECURE_NO_DEPRECATE
-
 #include <afx.h>
 #include <afxwin.h>
 #include <afxext.h>         // MFC extensions
