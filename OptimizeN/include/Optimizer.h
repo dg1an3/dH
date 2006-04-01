@@ -16,9 +16,10 @@
 // include for the objective function
 #include "ObjectiveFunction.h"
 
+class COptimizer;
+
 // callback function
-typedef BOOL OptimizerCallback(REAL value, 
-		const CVectorN<>& vRes, void *pParam);
+typedef BOOL OptimizerCallback(COptimizer *pOpt, void *pParam);
 
 //////////////////////////////////////////////////////////////////////
 // class COptimizer

@@ -109,6 +109,17 @@ const CVectorN<>& CDFPOptimizer::Optimize(const CVectorN<>& vP)
 		// perform line search
 		lnsrch(vP_curr, f, m_vG, m_vXi, m_vP_next, m_finalValue, stpmax, check);
 
+		// need to call-back?
+		if (m_pCallbackFunc)
+		{
+			if (!(*m_pCallbackFunc)(this, m_pCallbackParam)) 
+			{
+				// request to terminate
+				m_nIteration = -1;
+				return m_vFinalParam;
+			}
+		}
+
 		// update P and direction
 		m_vXi = m_vP_next;
 		m_vXi -= vP_curr;
