@@ -165,7 +165,8 @@ static BOOL ResolveSymbol(HANDLE hProcess, DWORD dwAddress,
 
 
 
-CXMLLogFile CXMLLogFile::m_pGlobalFile("TestXML");
+__declspec(thread) 
+CXMLLogFile *CXMLLogFile::m_pGlobalFile;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -189,7 +190,11 @@ CXMLLogFile::CXMLLogFile(const char *pszAppName)
 	SetFormat((LONG) 0,			" % i ");
 
 	// open the file
-	m_fLogFile = fopen("LogFile.xml", "w+c");
+
+	CString strLogfileName;
+	strLogfileName.Format("LogFile-%04i.xml", AfxGetThread()->m_nThreadID);
+	errno_t err = fopen_s(&m_fLogFile, strLogfileName, "w+c");
+	ASSERT(err == 0);
 
 	// set the top-level element
 	FormatAnywhere("<la name='%s' uid='%08x'>\n", pszAppName, m_nNextUID);
@@ -235,8 +240,8 @@ CXMLElement *CXMLLogFile::NewSectionElement(const char *pszName, const char *psz
 {
 	// get the registry key for the section
 	char pszSection[1000];
-	strcpy(pszSection, "XMLLogging");
-	strcat(pszSection, strrchr(pszModule, '\\'));
+	strcpy_s(pszSection, "XMLLogging");
+	strcat_s(pszSection, strrchr(pszModule, '\\'));
 	if (m_nEnabled)
 	{
 		int nEnabled = ::AfxGetApp()->GetProfileInt(pszSection, pszName, -1);
@@ -581,7 +586,11 @@ void CXMLLogFile::Flush()
 ///////////////////////////////////////////////////////////////////////////////
 CXMLLogFile *CXMLLogFile::GetLogFile()
 {
-	return &m_pGlobalFile;
+	if (NULL == m_pGlobalFile)
+	{
+		m_pGlobalFile = new CXMLLogFile("TestXML");
+	}
+	return m_pGlobalFile;
 
 }	// CXMLLogFile::GetLogFile
 
@@ -607,7 +616,8 @@ BOOL CXMLLogFile::ClearLog()
 {
 	// open the file
 	fclose(m_fLogFile);
-	m_fLogFile = fopen("LogFile.xml", "w+c");
+	errno_t err = fopen_s(&m_fLogFile, "LogFile.xml", "w+c");
+	ASSERT(err == 0);
 
 	int nEnabled = m_nEnabled;
 
