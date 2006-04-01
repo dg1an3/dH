@@ -8,12 +8,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <ModelObject.h>
-
 #include <VectorD.h>
 #include <MatrixNxM.h>
 
-#include <Histogram.h>
+#include <ModelObject.h>
+
+// #include <Histogram.h>
 
 #include <Dib.h>
 
@@ -47,16 +47,21 @@ public:
 	void SetMargins(int nLeft, int nTop, int nRight, int nBottom);
 
 	// sets the axes ranges and tick marks
-	const CVectorD<2>& GetAxesMin();
-	void SetAxesMin(const CVectorD<2>& vMin);	
-	const CVectorD<2>& GetAxesMax();
-	void SetAxesMax(const CVectorD<2>& vMin);	
+	DECLARE_ATTRIBUTE(AxesMin, CVectorD<2>);
+	DECLARE_ATTRIBUTE(AxesMax, CVectorD<2>);
+//	const CVectorD<2>& GetAxesMin();
+//	void SetAxesMin(const CVectorD<2>& vMin);	
+//	const CVectorD<2>& GetAxesMax();
+//	void SetAxesMax(const CVectorD<2>& vMin);	
 
-	const CVectorD<2>& GetAxesMinor();
-	void SetAxesMinor(const CVectorD<2>& vMinor);
+	DECLARE_ATTRIBUTE(AxesMajor, CVectorD<2>);
+	DECLARE_ATTRIBUTE(AxesMinor, CVectorD<2>);
+//	const CVectorD<2>& GetAxesMinor();
+//	void SetAxesMinor(const CVectorD<2>& vMinor);
 
 	// computes the min and max values for the graph
 	void AutoScale();
+	DECLARE_ATTRIBUTE(TruncateZeroTail, bool);
 
 	// sets up the legend (legend only displayed after this is called)
 	void SetLegendLUT(CArray<COLORREF, COLORREF>&  arrLUT, REAL window, REAL level);
@@ -93,6 +98,9 @@ public:
 	CPoint ToPlotCoord(const CVectorD<2>& vCoord);
 	CVectorD<2> FromPlotCoord(const CPoint& vCoord);
 
+	// called when one of my data series changes
+	void OnDataSeriesChanged(CObservableEvent * pOE, void * pParam);
+
 private:
 	// the array of data series
 	CTypedPtrArray<CObArray, CDataSeries*> m_arrDataSeries;
@@ -101,10 +109,10 @@ private:
 	int m_arrMargins[4];
 
 	// min, max, and major 
-	CVectorD<2> m_vMax;
-	CVectorD<2> m_vMin;
-	CVectorD<2> m_vMajor;
-	CVectorD<2> m_vMinor;
+//	CVectorD<2> m_vMax;
+//	CVectorD<2> m_vMin;
+//	CVectorD<2> m_vMajor;
+//	CVectorD<2> m_vMinor;
 
 	// dragging logic
 	CDataSeries *m_pDragSeries;
@@ -120,6 +128,7 @@ private:
 
 	// graph buffer
 	CDib m_dib;
+
 };
 
 /////////////////////////////////////////////////////////////////////////////
