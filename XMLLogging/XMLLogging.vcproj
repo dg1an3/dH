@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="XMLLogging"
-	ProjectGUID="{F4A4372F-FC65-4DB1-BE98-247E8EA56F0B}"
+	ProjectGUID="{A55F1807-92A3-40BA-A93F-09A72EDAB7C9}"
 	RootNamespace="XMLLogging"
 	Keyword="MFCProj"
 	>
