@@ -265,7 +265,7 @@ inline REAL GetProfileReal(const char *pszSection, const char *pszName, double d
 
 	// turn to REAL
 	REAL value;
-	sscanf(strValue.GetBuffer(), REAL_FMT, &value);
+	sscanf_s(strValue.GetBuffer(), REAL_FMT, &value);
 
 	// make sure parameter is written, so it can be modified through RegEdit
 	::AfxGetApp()->WriteProfileString(pszSection, pszName, strValue);
