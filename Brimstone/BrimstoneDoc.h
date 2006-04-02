@@ -8,6 +8,7 @@
 #include <Series.h>
 #include <Plan.h>
 #include <Prescription.h>
+#include "OptThread.h"
 
 #if _MSC_VER > 1000
 #pragma once
@@ -39,9 +40,9 @@ public:
 	// removes histogram for designated structure
 	void RemoveHistogram(CStructure * pStruct);
 
-#ifdef THREAD_OPT
-	COptThread *m_pOptThread;
-#endif
+public:
+	// add new structure term
+	void AddStructTerm(CVOITerm * pVOIT);
 
 // Operations
 public:
@@ -57,8 +58,6 @@ public:
 
 // Implementation
 public:
-	void OnParamChange(CObservableEvent *, void *);
-	void UpdateFromOptimizer();
 
 	void OnDoseChange(CObservableEvent*, void*);
 
@@ -74,7 +73,7 @@ protected:
 // Generated message map functions
 protected:
 	//{{AFX_MSG(CBrimstoneDoc)
-	afx_msg void OnOptimize();
+	// afx_msg void OnOptimize();
 	afx_msg void OnGenbeamlets();
 	afx_msg void OnFileImportDcm();
 	afx_msg void OnPlanAddPresc();
@@ -82,9 +81,6 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
-public:
-	// add new structure term
-	void AddStructTerm(CVOITerm * pVOIT);
 };
 
 /////////////////////////////////////////////////////////////////////////////
