@@ -30,7 +30,6 @@ IMPLEMENT_DYNCREATE(CBrimstoneDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CBrimstoneDoc, CDocument)
 	//{{AFX_MSG_MAP(CBrimstoneDoc)
-	ON_COMMAND(ID_OPTIMIZE, OnOptimize)
 	ON_COMMAND(ID_GENBEAMLETS, OnGenbeamlets)
 	ON_COMMAND(ID_FILE_IMPORT_DCM, OnFileImportDcm)
 	ON_COMMAND(ID_PLAN_ADD_PRESC, OnPlanAddPresc)
@@ -42,8 +41,9 @@ END_MESSAGE_MAP()
 // CBrimstoneDoc construction/destruction
 
 CBrimstoneDoc::CBrimstoneDoc()
+// : m_pThread(NULL)
 #ifdef THREAD_OPT
-	, m_pOptThread(NULL)
+//	, m_pOptThread(NULL)
 #endif
 {
 	// triggers creation of subordinates
@@ -185,24 +185,6 @@ void CBrimstoneDoc::OnDoseChange(CObservableEvent *, void *)
 	UpdateAllViews(NULL, NULL, NULL);
 }
 
-#ifdef THREAD_OPT
-void CBrimstoneDoc::UpdateFromOptimizer()
-{
-	m_pOptThread->UpdatePlan();
-}
-#endif
-
-#ifdef THREAD_OPT
-void CBrimstoneDoc::OnParamChange(CObservableEvent *, void *)
-{
-	m_pOptThread->m_evtParamChanged = TRUE;
-
-	// make sure the thread is still running
-	// m_pOptThread->ResumeThread();
-}
-#endif
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // InitUTarget
 // 
@@ -338,64 +320,20 @@ void InitVolumes(CSeries *pSeries, CPlan *pPlan, CPrescription *pPresc)
 
 }	// InitVolumes
 
-
-void CBrimstoneDoc::OnOptimize() 
-{
-	CWaitCursor cursor;
-
-	// call optimize
-	CVectorN<> vInit;
-	m_pPresc->GetInitStateVector(vInit);
-	if (m_pPresc->Optimize(vInit, NULL, NULL))
-	{
-		m_pPresc->SetStateVectorToPlan(vInit);
-	}
-
-
-	POSITION pos = GetFirstViewPosition();
-	while (pos != NULL)
-	{
-		CView *pView = GetNextView(pos);
-		pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-	}
-
-	return;
-
-#ifdef _USE_THREAD_
-	m_pOptThread->m_csPrescParam.Lock();
-	m_pOptThread->m_evtParamChanged = TRUE;
-	m_pOptThread->m_csPrescParam.Unlock();
-
-	// m_pDoc->m_pOptThread->Immediate();
-	// m_pOptThread->ResumeThread();
-
-	do
-	{
-		Sleep(0);	
-
-	} while (!m_pOptThread->m_evtNewResult);
-
-	UpdateFromOptimizer();
-	POSITION pos = GetFirstViewPosition();
-	while (pos != NULL)
-	{
-		CView *pView = GetNextView(pos);
-		pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-	}
-
-/*	CVectorN<> vParam;
-	m_pOptThread->m_pPrescParam->GetInitStateVector(vParam);
-	BOOL bRes = m_pOptThread->m_pPrescParam->Optimize(vParam, NULL, NULL);
-
-	m_pOptThread->m_pPrescParam->SetStateVectorToPlan(vParam); */
-#endif
-}
-
 BOOL CBrimstoneDoc::OnOpenDocument(LPCTSTR lpszPathName) 
 {
 	if (!CDocument::OnOpenDocument(lpszPathName))
 		return FALSE;
 	
+	// TODO: move this to CPrescPyr (to generate sub-beamlets)
+	// generate pencil subbeamlets
+	for (int nAt = m_pPlan->GetBeamCount()-1; nAt >= 0; nAt--)
+	{
+		CBeam *pBeam = m_pPlan->GetBeamAt(nAt);
+		pBeam->m_pDoseCalc = new CBeamDoseCalc(pBeam, m_pPlan->m_pKernel);
+		pBeam->m_pDoseCalc->CalcPencilSubBeamlets();
+	}
+
 	// create prescription if its their
 	ASSERT(m_pPresc != NULL);
 
@@ -409,7 +347,7 @@ void CBrimstoneDoc::OnGenbeamlets()
 	{
 		int nBeams = dlgSetup.m_nBeamCount; // m_pPlan->GetBeamCount();
 
-		// TODO: set as parameter
+		// TODO: move this to CPlan::GetDoseResolution; CPlan::ShapeDoseMatrix
 		const REAL dosePixSpacing = 2.0; // mm
 		CMatrixD<4> mBasis;
 		mBasis[0][0] = dosePixSpacing; // mm
@@ -430,7 +368,11 @@ void CBrimstoneDoc::OnGenbeamlets()
 
 		mBasis[3] = pOrigDensity->GetBasis()[3];
 		m_pPlan->m_dose.SetBasis(mBasis);
+		TRACE_MATRIX("Orig basis = ", pOrigDensity->GetBasis());
+		TRACE_MATRIX("Dose basis = ", m_pPlan->m_dose.GetBasis());
 
+
+		// TODO: move this to CBeamDoseClac::GetMassDensity()
 		CVolume<VOXEL_REAL> massDensity;
 		massDensity.ConformTo(pOrigDensity);
 		massDensity.ClearVoxels();
@@ -465,6 +407,7 @@ void CBrimstoneDoc::OnGenbeamlets()
 		{
 			TRACE("Generating Beamlets for Beam %i\n", nAt);
 
+			// TODO: move this CBeam::ShapeDoseMatrix
 			double gantry;
 			gantry = 90.0 + (double) nAt * 360.0 / (double) nBeams;
 
@@ -490,19 +433,22 @@ void CBrimstoneDoc::OnGenbeamlets()
 
 
 			CMatrixD<4> mDoseBasis = pBeam->m_dose.GetBasis();
-			mDoseBasis[3][0] -= m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
-			mDoseBasis[3][1] -= m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
+			// mDoseBasis[3][0] -= m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
+			// mDoseBasis[3][1] -= m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
 
-			CMatrixD<4> mBeamBasis = mRotateBasisHG * mDoseBasis; ;
-			mBeamBasis[3][0] += m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
-			mBeamBasis[3][1] += m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
-			
+			CMatrixD<4> mBeamBasis = mRotateBasisHG * mDoseBasis;
+			// mBeamBasis[3][0] += m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
+			// mBeamBasis[3][1] += m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
+
+			TRACE_MATRIX("Beam Basis", mBeamBasis);
 			pBeam->m_dose.SetBasis(mBeamBasis);
 
 			// set up isocenter
-
+			// TODO: get isocenter and SAD from CBeam; set up in CBeamDoseCalc
 			CMatrixD<4> mBeamBasisInv = mBeamBasis;
 			mBeamBasisInv.Invert();
+
+			TRACE_MATRIX("Basis * Inv", mBeamBasis * mBeamBasisInv);
 
 			CVectorD<3> vIso(dlgSetup.m_isoX, dlgSetup.m_isoY, 0.0);
 			pBeam->m_pDoseCalc->m_vIsocenter_vxl = FromHG<3, REAL>(mBeamBasisInv * ToHG<3, REAL>(vIso));
