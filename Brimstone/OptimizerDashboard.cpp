@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "Brimstone.h"
 #include "OptimizerDashboard.h"
-#include ".\optimizerdashboard.h"
 
 
 BOOL BrentOptCB(REAL value, const CVectorN<>& vRes, void *pParam)
@@ -18,11 +17,14 @@ BOOL BrentOptCB(REAL value, const CVectorN<>& vRes, void *pParam)
 	return TRUE;
 }
 
-BOOL CGOptCB(REAL value, const CVectorN<>& vRes, void *pParam)
+BOOL CGOptCB(COptimizer *pOpt, void *pParam)
 {
+	REAL value = pOpt->GetFinalValue();
+	const CVectorN<>& vRes = pOpt->GetFinalParameter();
+
 	COptimizerDashboard *pOptDash = static_cast<COptimizerDashboard *>(pParam);
 	CPrescription *pPresc = pOptDash->m_pPresc;
-	COptimizer *pOpt = pPresc->GetOptimizer();
+	ASSERT(pPresc->GetOptimizer() == pOpt);
 
 	pOptDash->AddCGIter(pOpt->GetIterations(), vRes, value);
 
