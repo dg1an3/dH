@@ -99,13 +99,13 @@ void CPrescriptionToolbar::UpdatePresc(void)
 	m_editDose1.GetWindowText(strDose1);
 
 	int nDose1 = 0;
-	sscanf(strDose1, "%i", &nDose1);
+	sscanf_s(strDose1, "%i", &nDose1);
 
 	CString strDose2;
 	m_editDose2.GetWindowText(strDose2);
 
 	int nDose2 = 0;
-	sscanf(strDose2, "%i", &nDose2);
+	sscanf_s(strDose2, "%i", &nDose2);
 
 	if (nDose1 < nDose2)
 	{
