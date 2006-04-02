@@ -7,6 +7,7 @@
 #include "Prescription.h"
 
 #include <ConjGradOptimizer.h>
+#include <DFPOptimizer.h>
 
 #include <iostream>
 #include ".\include\prescription.h"
@@ -17,6 +18,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+const REAL SIGMOID_SCALE = 1.0;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -37,35 +39,50 @@ CPrescription::CPrescription(CPlan *pPlan, int nLevel)
 		, m_intensityMapSumWeight((REAL) 0.0) //1.10)
 		, m_inputScale(GetProfileReal("Prescription", "InputScale", 0.5))
 {
-	m_pOptimizer = new CConjGradOptimizer(this);
+	CConjGradOptimizer *pOptimizer = new // CDFPOptimizer(this); // 
+		CConjGradOptimizer(this);
+	pOptimizer->m_bSetLineToleranceEqual = false;
+	m_pOptimizer = pOptimizer;
 
 	if (m_nLevel == 0)
 	{
 		// TODO: put these in registry
 		REAL GBinSigma = GetProfileReal("Prescription", "GBinSigma", 0.2);
 
-		REAL atLevelSigma[3];
+		REAL atLevelSigma[MAX_SCALES];
 		atLevelSigma[0] = GetProfileReal("Prescription", "LevelSigma0", 4.0);
 		atLevelSigma[1] = GetProfileReal("Prescription", "LevelSigma1", 2.0);
 		atLevelSigma[2] = GetProfileReal("Prescription", "LevelSigma2", 1.0);
+		atLevelSigma[3] = GetProfileReal("Prescription", "LevelSigma3", 0.5);
 
-		REAL tol[3];
+		REAL tol[MAX_SCALES];
 		tol[0] = GetProfileReal("Prescription", "Tolerance0", 1e-3);
 		tol[1] = GetProfileReal("Prescription", "Tolerance1", 1e-3);
 		tol[2] = GetProfileReal("Prescription", "Tolerance2", 1e-3);
+		tol[3] = GetProfileReal("Prescription", "Tolerance3", 1e-3);
+
+		REAL cgtol[MAX_SCALES];
+		cgtol[0] = GetProfileReal("Prescription", "CGTolerance0", 1e-3);
+		cgtol[1] = GetProfileReal("Prescription", "CGTolerance1", 1e-3);
+		cgtol[2] = GetProfileReal("Prescription", "CGTolerance2", 1e-3);
+		cgtol[3] = GetProfileReal("Prescription", "CGTolerance3", 1e-3);
 
 		CPrescription *pPresc = this;
 		pPresc->SetGBinSigma(GBinSigma / atLevelSigma[0]);
 		pPresc->m_tolerance = tol[0];
+		pPresc->m_cgtolerance = cgtol[0];
+		pPresc->m_nLevel = 0;
 
 		for (int nAtLevel = 1; nAtLevel < MAX_SCALES; nAtLevel++)
 		{
 			pPresc->m_pNextLevel = new CPrescription(pPlan, nAtLevel);
 
 			pPresc = pPresc->m_pNextLevel;
+			pPresc->m_nLevel = nAtLevel;
 			pPresc->SetGBinSigma(GBinSigma / atLevelSigma[nAtLevel]);
 
 			pPresc->m_tolerance = tol[nAtLevel];
+			pPresc->m_cgtolerance = cgtol[nAtLevel];
 		}
 	}
 
@@ -176,7 +193,7 @@ void CPrescription::AddStructureTerm(CVOITerm *pVOIT)
 
 	// need to do this before initialize target bins
 	//	 original = 0.0125	0.006125  // * pow(2.0, (double) m_nLevel));
-	REAL binWidth = R(0.0030625);  
+	REAL binWidth = R(0.02); // R(0.0030625);  
 	pHisto->SetBinning(0.0, binWidth, GBINS_BUFFER);
 	pHisto->SetGBinSigma(m_GBinSigma);
 
@@ -339,34 +356,6 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 	BEGIN_LOG_SECTION(CPrescription::Optimize);
 	LOG(FMT("Optimizing Scale %i", m_nLevel));
 
-/*
-	// set up tolerances
-	if (m_nLevel == 0)
-	{
-		REAL sumWeight = 0.0;
-		POSITION pos = m_mapVOITs.GetStartPosition();
-		while (pos != NULL)
-		{
-			CStructure *pStruct = NULL;
-			CVOITerm *pVOIT = NULL;
-			m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-			sumWeight += pVOIT->GetWeight();
-		}
-
-		REAL tol[3];
-		tol[0] = GetProfileReal("Prescription", "Tolerance0", 1e-3) * sumWeight;
-		tol[1] = GetProfileReal("Prescription", "Tolerance1", 1e-3) * sumWeight;
-		tol[2] = GetProfileReal("Prescription", "Tolerance2", 1e-3) * sumWeight;
-
-		CPrescription *pPresc = this;
-		pPresc->m_tolerance = tol[0];
-		for (int nAtLevel = 1; nAtLevel < MAX_SCALES; nAtLevel++)
-		{
-			pPresc = pPresc->m_pNextLevel;
-			pPresc->m_tolerance = tol[nAtLevel];
-		}
-	}
-*/
 	if (m_pNextLevel)
 	{
 		// FilterStateVector(vInit, m_nLevel, vInit);
@@ -381,28 +370,12 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 
 	}
 
-	// TODO: use CObjectiveFunction::Transform to do this (or should optimizer do transform?)
-	for (int nAt = 0; nAt < vInit.GetDim(); nAt++)
-	{
-		ASSERT(_finite(vInit[nAt]));
-		vInit[nAt] = InvSigmoid(vInit[nAt], m_inputScale);
-		ASSERT(_finite(vInit[nAt]));
-	}
+	// inverse transform the initial vector to form initial optimizer parameter
+	InvTransform(&vInit);
 
-	// calculate tolerance for this level
-
-	// begin by summing weights of terms
-	REAL totalWeight = 0.0;
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
-	{
-		CStructure *pStruct = NULL;
-		CVOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-		totalWeight += pVOIT->GetWeight();
-	}
-
-	m_pOptimizer->SetTolerance(m_tolerance * totalWeight);
+	m_pOptimizer->SetTolerance(m_cgtolerance); 
+	// DGL: not for DFP 
+	((CConjGradOptimizer *)m_pOptimizer)->GetBrentOptimizer().SetTolerance(m_tolerance);
 	m_pOptimizer->SetCallback(pFunc, pParam);
 	CVectorN<> vRes = m_pOptimizer->Optimize(vInit);
 
@@ -420,12 +393,9 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 	int nIter = ((CConjGradOptimizer*)m_pOptimizer)->GetBrentOptimizer().GetIterations();
 	TRACE("\tBrent Iterations = %i\n", nIter);
 
-	// compute final state vector (add a small amount if zero)
-	// TODO: use Transform to do this
-	for (int nAt = 0; nAt < vRes.GetDim(); nAt++)
-	{
-		vInit[nAt] = R(__max(Sigmoid<double>(vRes[nAt], m_inputScale), 1e-4));
-	}
+	// compute final state vector
+	vInit = vRes;
+	Transform(&vInit);
 
 	//////////////////////////////////////////////////////////////////////////
 	//  L O G   O N L Y   S E C T I O N
@@ -467,7 +437,7 @@ BOOL CPrescription::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *
 // computes the sum of weights from an input vector
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::CalcSumSigmoid(CHistogram *pHisto, 
-								   const CVectorN<>& vInput, 
+								   const CVectorN<>& vInputTrans, 
 								   const CArray<BOOL, BOOL>& arrInclude) const
 {
 	// get the main volume
@@ -476,7 +446,7 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto,
 	pVolume->ClearVoxels();
 
 	// iterate over the component volumes, accumulating the weighted volumes
-	ASSERT(vInput.GetDim() == pHisto->Get_dVolumeCount());
+	ASSERT(vInputTrans.GetDim() == pHisto->Get_dVolumeCount());
 
 	int nMaxGroup = pHisto->GetGroupCount();
 	for (int nAtGroup = 0; nAtGroup < nMaxGroup; nAtGroup++)
@@ -502,8 +472,8 @@ void CPrescription::CalcSumSigmoid(CHistogram *pHisto,
 				// add to weighted sum
 				if (arrInclude[nAt_dVolume])
 				{
-					// TODO: use Transform instead to calc sigmoid
-					const REAL weight = Sigmoid(vInput[nAt_dVolume], m_inputScale);
+					// use Transform'd input to calc sigmoid
+					const REAL weight = vInputTrans[nAt_dVolume]; 
 					m_volGroup.Accumulate(p_dVolume, weight, TRUE);
 				}
 			}
@@ -539,6 +509,13 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 		pGrad->SetZero();
 	}
 
+	// transform input for calc purposes
+	CVectorN<> vInputTrans = vInput;
+	Transform(&vInputTrans);
+
+	CVectorN<> vdInputTrans;
+	bool bCalcdInputTrans = true;
+
 	BEGIN_LOG_SECTION(CPrescription::operator());
 
 	//
@@ -563,7 +540,7 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 		// calculate the summed volume, if this is the first VOIT
 		if (bCalcSum)
 		{
-			CalcSumSigmoid(pVOIT->GetHistogram(), vInput, m_arrIncludeElement);
+			CalcSumSigmoid(pVOIT->GetHistogram(), vInputTrans, m_arrIncludeElement);
 			bCalcSum = false;
 		}
 
@@ -574,11 +551,19 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 
 			totalSum += pVOIT->Eval(&m_vPartGrad, m_arrIncludeElement);
 
+			if (bCalcdInputTrans)
+			{
+				vdInputTrans.SetDim(vInput.GetDim());
+				vdInputTrans = vInput;
+				dTransform(&vdInputTrans);
+				bCalcdInputTrans = false;
+			}
+
 			// apply the chain rule for the sigmoid
 			for (int nAt = 0; nAt < m_vPartGrad.GetDim(); nAt++)
 			{
-				// TODO: use dTransform to do this
-				m_vPartGrad[nAt] *= dSigmoid(vInput[nAt], m_inputScale);
+				// use dTransform'd vInput
+				m_vPartGrad[nAt] *= vdInputTrans[nAt]; 
 			}
 
 			(*pGrad) += m_vPartGrad;
@@ -593,7 +578,7 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 	// now evalute total entropy
 	//
 
-	static bool bCalcEntropy = true;
+	static bool bCalcEntropy = false; // true;
 	if (bCalcEntropy)
 	{
 		if (pGrad)
@@ -653,6 +638,9 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 
 	// TRACE("objFunc = %f\n", totalSum);
 
+	// DGL: adding 0.1 to hold it up off 0.0 
+	totalSum += 0.1;
+
 	return totalSum;
 
 }	// CPrescription::operator()
@@ -666,77 +654,11 @@ REAL CPrescription::operator()(const CVectorN<>& vInput,
 REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput, 
 											   CVectorN<> *pGrad) const
 {
-// #define RAW_ENTROPY_XXX
-#ifdef RAW_ENTROPY_XXX
-
-	double sum = 0.0;
-	for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
-	{
-		// TODO: use Transform instead of Sigmoid
-		sum += Sigmoid(vInput[nAt], m_inputScale);
-	}
-
-	if (sum == 0.0)
-	{
-		if (pGrad)
-		{
-			pGrad->SetZero();
-		}
-
-		return 0.0;
-	}
-
-	const double EPS = 1e-3;
-
-	// to accumulate total entropy
-	double totalEntropy = 0.0;
-	for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
-	{
-		// p is probability of intensity of this beamlet
-		// TODO: use Transform instead of Sigmoid
-		REAL p_beamlet = R(Sigmoid<double>(vInput[nAt], m_inputScale) / sum);
-
-		// contribution to total is entropy of the probability
-		totalEntropy += - p_beamlet * log(p_beamlet + EPS);
-	}
-	totalEntropy /= ((double) vInput.GetDim() 
-		* -log(1.0 / (double) vInput.GetDim()));
-
-
-	if (pGrad)
-	{
-		// do we evaluate gradient?
-		pGrad->SetDim(vInput.GetDim());
-		pGrad->SetZero();
-
-		for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
-		{
-			// don't need this (zeroed above)
-			for (int nAt2 = 0; nAt2 < vInput.GetDim(); nAt2++)
-			{
-				double p_beamlet2 = Sigmoid(vInput[nAt2], m_inputScale) / sum;
-
-				(*pGrad)[nAt] += R(m_totalEntropyWeight * 
-					-(p_beamlet2 / (p_beamlet2 + EPS) 
-								+ log(p_beamlet2 + EPS)) 
-						// TODO: use Transform instead of Sigmoid
-						* (-Sigmoid<double>(vInput[nAt2], m_inputScale) + ((nAt2 == nAt) ? sum : 0.0))
-							/ (sum * sum)
-						* dSigmoid<double>(vInput[nAt], m_inputScale));
-			}
-
-			(*pGrad)[nAt] /= R((double) vInput.GetDim() 
-				* -log(1.0 / (double) vInput.GetDim()));
-		}
-	}
-
-	return m_totalEntropyWeight * (REAL) totalEntropy 
-		- m_intensityMapSumWeight * (REAL) sum / (REAL) m_pPlan->GetBeamCount();
-
-#else
-
 	m_vBeamWeights.SetDim(m_pPlan->GetBeamCount());
 	m_vBeamWeights.SetZero();
+
+	CVectorN<> vInputTrans = vInput;
+	Transform(&vInputTrans);
 
 	double sum = 0.0;
 	for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
@@ -745,8 +667,7 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 		int nBeamlet;
 		GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
 
-		// TODO: use Transform instead of Sigmoid
-		double beamWeight = Sigmoid(vInput[nAt], m_inputScale);
+		double beamWeight = vInputTrans[nAt];
 		m_vBeamWeights[nBeam] += beamWeight;
 		sum += beamWeight;
 	}
@@ -777,7 +698,6 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 	}
 	totalEntropy /= ((double) m_vBeamWeights.GetDim() 
 		* -log(1.0 / (double) m_vBeamWeights.GetDim()));
-	// totalEntropy *= 100.0;
 
 
 	// do we evaluate gradient?
@@ -785,16 +705,14 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 	{
 		pGrad->SetZero();
 
+		CVectorN<> vdInputTrans = vInput;
+		dTransform(&vdInputTrans);
+
 		for (int nAt = 0; nAt < vInput.GetDim(); nAt++)
 		{
 			int nBeam;
 			int nBeamlet;
 			GetBeamletFromSVElem(nAt, m_nLevel, &nBeam, &nBeamlet);
-
-			// p is probability of intensity of this beamlet
-			// double p_beam = m_vBeamWeights[nBeam] / sum;
-
-#if !defined(_OLD_ENTROPY)
 
 			// don't need this (zeroed above)
 			for (int nAtBeam2 = 0; nAtBeam2 < m_vBeamWeights.GetDim(); nAtBeam2++)
@@ -807,8 +725,8 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 								+ log(p_beam2 + EPS)) 
 						* (-m_vBeamWeights[nAtBeam2] + ((nAtBeam2 == nBeam) ? sum : R(0.0)))
 							/ (sum * sum)
-						// TODO: use Transform instead of Sigmoid
-						* dSigmoid(vInput[nAt], m_inputScale));
+
+						* vdInputTrans[nAt]);
 			}
 
 			// now normalize entropy
@@ -816,39 +734,8 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 				/= R(((double) m_vBeamWeights.GetDim() 
 					* -log(1.0 / (double) m_vBeamWeights.GetDim())));
 
-#ifdef BEAMLET_BEAM_ENTROPY
-			double p_beamlet = wgts[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] / beamSum[nAtBeam];
-			entrBeamlets += ENTR_BEAMLET_WEIGHT * -p_beamlet * log(p_beamlet + ZETA);
 
-			d_entrBeamlets_Beamlet[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] = 0.0;
-			for (int nAtBeamlet2 = 0; nAtBeamlet2 < BEAMLETS_PER_BEAM; nAtBeamlet2++)
-			{
-				double p_beamlet2 = wgts[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet2] / beamSum[nAtBeam];
-
-				d_entrBeamlets_Beamlet[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] += 
-					ENTR_BEAMLET_WEIGHT 
-						* -((p_beamlet2 / (p_beamlet2 + ZETA)) 
-							+ log(p_beamlet2 + ZETA)) 
-						* (-wgts[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet2] + ((nAtBeamlet2 == nAtBeamlet) ? beamSum[nAtBeam] : 0.0))
-							/ (beamSum[nAtBeam] * beamSum[nAtBeam]);
-			}
-			d_entrBeamlets_Beamlet[nAtBeam * BEAMLETS_PER_BEAM + nAtBeamlet] /= 
-				(double) (STATE_DIM); 
-			// entrBeamlets /= (double) (STATE_DIM);
-#endif
-#else
-
-			// derivative of prob is found by applying ratio rule
-			// TODO: use Transform instead of Sigmoid
-			double d_p = dSigmoid(vInput[nAt], m_inputScale) 
-				* (sum - m_vBeamWeights[nBeam]) 
-					/ (sum * sum);
-
-			// apply chain rule to compute the derivative
-			(*pGrad)[nAt] += m_totalEntropyWeight * -d_p * (1.0 + log(p + EPS));
-
-#endif
-			(*pGrad)[nAt] -= m_intensityMapSumWeight * dSigmoid(vInput[nAt], m_inputScale) 
+			(*pGrad)[nAt] -= m_intensityMapSumWeight * vdInputTrans[nAt]
 				/ ((REAL) vInput.GetDim());
 		}
 	}
@@ -856,8 +743,6 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 	// return total entropy scaled by number of beamlets
 	return R(m_totalEntropyWeight * totalEntropy 
 		- m_intensityMapSumWeight * sum / ((REAL) vInput.GetDim()));
-
-#endif // !RAW_ENTROPY
 
 }	// CPrescription::Eval_TotalEntropy
 
@@ -869,7 +754,7 @@ REAL CPrescription::Eval_TotalEntropy(const CVectorN<>& vInput,
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::Transform(CVectorN<> *pvInOut) const
 {
-	ITERATE_VECTOR((*pvInOut), nAt, (*pvInOut)[nAt] = Sigmoid((*pvInOut)[nAt], m_inputScale));
+	ITERATE_VECTOR((*pvInOut), nAt, (*pvInOut)[nAt] = SIGMOID_SCALE * Sigmoid((*pvInOut)[nAt], m_inputScale));
 
 }	// CPrescription::Transform
 
@@ -880,7 +765,7 @@ void CPrescription::Transform(CVectorN<> *pvInOut) const
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::dTransform(CVectorN<> *pvInOut) const
 {
-	ITERATE_VECTOR((*pvInOut), nAt, (*pvInOut)[nAt] = dSigmoid((*pvInOut)[nAt], m_inputScale));
+	ITERATE_VECTOR((*pvInOut), nAt, (*pvInOut)[nAt] = SIGMOID_SCALE * dSigmoid((*pvInOut)[nAt], m_inputScale));
 
 }	// CPrescription::dTransform
 
@@ -891,7 +776,7 @@ void CPrescription::dTransform(CVectorN<> *pvInOut) const
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::InvTransform(CVectorN<> *pvInOut) const
 {
-	ITERATE_VECTOR((*pvInOut), nAt, (*pvInOut)[nAt] = InvSigmoid((*pvInOut)[nAt], m_inputScale));
+	ITERATE_VECTOR((*pvInOut), nAt, (*pvInOut)[nAt] = InvSigmoid((*pvInOut)[nAt] / SIGMOID_SCALE, m_inputScale));
 
 }	// CPrescription::InvTransform
 
@@ -902,14 +787,15 @@ void CPrescription::InvTransform(CVectorN<> *pvInOut) const
 ///////////////////////////////////////////////////////////////////////////////
 void CPrescription::GetInitStateVector(CVectorN<>&vInit)
 {
-	CPrescription *pLevel2 = this;
-	while (pLevel2->m_nLevel < 2)
-		pLevel2 = pLevel2->m_pNextLevel;
+	CPrescription *pLevelMax = this;
+	while (pLevelMax->m_nLevel < MAX_SCALES-1)
+		pLevelMax = pLevelMax->m_pNextLevel;
 
-	vInit.SetDim(m_pPlan->GetTotalBeamletCount(2));
+	vInit.SetDim(m_pPlan->GetTotalBeamletCount(MAX_SCALES-1));
 	for (int nAt = 0; nAt < vInit.GetDim(); nAt++)
 	{
-		vInit[nAt] = (pLevel2->m_arrIncludeElement[nAt]) ? R(0.001) : R(0.001) 
+		vInit[nAt] = (pLevelMax->m_arrIncludeElement[nAt]) ? R(0.001) // R(0.001) 
+			: R(0.001) 
 			/ R(m_pPlan->GetBeamCount()); // (REAL) vInit.GetDim();
 	}
 
