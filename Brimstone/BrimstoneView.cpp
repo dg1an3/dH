@@ -28,16 +28,21 @@ BEGIN_MESSAGE_MAP(CBrimstoneView, CView)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
 	ON_WM_TIMER()
+	ON_MESSAGE(WM_OPTIMIZER_UPDATE, OnOptimizerThreadUpdate)
+	ON_MESSAGE(WM_OPTIMIZER_STOP, OnOptimizerThreadDone)
+	ON_MESSAGE(WM_OPTIMIZER_DONE, OnOptimizerThreadDone)
 	ON_COMMAND(ID_SCANBEAMLETS_G0, OnScanbeamletsG0)
-	ON_COMMAND(ID_VIEW_STRUCT_COLORWASH, OnViewStructColorwash)
-	ON_UPDATE_COMMAND_UI(ID_VIEW_STRUCT_COLORWASH, OnUpdateViewStructColorwash)
 	ON_COMMAND(ID_SCANBEAMLETS_G1, OnScanbeamletsG1)
 	ON_COMMAND(ID_SCANBEAMLETS_G2, OnScanbeamletsG2)
+	ON_COMMAND(ID_VIEW_STRUCT_COLORWASH, OnViewStructColorwash)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_STRUCT_COLORWASH, OnUpdateViewStructColorwash)
 	//}}AFX_MSG_MAP
 	// Standard printing commands
 	ON_COMMAND(ID_FILE_PRINT, CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, CView::OnFilePrintPreview)
+	ON_COMMAND(ID_OPTIMIZE, &CBrimstoneView::OnOptimize)
+	ON_UPDATE_COMMAND_UI(ID_OPTIMIZE, &CBrimstoneView::OnUpdateOptimize)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -45,9 +50,19 @@ END_MESSAGE_MAP()
 
 CBrimstoneView::CBrimstoneView()
 : m_bColorwashStruct(FALSE)
+, m_pOptThread(NULL)
+, m_bOptimizerRun(false)
+, m_pIterDS(NULL)
 {
-	// TODO: add construction code here
-
+	m_pOptThread = static_cast<COptThread*>(
+		AfxBeginThread(RUNTIME_CLASS(COptThread), 
+			THREAD_PRIORITY_BELOW_NORMAL,	// priority
+			0,								// stack size
+			CREATE_SUSPENDED				// flags
+		));
+	m_pOptThread->m_bAutoDelete = true;
+	m_pOptThread->m_pMsgTarget = this;
+	m_pOptThread->ResumeThread();
 }
 
 CBrimstoneView::~CBrimstoneView()
@@ -70,11 +85,12 @@ void CBrimstoneView::AddHistogram(CStructure * pStruct)
 	ASSERT(pHisto != NULL);
 
 	CHistogramDataSeries *pSeries = new CHistogramDataSeries(pHisto);
+	pSeries->m_pGraph = &m_graphDVH;
 	pSeries->SetColor(pStruct->GetColor());
 
-	m_graph.AddDataSeries(pSeries);
-	m_graph.AutoScale();
-	m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
+	m_graphDVH.AddDataSeries(pSeries);
+	m_graphDVH.AutoScale();
+	m_graphDVH.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
 }
 
 // removes histogram for designated structure
@@ -83,15 +99,15 @@ void CBrimstoneView::RemoveHistogram(CStructure * pStruct)
 	CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct, false);
 	ASSERT(pHisto != NULL);
 
-	for (int nAt = 0; nAt < m_graph.GetDataSeriesCount(); nAt++)
+	for (int nAt = 0; nAt < m_graphDVH.GetDataSeriesCount(); nAt++)
 	{
 		CHistogramDataSeries *pSeries = 
-			static_cast<CHistogramDataSeries *>(m_graph.GetDataSeriesAt(nAt));
+			static_cast<CHistogramDataSeries *>(m_graphDVH.GetDataSeriesAt(nAt));
 		if (pSeries->GetHistogram() == pHisto)
 		{
-			m_graph.RemoveDataSeries(nAt);
-			m_graph.AutoScale();
-			m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
+			m_graphDVH.RemoveDataSeries(nAt);
+			m_graphDVH.AutoScale();
+			m_graphDVH.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
 		}
 	}
 }
@@ -117,7 +133,7 @@ void CBrimstoneView::OnDraw(CDC* pDC)
 	GetClientRect(&rect);
 
 	CRect rectGraph;
-	m_graph.GetWindowRect(&rectGraph);
+	m_graphDVH.GetWindowRect(&rectGraph);
 	ScreenToClient(&rectGraph);
 
 	rect.bottom = rectGraph.top;
@@ -261,11 +277,18 @@ int CBrimstoneView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndPlanarView.SetLUT(m_arrColormap, 1); 
 
 	// create the graph window
-	m_graph.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+	m_graphDVH.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
 		CRect(0, 200, 200, 400), this, /* nID */ 113);
 
-	m_graph.SetLegendLUT(m_arrColormap, 
+	m_graphDVH.SetLegendLUT(m_arrColormap, 
 		m_wndPlanarView.m_window[1], m_wndPlanarView.m_level[1]);
+
+	// create the graph window
+	m_graphIterations.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+		CRect(0, 200, 200, 400), this, /* nID */ 114);
+
+	m_pIterDS = new CDataSeries();
+	m_graphIterations.AddDataSeries(m_pIterDS);
 
 	// set timer to update plan
 	// SetTimer(7, 20, NULL);
@@ -278,6 +301,8 @@ void CBrimstoneView::OnInitialUpdate()
 {
 	CView::OnInitialUpdate();
 	
+	m_pOptThread->m_pPresc = GetDocument()->m_pPresc;
+
 	if (GetDocument()->m_pSeries)
 	{
 		m_wndPlanarView.SetVolume(GetDocument()->m_pSeries->m_pDens, 0);
@@ -293,7 +318,7 @@ void CBrimstoneView::OnInitialUpdate()
 	m_wndPlanarView.Invalidate(TRUE);
 
 	// delete histograms
-	m_graph.RemoveAllDataSeries();
+	m_graphDVH.RemoveAllDataSeries();
 
 	// generate ADDHISTO events
 	for (int nAt = 0; nAt < GetDocument()->m_pSeries->GetStructureCount(); nAt++)
@@ -308,7 +333,7 @@ void CBrimstoneView::OnInitialUpdate()
 
 	// TODO: generate events for prescriptions
 
-	m_graph.Invalidate(TRUE);
+	m_graphDVH.Invalidate(TRUE);
 }
 
 void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
@@ -341,16 +366,16 @@ void CBrimstoneView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		CKLDivTerm *pKLDT = (CKLDivTerm *) GetDocument()->m_pPresc->GetStructureTerm(pStruct);
 		CTargetDVHSeries *pSeries = new CTargetDVHSeries(pKLDT);
 		pSeries->SetColor(pStruct->GetColor());
-		pSeries->m_nPenStyle = PS_DASHDOT;
+		pSeries->SetPenStyle(PS_DASHDOT);
 		pSeries->SetHasHandles(TRUE);
 
-		m_graph.AddDataSeries(pSeries);
-		// m_graph.AutoScale();
-		// m_graph.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
+		m_graphDVH.AddDataSeries(pSeries);
+		// m_graphDVH.AutoScale();
+		// m_graphDVH.SetAxesMin(CVectorD<2>(0.0f, 0.0f));
 	}
 
 	Invalidate(FALSE);
-	m_graph.Invalidate(TRUE);
+	m_graphDVH.Invalidate(TRUE);
 	m_wndPlanarView.Invalidate(TRUE);
 
 	// DON'T CALL because it will erase
@@ -361,10 +386,13 @@ void CBrimstoneView::OnSize(UINT nType, int cx, int cy)
 {
 	CView::OnSize(nType, cx, cy);
 
-	m_wndPlanarView.MoveWindow(0, 0, cx, 2 * cy / 3);
+	m_wndPlanarView.MoveWindow(0, 0, 5 * cx / 8, cy);
 
 	// reposition the graph window
-	m_graph.MoveWindow(0, 2 * cy / 3, cx, cy / 3);	
+	m_graphDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);	
+
+	// reposition the iterations window
+	m_graphIterations.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);	
 }
 
 
@@ -372,7 +400,7 @@ void CBrimstoneView::OnTimer(UINT nIDEvent)
 {
 //	GetDocument()->UpdateFromOptimizer();
 
-	// m_graph.Invalidate(TRUE);
+	// m_graphDVH.Invalidate(TRUE);
 
 	CView::OnTimer(nIDEvent);
 }
@@ -498,3 +526,73 @@ void CBrimstoneView::OnScanbeamletsG2()
 {
 	ScanBeamlets(2);
 }
+
+static int m_nTotalIter;
+
+void CBrimstoneView::OnOptimize()
+{
+	if (!m_bOptimizerRun)
+	{
+		// m_pOptThread->m_pbOptimizerRun = &m_bOptimizerRun;
+
+		m_nTotalIter = 0;
+
+		// clear iteration data matrix
+		CMatrixNxM<> mEmpty;
+		m_pIterDS->SetDataMatrix(mEmpty);
+
+		m_pOptThread->PostThreadMessage(WM_OPTIMIZER_START, 0, 0);
+		m_bOptimizerRun = true;
+
+		// m_pOptThread->ResumeThread();
+	}
+	else
+	{
+		m_pOptThread->PostThreadMessage(WM_OPTIMIZER_STOP, 0, 0);
+	}
+}
+
+void CBrimstoneView::OnUpdateOptimize(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bOptimizerRun ? 1 : 0);
+}
+
+LRESULT 
+CBrimstoneView::OnOptimizerThreadUpdate(WPARAM wParam, LPARAM lParam)
+{
+	COptThread::COptIterData *pOID = (COptThread::COptIterData *) lParam;
+	ASSERT(pOID != NULL);
+
+	if (pOID->m_ofvalue > 0.1)
+	{
+		m_pIterDS->AddDataPoint(CVectorD<2>(m_nTotalIter, -log10(pOID->m_ofvalue - 0.1)));
+	}
+
+	// if (m_nTotalIter % 4 == 3)
+	{
+		GetDocument()->m_pPresc->SetStateVectorToPlan(pOID->m_vParam);
+	}
+	m_nTotalIter++;
+
+	RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	return 0;
+}
+
+LRESULT 
+CBrimstoneView::OnOptimizerThreadDone(WPARAM wParam, LPARAM lParam)
+{
+	COptThread::COptIterData *pOID = (COptThread::COptIterData *) lParam;
+	if (pOID != NULL)
+	{
+		GetDocument()->m_pPresc->SetStateVectorToPlan(pOID->m_vParam);
+
+		// m_pIterDS->AddDataPoint(CVectorD<2>(pOID->m_nIteration, pOID->m_ofvalue));
+
+		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+
+	m_bOptimizerRun = false;
+
+	return 0;
+}
+

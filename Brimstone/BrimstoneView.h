@@ -7,6 +7,7 @@
 
 #include <Graph.h>
 #include "PlanarView.h"	// Added by ClassView
+#include "OptThread.h"
 
 #if _MSC_VER > 1000
 #pragma once
@@ -30,8 +31,13 @@ public:
 	CArray<COLORREF, COLORREF> m_arrColormap;
 
 	// graph to display the histogram
-	CGraph m_graph;
+	CGraph m_graphDVH;
 
+	// graph to display iterations
+	CGraph m_graphIterations;
+	CDataSeries m_dsIter;
+
+	// flag to indicate structure colorwash ??? 
 	BOOL m_bColorwashStruct;
 
 	// generates a histogram for the specified structure
@@ -70,6 +76,11 @@ public:
 #endif
 
 protected:
+	// my optimizer thread pointer
+	COptThread *m_pOptThread;
+
+	// flag when optimizer should continue running
+	bool m_bOptimizerRun;
 
 // Generated message map functions
 protected:
@@ -82,8 +93,16 @@ protected:
 	afx_msg void OnUpdateViewStructColorwash(CCmdUI* pCmdUI);
 	afx_msg void OnScanbeamletsG1();
 	afx_msg void OnScanbeamletsG2();
+	afx_msg void OnOptimize();
+	afx_msg void OnUpdateOptimize(CCmdUI *pCmdUI);
+	// custom handlers for optimizer thread messages
+	afx_msg LRESULT OnOptimizerThreadUpdate(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnOptimizerThreadDone(WPARAM wParam, LPARAM lParam);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+public:
+	// stores data series for iteration graph
+	CDataSeries *m_pIterDS;
 };
 
 #ifndef _DEBUG  // debug version in BrimstoneView.cpp
