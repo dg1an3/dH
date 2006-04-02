@@ -126,6 +126,8 @@ private:
 
 	// bin volume
 	mutable CAutoPtrArray< CVolume<short> > m_arrBinVolume;
+	mutable CAutoPtrArray< CVolume<VOXEL_REAL> > m_pVolume_Frac_dBins;
+	mutable CAutoPtrArray< CVolume<VOXEL_REAL> > m_pVolume_FracLow_dBins;
 	mutable CArray<bool, bool> m_arr_bRecomputeBinVolume;
 
 	// histogram bins
@@ -135,7 +137,7 @@ private:
 	// flag to indicate bins should be recomputed
 	mutable BOOL m_bRecomputeBins;
 
-#if defined(USE_IPP)
+// #if defined(USE_IPP)
 	mutable CVolume<VOXEL_REAL> m_volRotate;
 	mutable CVolume<VOXEL_REAL> *m_pVolume_BinScaled;
 
@@ -144,7 +146,10 @@ private:
 	mutable CVolume<short> *m_pVolume_BinLowInt;
 	mutable CVolume<VOXEL_REAL> *m_pVolume_Frac;
 	mutable CVolume<VOXEL_REAL> *m_pVolume_FracLow;
-#endif
+
+	mutable CVolume<VOXEL_REAL> *m_pVolume_Frac_dBins_x_VxR;
+	mutable CVolume<VOXEL_REAL> *m_pVolume_FracLow_dBins_x_VxR;
+// #endif
 
 	// cumulative bins
 	mutable CVectorN<> m_arrCumBins;

@@ -34,6 +34,9 @@ CHistogram::CHistogram(CVolume<VOXEL_REAL> *pVolume, CVolume<VOXEL_REAL> *pRegio
 		, m_pVolume_BinLowInt(NULL)
 		, m_pVolume_Frac(NULL)
 		, m_pVolume_FracLow(NULL)
+
+		, m_pVolume_Frac_dBins_x_VxR(NULL)
+		, m_pVolume_FracLow_dBins_x_VxR(NULL)
 #endif
 		, m_pRegion(pRegion)
 		, m_nLevel(-1)
@@ -347,6 +350,9 @@ void CHistogram::SetGBinSigma(REAL sigma)
         m_bin_dKernel[nZ + nNeighborhood] = 
 			dx * dGauss<REAL>(-nZ * dx, m_binKernelSigma);
 	}
+
+	// make sure recompute bin scaled volume
+	m_bRecomputeBinScaledVolume = TRUE;
 
 	// fire binning change event
 	GetBinningChangeEvent().Fire();
@@ -665,10 +671,14 @@ int CHistogram::Add_dVolume(CVolume<VOXEL_REAL> *p_dVolume, int nGroup,
 	while (m_arrBinVolume.GetCount() <= (size_t) nGroup)
 	{
 		m_arrBinVolume.Add(CAutoPtr<CVolume<short> >());
+		m_pVolume_Frac_dBins.Add(CAutoPtr<CVolume<VOXEL_REAL> >());
+		m_pVolume_FracLow_dBins.Add(CAutoPtr<CVolume<VOXEL_REAL> >());
 	}
 	if (m_arrBinVolume[nGroup] == NULL)
 	{
 		m_arrBinVolume[nGroup].Attach(new CVolume<short>());
+		m_pVolume_Frac_dBins[nGroup].Attach(new CVolume<VOXEL_REAL>());
+		m_pVolume_FracLow_dBins[nGroup].Attach(new CVolume<VOXEL_REAL>());
 	}
 
 	while (m_arr_bRecomputeBinVolume.GetSize() <= nGroup)
@@ -790,7 +800,7 @@ const CVectorN<>& CHistogram::Get_dBins(int nAt) const
 
 		// set size of dBins & dGBins
 		VOXEL_REAL maxValue = m_pVolume->GetMax();
-		int nRows = GetBinForValue(maxValue)+1;
+		int nRows = GetBinForValue(maxValue)+10;
 		if (m_arr_dBins.GetRows() < nRows
 			|| m_arr_dBins.GetCols() < Get_dVolumeCount())
 		{
@@ -808,12 +818,69 @@ const CVectorN<>& CHistogram::Get_dBins(int nAt) const
 			const VOXEL_REAL * const * const *ppp_dVoxels_x_Region = 
 				Get_dVolume_x_Region(nAt)->GetVoxels();
 
+			CRect rectBounds = m_arr_dVolumes_x_Region[nAt]->GetThresholdBounds();
+			LOG_EXPR_EXT(rectBounds);
+
+			IppiSize roiSize;
+			roiSize.width = rectBounds.Width()+1;
+			roiSize.height = rectBounds.Height()+1;
+
 			// get the bin voxels, recompute if needed
 			const short * const * const *pppBinVolumeVoxels = 
 				GetBinVolume(nAt)->GetVoxels(); 
 
-			CRect rectBounds = m_arr_dVolumes_x_Region[nAt]->GetThresholdBounds();
-			LOG_EXPR_EXT(rectBounds);
+			int nGroup = m_arrVolumeGroups[nAt];
+
+			// get voxel iliffe
+			// const short * const * const *pppVoxelsBinLow = pppBinVolumeVoxels;
+
+
+			////////////////////////////////////////////////////////////////////
+			// now get final bin frac volume
+
+			if (m_pVolume_FracLow_dBins_x_VxR == NULL)
+			{
+					m_pVolume_FracLow_dBins_x_VxR = new CVolume<VOXEL_REAL>();
+			}
+			m_pVolume_FracLow_dBins_x_VxR->ConformTo(m_pVolume_FracLow_dBins[nGroup].m_p);
+
+			// scale by region x beamlet
+			IppStatus stat = ippiMul_32f_C1R(
+				&Get_dVolume_x_Region(nAt)->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+					Get_dVolume_x_Region(nAt)->GetWidth() * sizeof(VOXEL_REAL),
+				&m_pVolume_FracLow_dBins[nGroup]->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+					m_pVolume_FracLow_dBins[nGroup]->GetWidth() * sizeof(VOXEL_REAL),
+				&m_pVolume_FracLow_dBins_x_VxR->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+					m_pVolume_FracLow_dBins_x_VxR->GetWidth() * sizeof(VOXEL_REAL),
+				roiSize);		
+			m_pVolume_FracLow_dBins_x_VxR->VoxelsChanged();
+
+			const VOXEL_REAL * const * const *pppVoxelsFracLow = 
+				m_pVolume_FracLow_dBins_x_VxR->GetVoxels();
+
+
+			if (m_pVolume_Frac_dBins_x_VxR == NULL)
+			{
+					m_pVolume_Frac_dBins_x_VxR = new CVolume<VOXEL_REAL>();
+			}
+			m_pVolume_Frac_dBins_x_VxR->ConformTo(m_pVolume_FracLow_dBins[nGroup].m_p);
+
+			// scale by region x beamlet
+			stat = ippiMul_32f_C1R(
+				&Get_dVolume_x_Region(nAt)->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+					Get_dVolume_x_Region(nAt)->GetWidth() * sizeof(VOXEL_REAL),
+				&m_pVolume_Frac_dBins[nGroup]->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+					m_pVolume_Frac_dBins[nGroup]->GetWidth() * sizeof(VOXEL_REAL),
+				&m_pVolume_Frac_dBins_x_VxR->GetVoxels()[0][rectBounds.top][rectBounds.left], 
+					m_pVolume_Frac_dBins_x_VxR->GetWidth() * sizeof(VOXEL_REAL),
+				roiSize);		
+			m_pVolume_Frac_dBins_x_VxR->VoxelsChanged();
+
+			const VOXEL_REAL * const * const *pppVoxelsFrac = 
+				m_pVolume_Frac_dBins_x_VxR->GetVoxels();
+
+
+
 			for (int nAtZ = 0; nAtZ < 1; /* m_arr_dVolumes_x_Region[nAt]->GetDepth(); */ nAtZ++)
 			{
 				const VOXEL_REAL * const *pp_dVoxels_x_Region = ppp_dVoxels_x_Region[nAtZ];
@@ -825,7 +892,9 @@ const CVectorN<>& CHistogram::Get_dBins(int nAt) const
 					for (int nAtX = rectBounds.left; nAtX <= rectBounds.right; nAtX++)
 					{
 						int nBin = pBinVolumeVoxels[nAtX];
-						arr_dBins[nBin] -= p_dVoxels_x_Region[nAtX];
+						// arr_dBins[nBin] -= p_dVoxels_x_Region[nAtX];
+						arr_dBins[nBin] -= pppVoxelsFracLow[nAtZ][nAtY][nAtX];
+						arr_dBins[nBin+1] += pppVoxelsFrac[nAtZ][nAtY][nAtX];
 					}
 				}
 			}
@@ -1285,7 +1354,52 @@ const CVolume<short> * CHistogram::GetBinVolume(int nAt) const
 				m_volRotate.GetWidth() * sizeof(VOXEL_REAL),
 			&m_arrBinVolume[nGroup]->GetVoxels()[0][rect.top][rect.left], 
 				m_arrBinVolume[nGroup]->GetWidth() * sizeof(short),
-			roiSize, ippRndNear);
+			roiSize, ippRndZero); // DGL: using zero for interp // ippRndNear);
+
+		////////////////////////////////////////////////////////////////////
+		// get bin frac volume
+
+//		if (!m_pVolume_Frac_dBins[nGroup])
+//		{
+//			m_pVolume_Frac_dBins[nGroup] = new CVolume<VOXEL_REAL>();
+//		}
+		m_pVolume_Frac_dBins[nGroup]->ConformTo(m_arrBinVolume[nGroup].m_p);
+
+		stat = ippiConvert_16s32f_C1R(
+			&m_arrBinVolume[nGroup]->GetVoxels()[0][rect.top][rect.left], 
+				m_arrBinVolume[nGroup]->GetWidth() * sizeof(short),
+			&m_pVolume_Frac_dBins[nGroup]->GetVoxels()[0][rect.top][rect.left], 
+				m_pVolume_Frac_dBins[nGroup]->GetWidth() * sizeof(VOXEL_REAL),
+			roiSize);
+
+		// leaves Frac = -High Fraction
+		stat = ippiSub_32f_C1IR(
+			&m_volRotate.GetVoxels()[0][rect.top][rect.left], 
+				m_volRotate.GetWidth() * sizeof(VOXEL_REAL),
+			&m_pVolume_Frac_dBins[nGroup]->GetVoxels()[0][rect.top][rect.left], 
+				m_pVolume_Frac_dBins[nGroup]->GetWidth() * sizeof(VOXEL_REAL),
+			roiSize);
+
+		m_pVolume_Frac_dBins[nGroup]->VoxelsChanged();
+
+		////////////////////////////////////////////////////////////////////
+		// get bin frac low volume
+
+//		if (!m_pVolume_FracLow_dBins[nGroup])
+//		{
+//			m_pVolume_FracLow_dBins[nGroup] = new CVolume<VOXEL_REAL>();
+//		}
+		m_pVolume_FracLow_dBins[nGroup]->ConformTo(m_pVolume_Frac_dBins[nGroup].m_p);
+
+		stat = ippiAddC_32f_C1R(
+			&m_pVolume_Frac_dBins[nGroup]->GetVoxels()[0][rect.top][rect.left], 
+				m_pVolume_Frac_dBins[nGroup]->GetWidth() * sizeof(VOXEL_REAL),
+			1.0,
+			&m_pVolume_FracLow_dBins[nGroup]->GetVoxels()[0][rect.top][rect.left], 
+				m_pVolume_FracLow_dBins[nGroup]->GetWidth() * sizeof(VOXEL_REAL),
+			roiSize);
+
+
 
 		// flag change
 		m_arrBinVolume[nGroup]->VoxelsChanged();
