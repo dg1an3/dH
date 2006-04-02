@@ -1,8 +1,15 @@
 #pragma once
 
+
+#define WM_OPTIMIZER_START WM_APP+7
+#define WM_OPTIMIZER_STOP  WM_APP+8
+#define WM_OPTIMIZER_UPDATE WM_APP+9
+#define WM_OPTIMIZER_DONE WM_APP+10
+
 class CPrescription;
 
 // COptThread
+
 
 class COptThread : public CWinThread
 {
@@ -16,56 +23,42 @@ public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 
+	// virtual int Run();
+
+	// callback for optimizer iterations
+	static BOOL OnIteration(COptimizer *pOpt, void *pParam);
+
+	// bool *m_pbOptimizerRun;
+
+	// CVectorN<> m_vParam;
+
+	// stores data for current iteration
+	class COptIterData
+	{
+	public:
+		COptIterData();
+
+		int m_nLevel;
+		int m_nIteration;
+		REAL m_ofvalue;
+		CVectorN<> m_vParam;
+		CVectorN<> m_vGrad;
+	};
+
 protected:
 	DECLARE_MESSAGE_MAP()
 
-private:
+	afx_msg void OnOptimizerStart(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnOptimizerStop(WPARAM wParam, LPARAM lParam);
+
+// private:
+public:
 	// stores pointer to the current (internal) optimizer prescription
 	CPrescription *m_pPresc;
-	// pointer to parameter prescription object
-	CPrescription *m_pPrescParam;
-	// flag to indicate parameter change event
-	bool m_evtParamChanged;
-	// flag to indicate new result is available
-	bool m_evtNewResult;
-};
 
+	// pointer to window to be notified
+	CWnd *m_pMsgTarget;
 
-/* 
-class COptThread : public CWinThread
-{
-public:
+};	// class COptThread
 
-	virtual ~COptThread();
-
-	DECLARE_DYNCREATE(COptThread);
-
-	virtual BOOL InitInstance() { return TRUE; }
-
-	void Immediate();
-
-	virtual int Run();
-
-	virtual BOOL Callback(REAL value, const CVectorN<>& vDir);
-
-	// external prescription object (used to transfer parameters)
-	CCriticalSection m_csPrescParam;
-
-	void UpdatePlan();
-
-	int nIteration;
-	BOOL m_bDone;
-public:
-	// results
-	CCriticalSection m_csResult;
-	REAL m_bestValue;
-	CVectorN<> m_vResult;
-public:
-	BOOL m_evtNewResult;
-
-public:
-	// internal prescription object
-	CPrescription *m_pPresc;
-};
-*/
 
