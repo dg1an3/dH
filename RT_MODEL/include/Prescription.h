@@ -101,16 +101,18 @@ protected:
 	// mux / demux of vector elements
 	void GetBeamletFromSVElem(int nElem, int nScale, int *pnBeam, int *pnBeamlet) const;
 
+public:
 	// transfers state vector from level n+1 to level n
 	void InvFilterStateVector(const CVectorN<>& vIn, int nScale, CVectorN<>& vOut, BOOL bFixNeg);
 
-private:  
+public:  
 	// my plan
 	CPlan * m_pPlan;
 
 	// my optimizer
 	COptimizer * m_pOptimizer;
 
+public:
 	// the level of this
 	int m_nLevel;
 
@@ -133,6 +135,7 @@ private:
 	// parameters for objective and optimization
 	REAL m_GBinSigma;
 	REAL m_tolerance;
+	REAL m_cgtolerance;
 
 	// more params
 	REAL m_totalEntropyWeight;
