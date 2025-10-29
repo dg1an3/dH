@@ -3,7 +3,7 @@
 //		template class.
 //
 // Copyright (C) 1999-2003 Derek G Lane
-// $Id$
+// $Id: VectorBase.h,v 1.10 2003/03/01 22:26:45 default Exp $
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(VECTORBASE_H)
@@ -39,18 +39,18 @@ protected:
 	CVectorBase();
 	CVectorBase(const CVectorBase& vFrom);
 
-	// CMatrixBase can construct CVectorBases
-	friend CMatrixBase<TYPE>;
+	//// CMatrixBase can construct CVectorBases
+	//friend CMatrixBase<TYPE>;
 
-	// CMatrixD can construct CVectorBases
-	friend CMatrixD<1, TYPE>;
-	friend CMatrixD<2, TYPE>;
-	friend CMatrixD<3, TYPE>;
-	friend CMatrixD<4, TYPE>;
+	//// CMatrixD can construct CVectorBases
+	//friend CMatrixD<1, TYPE>;
+	//friend CMatrixD<2, TYPE>;
+	//friend CMatrixD<3, TYPE>;
+	//friend CMatrixD<4, TYPE>;
 
-	// global operator* can construct
-	friend CVectorBase<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
-		const CVectorBase<TYPE>& v);
+	//// global operator* can construct
+	//friend CVectorBase<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
+	//	const CVectorBase<TYPE>& v);
 
 public:
 	// destructor
@@ -84,10 +84,10 @@ public:
 	CVectorBase& operator-=(const CVectorBase& vRight);
 	CVectorBase& operator*=(const TYPE& scalar);
 
-protected:
 	// external element management
 	void SetElements(int nDim, TYPE *pElements, BOOL bFreeElements);
 
+protected:
 	// dimension of vector
 	int m_nDim;
 
@@ -106,7 +106,7 @@ protected:
 // default constructor -- public can not construct a CVectorBase
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorBase<TYPE>::CVectorBase<TYPE>()
+CVectorBase<TYPE>::CVectorBase()
 	: m_nDim(0),
 		m_pElements(NULL),
 		m_bFreeElements(TRUE)
@@ -120,7 +120,7 @@ CVectorBase<TYPE>::CVectorBase<TYPE>()
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>& vFrom)
+CVectorBase<TYPE>::CVectorBase(const CVectorBase<TYPE>& vFrom)
 	: m_nDim(vFrom.GetDim()),
 		m_pElements(NULL),
 		m_bFreeElements(TRUE)
@@ -140,7 +140,7 @@ CVectorBase<TYPE>::CVectorBase<TYPE>(const CVectorBase<TYPE>& vFrom)
 // destructor 
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorBase<TYPE>::~CVectorBase<TYPE>()
+CVectorBase<TYPE>::~CVectorBase()
 {
 	if (m_bFreeElements 
 		&& m_pElements != NULL)

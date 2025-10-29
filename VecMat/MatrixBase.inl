@@ -2,7 +2,7 @@
 // MatrixBase.inl : implementation of the CMatrixBase class.
 //
 // Copyright (C) 2002-2003 Derek G Lane
-// $Id$
+// $Id: MatrixBase.inl,v 1.5 2003/03/01 22:27:19 default Exp $
 // U.S. Patent Pending
 //////////////////////////////////////////////////////////////////////
 
@@ -90,7 +90,7 @@ void CMatrixBase<TYPE>::SetElements(int nCols, int nRows,
 		if (m_pColumns == NULL)
 		{
 			// allocate column vectors
-			m_pColumns = new CVectorBase<TYPE>[GetCols()];
+			m_pColumns = new CVectorN<TYPE>[GetCols()];
 		}
 
 		// initialize the column vectors and the pointers

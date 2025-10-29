@@ -1,11 +1,9 @@
-#if !defined(AFX_PLANSETUPDLG_H__A3A51FE4_09F1_45E1_89BE_EC8A744CBF41__INCLUDED_)
-#define AFX_PLANSETUPDLG_H__A3A51FE4_09F1_45E1_89BE_EC8A744CBF41__INCLUDED_
-
-#if _MSC_VER > 1000
+// Copyright (C) 2nd Messenger Systems
+// $Id: PlanSetupDlg.h 650 2009-11-05 22:24:55Z dglane001 $
 #pragma once
-#endif // _MSC_VER > 1000
-// PlanSetupDlg.h : header file
-//
+
+#include <PlanPyramid.h>
+#include <BeamDoseCalc.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // CPlanSetupDlg dialog
@@ -14,7 +12,7 @@ class CPlanSetupDlg : public CDialog
 {
 // Construction
 public:
-	CPlanSetupDlg(CWnd* pParent = NULL);   // standard constructor
+	CPlanSetupDlg(dH::PlanPyramid *pPlan, CWnd* pParent = NULL);   // standard constructor
 
 // Dialog Data
 	//{{AFX_DATA(CPlanSetupDlg)
@@ -22,10 +20,23 @@ public:
 	UINT	m_nBeamCount;
 	double	m_isoX;
 	double	m_isoY;
+	double	m_isoZ;
 	//}}AFX_DATA
 
+	CEdit m_edtAtBeamlet;
+	CEdit m_edtAtBeam;
 
-// Overrides
+	// the plan for the dose calc
+	// CPlan *m_pPlan;
+	dH::PlanPyramid *m_pPlanPyramid;
+
+	// manages the thread object
+	CWinThread *m_pDCThread;
+
+	// the array of dose calc objects for each beam
+	CAutoPtrArray< CBeamDoseCalc > m_arrBDC;
+
+	// Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CPlanSetupDlg)
 	protected:
@@ -39,9 +50,12 @@ protected:
 	//{{AFX_MSG(CPlanSetupDlg)
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+	afx_msg LRESULT OnDoseCalcThreadUpdate(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnDoseCalcThreadDone(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnBnClickedGo();
+
 };
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
-#endif // !defined(AFX_PLANSETUPDLG_H__A3A51FE4_09F1_45E1_89BE_EC8A744CBF41__INCLUDED_)

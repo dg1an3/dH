@@ -3,7 +3,7 @@
 //		functions
 //
 // Copyright (C) 1999-2003 Derek G Lane
-// $Id$
+// $Id: MathUtil.h,v 1.4 2003/02/25 06:16:52 default Exp $
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(MATHUTIL_H)

@@ -3,7 +3,7 @@
 //		vector template class.
 //
 // Copyright (C) 1999-2003 Derek G Lane
-// $Id$
+// $Id: VectorN.h,v 1.6 2003/02/26 05:52:35 default Exp $
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(VECTORN_H)
@@ -43,7 +43,7 @@ public:
 // default constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorN<TYPE>::CVectorN<TYPE>() 
+CVectorN<TYPE>::CVectorN() 
 {
 }	// CVectorN<TYPE>::CVectorN<TYPE>
 
@@ -54,7 +54,7 @@ CVectorN<TYPE>::CVectorN<TYPE>()
 // construct an arbitrary dimensioned vector
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorN<TYPE>::CVectorN<TYPE>(int nDim) 
+CVectorN<TYPE>::CVectorN(int nDim) 
 {
 	// set the dimensionality of the vector
 	SetDim(nDim);
@@ -68,7 +68,7 @@ CVectorN<TYPE>::CVectorN<TYPE>(int nDim)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorN<TYPE>::CVectorN<TYPE>(const CVectorN<TYPE>& vFrom)
+CVectorN<TYPE>::CVectorN(const CVectorN<TYPE>& vFrom)
 {
 	// set the dimensionality of the vector
 	SetDim(vFrom.GetDim());
@@ -85,7 +85,7 @@ CVectorN<TYPE>::CVectorN<TYPE>(const CVectorN<TYPE>& vFrom)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CVectorN<TYPE>::CVectorN<TYPE>(const CVectorBase<TYPE>& vFrom)
+CVectorN<TYPE>::CVectorN(const CVectorBase<TYPE>& vFrom)
 {
 	// set the dimensionality of the vector
 	SetDim(vFrom.GetDim());

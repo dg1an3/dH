@@ -1,15 +1,12 @@
-#include "include\Graph.h"
-// Graph.cpp : implementation file
-//
-
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: Graph.cpp 608 2008-09-14 18:32:44Z dglane001 $
 #include "stdafx.h"
 
 #include <float.h>
 
 #include "Graph.h"
 
-#include <CastVectorD.h>
-#include ".\include\graph.h"
+#include <ItkUtils.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -18,7 +15,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 const int DEFAULT_MARGIN = 50;
-
+const COLORREF AXIS_COLOR = RGB(255, 255, 255);
 
 /////////////////////////////////////////////////////////////////////////////
 // CGraph::CGraph
@@ -67,12 +64,14 @@ CDataSeries *CGraph::GetDataSeriesAt(int nAt)
 /////////////////////////////////////////////////////////////////////////////
 // CGraph::AddDataSeries
 /////////////////////////////////////////////////////////////////////////////
-void CGraph::AddDataSeries(CDataSeries *pSeries)
+void CGraph::AddDataSeries(CDataSeries::Pointer pSeries)
 {
 	pSeries->m_pGraph = this;
-	AddObserver(&pSeries->GetChangeEvent(), this, &CGraph::OnDataSeriesChanged);
+	// AddObserver(&pSeries->GetChangeEvent(), this, &CGraph::OnDataSeriesChanged);
 
+	m_arrDataSeriesPtr.push_back(pSeries);
 	m_arrDataSeries.Add(pSeries);
+	OnDataSeriesChanged(); // NULL, NULL);
 
 }	// CGraph::AddDataSeries
 
@@ -82,10 +81,10 @@ void CGraph::AddDataSeries(CDataSeries *pSeries)
 /////////////////////////////////////////////////////////////////////////////
 void CGraph::RemoveDataSeries(int nAt, bool bDelete)
 {
-	if (bDelete)
-	{
-		delete m_arrDataSeries[nAt];
-	}
+	//if (bDelete)
+	//{
+	//	delete m_arrDataSeries[nAt];
+	//}
 
 	m_arrDataSeries.RemoveAt(nAt);
 
@@ -98,83 +97,16 @@ void CGraph::RemoveAllDataSeries(bool bDelete)
 {
 	if (bDelete)
 	{
-		for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
-		{
-			delete m_arrDataSeries[nAt];
-		}
+		m_arrDataSeriesPtr.clear();
+		//for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
+		//{
+		//	delete m_arrDataSeries[nAt];
+		//}
 	}
 
 	m_arrDataSeries.RemoveAll();
 
 }	// CGraph::RemoveAllDataSeries
-
-/*
-/////////////////////////////////////////////////////////////////////////////
-// CGraph::GetAxesMin
-//
-// returns the axes ranges
-/////////////////////////////////////////////////////////////////////////////
-const CVectorD<2>& CGraph::GetAxesMin()
-{
-	return m_vMin;
-
-}	// CGraph::GetAxesMin
-
-/////////////////////////////////////////////////////////////////////////////
-// CGraph::SetAxesMin
-//
-// sets the axes ranges
-/////////////////////////////////////////////////////////////////////////////
-void CGraph::SetAxesMin(const CVectorD<2>& vMin)
-{
-	m_vMin = vMin;
-
-}	// CGraph::SetAxesMin
-
-/////////////////////////////////////////////////////////////////////////////
-// CGraph::GetAxesMax
-//
-// returns the axes ranges
-/////////////////////////////////////////////////////////////////////////////
-const CVectorD<2>& CGraph::GetAxesMax()
-{
-	return m_vMax;
-
-}	// CGraph::GetAxesMin
-
-/////////////////////////////////////////////////////////////////////////////
-// CGraph::SetAxesMax
-//
-// sets the axes ranges
-/////////////////////////////////////////////////////////////////////////////
-void CGraph::SetAxesMax(const CVectorD<2>& vMax)
-{
-	m_vMax = vMax;
-
-}	// CGraph::SetAxesMin
-
-/////////////////////////////////////////////////////////////////////////////
-// CGraph::GetAxesMinor
-//
-// gets the axes ranges
-/////////////////////////////////////////////////////////////////////////////
-const CVectorD<2>& CGraph::GetAxesMinor()
-{
-	return m_vMinor;
-
-}	// CGraph::GetAxesMinor
-
-/////////////////////////////////////////////////////////////////////////////
-// CGraph::SetAxesMinor
-//
-// sets the axes ranges
-/////////////////////////////////////////////////////////////////////////////
-void CGraph::SetAxesMinor(const CVectorD<2>& vMinor)
-{
-	m_vMinor = vMinor;
-
-}	// CGraph::SetAxesMinor
-*/
 
 /////////////////////////////////////////////////////////////////////////////
 // CGraph::SetMargins
@@ -200,36 +132,41 @@ void
 	CGraph::AutoScale()
 {
 	// accumulate mins and maxes
-	SetAxesMin(CVectorD<2>(FLT_MAX, FLT_MAX));
-	SetAxesMax(CVectorD<2>(-FLT_MAX, -FLT_MAX));
+	REAL minInit[2] = {FLT_MAX, FLT_MAX};
+	SetAxesMin(GraphCoord(minInit)); // C VectorD<2>(FLT_MAX, FLT_MAX));
+	REAL maxInit[2] = {-FLT_MAX, -FLT_MAX};
+	SetAxesMax(GraphCoord(maxInit)); // C VectorD<2>(-FLT_MAX, -FLT_MAX));
 
 	// find the min / max for mantissa and abcsisca
 	for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
 	{
+		if (!m_arrDataSeries[nAt]->UseForAutoScale)
+			continue;
+
 		const CMatrixNxM<>& mData = m_arrDataSeries[nAt]->GetDataMatrix();
 		for (int nAtPoint = 0; nAtPoint < mData.GetCols(); nAtPoint++)
 		{
-			SetAxesMin(CVectorD<2>(
+			SetAxesMin(MakeVector<2>(
 				__min(GetAxesMin()[0], mData[nAtPoint][0]),
 				__min(GetAxesMin()[1], mData[nAtPoint][1])));
 
 /*(			if (!GetTruncateZeroTail() 
 				|| mData[nAtPoint][1] > 0.0) */
 			{
-				SetAxesMax(CVectorD<2>(
-					__max(GetAxesMax()[0], mData[nAtPoint][0]),
-					__max(GetAxesMax()[1], mData[nAtPoint][1])));
+				SetAxesMax(MakeVector<2>(
+					__max(GetAxesMax()[0], mData[nAtPoint][0]*1.2),
+					__max(GetAxesMax()[1], mData[nAtPoint][1]*1.2)));
 			} 
 /*			else 
 			{
-				SetAxesMax(CVectorD<2>(
+				SetAxesMax(C VectorD<2>(
 					GetAxesMax()[0],
 					__max(GetAxesMax()[1], mData[nAtPoint][1])));
 			} */
 		} 
 	}
 
-	// set tick marks / max / min for X & Y
+	// set major tick marks for X & Y
 	for (int nD = 0; nD < 2; nD++)
 	{
 		// compute tick marks
@@ -237,8 +174,35 @@ void
 		REAL absMax = __max(fabs(m_AxesMin[nD]), fabs(m_AxesMax[nD]));
 		if (absMax > R(0.0))
 		{
-			m_AxesMajor[nD] = pow(R(10.0), floor(log10(absMax) + R(0.1)) - R(1.0));
+			m_AxesMajor[nD] = pow(R(10.0), floor(log10(absMax + DEFAULT_EPSILON) + R(0.1)) - R(1.0));
 		}
+	}
+
+	// set max / min for X & Y
+	for (int nD = 0; nD < 2; nD++)
+	{
+		m_AxesMinor[nD] = m_AxesMajor[nD] / R(2.0);
+		m_AxesMax[nD] = m_AxesMajor[nD] * (ceil(m_AxesMax[nD] / m_AxesMajor[nD]));
+		m_AxesMin[nD] = m_AxesMajor[nD] * (floor(m_AxesMin[nD] / m_AxesMajor[nD]));
+	}
+
+	// now adjust for plot coordinates
+	CPoint ptOrigin = ToPlotCoord(MakeVector<2>(0.0, 0.0));
+	CPoint ptStep = ToPlotCoord(m_AxesMajor) - ptOrigin;
+	while (ptStep.x != 0 && abs(ptStep.x) < 12)
+	{
+		m_AxesMajor[0] *= 2.0;
+		ptStep = ToPlotCoord(m_AxesMajor) - ptOrigin;
+	}
+	while (ptStep.y != 0 && abs(ptStep.y) < 12)
+	{
+		m_AxesMajor[1] *= 2.0;
+		ptStep = ToPlotCoord(m_AxesMajor) - ptOrigin;
+	}
+
+	// reset max / min for X & Y
+	for (int nD = 0; nD < 2; nD++)
+	{
 		m_AxesMinor[nD] = m_AxesMajor[nD] / R(2.0);
 		m_AxesMax[nD] = m_AxesMajor[nD] * (ceil(m_AxesMax[nD] / m_AxesMajor[nD]));
 		m_AxesMin[nD] = m_AxesMajor[nD] * (floor(m_AxesMin[nD] / m_AxesMajor[nD]));
@@ -295,11 +259,12 @@ void
 	dcMem.SelectObject(m_dib);
 
 	// draw the axes
-	CBrush brushBack(RGB(128, 128, 128));
+	COLORREF bkColor = RGB(16, 16, 16);
+	CBrush brushBack(bkColor);
 	dcMem.SelectObject(&brushBack);
 	dcMem.Rectangle(rect);
 
-	dcMem.SetBkColor(RGB(128, 128, 128));
+	dcMem.SetBkColor(bkColor);
 
 	if (m_arrDataSeries.GetSize() != 0)
 	{
@@ -338,33 +303,10 @@ void
 void 
 	CGraph::OnMouseMove(UINT nFlags, CPoint point) 
 {
-	if (!m_bDragging)
+	if (m_bDragging)
 	{
-		m_pDragSeries = NULL;
-		for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
-		{
-			m_pDragSeries = (CDataSeries *)m_arrDataSeries[nAt];
-			const CMatrixNxM<>& mData = m_pDragSeries->GetDataMatrix();
-			if (m_pDragSeries->GetHasHandles())
-			{
-				for (m_nDragPoint = 0; m_nDragPoint < mData.GetCols(); 
-						m_nDragPoint++)
-				{
-					m_ptDragOffset = point 
-						- ToPlotCoord(CCastVectorD<2>(mData[m_nDragPoint]));
-					if (abs(m_ptDragOffset.cx) < 10 && abs(m_ptDragOffset.cy) < 10)
-					{
-						::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
+		::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
 
-						CWnd::OnMouseMove(nFlags, point);
-						return;
-					}
-				}
-			}
-		}
-	}
-	else
-	{
 		CMatrixNxM<> mData = m_pDragSeries->GetDataMatrix();
 		mData[m_nDragPoint][0] = FromPlotCoord(point - m_ptDragOffset)[0];
 		mData[m_nDragPoint][1] = FromPlotCoord(point - m_ptDragOffset)[1];
@@ -387,8 +329,9 @@ void
 
 
 		if (m_nDragPoint == 0)
+			// && m_pDragSeries->GetMonotonicDirection() == -1)
 		{
-			mData[m_nDragPoint][0] = 0.0;
+			mData[m_nDragPoint][1] = 100.0;
 		}
 
 		if (m_nDragPoint == mData.GetCols()-1)
@@ -397,30 +340,43 @@ void
 		}
 		m_pDragSeries->SetDataMatrix(mData);
 
-		::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
-
 		Invalidate();
-		CWnd::OnMouseMove(nFlags, point);
 		return;
 	}
 
+	for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
+	{
+		if (m_arrDataSeries[nAt]->GetHandleHit(point, 10) != -1)
+		{
+			::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
+			return;
+		}
+	}
+
 	::SetCursor(::LoadCursor(NULL, IDC_ARROW));
-	
-	CWnd::OnMouseMove(nFlags, point);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 void 
 	CGraph::OnLButtonDown(UINT nFlags, CPoint point) 
 {
-	m_bDragging = TRUE;
-
-	if (NULL != m_pDragSeries)
+	if (!m_bDragging)
 	{
-		::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
+ 		for (int nAt = 0; nAt < m_arrDataSeries.GetSize(); nAt++)
+		{
+			m_nDragPoint = m_arrDataSeries[nAt]->GetHandleHit(point, 10, &m_ptDragOffset);
+			if (m_nDragPoint != -1)
+			{
+				m_bDragging = TRUE;
+				m_pDragSeries = m_arrDataSeries[nAt];
+				::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
+				return;
+			}
+		}
 	}
+	m_pDragSeries = NULL;
 
-	CWnd::OnLButtonDown(nFlags, point);
+	// CWnd::OnLButtonDown(nFlags, point);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -428,11 +384,12 @@ void
 	CGraph::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	m_bDragging = FALSE;
+	m_pDragSeries = NULL;
 
 	// if we have dragged, then re-scale
-	AutoScale();
+	// aAutoScale();
 
-	CWnd::OnLButtonUp(nFlags, point);
+	// CWnd::OnLButtonUp(nFlags, point);
 }
 
 
@@ -445,10 +402,10 @@ void
 	CGraph::DrawMinorAxes(CDC * pDC, const CRect& rect)
 	// draws the minor ticks and grids
 {
-	CPen penMinorTicks(PS_SOLID, 1, RGB(0, 0, 0));
+	CPen penMinorTicks(PS_SOLID, 1, AXIS_COLOR); // RGB(0, 0, 0));
 	CPen penMinorGrids(PS_DOT, 1, RGB(176, 176, 176));
 
-	CVectorD<2> vAtTick;
+	itk::Vector<REAL,2> vAtTick;
 	vAtTick[1] = GetAxesMin()[1];
 	for (vAtTick[0] = GetAxesMin()[0]; vAtTick[0] < GetAxesMax()[0]; vAtTick[0] += GetAxesMinor()[0])
 	{
@@ -483,14 +440,15 @@ void
 	CGraph::DrawMajorAxes(CDC * pDC, const CRect& rect)
 	// draw major ticks and grids
 {
-	CPen penMajorTicks(PS_SOLID, 1, RGB(0, 0, 0));
+	CPen penMajorTicks(PS_SOLID, 1, AXIS_COLOR); // RGB(0, 0, 0));
 	CPen penMajorGrids(PS_DOT, 1, RGB(160, 160, 160));
+	pDC->SetTextColor(AXIS_COLOR);
 
 	// stores size of text (for vert centering)
-	CSize sz = pDC->GetTextExtent("Test");
+	CSize sz = pDC->GetTextExtent(_T("Test"));
 	pDC->SetTextAlign(TA_CENTER);
 
-	CVectorD<2> vAtTick;
+	itk::Vector<REAL,2> vAtTick;
 	vAtTick[1] = GetAxesMin()[1];
 	for (vAtTick[0] = GetAxesMin()[0]; vAtTick[0] < GetAxesMax()[0]; vAtTick[0] += GetAxesMajor()[0])
 	{
@@ -501,7 +459,7 @@ void
 		pDC->LineTo(ptTick.x, rect.bottom + 10);
 
 		CString strLabel;
-		strLabel.Format((GetAxesMajor()[0] >= 1.0) ? "%0.0lf" : "%6.3lf", vAtTick[0]);
+		strLabel.Format((GetAxesMajor()[0] >= 1.0) ? _T("%0.0lf") : _T("%6.3lf"), vAtTick[0]);
 		pDC->TextOut(ptTick.x, rect.bottom + 15, strLabel);
 
 		pDC->SelectObject(&penMajorGrids);
@@ -524,7 +482,7 @@ void
 		if (ptTick.y + sz.cy / 2 < nPrevTop)
 		{
 			CString strLabel;
-			strLabel.Format((GetAxesMajor()[1] >= 1.0) ? "%0.0lf" : "%6.3lf", vAtTick[1]);
+			strLabel.Format((GetAxesMajor()[1] >= 1.0) ? _T("%0.0lf") : _T("%6.3lf"), vAtTick[1]);
 			pDC->TextOut(rect.left - 15, ptTick.y - sz.cy / 2, strLabel);
 			nPrevTop = ptTick.y - sz.cy / 2;
 		}
@@ -552,7 +510,7 @@ void
 		{
 			continue;
 		}
-		pDC->MoveTo(ToPlotCoord(CCastVectorD<2>(mData[0])));
+		pDC->MoveTo(ToPlotCoord(MakeVector<2>(mData[0][0], mData[0][1])));
 		for (int nAtPoint = 1; nAtPoint < mData.GetCols(); nAtPoint++)
 		{
 			if (mData[nAtPoint][0] < GetAxesMin()[0]
@@ -566,22 +524,22 @@ void
 
 			if (mData[nAtPoint][0] >= 0.0)
 			{
-				pDC->LineTo(ToPlotCoord(CCastVectorD<2>(mData[nAtPoint])));
+				pDC->LineTo(ToPlotCoord(MakeVector<2>(mData[nAtPoint][0], mData[nAtPoint][1])));
 			}
 			else
 			{
-				pDC->MoveTo(ToPlotCoord(CCastVectorD<2>(mData[nAtPoint])));
+				pDC->MoveTo(ToPlotCoord(MakeVector<2>(mData[nAtPoint][0], mData[nAtPoint][1])));
 			}
 		}
 
-		CPen penHandle(PS_SOLID, 1, RGB(0, 0, 0));
+		CPen penHandle(PS_SOLID, 1, AXIS_COLOR);
 		pDC->SelectObject(&penHandle);
 		if (pSeries->GetHasHandles())
 		{
 			CRect rectHandle(0, 0, 5, 5);
 			for (int nAtPoint = 0; nAtPoint < mData.GetCols(); nAtPoint++)
 			{
-				rectHandle.OffsetRect(ToPlotCoord(CCastVectorD<2>(mData[nAtPoint]))
+				rectHandle.OffsetRect(ToPlotCoord(MakeVector<2>(mData[nAtPoint][0], mData[nAtPoint][1]))
 					- rectHandle.CenterPoint());
 				pDC->Rectangle(rectHandle);
 			}
@@ -631,7 +589,7 @@ void
 
 ////////////////////////////////////////////////////////////////////////////
 CPoint 
-	CGraph::ToPlotCoord(const CVectorD<2>& vCoord)
+	CGraph::ToPlotCoord(const GraphCoord& vCoord)
 {
 	CRect rect;
 	GetClientRect(&rect);
@@ -649,7 +607,7 @@ CPoint
 }
 
 ////////////////////////////////////////////////////////////////////////////
-CVectorD<2> 
+CGraph::GraphCoord 
 	CGraph::FromPlotCoord(const CPoint& pt)
 {
 	CRect rect;
@@ -657,7 +615,7 @@ CVectorD<2>
 	rect.DeflateRect(m_arrMargins[0], m_arrMargins[1], 
 		m_arrMargins[2], m_arrMargins[3]);
 
-	CVectorD<2> vCoord;
+	GraphCoord vCoord;
 	vCoord[0] = (pt.x - rect.left) * (GetAxesMax()[0] - GetAxesMin()[0]) 
 		/ rect.Width() + GetAxesMin()[0];
 	vCoord[1] = -(pt.y - rect.Height() - rect.top) * (GetAxesMax()[1] - GetAxesMin()[1]) 
@@ -668,10 +626,10 @@ CVectorD<2>
 
 ////////////////////////////////////////////////////////////////////////////
 void 
-	CGraph::OnDataSeriesChanged(CObservableEvent * pOE, void * pParam)
+	CGraph::OnDataSeriesChanged() // CObservableEvent * pOE, void * pParam)
 	// called when one of my data series changes
 {
 	AutoScale();
-	SetAxesMin(CVectorD<2>(0.0, 0.0));
+	SetAxesMin(MakeVector<2>(0.0, 0.0));
 	Invalidate(TRUE);
 }

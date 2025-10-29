@@ -2,7 +2,7 @@
 // MatrixNxM.h: declaration and definition of the CMatrixNxM template class.
 //
 // Copyright (C) 1999-2001
-// $Id$
+// $Id: MatrixNxM.h,v 1.7 2003/11/01 01:39:40 default Exp $
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(MATRIXNXM_H)
@@ -49,7 +49,7 @@ public:
 // default constructor -- initializes to 0x0 matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>()
+CMatrixNxM<TYPE>::CMatrixNxM()
 {
 }
 
@@ -57,7 +57,7 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>()
 // constructs a specific-dimensioned matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
+CMatrixNxM<TYPE>::CMatrixNxM(int nCols, int nRows)
 {
 	Reshape(nCols, nRows);
 }
@@ -66,7 +66,7 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(int nCols, int nRows)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixNxM<TYPE>& fromMatrix)
+CMatrixNxM<TYPE>::CMatrixNxM(const CMatrixNxM<TYPE>& fromMatrix)
 {
 	// sets the dimensions
 	Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
@@ -88,7 +88,7 @@ CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixNxM<TYPE>& fromMatrix)
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixNxM<TYPE>::CMatrixNxM<TYPE>(const CMatrixBase<TYPE>& fromMatrix)
+CMatrixNxM<TYPE>::CMatrixNxM(const CMatrixBase<TYPE>& fromMatrix)
 {
 	// sets the dimensions
 	Reshape(fromMatrix.GetCols(), fromMatrix.GetRows());
@@ -353,13 +353,13 @@ inline CMatrixNxM<TYPE> operator*(double scale,
 // matrix-vector multiplication
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-inline CVectorBase<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
+inline CVectorN<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
 									const CVectorBase<TYPE>& v)
 {
 	ASSERT(mat.GetRows() == v.GetDim());
 
 	// stored the product
-	CVectorBase<TYPE> vProduct(v);
+	CVectorN<TYPE> vProduct(v);
 	vProduct.SetZero();
 
 	// step through the rows of the matrix

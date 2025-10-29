@@ -1,21 +1,19 @@
-// BrimstoneDoc.cpp : implementation of the CBrimstoneDoc class
-//
-
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: BrimstoneDoc.cpp 650 2009-11-05 22:24:55Z dglane001 $
 #include "stdafx.h"
-#include ".\brimstonedoc.h"
 
 #include "Brimstone.h"
 
+#include "BrimstoneDoc.h"
+
+#ifdef USE_RTOPT
 #include <Prescription.h>
+#endif
 
 #include <BeamDoseCalc.h>
 
-#include <SeriesDicomImporter.h>
-
+#include "SeriesDicomImporter.h"
 #include "PlanSetupDlg.h"
-#include "PrescDlg.h"
-
-#include "OptimizerDashboard.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -32,115 +30,125 @@ BEGIN_MESSAGE_MAP(CBrimstoneDoc, CDocument)
 	//{{AFX_MSG_MAP(CBrimstoneDoc)
 	ON_COMMAND(ID_GENBEAMLETS, OnGenbeamlets)
 	ON_COMMAND(ID_FILE_IMPORT_DCM, OnFileImportDcm)
-	ON_COMMAND(ID_PLAN_ADD_PRESC, OnPlanAddPresc)
 	//}}AFX_MSG_MAP
-	ON_COMMAND(ID_OPT_DASHBOARD, OnOptDashboard)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CBrimstoneDoc construction/destruction
 
+/////////////////////////////////////////////////////////////////////////////
 CBrimstoneDoc::CBrimstoneDoc()
-// : m_pThread(NULL)
-#ifdef THREAD_OPT
-//	, m_pOptThread(NULL)
-#endif
 {
-	// triggers creation of subordinates
-	DeleteContents();
-
-#ifdef THREAD_OPT
-	m_pOptThread = (COptThread *) ::AfxBeginThread(RUNTIME_CLASS(COptThread),
-		THREAD_PRIORITY_HIGHEST, // THREAD_PRIORITY_NORMAL, 
-		0, CREATE_SUSPENDED);
-#endif
+	// ensure delete of document on close
+	m_bAutoDelete = TRUE;
 }
 
+/////////////////////////////////////////////////////////////////////////////
 CBrimstoneDoc::~CBrimstoneDoc()
 {
-#ifdef THREAD_OPT
-	m_pOptThread->SuspendThread();
-	delete m_pOptThread;
-#endif
 }
 
+/////////////////////////////////////////////////////////////////////////////
 void CBrimstoneDoc::DeleteContents() 
 {
 	// create series * plan
-	m_pSeries.Free();
-	m_pSeries.Attach(new CSeries());
-
-	m_pPlan.Free();
-	m_pPlan.Attach(new CPlan());
+	m_pSeries = dH::Series::New();
+	m_pPlan = dH::Plan::New();
 	m_pPlan->SetSeries(m_pSeries);
 
-	m_pPresc.Free();
-	m_pPresc.Attach(new CPrescription(m_pPlan, 0));
+#ifdef USE_RTOPT
+	m_pOptimizer.reset(new dH::PlanOptimizer(m_pPlan));
+#endif
 
-	m_pSelectedStruct = NULL;
-	
 	CDocument::DeleteContents();
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CBrimstoneDoc serialization
 
+/////////////////////////////////////////////////////////////////////////////
 void CBrimstoneDoc::Serialize(CArchive& ar)
 {
 	CObArray arrWorkspace;
 	if (ar.IsStoring())
 	{
-		arrWorkspace.Add(m_pSeries);
-		arrWorkspace.Add(m_pPlan);
-		arrWorkspace.Add(m_pPresc);
+#ifdef USE_MFC_SERIALIZATION
+		arrWorkspace.Add(m_pSeries.get());
+		arrWorkspace.Add(m_pPlan.get());
+#endif
 	}
 
 	arrWorkspace.Serialize(ar);
 
 	if (ar.IsLoading())
 	{
-		m_pSeries.Free();
-		m_pPlan.Free();
-		m_pPresc.Free();
+#ifdef USE_MFC_SERIALIZATION
+		m_pSeries.reset();
+		m_pPlan.reset();
 		for (int nAt = 0; nAt < arrWorkspace.GetSize(); nAt++)
 		{
 			if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CSeries)))
 			{
-				m_pSeries.Attach((CSeries *) arrWorkspace[nAt]);
+				m_pSeries.reset((CSeries *) arrWorkspace[nAt]);
 			}
 			else if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CPlan)))
 			{
-				m_pPlan.Attach((CPlan *) arrWorkspace[nAt]);
-			}
-			else if (arrWorkspace[nAt]->IsKindOf(RUNTIME_CLASS(CPrescription)))
-			{
-				m_pPresc.Attach((CPrescription *) arrWorkspace[nAt]);
+				m_pPlan.reset((CPlan *) arrWorkspace[nAt]);
 			}
 		}
-
-		// check everything loads OK
-		ASSERT(m_pSeries != NULL);
-		ASSERT(m_pPlan != NULL);
 
 		// link plan to series
-		m_pPlan->SetSeries(m_pSeries);
+		m_pPlan->SetSeries(m_pSeries.get());
 
-		// create an empty prescription, if none available
-		if (m_pPresc == NULL)
+		// test if the beamlets were saved from the single-plane version
+		VolumeReal::Pointer pTestBeamlet = m_pPlan->GetBeamAt(0)->GetBeamlet(0);
+		if (pTestBeamlet->GetBufferedRegion().GetSize()[2] == 1)
 		{
-			m_pPresc.Attach(new CPrescription(m_pPlan, 0));
+			// fix beam isocenters
+			VolumeReal *pDose = m_pPlan->GetDoseMatrix();
+			for (int nAt = 0; nAt < m_pPlan->GetBeamCount(); nAt++)
+			{
+				CBeam *pBeam = m_pPlan->GetBeamAt(nAt);
+
+				// this is just used to set the z-coordinate of the iso
+				itk::Vector<REAL> vIso;
+				vIso[0] = pDose->GetOrigin()[0];
+				vIso[1] = pDose->GetOrigin()[1];
+				vIso[2] = pDose->GetOrigin()[2];
+				pBeam->SetIsocenter(vIso);
+
+				// now replicate the beamlet slices
+				int nBeamletCount = pBeam->GetBeamletCount() / 2;
+				for (int nAtShift = -nBeamletCount; nAtShift <= nBeamletCount; nAtShift++)
+				{
+					VolumeReal::Pointer pBeamlet = pBeam->GetBeamlet(nAtShift);
+					VolumeReal::Pointer pNewBeamlet = VolumeReal::New();
+					ConformTo<VOXEL_REAL, 3>(pBeamlet, pNewBeamlet);
+
+					Size<3> sz = pNewBeamlet->GetBufferedRegion().GetSize();
+					sz[2] = pDose->GetBufferedRegion().GetSize()[2];
+					pNewBeamlet->SetRegions(sz);
+					pNewBeamlet->Allocate();
+
+					VOXEL_REAL *pSrc = pBeamlet->GetBufferPointer();
+					int nCount = sz[0] * sz[1];
+					for (int nZ = 0; nZ < sz[2]; nZ++)
+					{
+						VOXEL_REAL *pDst = &pNewBeamlet->GetBufferPointer()[nZ * nCount];
+						CopyValues<VOXEL_REAL>(pDst, pSrc, nCount);
+					}
+
+					// now copy the re-formatted beamlet to the original beamlet
+					CopyImage<VOXEL_REAL, 3>(pNewBeamlet, pBeamlet);
+				}
+			}
 		}
 
-		// set up the structure regions for histograms
-
-		m_pPlan->GetDoseMatrix()->GetChangeEvent().AddObserver(this,
-			(ListenerFunction) &CBrimstoneDoc::OnDoseChange);
-
-		// set up element includes
-		// TODO: wire this up properly
-		m_pPresc->SetElementInclude();
+#ifdef USE_RTOPT
+		// create an empty prescription, if none available
+		m_pOptimizer.reset(new dH::PlanOptimizer(m_pPlan.get()));
+#endif
+#endif
 	}
 }
 
@@ -160,312 +168,48 @@ void CBrimstoneDoc::Dump(CDumpContext& dc) const
 #endif //_DEBUG
 
 /////////////////////////////////////////////////////////////////////////////
-// CBrimstoneDoc commands
-
-BOOL CBrimstoneDoc::SelectStructure(const CString &strName)
-{
-	CStructure *pStruct = m_pSeries->GetStructureFromName(strName);
-	if (pStruct != NULL)
-	{
-		m_pSelectedStruct = pStruct;
-		UpdateAllViews(NULL, IDC_STRUCTSELECT, pStruct);
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-CStructure * CBrimstoneDoc::GetSelectedStructure()
-{
-	return m_pSelectedStruct;
-}
-
-void CBrimstoneDoc::OnDoseChange(CObservableEvent *, void *)
-{
-	UpdateAllViews(NULL, NULL, NULL);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// InitUTarget
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-void InitUTarget(CPlan *pPlan, CStructure *pTarget, CStructure *pAvoid)
-{
-	BEGIN_LOG_SECTION(InitUTarget);
-
-	CVolume<VOXEL_REAL> *pRegionTarget = pTarget->GetRegion(0);
-	pRegionTarget->ClearVoxels();
-
-	CVolume<VOXEL_REAL> *pRegionAvoid = pAvoid->GetRegion(0);
-	pRegionAvoid->ClearVoxels();
-
-	int nBeamletCount = pPlan->GetBeamAt(0)->GetBeamletCount(0); // 31;
-	int nRegionSize = Round<int>(((REAL) nBeamletCount / sqrt(2.0)) / 2.0) + 1;
-	int nMargin = pRegionTarget->GetWidth() / 2 - nRegionSize;
-
-	CPolygon *pTargetContour = new CPolygon();
-
-	REAL inMin = (REAL) nMargin + (REAL) nRegionSize - 0.5 * (REAL) nRegionSize;
-	REAL inMax = (REAL) nMargin + (REAL) nRegionSize + 0.5 * (REAL) nRegionSize;
-
-	CVectorD<2> arrVertices[] = 
-	{
-		CVectorD<2>(nMargin, nMargin), 
-		CVectorD<2>(nMargin, pRegionTarget->GetHeight() - 1 - nMargin),
-		CVectorD<2>(pRegionTarget->GetWidth() - 1 - nMargin, 
-			pRegionTarget->GetHeight() - 1 - nMargin),
-		CVectorD<2>(pRegionTarget->GetWidth() - 1- nMargin, nMargin),
-
-		CVectorD<2>(inMax, nMargin),
-		CVectorD<2>(inMax, inMax), 
-
-		CVectorD<2>(inMin, inMax),
-		CVectorD<2>(inMin, nMargin),
-
-		CVectorD<2>(nMargin, nMargin), 
-	};
-
-	for (int nAt = 0; nAt < 9; nAt++)
-	{
-		arrVertices[nAt] += CVectorD<2>(0.5, 0.5);
-		pTargetContour->AddVertex(arrVertices[nAt]);
-	}
-	
-	pTarget->AddContour(pTargetContour, 0.0);
-
-	CPolygon *pAvoidContour = new CPolygon();
-
-	CVectorD<2> arrVertAvoid[] = 
-	{
-		CVectorD<2>(inMin + 1.0, nMargin),
-		CVectorD<2>(inMax - 1.0, nMargin), 
-
-		CVectorD<2>(inMax - 1.0, inMax - 1.0),
-		CVectorD<2>(inMin + 1.0, inMax - 1.0),
-
-		CVectorD<2>(inMin + 1.0, nMargin), 
-	};
-
-	for (int nAt = 0; nAt < 5; nAt++)
-	{
-		arrVertAvoid[nAt] += CVectorD<2>(0.5, 0.5);
-		pAvoidContour->AddVertex(arrVertAvoid[nAt]);
-	}
-	
-	pAvoid->AddContour(pAvoidContour, 0.0);
-
-	VOXEL_REAL ***pppVoxelsTarget = pRegionTarget->GetVoxels();
-	VOXEL_REAL ***pppVoxelsAvoid = pRegionAvoid->GetVoxels();
-	for (int nAtRow = nMargin; nAtRow < pRegionTarget->GetHeight()-nMargin; nAtRow++)
-	{
-		for (int nAtCol = nMargin; nAtCol < pRegionTarget->GetWidth()-nMargin; nAtCol++)
-		{
-			if ((nAtCol - nMargin < nRegionSize - nRegionSize / 2) 
-				|| (nAtCol - nMargin > nRegionSize + nRegionSize / 2)
-				|| (nAtRow - nMargin > nRegionSize + nRegionSize / 2))
-			{
-				pppVoxelsTarget[0][nAtRow][nAtCol] = 1.0;
-			}
-
-			if ((nAtCol - nMargin > nRegionSize - nRegionSize / 2) 
-				&& (nAtCol - nMargin < nRegionSize + nRegionSize / 2)
-				&& (nAtRow - nMargin < nRegionSize + nRegionSize / 2))
-			{
-				pppVoxelsAvoid[0][nAtRow][nAtCol] = 1.0;
-			}
-
-			ASSERT(pppVoxelsTarget[0][nAtRow][nAtCol] == 1.0
-				|| pppVoxelsAvoid[0][nAtRow][nAtCol] == 1.0
-				|| (pppVoxelsTarget[0][nAtRow][nAtCol] == 0.0
-					&& pppVoxelsAvoid[0][nAtRow][nAtCol] == 0.0));
-		}
-	}
-
-	LOG_OBJECT((*pRegionTarget));
-	LOG_OBJECT((*pRegionAvoid));
-
-	END_LOG_SECTION();	// InitUTarget
-
-}	// InitUTarget
-
-///////////////////////////////////////////////////////////////////////////////
-// InitVolumes
-// 
-// <description>
-///////////////////////////////////////////////////////////////////////////////
-void InitVolumes(CSeries *pSeries, CPlan *pPlan, CPrescription *pPresc)
-{
-	BEGIN_LOG_SECTION(InitVolumes);
-
-	CStructure *pStructTarget = pSeries->GetStructureFromName("Target");	
-	CStructure *pStructAvoid = pSeries->GetStructureFromName("Avoid");
-
-	InitUTarget(pPlan, pStructTarget, pStructAvoid);
-
-	CKLDivTerm *pKLDT_Target = new CKLDivTerm(pStructTarget, 5.0);
-	pPresc->AddStructureTerm(pKLDT_Target);
-
-	// need to call after adding to prescription (so that binning has been set)
-	const REAL MAX_DOSE = (REAL) 0.65;
-
-	pKLDT_Target->SetInterval(MAX_DOSE, MAX_DOSE * /* 1.05 */ 1.01, 1.0, TRUE);
-
-	CKLDivTerm *pKLDT_Avoid = new CKLDivTerm(pStructAvoid, 0.5);
-	pPresc->AddStructureTerm(pKLDT_Avoid);
-	pKLDT_Avoid->SetInterval((REAL) 0.0, (REAL) 0.40,
-		/* MAX_DOSE * 0.50 */ (REAL) 1.0, TRUE);
-
-	END_LOG_SECTION();	// InitVolumes
-
-}	// InitVolumes
-
 BOOL CBrimstoneDoc::OnOpenDocument(LPCTSTR lpszPathName) 
 {
 	if (!CDocument::OnOpenDocument(lpszPathName))
 		return FALSE;
-	
-	// TODO: move this to CPrescPyr (to generate sub-beamlets)
-	// generate pencil subbeamlets
-	for (int nAt = m_pPlan->GetBeamCount()-1; nAt >= 0; nAt--)
-	{
-		CBeam *pBeam = m_pPlan->GetBeamAt(nAt);
-		pBeam->m_pDoseCalc = new CBeamDoseCalc(pBeam, m_pPlan->m_pKernel);
-		pBeam->m_pDoseCalc->CalcPencilSubBeamlets();
-	}
-
-	// create prescription if its their
-	ASSERT(m_pPresc != NULL);
 
 	return TRUE;
 }
 
+/////////////////////////////////////////////////////////////////////////////
 void CBrimstoneDoc::OnGenbeamlets() 
 {
-	CPlanSetupDlg dlgSetup;
+	// DON'T delete existing plan, as this will require resetting the PlanarView
+	/// m_pPlan.reset(new CPlan());
+
+	// set up a new optimizer
+#ifdef USE_RTOPT
+	m_pOptimizer.reset(new dH::PlanOptimizer(m_pPlan));
+#endif
+
+	CPlanSetupDlg dlgSetup(m_pOptimizer->GetPyramid(), AfxGetMainWnd());
 	if (dlgSetup.DoModal() == IDOK)
 	{
-		int nBeams = dlgSetup.m_nBeamCount; // m_pPlan->GetBeamCount();
-
-		// TODO: move this to CPlan::GetDoseResolution; CPlan::ShapeDoseMatrix
-		const REAL dosePixSpacing = 2.0; // mm
-		CMatrixD<4> mBasis;
-		mBasis[0][0] = dosePixSpacing; // mm
-		mBasis[1][1] = dosePixSpacing;	// mm
-		mBasis[2][2] = dosePixSpacing; // mm
-
-		CVolume<VOXEL_REAL> *pOrigDensity = m_pSeries->m_pDens;
-		pOrigDensity->VoxelsChanged();
-		TRACE("pOrigDensity->GetMax() = %f\n", pOrigDensity->GetMax());
-		TRACE("pOrigDensity->GetMin() = %f\n", pOrigDensity->GetMin());
-
-		int nHeight = 
-			Round<int>(pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[0][0] / mBasis[0][0]);
-		int nWidth = 
-			Round<int>(pOrigDensity->GetWidth() * pOrigDensity->GetBasis()[1][1] / mBasis[1][1]);
-		int nDepth = 10;
-		m_pPlan->m_dose.SetDimensions(nWidth, nHeight, nDepth);
-
-		mBasis[3] = pOrigDensity->GetBasis()[3];
-		m_pPlan->m_dose.SetBasis(mBasis);
-		TRACE_MATRIX("Orig basis = ", pOrigDensity->GetBasis());
-		TRACE_MATRIX("Dose basis = ", m_pPlan->m_dose.GetBasis());
-
-
-		// TODO: move this to CBeamDoseClac::GetMassDensity()
-		CVolume<VOXEL_REAL> massDensity;
-		massDensity.ConformTo(pOrigDensity);
-		massDensity.ClearVoxels();
-
-		VOXEL_REAL ***pppCTVoxels = pOrigDensity->GetVoxels();
-		VOXEL_REAL ***pppMDVoxels = massDensity.GetVoxels();
-		for (int nX = 0; nX < massDensity.GetWidth(); nX++)
-			for (int nY = 0; nY < massDensity.GetHeight() * 3 / 4; nY++)
-				for (int nZ = 0; nZ < massDensity.GetDepth(); nZ++)
-				{
-					if (pppCTVoxels[nZ][nY][nX] < 0.0)
-					{
-						pppMDVoxels[nZ][nY][nX] = (VOXEL_REAL)
-							(0.0 + 1.0 * (pppCTVoxels[nZ][nY][nX] - -1024.0) / 1024.0);
-					}
-					else if (pppCTVoxels[nZ][nY][nX] < 1024.0)
-					{
-						pppMDVoxels[nZ][nY][nX] = (VOXEL_REAL)
-							(1.0 + 0.5 * pppCTVoxels[nZ][nY][nX] / 1024.0);
-					}
-					else
-					{
-						pppMDVoxels[nZ][nY][nX] = 1.5;
-					}
-				}
-
-		massDensity.VoxelsChanged();
-		TRACE("massDensity.GetMax() = %f\n", massDensity.GetMax());
-		TRACE("massDensity.GetMin() = %f\n", massDensity.GetMin());
-
-		for (int nAt = nBeams-1; nAt >= 0; nAt--)
-		{
-			TRACE("Generating Beamlets for Beam %i\n", nAt);
-
-			// TODO: move this CBeam::ShapeDoseMatrix
-			double gantry;
-			gantry = 90.0 + (double) nAt * 360.0 / (double) nBeams;
-
-			CBeam *pBeam = new CBeam();
-			pBeam->SetGantryAngle(gantry * PI / 180.0);
-			pBeam->m_pDoseCalc = new CBeamDoseCalc(pBeam, m_pPlan->m_pKernel);
-			pBeam->m_dose.ConformTo(&m_pPlan->m_dose);
-
-			// TODO: move this to the beam -- it should create it's own basis, rotated about center of plan's dose volume
-			// rotate basis to beam orientation
-			CMatrixD<2> mRotateBasis2D;
-			mRotateBasis2D[0][0] = mBasis[0][0];
-			mRotateBasis2D[1][1] = mBasis[1][1];
-
-			mRotateBasis2D = // mRotateBasis2D * 
-				::CreateRotate(gantry * PI / 180.0);
-	
-			CMatrixD<4> mRotateBasisHG;
-			mRotateBasisHG[0][0] = mRotateBasis2D[0][0];
-			mRotateBasisHG[0][1] = mRotateBasis2D[0][1];
-			mRotateBasisHG[1][0] = mRotateBasis2D[1][0];
-			mRotateBasisHG[1][1] = mRotateBasis2D[1][1];
-
-
-			CMatrixD<4> mDoseBasis = pBeam->m_dose.GetBasis();
-			// mDoseBasis[3][0] -= m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
-			// mDoseBasis[3][1] -= m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
-
-			CMatrixD<4> mBeamBasis = mRotateBasisHG * mDoseBasis;
-			// mBeamBasis[3][0] += m_pPlan->m_dose.GetWidth() * dosePixSpacing / 2.0;
-			// mBeamBasis[3][1] += m_pPlan->m_dose.GetHeight() * dosePixSpacing / 2.0;
-
-			TRACE_MATRIX("Beam Basis", mBeamBasis);
-			pBeam->m_dose.SetBasis(mBeamBasis);
-
-			// set up isocenter
-			// TODO: get isocenter and SAD from CBeam; set up in CBeamDoseCalc
-			CMatrixD<4> mBeamBasisInv = mBeamBasis;
-			mBeamBasisInv.Invert();
-
-			TRACE_MATRIX("Basis * Inv", mBeamBasis * mBeamBasisInv);
-
-			CVectorD<3> vIso(dlgSetup.m_isoX, dlgSetup.m_isoY, 0.0);
-			pBeam->m_pDoseCalc->m_vIsocenter_vxl = FromHG<3, REAL>(mBeamBasisInv * ToHG<3, REAL>(vIso));
-			pBeam->m_pDoseCalc->m_vIsocenter_vxl[2] = pBeam->m_dose.GetDepth() / 2.0;
-
-			pBeam->m_pDoseCalc->m_vSource_vxl = pBeam->m_pDoseCalc->m_vIsocenter_vxl;
-			pBeam->m_pDoseCalc->m_vSource_vxl[0] -= 1000.0 / dosePixSpacing;
-
-			// now trigger convolution
-			pBeam->m_pDoseCalc->CalcPencilBeams(&massDensity); // m_pSeries->m_pDens);
-
-			m_pPlan->AddBeam(pBeam);
-		}
 
 	}
+	VolumeReal *pVR = m_pPlan->GetBeamAt(0)->GetBeamlet(0);
+	VOXEL_REAL max;
+	VoxelMax<VOXEL_REAL>(&max, pVR->GetBufferPointer(),
+		pVR->GetBufferedRegion().GetSize()[0],
+		pVR->GetBufferedRegion().GetSize());
+
+	CVectorN<> vWeights;
+	vWeights.SetDim(1); // 39);
+	vWeights[0 /*19*/] = 0.99; // 70.0;
+	for (int nAtBeam = 0; nAtBeam < m_pPlan->GetBeamCount(); nAtBeam++)
+		m_pPlan->GetBeamAt(nAtBeam)->SetIntensityMap(vWeights);
+	m_pPlan->GetDoseMatrix();
+
+	// this is used to prime CBrimstoneView's optimizer thread
+	SendInitialUpdate();
 }
 
+/////////////////////////////////////////////////////////////////////////////
 void CBrimstoneDoc::OnFileImportDcm() 
 {
 	// remove existing data
@@ -482,7 +226,7 @@ void CBrimstoneDoc::OnFileImportDcm()
 		DeleteContents();
 
 		// update views for new document objects
-		SendInitialUpdate();
+		//SendInitialUpdate();
 
 		// construct the importer
 		CSeriesDicomImporter dcmImp(m_pSeries, &dlg);
@@ -495,53 +239,36 @@ void CBrimstoneDoc::OnFileImportDcm()
 			TRACE("Processing %i\n", nCount);
 		} while (nCount > 0);
 
+#define PATCH_HOLE
+#ifdef PATCH_HOLE
+		// now patch the hole
+		VolumeReal::IndexType idx;
+		for (idx[2] = 0; idx[2] < m_pSeries->GetDensity()->GetBufferedRegion().GetSize()[2]; idx[2]++)
+		{
+			for (idx[1] = 97; idx[1] < 107; idx[1]++)
+			{
+				for (idx[0] = 109; idx[0] < 126; idx[0]++)
+				{
+					VOXEL_REAL value = 25.0 - 50.0 * (VOXEL_REAL) rand() / (VOXEL_REAL) RAND_MAX;
+					m_pSeries->GetDensity()->SetPixel(idx, value);
+					// (*m_pSeries->m_pDens)[nZ][nY][nX] = 25.0 - 50.0 * (VOXEL_REAL) rand() / (VOXEL_REAL) RAND_MAX;
+				}
+			}
+		}
+#endif
+
+		dH::Structure *pStruct = this->m_pSeries->GetStructureAt(0);
+		CString strName(pStruct->GetName().c_str());
+		//pStruct->CalcRegion();
+
+		// TODO: update the viewer with the correct plane isocenter position
+
 		// set path name
 		// SetPathName("");
 
 		SetModifiedFlag(TRUE);
+
+		// update views for new document objects
+		SendInitialUpdate();
 	}
-}
-
-
-void CBrimstoneDoc::OnPlanAddPresc() 
-{
-/*	CPrescDlg dlg;
-	dlg.m_pSeries = m_pSeries;
-	dlg.m_pPresc = m_pPresc;
-
-	if (dlg.DoModal())
-	{
-		UpdateAllViews(NULL, IDD_ADDHISTO, dlg.m_pStruct);
-	} */
-}
-
-void CBrimstoneDoc::OnOptDashboard()
-{
-	COptimizerDashboard optDash;
-	optDash.m_pPresc = m_pPresc;
-	optDash.DoModal();
-}
-
-// generates a histogram for the specified structure
-void CBrimstoneDoc::AddHistogram(CStructure * pStruct)
-{
-	// generate the histogram
-	m_pPlan->GetHistogram(pStruct, true);
-
-	// trigger updates
-	UpdateAllViews(NULL, IDD_ADDHISTO, pStruct);
-}
-
-// removes histogram for designated structure
-void CBrimstoneDoc::RemoveHistogram(CStructure * pStruct)
-{
-	UpdateAllViews(NULL, IDD_REMOVEHISTO, pStruct);
-	m_pPlan->RemoveHistogram(pStruct);
-}
-
-// add new structure term
-void CBrimstoneDoc::AddStructTerm(CVOITerm * pVOIT)
-{
-	m_pPresc->AddStructureTerm(pVOIT);
-	UpdateAllViews(NULL, IDD_ADDPRESC, pVOIT->GetVOI());
 }

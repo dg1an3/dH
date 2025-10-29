@@ -2,7 +2,7 @@
 // MatrixD.h: declaration and definition of the CMatrixD template class.
 //
 // Copyright (C) 1999-2003 Derek G Lane
-// $Id$
+// $Id: MatrixD.h,v 1.6 2003/03/01 22:28:16 default Exp $
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(MATRIXD_H)
