@@ -36,8 +36,32 @@ The dH algorithm implements a simplistic variational Bayes approach for treatmen
 The algorithm is "simplistic" in that it:
 - Does not explicitly model posterior distributions
 - Uses sigmoid-transformed parameters rather than full probabilistic representation
-- Computes implicit rather than explicit free energy
+- By default computes implicit rather than explicit free energy (though explicit calculation is available as an option)
 - Focuses on point estimates rather than full posterior inference
+
+### Explicit Free Energy Calculation (Optional)
+
+An optional explicit free energy calculation has been implemented (`RtModel/ConjGradOptimizer.cpp:220-254`):
+
+**Enable via:** `optimizer.SetComputeFreeEnergy(true)`
+
+**Calculation Method:**
+1. **Entropy from Covariance**: Computes differential entropy from the dynamically-built covariance matrix
+   ```
+   H = 0.5 * (n * log(2πe) + log(det(Σ)))
+   ```
+   - Uses eigenvalue decomposition for numerical stability
+   - No Hessian approximation required - uses existing search-direction-based covariance
+
+2. **Free Energy**: Combines KL divergence objective with entropy
+   ```
+   F = KL_divergence - Entropy
+   ```
+   - KL divergence represents expected log likelihood term
+   - Entropy term accounts for posterior uncertainty
+   - Both terms logged during optimization iterations
+
+This implementation leverages the existing `DynamicCovarianceOptimizer` covariance approximation (built from orthogonalized conjugate gradient search directions) rather than requiring expensive Hessian computation.
 
 ### Mathematical Formulation
 

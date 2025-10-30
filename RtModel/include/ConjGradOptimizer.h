@@ -38,11 +38,20 @@ public:
 	// used to set up the variance min / max calculation
 	void SetAdaptiveVariance(bool bCalcVar, REAL varMin, REAL varMax);
 
+	// used to enable explicit free energy calculation
+	void SetComputeFreeEnergy(bool bComputeFreeEnergy);
+
 	// holds the final value of the optimization
 	DeclareMember(FinalValue, REAL);
 
 	// holds the final value of the parameters for the minimum f
 	DeclareMember(FinalParameter, vnl_vector<REAL>);
+
+	// holds the computed entropy (if free energy calculation is enabled)
+	DeclareMember(Entropy, REAL);
+
+	// holds the computed free energy (if free energy calculation is enabled)
+	DeclareMember(FreeEnergy, REAL);
 
 	// sets the callback function
 	void SetCallback(OptimizerCallback *pCallback, void *pParam = NULL)
@@ -54,6 +63,7 @@ public:
 protected:
 	void InitializeDynamicCovariance(int nDim);
 	void UpdateDynamicCovariance();
+	REAL ComputeEntropyFromCovariance(const vnl_matrix<REAL>& covar);
 
 private:
 	// the objective function over which optimization is to occur
@@ -67,6 +77,9 @@ private:
 
 	// flag to indicate adaptive variance calculation
 	bool m_bCalcVar;
+
+	// flag to indicate explicit free energy calculation
+	bool m_bComputeFreeEnergy;
 
 	// AV min and max
 	REAL m_varMin;
