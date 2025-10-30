@@ -6,6 +6,7 @@
 #include "ConjGradOptimizer.h"
 
 #include <vnl/algo/vnl_brent_minimizer.h>
+#include <vnl/algo/vnl_symmetric_eigensystem.h>
 
 #include <vector>
 #include <algorithm>
@@ -55,6 +56,9 @@ DynamicCovarianceOptimizer::DynamicCovarianceOptimizer(DynamicCovarianceCostFunc
 	: // COptimizer(pFunc)
 	m_pCostFunction(pFunc)
 	, m_bCalcVar(false)
+	, m_bComputeFreeEnergy(false)
+	, m_Entropy(0.0)
+	, m_FreeEnergy(0.0)
 {
 }	// CConjGradOptimizer::CConjGradOptimizer
 
@@ -186,7 +190,7 @@ vnl_nonlinear_minimizer::ReturnCodes
 
 
 //////////////////////////////////////////////////////////////////////////////
-void 
+void
 	DynamicCovarianceOptimizer::SetAdaptiveVariance(bool bCalcVar, REAL varMin, REAL varMax)
 	// used to set up the variance min / max calculation
 {
@@ -204,7 +208,55 @@ void
 
 
 //////////////////////////////////////////////////////////////////////////////
-void 
+void
+	DynamicCovarianceOptimizer::SetComputeFreeEnergy(bool bComputeFreeEnergy)
+	// used to enable explicit free energy calculation
+{
+	m_bComputeFreeEnergy = bComputeFreeEnergy;
+
+}	// DynamicCovarianceOptimizer::SetComputeFreeEnergy
+
+
+//////////////////////////////////////////////////////////////////////////////
+REAL
+	DynamicCovarianceOptimizer::ComputeEntropyFromCovariance(const vnl_matrix<REAL>& covar)
+	// computes differential entropy from covariance matrix
+	// H = 0.5 * log(det(2πe * Σ))
+	//   = 0.5 * (n * log(2πe) + log(det(Σ)))
+{
+	int nDim = covar.rows();
+
+	// compute determinant via sum of log eigenvalues (more numerically stable)
+	vnl_matrix<REAL> covarSymmetric = (covar + covar.transpose()) * 0.5;
+	vnl_symmetric_eigensystem<REAL> eigenSystem(covarSymmetric);
+
+	REAL logDet = 0.0;
+	for (int i = 0; i < nDim; i++)
+	{
+		REAL eigenvalue = eigenSystem.get_eigenvalue(i);
+		// protect against negative or zero eigenvalues
+		if (eigenvalue > 1e-10)
+		{
+			logDet += log(eigenvalue);
+		}
+		else
+		{
+			// use minimum eigenvalue for numerical stability
+			logDet += log(1e-10);
+		}
+	}
+
+	// entropy = 0.5 * (n * log(2πe) + log(det(Σ)))
+	const REAL log2PiE = log(2.0 * 3.14159265358979323846 * 2.71828182845904523536);
+	REAL entropy = 0.5 * (nDim * log2PiE + logDet);
+
+	return entropy;
+
+}	// DynamicCovarianceOptimizer::ComputeEntropyFromCovariance
+
+
+//////////////////////////////////////////////////////////////////////////////
+void
 	DynamicCovarianceOptimizer::InitializeDynamicCovariance(int nDim)
 {
 	if (!m_bCalcVar)
@@ -294,6 +346,20 @@ void
 		for (int nRow = 0; nRow < covar.rows(); nRow++)
 			sum += covar(nRow, nDim);
 		m_vAdaptVariance[nDim] = 1.0 / sum;
+	}
+
+	// compute explicit free energy if enabled
+	if (m_bComputeFreeEnergy)
+	{
+		// compute entropy from the covariance matrix
+		m_Entropy = ComputeEntropyFromCovariance(covar);
+
+		// free energy = KL divergence (objective value) - Entropy
+		// note: m_FinalValue contains the KL divergence sum (expected log likelihood term)
+		m_FreeEnergy = m_FinalValue - m_Entropy;
+
+		Log(_T("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f"),
+			num_iterations_, m_FinalValue, m_Entropy, m_FreeEnergy);
 	}
 
 	// now reset the final value, using the new AV vector
