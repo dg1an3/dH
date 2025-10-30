@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="9.00"
 	Name="Brimstone"
-	ProjectGUID="{376E5E45-955A-4FDA-BC06-81F7F2CB53EA}"
+	ProjectGUID="{80AB664E-B56A-4A59-91D6-A8201FC00859}"
 	RootNamespace="Brimstone"
 	Keyword="MFCProj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
 			Name="Win32"
+		/>
+		<Platform
+			Name="x64"
 		/>
 	</Platforms>
 	<ToolFiles>
@@ -17,13 +21,11 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug"
-			IntermediateDirectory=".\Debug"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="2"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -40,30 +42,21 @@
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Debug/Brimstone.tlb"
-				HeaderFileName=""
+				MkTypLibCompatible="false"
+				ValidateParameters="false"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\Graph\include;..\RT_MODEL\include;..\RT_MODEL\DicomImEx;..\OptimizeN\include;..\GEOM_MODEL\include;..\MTL;..\XMLLogging;&quot;..\..\..\dcmtk-3.5.3\dcmimgle\include&quot;;&quot;..\..\..\dcmtk-3.5.3\dcmdata\include&quot;;&quot;..\..\..\dcmtk-3.5.3\ofstd\include&quot;;&quot;..\..\..\dcmtk-3.5.3\config\include&quot;"
-				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;XMLLOGGING_ON;USE_IPP;SBYTE_DEFINED"
+				AdditionalIncludeDirectories="..\Graph\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;&quot;$(DCMTK_DIR)\dcmimgle\include&quot;;&quot;$(DCMTK_DIR)\dcmdata\include&quot;;&quot;$(DCMTK_DIR)\ofstd\include&quot;;&quot;$(DCMTK_DIR)\config\include&quot;;&quot;$(ITK_DIR)\Code\Algorithms&quot;;&quot;$(ITK_DIR)\Code\BasicFilters&quot;;&quot;$(ITK_DIR)\Code\Common&quot;;&quot;$(ITK_BUILD_DIR)&quot;;&quot;$(ITK_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_DIR)\Utilities\vxl\core&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\core&quot;"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;USE_IPP;SBYTE_DEFINED;USE_RTOPT"
+				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderThrough="stdafx.h"
-				PrecompiledHeaderFile=".\Debug/Brimstone.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				BrowseInformation="1"
 				WarningLevel="3"
-				SuppressStartupBanner="true"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CompileAs="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -72,20 +65,20 @@
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="_DEBUG"
 				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="$(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmimgle\libsrc\Debug\dcmimgle.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmdata\libsrc\Debug\dcmdata.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\ofstd\libsrc\Debug\ofstd.lib ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib"
-				OutputFile=".\Debug/Brimstone.exe"
-				LinkIncremental="1"
-				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="$(IPPROOT)\lib,$(IPPROOT)\stublib"
+				AdditionalDependencies="dcmimgle.lib dcmdata.lib ofstd.lib ITKAlgorithms.lib ITKBasicFilters.lib ITKCommon.lib itkvnl_inst.lib itkvnl_algo.lib itkv3p_netlib.lib itkvnl.lib itkvcl.lib itksys.lib ippi.lib ipps.lib ippm.lib ippcore.lib ws2_32.lib netapi32.lib"
+				LinkIncremental="2"
+				AdditionalLibraryDirectories="&quot;$(ITK_BUILD_DIR)\bin\Debug&quot;;&quot;$(DCMTK_DIR)\lib\debug&quot;"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/Brimstone.pdb"
 				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -107,22 +100,105 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
+				Name="VCPostBuildEventTool"
+				Description="copy the kernel data"
+				CommandLine="copy *kernel.dat $(OutDir)"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="1"
+			UseOfMFC="2"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="_DEBUG"
+				MkTypLibCompatible="false"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\GenImaging\include;..\Graph\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;&quot;$(DCMTK_DIR)\dcmimgle\include&quot;;&quot;$(DCMTK_DIR)\dcmdata\include&quot;;&quot;$(DCMTK_DIR)\ofstd\include&quot;;&quot;$(DCMTK_DIR)\config\include&quot;;&quot;$(ITK_DIR)\Code\Algorithms&quot;;&quot;$(ITK_DIR)\Code\BasicFilters&quot;;&quot;$(ITK_DIR)\Code\Common&quot;;&quot;$(ITK_BUILD_DIR)&quot;;&quot;$(ITK_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_DIR)\Utilities\vxl\core&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\core&quot;"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;USE_IPP;SBYTE_DEFINED;USE_RTOPT"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				UsePrecompiledHeader="2"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="_DEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="$(DCMTK_BUILD_DIR)\dcmimgle\libsrc\release\dcmimgle.lib $(DCMTK_BUILD_DIR)\dcmdata\libsrc\release\dcmdata.lib $(DCMTK_BUILD_DIR)\ofstd\libsrc\release\ofstd.lib ITKAlgorithms.lib ITKBasicFilters.lib ITKCommon.lib itkvnl_inst.lib itkvnl_algo.lib itkv3p_netlib.lib itkvnl.lib itkvcl.lib itksys.lib ippi.lib ipps.lib ippm.lib ippcore.lib ws2_32.lib netapi32.lib"
+				LinkIncremental="2"
+				AdditionalLibraryDirectories="$(ITK_BUILD_DIR_32)\bin\Debug"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy 15MV_kernel.dat $(TargetDir)&#x0D;&#x0A;copy 6MV_kernel.dat $(TargetDir)&#x0D;&#x0A;copy 2MV_kernel.dat $(TargetDir)&#x0D;&#x0A;"
+				Description="copy the kernel data"
+				CommandLine="copy *kernel.dat $(OutDir)"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="2"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -139,35 +215,18 @@
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Release/Brimstone.tlb"
-				HeaderFileName=""
+				MkTypLibCompatible="false"
+				ValidateParameters="false"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="..\Graph\include;..\RT_MODEL\include;..\RT_MODEL\DicomImEx;..\OptimizeN\include;..\GEOM_MODEL\include;..\MTL;..\XMLLogging;&quot;..\..\..\dcmtk-3.5.3\dcmimgle\include&quot;;&quot;..\..\..\dcmtk-3.5.3\dcmdata\include&quot;;&quot;..\..\..\dcmtk-3.5.3\ofstd\include&quot;;&quot;..\..\..\dcmtk-3.5.3\config\include&quot;"
-				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;USE_XMLLOGGING;USE_IPP;SBYTE_DEFINED"
-				StringPooling="true"
+				AdditionalIncludeDirectories="..\Graph\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;&quot;$(DCMTK_DIR)\dcmimgle\include&quot;;&quot;$(DCMTK_DIR)\dcmdata\include&quot;;&quot;$(DCMTK_DIR)\ofstd\include&quot;;&quot;$(DCMTK_DIR)\config\include&quot;;&quot;$(ITK_DIR)\Code\SpatialObject&quot;;&quot;$(ITK_DIR)\Code\Algorithms&quot;;&quot;$(ITK_DIR)\Code\BasicFilters&quot;;&quot;$(ITK_DIR)\Code\Common&quot;;&quot;$(ITK_BUILD_DIR)&quot;;&quot;$(ITK_BUILD_DIR)\Utilities&quot;;&quot;$(ITK_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_DIR)\Utilities\vxl\core&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\core&quot;"
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;USE_IPP;SBYTE_DEFINED;USE_RTOPT"
+				MinimalRebuild="false"
 				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="true"
-				EnableEnhancedInstructionSet="2"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderThrough="stdafx.h"
-				PrecompiledHeaderFile=".\Release/Brimstone.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
-				BrowseInformation="1"
 				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="0"
-				CompileAs="0"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -176,21 +235,22 @@
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="NDEBUG"
 				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="$(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmimgle\libsrc\Release\dcmimgle.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\dcmdata\libsrc\Release\dcmdata.lib $(ProjectDir)\..\..\..\dcmtk-3.5.3\ofstd\libsrc\Release\ofstd.lib ippi20.lib ippcv20.lib ipps20.lib ippm20.lib ws2_32.lib netapi32.lib"
-				OutputFile=".\Release/Brimstone.exe"
+				AdditionalDependencies="dcmimgle.lib dcmdata.lib ofstd.lib ITKAlgorithms.lib ITKBasicFilters.lib ITKCommon.lib itkvnl_inst.lib itkvnl_algo.lib itkv3p_netlib.lib itkvnl.lib itkvcl.lib itksys.lib ippi.lib ipps.lib ippm.lib ippcore.lib ws2_32.lib netapi32.lib"
 				LinkIncremental="1"
-				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="$(IPPROOT)\lib,$(IPPROOT)\stublib"
+				AdditionalLibraryDirectories="&quot;$(ITK_BUILD_DIR)\bin\Release&quot;;&quot;$(DCMTK_DIR)\lib\release&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -212,11 +272,96 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
+				Name="VCPostBuildEventTool"
+				Description="copy the kernel data"
+				CommandLine="copy *kernel.dat $(OutDir)"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="1"
+			UseOfMFC="2"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="false"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="..\GenImaging\include;..\Graph\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;&quot;$(DCMTK_DIR)\dcmimgle\include&quot;;&quot;$(DCMTK_DIR)\dcmdata\include&quot;;&quot;$(DCMTK_DIR)\ofstd\include&quot;;&quot;$(DCMTK_DIR)\config\include&quot;;&quot;$(ITK_DIR)\Code\Algorithms&quot;;&quot;$(ITK_DIR)\Code\BasicFilters&quot;;&quot;$(ITK_DIR)\Code\Common&quot;;&quot;$(ITK_BUILD_DIR)&quot;;&quot;$(ITK_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\vcl&quot;;&quot;$(ITK_DIR)\Utilities\vxl\core&quot;;&quot;$(ITK_BUILD_DIR)\Utilities\vxl\core&quot;"
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;USE_IPP;SBYTE_DEFINED;USE_RTOPT"
+				MinimalRebuild="false"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="2"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="$(DCMTK_BUILD_DIR)\dcmimgle\libsrc\release\dcmimgle.lib $(DCMTK_BUILD_DIR)\dcmdata\libsrc\release\dcmdata.lib $(DCMTK_BUILD_DIR)\ofstd\libsrc\release\ofstd.lib ITKAlgorithms.lib ITKBasicFilters.lib ITKCommon.lib itkvnl_inst.lib itkvnl_algo.lib itkv3p_netlib.lib itkvnl.lib itkvcl.lib itksys.lib ippi.lib ipps.lib ippm.lib ippcore.lib ws2_32.lib netapi32.lib"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories="$(ITK_BUILD_DIR_32)\bin\Release"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy 15MV_kernel.dat $(TargetDir)&#x0D;&#x0A;copy 6MV_kernel.dat $(TargetDir)&#x0D;&#x0A;copy 2MV_kernel.dat $(TargetDir)&#x0D;&#x0A;"
+				Description="copy the kernel data"
+				CommandLine="copy *kernel.dat $(OutDir)"
 			/>
 		</Configuration>
 	</Configurations>
@@ -225,122 +370,23 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="Brimstone.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="Brimstone.rc"
+				RelativePath=".\Brimstone.cpp"
 				>
 			</File>
 			<File
-				RelativePath="BrimstoneDoc.cpp"
+				RelativePath=".\BrimstoneDoc.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="BrimstoneView.cpp"
+				RelativePath=".\BrimstoneView.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MainFrm.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\OptimizerDashboard.cpp"
+				RelativePath=".\MainFrm.cpp"
 				>
 			</File>
 			<File
@@ -348,127 +394,38 @@
 				>
 			</File>
 			<File
-				RelativePath="PlanarView.cpp"
+				RelativePath=".\PlanarView.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="PlanSetupDlg.cpp"
+				RelativePath=".\PlanSetupDlg.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="PrescDlg.cpp"
+				RelativePath=".\PrescriptionToolbar.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="PrescriptionToolbar.cpp"
+				RelativePath=".\SeriesDicomImporter.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="StdAfx.cpp"
+				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
 						UsePrecompiledHeader="1"
-						BrowseInformation="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -476,37 +433,38 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
 						UsePrecompiledHeader="1"
-						BrowseInformation="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
 					/>
 				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="Brimstone.h"
+				RelativePath=".\Brimstone.h"
 				>
 			</File>
 			<File
-				RelativePath="BrimstoneDoc.h"
+				RelativePath=".\BrimstoneDoc.h"
 				>
 			</File>
 			<File
-				RelativePath="BrimstoneView.h"
+				RelativePath=".\BrimstoneView.h"
 				>
 			</File>
 			<File
-				RelativePath="MainFrm.h"
-				>
-			</File>
-			<File
-				RelativePath=".\OptimizerDashboard.h"
+				RelativePath=".\MainFrm.h"
 				>
 			</File>
 			<File
@@ -514,69 +472,66 @@
 				>
 			</File>
 			<File
-				RelativePath="PlanarView.h"
+				RelativePath=".\PlanarView.h"
 				>
 			</File>
 			<File
-				RelativePath="PlanSetupDlg.h"
+				RelativePath=".\PlanSetupDlg.h"
 				>
 			</File>
 			<File
-				RelativePath="PrescDlg.h"
+				RelativePath=".\PrescriptionToolbar.h"
 				>
 			</File>
 			<File
-				RelativePath="PrescriptionToolbar.h"
+				RelativePath=".\Resource.h"
 				>
 			</File>
 			<File
-				RelativePath="Resource.h"
+				RelativePath=".\SeriesDicomImporter.h"
 				>
 			</File>
 			<File
-				RelativePath="StdAfx.h"
+				RelativePath=".\stdafx.h"
 				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
-			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
-				RelativePath="res\bitmap1.bmp"
+				RelativePath=".\res\Brimstone.ico"
 				>
 			</File>
 			<File
-				RelativePath="res\bmp00001.bmp"
+				RelativePath=".\Brimstone.rc"
 				>
 			</File>
 			<File
-				RelativePath="res\Brimstone.ico"
+				RelativePath=".\res\Brimstone.rc2"
 				>
 			</File>
 			<File
-				RelativePath="res\Brimstone.rc2"
+				RelativePath=".\res\BrimstoneDoc.ico"
 				>
 			</File>
 			<File
-				RelativePath="res\BrimstoneDoc.ico"
+				RelativePath=".\res\legend.bmp"
 				>
 			</File>
 			<File
-				RelativePath="res\legend.bmp"
+				RelativePath=".\res\rainbow.bmp"
 				>
 			</File>
 			<File
-				RelativePath="res\rainbow.bmp"
-				>
-			</File>
-			<File
-				RelativePath="res\Toolbar.bmp"
+				RelativePath=".\res\Toolbar.bmp"
 				>
 			</File>
 		</Filter>
 		<File
-			RelativePath="ReadMe.txt"
+			RelativePath=".\ReadMe.txt"
 			>
 		</File>
 	</Files>

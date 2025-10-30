@@ -1,3 +1,5 @@
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: HistogramDataSeries.cpp 608 2008-09-14 18:32:44Z dglane001 $
 #include "StdAfx.h"
 
 #include <HistogramDataSeries.h>
@@ -9,8 +11,13 @@
 		: m_pHistogram(pHisto)
 		, m_bRecalcCurve(true)
 {
-	AddObserver(&m_pHistogram->GetChangeEvent(), this, 
-		&CHistogramDataSeries::OnHistogramChanged);
+#ifdef USE_RTOPT
+	//m_pHistogram->GetChangeEvent().AddObserver(this, 
+	//// AddObserver(&m_pHistogram->GetChangeEvent(), this, 
+	//	(dH::ListenerFunction) &CHistogramDataSeries::OnHistogramChanged);
+#endif
+
+	UseForAutoScale = false;
 
 	// OnHistogramChanged(NULL, NULL);
 
@@ -23,16 +30,21 @@
 
 ////////////////////////////////////////////////////////////////////////////
 const CMatrixNxM<>& 
-	CHistogramDataSeries::GetDataMatrix() const
+	CHistogramDataSeries::GetDataMatrix()
 	// recalculates the data matrix based on current histogram, if flagged
 {
-	if (m_bRecalcCurve)
+	if (m_pHistogram->GetUpdateMTime() < GetUpdateMTime())
+		return CDataSeries::GetDataMatrix();
+
+#ifdef USE_RTOPT
+	if (/*m_bRecalcCurve 
+		|| */true)
 	{
 		// now draw the histogram
 		const CVectorN<>& arrBins = GetHistogram()->GetCumBins();
 
 		m_mData.Reshape(arrBins.GetDim(), 2);
-		REAL sum = GetHistogram()->GetRegion()->GetSum();
+		REAL sum = GetSum<VOXEL_REAL>(GetHistogram()->GetRegion());
 		REAL binValue = GetHistogram()->GetBinMinValue();
 		for (int nAt = 0; nAt < m_mData.GetCols(); nAt++)
 		{
@@ -46,21 +58,24 @@ const CMatrixNxM<>&
 		}	
 
 		m_bRecalcCurve = false;
+		this->DataHasBeenGenerated(); // Modified();
 	}
-
+#endif
 	return CDataSeries::GetDataMatrix();
 
 }	// CHistogramDataSeries::GetDataMatrix
 
 ////////////////////////////////////////////////////////////////////////////
 void 
-	CHistogramDataSeries::OnHistogramChanged(CObservableEvent *, void *)
+	CHistogramDataSeries::OnHistogramChanged() // CObservableEvent *, void *)
 {
 	// flag recalc
 	m_bRecalcCurve = true;
 
 	// propagate change
-	GetChangeEvent().Fire();
+	// GetChangeEvent().Fire();
+	if (m_pGraph)
+		m_pGraph->OnDataSeriesChanged(); // NULL, NULL);
 
 }	// CHistogramDataSeries::OnHistogramChanged
 

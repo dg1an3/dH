@@ -1,12 +1,12 @@
-// Brimstone.cpp : Defines the class behaviors for the application.
-//
-
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: Brimstone.cpp 613 2008-09-14 18:47:53Z dglane001 $
 #include "stdafx.h"
 #include "Brimstone.h"
 
-#include "MainFrm.h"
 #include "BrimstoneDoc.h"
 #include "BrimstoneView.h"
+#include "PrescriptionToolbar.h"
+#include "MainFrm.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

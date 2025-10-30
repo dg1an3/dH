@@ -1,6 +1,5 @@
-// Graph.h : header file
-//
-
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: Graph.h 607 2008-09-14 18:32:17Z dglane001 $
 #if !defined(AFX_GRAPH_H__37CA0912_5524_11D5_ABBE_00B0D0AB90D6__INCLUDED_)
 #define AFX_GRAPH_H__37CA0912_5524_11D5_ABBE_00B0D0AB90D6__INCLUDED_
 
@@ -8,10 +7,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <VectorD.h>
+//#include <VectorD.h>
 #include <MatrixNxM.h>
 
-#include <ModelObject.h>
+//#include <ModelObject.h>
 
 // #include <Histogram.h>
 
@@ -36,7 +35,7 @@ public:
 	// accessors for data series
 	int GetDataSeriesCount();
 	CDataSeries *GetDataSeriesAt(int nAt);
-	void AddDataSeries(CDataSeries *pSeries);
+	void AddDataSeries(CDataSeries::Pointer pSeries);
 	void RemoveDataSeries(int nAt, bool bDelete = false);
 	void RemoveAllDataSeries(bool bDelete = false);
 
@@ -47,17 +46,13 @@ public:
 	void SetMargins(int nLeft, int nTop, int nRight, int nBottom);
 
 	// sets the axes ranges and tick marks
-	DECLARE_ATTRIBUTE(AxesMin, CVectorD<2>);
-	DECLARE_ATTRIBUTE(AxesMax, CVectorD<2>);
-//	const CVectorD<2>& GetAxesMin();
-//	void SetAxesMin(const CVectorD<2>& vMin);	
-//	const CVectorD<2>& GetAxesMax();
-//	void SetAxesMax(const CVectorD<2>& vMin);	
+	typedef itk::Vector<REAL,2> GraphCoord;
 
-	DECLARE_ATTRIBUTE(AxesMajor, CVectorD<2>);
-	DECLARE_ATTRIBUTE(AxesMinor, CVectorD<2>);
-//	const CVectorD<2>& GetAxesMinor();
-//	void SetAxesMinor(const CVectorD<2>& vMinor);
+	DECLARE_ATTRIBUTE(AxesMin, GraphCoord);
+	DECLARE_ATTRIBUTE(AxesMax, GraphCoord);
+
+	DECLARE_ATTRIBUTE(AxesMajor, GraphCoord);
+	DECLARE_ATTRIBUTE(AxesMinor, GraphCoord);
 
 	// computes the min and max values for the graph
 	void AutoScale();
@@ -95,29 +90,24 @@ public:
 	void DrawLegend(CDC * pDC, const CRect& rect);
 
 	// converts to coordinates on the plot
-	CPoint ToPlotCoord(const CVectorD<2>& vCoord);
-	CVectorD<2> FromPlotCoord(const CPoint& vCoord);
+	CPoint ToPlotCoord(const GraphCoord& vCoord);
+	GraphCoord FromPlotCoord(const CPoint& vCoord);
 
 	// called when one of my data series changes
-	void OnDataSeriesChanged(CObservableEvent * pOE, void * pParam);
+	void OnDataSeriesChanged(); // CObservableEvent * pOE, void * pParam);
 
 private:
 	// the array of data series
-	CTypedPtrArray<CObArray, CDataSeries*> m_arrDataSeries;
+	vector<CDataSeries::Pointer> m_arrDataSeriesPtr;
+	CTypedPtrArray<CPtrArray, CDataSeries*> m_arrDataSeries;
 
 	// graph plot area
 	int m_arrMargins[4];
 
-	// min, max, and major 
-//	CVectorD<2> m_vMax;
-//	CVectorD<2> m_vMin;
-//	CVectorD<2> m_vMajor;
-//	CVectorD<2> m_vMinor;
-
 	// dragging logic
 	CDataSeries *m_pDragSeries;
 	int m_nDragPoint;
-	CSize m_ptDragOffset;
+	CPoint m_ptDragOffset;
 	BOOL m_bDragging;
 
 	// legend variables

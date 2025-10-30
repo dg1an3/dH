@@ -3,7 +3,7 @@
 //		template class.
 //
 // Copyright (C) 1999-2003 Derek G Lane
-// $Id$
+// $Id: MatrixBase.h,v 1.13 2003/03/01 22:27:19 default Exp $
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(MATRIXBASE_H)
@@ -128,7 +128,7 @@ protected:
 // default constructor -- initializes to 0x0 matrix
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixBase<TYPE>::CMatrixBase<TYPE>()
+CMatrixBase<TYPE>::CMatrixBase()
 	: m_nCols(0),
 		m_nRows(0),
 		m_pColumns(NULL),
@@ -144,7 +144,7 @@ CMatrixBase<TYPE>::CMatrixBase<TYPE>()
 // copy constructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixBase<TYPE>::CMatrixBase<TYPE>(const CMatrixBase<TYPE>& fromMatrix)
+CMatrixBase<TYPE>::CMatrixBase(const CMatrixBase<TYPE>& fromMatrix)
 	: m_nCols(0),
 		m_nRows(0),
 		m_pColumns(NULL),
@@ -166,7 +166,7 @@ CMatrixBase<TYPE>::CMatrixBase<TYPE>(const CMatrixBase<TYPE>& fromMatrix)
 // destructor
 //////////////////////////////////////////////////////////////////
 template<class TYPE>
-CMatrixBase<TYPE>::~CMatrixBase<TYPE>()
+CMatrixBase<TYPE>::~CMatrixBase()
 {
 	// frees any elements, if needed
 	SetElements(0, 0, NULL, TRUE);

@@ -1,19 +1,19 @@
-========================================================================
-       MICROSOFT FOUNDATION CLASS LIBRARY : Brimstone
-========================================================================
+================================================================================
+    MICROSOFT FOUNDATION CLASS LIBRARY : Brimstone Project Overview
+===============================================================================
 
-
-AppWizard has created this Brimstone application for you.  This application
-not only demonstrates the basics of using the Microsoft Foundation classes
-but is also a starting point for writing your application.
+The application wizard has created this Brimstone application for 
+you.  This application not only demonstrates the basics of using the Microsoft 
+Foundation Classes but is also a starting point for writing your application.
 
 This file contains a summary of what you will find in each of the files that
 make up your Brimstone application.
 
-Brimstone.dsp
-    This file (the project file) contains information at the project level and
-    is used to build a single project or subproject. Other users can share the
-    project (.dsp) file, but they should export the makefiles locally.
+Brimstone.vcproj
+    This is the main project file for VC++ projects generated using an application wizard. 
+    It contains information about the version of Visual C++ that generated the file, and 
+    information about the platforms, configurations, and project features selected with the
+    application wizard.
 
 Brimstone.h
     This is the main header file for the application.  It includes other
@@ -28,13 +28,7 @@ Brimstone.rc
     This is a listing of all of the Microsoft Windows resources that the
     program uses.  It includes the icons, bitmaps, and cursors that are stored
     in the RES subdirectory.  This file can be directly edited in Microsoft
-	Visual C++.
-
-Brimstone.clw
-    This file contains information used by ClassWizard to edit existing
-    classes or add new classes.  ClassWizard also uses this file to store
-    information needed to create and edit message maps and dialog data
-    maps and to create prototype member functions.
+    Visual C++. Your project resources are in 1033.
 
 res\Brimstone.ico
     This is an icon file, which is used as the application's icon.  This
@@ -42,14 +36,13 @@ res\Brimstone.ico
 
 res\Brimstone.rc2
     This file contains resources that are not edited by Microsoft 
-	Visual C++.  You should place all resources not editable by
-	the resource editor in this file.
-
-
+    Visual C++. You should place all resources not editable by
+    the resource editor in this file.
 
 /////////////////////////////////////////////////////////////////////////////
 
 For the main frame window:
+    The project includes a standard MFC interface.
 
 MainFrm.h, MainFrm.cpp
     These files contain the frame class CMainFrame, which is derived from
@@ -63,7 +56,7 @@ res\Toolbar.bmp
     toolbar buttons.
 /////////////////////////////////////////////////////////////////////////////
 
-AppWizard creates one document type and one view:
+The application wizard creates one document type and one view:
 
 BrimstoneDoc.h, BrimstoneDoc.cpp - the document
     These files contain your CBrimstoneDoc class.  Edit these files to
@@ -76,7 +69,21 @@ BrimstoneView.h, BrimstoneView.cpp - the view of the document
 
 
 
+
+
 /////////////////////////////////////////////////////////////////////////////
+
+Other Features:
+
+ActiveX Controls
+    The application includes support to use ActiveX controls.
+
+Printing and Print Preview support
+    The application wizard has generated code to handle the print, print setup, and print preview
+    commands by calling member functions in the CView class from the MFC library.
+
+/////////////////////////////////////////////////////////////////////////////
+
 Other standard files:
 
 StdAfx.h, StdAfx.cpp
@@ -87,19 +94,25 @@ Resource.h
     This is the standard header file, which defines new resource IDs.
     Microsoft Visual C++ reads and updates this file.
 
+Brimstone.manifest
+	Application manifest files are used by Windows XP to describe an applications 
+	dependency on specific versions of Side-by-Side assemblies. The loader uses this 
+	information to load the appropriate assembly from the assembly cache or private 
+	from the application. The Application manifest  maybe included for redistribution 
+	as an external .manifest file that is installed in the same folder as the application 
+	executable or it may be included in the executable in the form of a resource. 
 /////////////////////////////////////////////////////////////////////////////
+
 Other notes:
 
-AppWizard uses "TODO:" to indicate parts of the source code you
+The application wizard uses "TODO:" to indicate parts of the source code you
 should add to or customize.
 
-If your application uses MFC in a shared DLL, and your application is 
-in a language other than the operating system's current language, you
-will need to copy the corresponding localized resources MFC42XXX.DLL
-from the Microsoft Visual C++ CD-ROM onto the system or system32 directory,
-and rename it to be MFCLOC.DLL.  ("XXX" stands for the language abbreviation.
-For example, MFC42DEU.DLL contains resources translated to German.)  If you
-don't do this, some of the UI elements of your application will remain in the
-language of the operating system.
+If your application uses MFC in a shared DLL, you will need 
+to redistribute the MFC DLLs. If your application is in a language 
+other than the operating system's locale, you will also have to 
+redistribute the corresponding localized resources MFC80XXX.DLL. 
+For more information on both of these topics, please see the section on 
+redistributing Visual C++ applications in MSDN documentation. 
 
 /////////////////////////////////////////////////////////////////////////////

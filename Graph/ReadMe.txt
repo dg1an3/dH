@@ -3,6 +3,7 @@
 ========================================================================
 
 AppWizard has created this Graph library project for you. 
+
 This file contains a summary of what you will find in each of the files that
 make up your Graph application.
 

@@ -1,11 +1,12 @@
-// PrescriptionToolbar.cpp : implementation file
-//
-
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: PrescriptionToolbar.cpp 650 2009-11-05 22:24:55Z dglane001 $
 #include "stdafx.h"
 #include "Brimstone.h"
-#include "PrescriptionToolbar.h"
 
-#include ".\prescriptiontoolbar.h"
+#include "BrimstoneDoc.h"
+#include "BrimstoneView.h"
+
+#include "PrescriptionToolbar.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -17,79 +18,338 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPrescriptionToolbar
 
+/////////////////////////////////////////////////////////////////////////////
 CPrescriptionToolbar::CPrescriptionToolbar(CWnd *pParent)
 {
-}
+}	// CPrescriptionToolbar::CPrescriptionToolbar
 
+/////////////////////////////////////////////////////////////////////////////
 CPrescriptionToolbar::~CPrescriptionToolbar()
 {
-}
+}	// CPrescriptionToolbar::~CPrescriptionToolbar
 
-BOOL CPrescriptionToolbar::OnInitDialog()
+
+/////////////////////////////////////////////////////////////////////////////
+CBrimstoneDoc *
+	CPrescriptionToolbar::GetDocument()
 {
-	// CDialogBar::OnInitDialog();
-	m_cbSSelect.Attach(::GetDlgItem(m_hWnd, IDC_STRUCTSELECT));
+	return GetView() ? GetView()->GetDocument() : NULL;
 
-	m_btnVisible.Attach(::GetDlgItem(m_hWnd, IDC_STRUCT_VISIBLE));
-	m_btnHistogram.Attach(::GetDlgItem(m_hWnd, IDC_STRUCT_HISTO_VISIBLE));
+}	// CPrescriptionToolbar::GetDocument
 
-	m_btnPrescNone.Attach(::GetDlgItem(m_hWnd, IDC_RADIO_NONE));
-	m_btnPrescTarget.Attach(::GetDlgItem(m_hWnd, IDC_RADIO_TARGET));
-	m_btnPrescOAR.Attach(::GetDlgItem(m_hWnd, IDC_RADIO_OAR));
-
-	m_sliderWeight.Attach(::GetDlgItem(m_hWnd, IDC_STRUCTWEIGHT));
-
-	m_editDose1.Attach(::GetDlgItem(m_hWnd, IDC_DOSE1_EDIT2));
-	m_editDose2.Attach(::GetDlgItem(m_hWnd, IDC_DOSE2_EDIT2));
-
-	// set defaults for read-only edit controls
-	GetDlgItem(IDC_VOLUME1_EDIT)->SetWindowText("100");
-	GetDlgItem(IDC_VOLUME2_EDIT)->SetWindowText("0");
-
-	return TRUE;  // return TRUE unless you set the focus to a control
-}
-
-
-void CPrescriptionToolbar::SetDocument(CBrimstoneDoc *pDoc)
-{
-	m_pDoc = pDoc;
-}
-
-// returns the currently selected structure
-CStructure * CPrescriptionToolbar::GetSelectedStruct(void)
+/////////////////////////////////////////////////////////////////////////////
+dH::Structure * 
+	CPrescriptionToolbar::GetSelectedStruct(void)
+	// returns the currently selected structure
 {
 	int nIndex = m_cbSSelect.GetCurSel();
 	if (nIndex != CB_ERR)
 	{
-		CStructure *pStruct = (CStructure *) m_cbSSelect.GetItemDataPtr(nIndex);
+		dH::Structure *pStruct = (dH::Structure *) m_cbSSelect.GetItemDataPtr(nIndex);
 		return pStruct;
 	}
 
 	return NULL;
-}
 
-CVOITerm * CPrescriptionToolbar::GetSelectedPresc(void)
+}	// CPrescriptionToolbar::GetSelectedStruct
+
+/////////////////////////////////////////////////////////////////////////////
+dH::VOITerm * 
+	CPrescriptionToolbar::GetSelectedPresc(void)
 {
+#ifdef USE_RTOPT
 	// set prescription info
-	if (NULL != m_pDoc 
-		&& NULL != m_pDoc->m_pPresc.m_p)
+	if (NULL != GetDocument())
 	{
-		CVOITerm *pVOIT = m_pDoc->m_pPresc->GetStructureTerm(GetSelectedStruct());
+		dH::VOITerm *pVOIT = GetDocument()->m_pOptimizer->GetPrescription(0)
+			->GetStructureTerm(GetSelectedStruct());
 		return pVOIT;
 	}
+#endif
 
 	return NULL;
-}
+
+}	// CPrescriptionToolbar::GetSelectedPresc
 
 
-///////////////////////////////////////////////////////////////////////////////
-// CPrescriptionToolbar::UpdatePresc
-// 
-// updates the prescription term based on entered dose values
-///////////////////////////////////////////////////////////////////////////////
-void CPrescriptionToolbar::UpdatePresc(void)
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::DoDataExchange(CDataExchange* pDX)
 {
-	CVOITerm *pVOIT = GetSelectedPresc();
+	DDX_Control(pDX, IDC_STRUCTSELECT, m_cbSSelect);
+
+	DDX_Control(pDX, IDC_PRIO_EDIT, m_editPrio);
+
+	DDX_Control(pDX, IDC_CHECK_CONTOUR, m_btnContour);
+
+	DDX_Control(pDX, IDC_STRUCT_VISIBLE, m_btnVisible);
+	DDX_Control(pDX, IDC_STRUCT_HISTO_VISIBLE, m_btnHistogram);
+
+	DDX_Control(pDX, IDC_STRUCTTYPE, m_cbStructType);
+
+
+	DDX_Control(pDX, IDC_STRUCTWEIGHT, m_editWeight);
+
+	DDX_Control(pDX, IDC_DOSE1_EDIT2, m_editDose1);
+	DDX_Control(pDX, IDC_DOSE2_EDIT2, m_editDose2);
+	DDX_Control(pDX, IDC_BTN_SETINTERVAL, m_btnEditInterval);
+
+	CDialogBar::DoDataExchange(pDX);
+
+}	// CPrescriptionToolbar::DoDataExchange
+
+
+
+BEGIN_MESSAGE_MAP(CPrescriptionToolbar, CDialogBar)
+	//{{AFX_MSG_MAP(CDialogBar)
+	ON_CBN_SELCHANGE(IDC_STRUCTSELECT, OnSelchangeStructselectcombo)
+	ON_CBN_DROPDOWN(IDC_STRUCTSELECT, OnDropdownStructselectcombo)
+	ON_EN_CHANGE(IDC_PRIO_EDIT, &CPrescriptionToolbar::OnEnChangePrioEdit)
+	ON_BN_CLICKED(IDC_STRUCT_VISIBLE, OnVisibleCheck)
+	ON_BN_CLICKED(IDC_STRUCT_HISTO_VISIBLE, OnHistogramCheck)
+	ON_EN_CHANGE(IDC_STRUCTWEIGHT, &CPrescriptionToolbar::OnEnChangeStructweight)
+	ON_BN_CLICKED(IDC_BTN_SETINTERVAL, &CPrescriptionToolbar::OnBnClickedBtnSetinterval)
+	ON_CBN_SELCHANGE(IDC_STRUCTTYPE, &CPrescriptionToolbar::OnPrescriptionChange)
+	//}}AFX_MSG_MAP
+	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_CHECK_CONTOUR, &CPrescriptionToolbar::OnBnClickedCheckContour)
+END_MESSAGE_MAP()
+
+/////////////////////////////////////////////////////////////////////////////
+// CPrescriptionToolbar message handlers
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnSelchangeStructselectcombo() 
+{
+	dH::Structure *pStruct = GetSelectedStruct();
+
+	// set buttons
+	m_cbStructType.SetCurSel((int) pStruct->GetType());
+
+	// set visibility check
+	m_btnVisible.SetCheck(pStruct->GetVisible() ? 1 : 0);
+
+	// set histogram check
+	CHistogram *pHisto = GetDocument()->m_pPlan->GetHistogram(pStruct, false);
+	m_btnHistogram.SetCheck(NULL != pHisto ? 1 : 0);
+
+#ifdef USE_RTOPT
+	// set prescription info
+	dH::KLDivTerm *pKLDT = static_cast<dH::KLDivTerm *>(GetSelectedPresc());
+	if (NULL != pKLDT)
+	{
+		//m_sliderWeight.SetPos((int) (pKLDT->GetWeight() * 20.0));
+		CString strWeight;
+		strWeight.Format(_T("%6.2lf"), pKLDT->GetWeight());
+		m_editWeight.SetWindowText(strWeight);
+
+		CString strPrio;
+		strPrio.Format(_T("%i"), pKLDT->GetVOI()->GetPriority());
+
+		int nDose1 = (int) floor(pKLDT->GetMinDose() * 100.0 + 0.5);
+		CString strDose1;
+		strDose1.Format(_T("%i"), nDose1);
+
+		int nDose2 = (int) floor(pKLDT->GetMaxDose() * 100.0 + 0.5);
+		CString strDose2;
+		strDose2.Format(_T("%i"), nDose2);
+
+		// FUCKED UP these all have to change at same time, because of trigger to fuckin UpdatePresc
+		m_editPrio.SetWindowText(strPrio);
+		m_editDose1.SetWindowText(strDose1);
+		m_editDose2.SetWindowText(strDose2);
+	}
+	else
+	{
+		// make sure type is set
+		ASSERT(dH::Structure::eNONE == pStruct->GetType());
+
+		m_editPrio.SetWindowText(_T(""));
+		m_editDose1.SetWindowText(_T(""));
+		m_editDose2.SetWindowText(_T(""));
+	}
+#endif
+
+	// updates other controls
+	OnPrescriptionChange();
+
+}	// CPrescriptionToolbar::OnSelchangeStructselectcombo
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnDropdownStructselectcombo() 
+{
+	if (GetDocument())
+	{
+		m_cbSSelect.ResetContent();
+
+		dH::Series::Pointer pSeries = GetDocument()->m_pSeries;
+		for (int nStruct = 0; nStruct < pSeries->GetStructureCount(); nStruct++)
+		{
+			dH::Structure *pStruct = pSeries->GetStructureAt(nStruct);
+			int nIndex = m_cbSSelect.AddString(CString(pStruct->GetName().c_str()));
+			m_cbSSelect.SetItemDataPtr(nIndex, (void *) pStruct);
+		}
+	}
+
+}	// CPrescriptionToolbar::OnDropdownStructselectcombo
+
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnVisibleCheck() 
+{
+	dH::Structure *pStruct = GetSelectedStruct();
+	if (NULL != pStruct)
+	{
+		// set visibility flag
+		pStruct->SetVisible(m_btnVisible.GetCheck() == 1);
+
+		// update views
+		GetView()->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+	}
+
+}	// CPrescriptionToolbar::OnVisibleCheck
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnHistogramCheck()
+{
+	dH::Structure *pStruct = GetSelectedStruct();
+	if (NULL != pStruct)
+	{
+		if (m_btnHistogram.GetCheck() == 1) 
+		{
+			// trigger generation of histogram
+			GetView()->AddHistogram(pStruct);
+		}
+		else
+		{
+			// TODO: check that no prescription is present
+			GetView()->RemoveHistogram(pStruct);
+		}
+	}
+
+}	// CPrescriptionToolbar::OnHistogramCheck
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnPrescriptionChange()
+{
+	// create a new prescription object
+	dH::Structure *pStruct = GetSelectedStruct();
+	if (NULL == pStruct)
+	{
+		return;
+	}
+
+	// set structure type
+	pStruct->SetType((dH::Structure::StructType) m_cbStructType.GetCurSel());
+
+#ifdef USE_RTOPT
+	// update include flags to reflect changed types
+	GetDocument()->m_pOptimizer->GetPrescription(0)->SetElementInclude();
+
+	// set visibility / histogram options
+	if (dH::Structure::eNONE != pStruct->GetType())
+	{
+		// see if prescription exists
+		dH::VOITerm *pVOIT = GetSelectedPresc();
+		if (NULL == pVOIT)
+		{
+			// need to create new term
+			dH::KLDivTerm::Pointer pKLDT = dH::KLDivTerm::New(); // pStruct); // , 2.5);
+			pKLDT->SetVOI(pStruct);
+			pKLDT->SetWeight(2.5);
+
+			// NOTE: must AddStructureTerm before SetInterval, because it sets up binning parameters
+			GetView()->AddStructTerm(pKLDT);
+		
+			REAL dose1 = (dH::Structure::eTARGET == pStruct->GetType()) ? 0.60 : 0.0;
+			REAL dose2 = (dH::Structure::eTARGET == pStruct->GetType()) ? 0.70 : 0.30;
+
+			// sets the term prescription interval
+			pKLDT->SetInterval(dose1, dose2, 1.0, TRUE);
+
+			// update tool bar
+			OnSelchangeStructselectcombo();
+
+			// update other views
+			GetView()->AddHistogram(pStruct);
+		}
+
+		// make sure visible
+		m_btnVisible.SetCheck(1);
+		pStruct->SetVisible(true);
+
+		// make sure histogram
+		m_btnHistogram.SetCheck(1);
+	}
+#endif
+
+	// make sure histogram enabled
+	m_btnHistogram.EnableWindow(dH::Structure::eNONE == pStruct->GetType());
+
+	// set prescription control options
+	m_editWeight.EnableWindow(dH::Structure::eNONE != pStruct->GetType());
+
+	// set dose edit windows
+	if (m_btnEditInterval.GetCheck() == 1)
+	{
+		if (dH::Structure::eNONE != pStruct->GetType())
+		{
+			m_editDose1.SetReadOnly(0);
+			m_editDose2.SetReadOnly(0);
+		}
+	}
+	else
+	{
+		m_editDose1.SetReadOnly(1);
+		m_editDose2.SetReadOnly(1);
+	}
+
+}	// CPrescriptionToolbar::OnPrescriptionChange
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnEnChangePrioEdit()
+{
+#ifdef USE_RTOPT
+	dH::VOITerm *pVOIT = GetSelectedPresc();
+	if (NULL == pVOIT)
+	{
+		return;
+	}
+
+	CString strPrio;
+	m_editPrio.GetWindowText(strPrio);
+
+	int nPrio = 1;		
+	_stscanf_s(strPrio, _T("%i"), &nPrio);
+	pVOIT->GetVOI()->SetPriority(nPrio);
+#endif
+}	// CPrescriptionToolbar::OnEnChangePrioEdit
+
+
+/////////////////////////////////////////////////////////////////////////////
+void 
+	CPrescriptionToolbar::OnBnClickedBtnSetinterval()
+{
+#ifdef USE_RTOPT
+	if (m_btnEditInterval.GetCheck() == 1)
+	{
+		if (dH::Structure::eNONE != GetSelectedStruct()->GetType())
+		{
+			m_editDose1.SetReadOnly(0);
+			m_editDose2.SetReadOnly(0);
+		}
+		return;
+	}
+	m_editDose1.SetReadOnly(1);
+	m_editDose2.SetReadOnly(1);
+	
+	dH::VOITerm *pVOIT = GetSelectedPresc();
 	if (NULL == pVOIT)
 	{
 		return;
@@ -99,273 +359,68 @@ void CPrescriptionToolbar::UpdatePresc(void)
 	m_editDose1.GetWindowText(strDose1);
 
 	int nDose1 = 0;
-	sscanf_s(strDose1, "%i", &nDose1);
+	_stscanf_s(strDose1, _T("%i"), &nDose1);
 
 	CString strDose2;
 	m_editDose2.GetWindowText(strDose2);
 
 	int nDose2 = 0;
-	sscanf_s(strDose2, "%i", &nDose2);
+	_stscanf_s(strDose2, _T("%i"), &nDose2);
 
 	if (nDose1 < nDose2)
 	{
-		CKLDivTerm *pKLDT = static_cast<CKLDivTerm *>(pVOIT);
+		dH::KLDivTerm *pKLDT = static_cast<dH::KLDivTerm *>(pVOIT);
 		pKLDT->SetInterval((REAL) nDose1 / 100.0, 
 			(REAL) nDose2 / 100.0, 1.0, TRUE);
 		ASSERT((int) floor(pKLDT->GetMinDose() * 100.0 + 0.5) == nDose1);
 		ASSERT((int) floor(pKLDT->GetMaxDose() * 100.0 + 0.5) == nDose2);
 	}
-}
-
-
-BEGIN_MESSAGE_MAP(CPrescriptionToolbar, CDialogBar)
-	//{{AFX_MSG_MAP(CDialogBar)
-	ON_CBN_SELCHANGE(IDC_STRUCTSELECT, OnSelchangeStructselectcombo)
-	ON_CBN_DROPDOWN(IDC_STRUCTSELECT, OnDropdownStructselectcombo)
-	ON_BN_CLICKED(IDC_STRUCT_VISIBLE, OnVisibleCheck)
-	ON_BN_CLICKED(IDC_STRUCT_HISTO_VISIBLE, OnHistogramCheck)
-	ON_BN_CLICKED(IDC_RADIO_NONE, OnPrescriptionChange)
-	ON_BN_CLICKED(IDC_RADIO_TARGET, OnPrescriptionChange)
-	ON_BN_CLICKED(IDC_RADIO_OAR, OnPrescriptionChange)
-	ON_EN_CHANGE(IDC_DOSE1_EDIT2, OnDose1Changed)
-	ON_EN_CHANGE(IDC_DOSE2_EDIT2, OnDose2Changed)
-	ON_WM_HSCROLL()
-	ON_WM_VSCROLL()
-	//}}AFX_MSG_MAP
-	ON_WM_DESTROY()
-END_MESSAGE_MAP()
+#endif
+}	// CPrescriptionToolbar::OnBnClickedBtnSetinterval
 
 /////////////////////////////////////////////////////////////////////////////
-// CPrescriptionToolbar message handlers
-
-void CPrescriptionToolbar::OnSelchangeStructselectcombo() 
+void 
+	CPrescriptionToolbar::OnCbnSelchangeStructtype()
 {
-	CStructure *pStruct = GetSelectedStruct();
-
-	// ensure structure is selected at doc level
-	m_pDoc->SelectStructure(pStruct->GetName());
-
-	// set buttons
-	m_btnPrescNone.SetCheck(CStructure::eNONE == pStruct->GetType());
-	m_btnPrescTarget.SetCheck(CStructure::eTARGET == pStruct->GetType());
-	m_btnPrescOAR.SetCheck(CStructure::eOAR == pStruct->GetType());
-
-	// set visibility check
-	m_btnVisible.SetCheck(pStruct->IsVisible() ? 1 : 0);
-
-	// set histogram check
-	CHistogram *pHisto = m_pDoc->m_pPlan->GetHistogram(pStruct, false);
-	m_btnHistogram.SetCheck(NULL != pHisto ? 1 : 0);
-
-	// set prescription info
-	CKLDivTerm *pKLDT = static_cast<CKLDivTerm *>(GetSelectedPresc());
-	if (NULL != pKLDT)
-	{
-		m_sliderWeight.SetPos((int) (pKLDT->GetWeight() * 20.0));
-
-		int nDose1 = (int) floor(pKLDT->GetMinDose() * 100.0 + 0.5);
-		CString strDose1;
-		strDose1.Format("%i", nDose1);
-
-		int nDose2 = (int) floor(pKLDT->GetMaxDose() * 100.0 + 0.5);
-		CString strDose2;
-		strDose2.Format("%i", nDose2);
-
-		m_editDose1.SetWindowText(strDose1);
-		m_editDose2.SetWindowText(strDose2);
-	}
-	else
-	{
-		// make sure type is set
-		ASSERT(CStructure::eNONE == pStruct->GetType());
-
-		m_editDose1.SetWindowText("");
-		m_editDose2.SetWindowText("");
-	}
-
-	// updates other controls
 	OnPrescriptionChange();
 }
 
-void CPrescriptionToolbar::OnDropdownStructselectcombo() 
+/////////////////////////////////////////////////////////////////////////////
+void CPrescriptionToolbar::OnEnChangeStructweight()
 {
-	if (m_pDoc)
-	{
-		m_cbSSelect.ResetContent();
-
-		CSeries *pSeries = m_pDoc->m_pSeries;
-		for (int nStruct = 0; nStruct < pSeries->GetStructureCount(); nStruct++)
-		{
-			CStructure *pStruct = pSeries->GetStructureAt(nStruct);
-			int nIndex = m_cbSSelect.AddString(pStruct->GetName());
-			m_cbSSelect.SetItemDataPtr(nIndex, (void *) pStruct);
-		}
-	}
-}
-
-void CPrescriptionToolbar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
-{
-	// get term
-	CVOITerm *pVOIT = GetSelectedPresc();
+#ifdef USE_RTOPT
+	// get term, if one is selected
+	dH::VOITerm *pVOIT = GetSelectedPresc();
 	if (NULL != pVOIT)
 	{
-		nPos = m_sliderWeight.GetPos();
-		pVOIT->SetWeight((REAL) nPos / 20.0);
+		CString strWeight;
+		m_editWeight.GetWindowText(strWeight);
+
+		double weight = 2.5;
+		_stscanf_s(strWeight.GetBuffer(), _T("%lf"), &weight);
+
+		pVOIT->SetWeight(weight);
 	}
+#endif
 }
 
-
-void CPrescriptionToolbar::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
+void CPrescriptionToolbar::OnBnClickedCheckContour()
 {
-	// no function
-}
-
-
-void CPrescriptionToolbar::OnVisibleCheck() 
-{
-	CStructure *pStruct = GetSelectedStruct();
-	if (NULL != pStruct)
+	if (m_btnContour.GetCheck())
 	{
-		// set visibility flag
-		pStruct->SetVisible(m_btnVisible.GetCheck() == 1);
+		GetView()->m_wndPlanarView.SetSelectedStructure(GetSelectedStruct());
+		GetView()->m_wndPlanarView.SetSelectedContour(NULL);
+		GetView()->m_wndPlanarView.SetSelectedVertex(NULL);
 
-		// update views
-		POSITION pos = m_pDoc->GetFirstViewPosition();
-		while (pos != NULL)
-		{
-			CView *pView = m_pDoc->GetNextView(pos);
-			pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-		}
+		// TODO: put Invalidate in SetSelectedStructure
+		GetView()->m_wndPlanarView.Invalidate();
 	}
-}
-
-void CPrescriptionToolbar::OnHistogramCheck()
-{
-	CStructure *pStruct = GetSelectedStruct();
-	if (NULL != pStruct)
+	else
 	{
-		if (m_btnHistogram.GetCheck() == 1) 
-		{
-			// trigger generation of histogram
-			m_pDoc->AddHistogram(pStruct);
-		}
-		else
-		{
-			// TODO: check that no prescription is present
-			// trigger generation of histogram
-			m_pDoc->RemoveHistogram(pStruct);
-			
-			// TODO: fix this with direct call to CBrimstoneView
-			// m_pDoc->UpdateAllViews(NULL, 
-			//	(m_btnHistogram.GetCheck() == 1) ? IDD_ADDHISTO : IDD_REMOVEHISTO, pStruct);
-		}
+		GetView()->m_wndPlanarView.SetSelectedStructure(NULL);
+		GetView()->m_wndPlanarView.SetSelectedContour(NULL);
+		GetView()->m_wndPlanarView.SetSelectedVertex(NULL);
+
+		GetView()->m_wndPlanarView.Invalidate();
 	}
-}
-
-void CPrescriptionToolbar::OnPrescriptionChange()
-{
-	// create a new prescription object
-	CStructure *pStruct = GetSelectedStruct();
-	if (NULL == pStruct)
-	{
-		return;
-	}
-
-	// set structure type
-	pStruct->SetType(CStructure::eNONE);
-	if (1 == m_btnPrescTarget.GetCheck())
-	{
-		pStruct->SetType(CStructure::eTARGET);
-	}
-	else if (1 == m_btnPrescOAR.GetCheck())
-	{
-		pStruct->SetType(CStructure::eOAR);
-	}
-
-	// update include flags to reflect changed types
-	m_pDoc->m_pPresc->SetElementInclude();
-
-	// set visibility / histogram options
-	if (CStructure::eNONE != pStruct->GetType())
-	{
-		// see if prescription exists
-		CVOITerm *pVOIT = GetSelectedPresc();
-		if (NULL == pVOIT)
-		{
-			// need to create new term
-			CKLDivTerm *pKLDT = new CKLDivTerm(pStruct, 2.5);
-
-			// NOTE: must AddStructureTerm before SetInterval, because it sets up binning parameters
-			m_pDoc->AddStructTerm(pKLDT);
-		
-			REAL dose1 = (CStructure::eTARGET == pStruct->GetType()) ? 0.60 : 0.0;
-			REAL dose2 = (CStructure::eTARGET == pStruct->GetType()) ? 0.70 : 0.30;
-
-			// sets the term prescription interval
-			pKLDT->SetInterval(dose1, dose2, 1.0, TRUE);
-
-			// update tool bar
-			OnSelchangeStructselectcombo();
-
-			// update other views
-			m_pDoc->AddHistogram(pStruct);
-			// TODO: fix this with direct call to CBrimstoneView
-			// m_pDoc->UpdateAllViews(NULL, IDD_ADDHISTO, pStruct);
-		}
-
-		// make sure visible
-		m_btnVisible.SetCheck(1);
-
-		// make sure histogram
-		m_btnHistogram.SetCheck(1);
-	}
-
-	// make sure visible enabled
-	m_btnVisible.EnableWindow(CStructure::eNONE == pStruct->GetType());
-
-	// make sure histogram enabled
-	m_btnHistogram.EnableWindow(CStructure::eNONE == pStruct->GetType());
-
-	// set prescription control options
-	m_sliderWeight.EnableWindow(CStructure::eNONE != pStruct->GetType());
-
-	// TODO: make the rest as controls
-	GetDlgItem(IDC_DOSE1_EDIT2)->EnableWindow(CStructure::eNONE != pStruct->GetType());
-	GetDlgItem(IDC_DOSE2_EDIT2)->EnableWindow(CStructure::eNONE != pStruct->GetType());
-
-	GetDlgItem(IDC_VOLUME1_EDIT)->EnableWindow(CStructure::eNONE != pStruct->GetType());
-	GetDlgItem(IDC_VOLUME2_EDIT)->EnableWindow(CStructure::eNONE != pStruct->GetType());
-}
-
-void CPrescriptionToolbar::OnDose1Changed()
-{
-	UpdatePresc();
-}
-
-void CPrescriptionToolbar::OnDose2Changed()
-{
-	UpdatePresc();
-}
-
-
-
-void CPrescriptionToolbar::OnDestroy()
-{
-	CDialogBar::OnDestroy();
-
-	// CDialogBar::OnInitDialog();
-	m_cbSSelect.Detach();
-
-	m_btnVisible.Detach();
-	m_btnHistogram.Detach();
-
-	m_btnPrescNone.Detach();
-	m_btnPrescTarget.Detach();
-	m_btnPrescOAR.Detach();
-
-	m_sliderWeight.Detach();
-
-	m_editDose1.Detach();
-	m_editDose2.Detach();
-
 }

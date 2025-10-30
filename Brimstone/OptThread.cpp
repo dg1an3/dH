@@ -1,41 +1,46 @@
-// OptThread.cpp : implementation file
-//
-
+// Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
+// $Id: OptThread.cpp 612 2008-09-14 18:38:53Z dglane001 $
 #include "stdafx.h"
-// #include "Brimstone.h"
-#include "OptThread.h"
-// #include "BrimstoneDoc.h"
 
+#include "OptThread.h"
+
+#ifdef USE_RTOPT
+#include <PlanOptimizer.h>
+#include <ConjGradOptimizer.h>
+#endif
 
 // COptThread
 
 IMPLEMENT_DYNCREATE(COptThread, CWinThread)
 
+//////////////////////////////////////////////////////////////////////////////
 COptThread::COptThread()
-: m_pPresc(NULL)
-	// , m_pbOptimizerRun(NULL)
+	: m_pPlanOpt(NULL)
 {
 }
 
+//////////////////////////////////////////////////////////////////////////////
 COptThread::~COptThread()
 {
 }
 
-BOOL COptThread::InitInstance()
+//////////////////////////////////////////////////////////////////////////////
+BOOL 
+	COptThread::InitInstance()
 {
-	// TODO:  perform and per-thread initialization here
 	return TRUE;
 }
 
+//////////////////////////////////////////////////////////////////////////////
 int COptThread::ExitInstance()
 {
-	// TODO:  perform any per-thread cleanup here
 	return CWinThread::ExitInstance();
 }
 
+//////////////////////////////////////////////////////////////////////////////
 COptThread::COptIterData::COptIterData(void)
-: m_nLevel(0)
-, m_nIteration(0)
+	: m_nLevel(0)
+	, m_nIteration(0)
 {
 }
 
@@ -47,38 +52,48 @@ END_MESSAGE_MAP()
 
 // COptThread message handlers
 
-BOOL COptThread::OnIteration(COptimizer *pOpt, void *pParam)
+//////////////////////////////////////////////////////////////////////////////
+BOOL 
+	COptThread::OnIteration(DynamicCovarianceOptimizer *pOpt, void *pParam)
 {
+#ifdef USE_RTOPT
 	COptThread *pThread = static_cast<COptThread*>(pParam);
-	CPrescription *pPresc = pThread->m_pPresc;
+	dH::PlanOptimizer *pPlanOpt = pThread->GetPlanOpt();
 
+	// stores the data from the iteration
 	COptIterData *pOID = NULL;
-	for (int nLevel = MAX_SCALES-1; nLevel >= 0; nLevel--)
-	{
-		CPrescription *pPrescLevel = pPresc->GetLevel(nLevel);
-		COptimizer *pOptLevel = pPrescLevel->GetOptimizer();			
 
+	// now find the level that we are at
+	for (int nLevel = dH::PlanPyramid::MAX_SCALES-1; nLevel >= 0; nLevel--)
+	{
+		DynamicCovarianceOptimizer *pOptLevel = pPlanOpt->GetOptimizer(nLevel);			
 		if (pOpt == pOptLevel)
 		{
+			// construct the iteration data object
 			pOID = new COptIterData();
 			pOID->m_nLevel = nLevel;
-			pOID->m_nIteration = pOpt->GetIterations();
+			pOID->m_nIteration = pOpt->get_num_iterations/*GetIterations*/();
 			pOID->m_ofvalue = pOpt->GetFinalValue();
-			pOID->m_vParam.SetDim(pOpt->GetFinalParameter().GetDim());
+			pOID->m_vParam.SetDim(pOpt->GetFinalParameter().size/*GetDim*/());
 			pOID->m_vParam = pOpt->GetFinalParameter();
-			pPresc->Transform(&pOID->m_vParam);
+
+			// transform the final parameter
+			pPlanOpt->GetPrescription(nLevel)->Transform(&pOID->m_vParam);
 
 			// if we are still above G0, then proceed to filter down to G0
 			for (; nLevel > 0; nLevel--)
 			{
 				// now filter to proper level
-				pPresc->InvFilterStateVector(pOID->m_vParam, nLevel, pOID->m_vParam, false);
+				CVectorN<> vTemp;
+				pPlanOpt->InvFilterStateVector(nLevel, pOID->m_vParam, vTemp); // pOID->m_vParam);
+				pOID->m_vParam.SetDim(vTemp.GetDim());
+				pOID->m_vParam = vTemp;
 			}
 		}
 	}
 	ASSERT(pOID != NULL);
 
-	pThread->m_pMsgTarget->PostMessage(WM_OPTIMIZER_UPDATE, 0, (LPARAM) pOID);
+	pThread->GetMsgTarget()->PostMessage(WM_OPTIMIZER_UPDATE, 0, (LPARAM) pOID);
 
 	// get current thread state
 	_AFX_THREAD_STATE* pState = AfxGetThreadState();
@@ -86,37 +101,38 @@ BOOL COptThread::OnIteration(COptimizer *pOpt, void *pParam)
 	// and determine whether any messages are pending, if so...
 	bool bContinueOptimizer = 
 		!PeekMessage(&(pState->m_msgCur), NULL, NULL, NULL, PM_NOREMOVE);
+	if (bContinueOptimizer)
+	{
+		// sleep for 50 msec to allow the UI to update
+		Sleep(50);
+	}
 
 	// quit optimizer
 	return bContinueOptimizer;
-
-	// return (*pThread->m_pbOptimizerRun);
+#else
+	return FALSE;
+#endif
 }
 
-void COptThread::OnOptimizerStart(WPARAM wParam, LPARAM lParam)
+//////////////////////////////////////////////////////////////////////////////
+void 
+	COptThread::OnOptimizerStart(WPARAM wParam, LPARAM lParam)
 {
-	CVectorN<> m_vParam;
-
-	// call optimize
-	m_pPresc->GetInitStateVector(m_vParam);
-
+#ifdef USE_RTOPT
 	COptIterData *pOID = new COptIterData();
 	pOID->m_nLevel = 0;
-	pOID->m_ofvalue = m_pPresc->Optimize(m_vParam, &COptThread::OnIteration, this);
+	pOID->m_ofvalue = GetPlanOpt()->Optimize(pOID->m_vParam, &COptThread::OnIteration, this);
 
-	pOID->m_vParam.SetDim(m_vParam.GetDim());
-	pOID->m_vParam = m_vParam;
-
-	m_pMsgTarget->PostMessage(WM_OPTIMIZER_DONE, 0, (LPARAM) pOID);
-
-	LOG("Done with thread");
+	GetMsgTarget()->PostMessage(WM_OPTIMIZER_DONE, 0, (LPARAM) pOID);
 
 	// end the thread
 	// return 0; // ExitInstance();
+#endif
 }
 
-void COptThread::OnOptimizerStop(WPARAM wParam, LPARAM lParam)
+//////////////////////////////////////////////////////////////////////////////
+void 
+	COptThread::OnOptimizerStop(WPARAM wParam, LPARAM lParam)
 {
-	TRACE("Optimizer stopping\n");
 	m_pMsgTarget->PostMessage(WM_OPTIMIZER_STOP, NULL, NULL);
 }
