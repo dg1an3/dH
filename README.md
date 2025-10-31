@@ -1,6 +1,6 @@
-# pheonixrt
+# brimstone 🜏
 
-pheonixrt is a variational inverse planning algorithm for [radiotherapy treatment planning](https://en.wikipedia.org/wiki/Radiation_treatment_planning).  It is related to variational bayes methods, though free energy is implicitly represented.
+brimstone is a variational inverse planning algorithm for [radiotherapy treatment planning](https://en.wikipedia.org/wiki/Radiation_treatment_planning).  It is related to variational bayes methods, though free energy is implicitly represented.
 
 ## Variational Bayes Connection
 
