@@ -155,11 +155,16 @@ The build system supports multiple configurations:
 
 ### Legacy Build System
 
-The original Visual Studio solution files are maintained for backward compatibility:
-- **Brimstone_src.sln** - Main production system (will be removed once CMake is fully validated)
-- Other .sln files - Various component libraries and tests
+⚠️ **IMPORTANT:** The original Visual Studio solution files are **deprecated** and maintained only for backward compatibility.
 
-CMake is now the recommended build system for all new development.
+- **Brimstone_src.sln** - Main production system (deprecated)
+- Other .sln files - Component libraries and tests (deprecated)
+
+See [DEPRECATION.md](DEPRECATION.md) for migration timeline and details.
+
+**CMake is now the recommended and officially supported build system.**
+
+For comprehensive build instructions, see [BUILDING.md](BUILDING.md).
 
 [-MIND THE LICENSE-](https://raw.githubusercontent.com/dg1an3/pheonixrt/master/LICENSE)
 
