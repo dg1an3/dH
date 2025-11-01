@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Brimstone VERSION 1.0.0 LANGUAGES CXX)
+project(dH VERSION 1.0.0 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -12,7 +12,10 @@ if(POLICY CMP0091)
 endif()
 
 # Build options
-option(BUILD_BRIMSTONE_APP "Build Brimstone GUI application" ON)
+option(BUILD_BRIMSTONE_APP "Build Brimstone GUI application (main production system)" ON)
+option(BUILD_FOUNDATION_LIBS "Build foundation libraries (MTL, FTL, etc.)" OFF)
+option(BUILD_COMPONENT_LIBS "Build component libraries (GEOM_MODEL, OPTIMIZER_BASE, etc.)" OFF)
+option(BUILD_TESTS "Build test applications" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # Set output directories
@@ -20,23 +23,25 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Find ITK - required for RtModel
-find_package(ITK REQUIRED COMPONENTS
-    ITKCommon
-    ITKIOImageBase
-    ITKIOXML
-    ITKImageGrid
-    ITKImageFilterBase
-    ITKImageFunction
-    ITKImageCompose
-    ITKSmoothing
-    ITKTransform
-    ITKRegistrationCommon
-    ITKPath
-    ITKSpatialObjects
-    ITKStatistics
-)
-include(${ITK_USE_FILE})
+# Find ITK - required for main Brimstone system
+if(BUILD_BRIMSTONE_APP OR BUILD_COMPONENT_LIBS)
+    find_package(ITK REQUIRED COMPONENTS
+        ITKCommon
+        ITKIOImageBase
+        ITKIOXML
+        ITKImageGrid
+        ITKImageFilterBase
+        ITKImageFunction
+        ITKImageCompose
+        ITKSmoothing
+        ITKTransform
+        ITKRegistrationCommon
+        ITKPath
+        ITKSpatialObjects
+        ITKStatistics
+    )
+    include(${ITK_USE_FILE})
+endif()
 
 # Find MFC if building the Brimstone application
 if(BUILD_BRIMSTONE_APP)
@@ -49,21 +54,51 @@ if(BUILD_BRIMSTONE_APP)
     endif()
 endif()
 
-# Add subdirectories for each project
-add_subdirectory(RtModel)
-add_subdirectory(Graph)
+# Add subdirectories for foundation libraries
+if(BUILD_FOUNDATION_LIBS)
+    # Foundation template libraries
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/MTL/CMakeLists.txt)
+        add_subdirectory(MTL)
+    endif()
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/FTL/CMakeLists.txt)
+        add_subdirectory(FTL)
+    endif()
+endif()
+
+# Add subdirectories for component libraries
+if(BUILD_COMPONENT_LIBS)
+    # Component libraries
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/GEOM_MODEL/CMakeLists.txt)
+        add_subdirectory(GEOM_MODEL)
+    endif()
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/OptimizeN/CMakeLists.txt)
+        add_subdirectory(OptimizeN)
+    endif()
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/XMLLogging/CMakeLists.txt)
+        add_subdirectory(XMLLogging)
+    endif()
+endif()
+
+# Add subdirectories for main production system (Brimstone_src.sln)
+# RtModel and Graph require ITK, so only build them when needed
+if(BUILD_BRIMSTONE_APP OR BUILD_COMPONENT_LIBS)
+    add_subdirectory(RtModel)
+    add_subdirectory(Graph)
+endif()
 
 if(BUILD_BRIMSTONE_APP)
     add_subdirectory(Brimstone)
 endif()
 
 # Installation rules
-install(TARGETS RtModel Graph
-    EXPORT BrimstoneTargets
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-)
+if(BUILD_BRIMSTONE_APP OR BUILD_COMPONENT_LIBS)
+    install(TARGETS RtModel Graph
+        EXPORT BrimstoneTargets
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+    )
+endif()
 
 if(BUILD_BRIMSTONE_APP)
     install(TARGETS Brimstone
@@ -72,28 +107,30 @@ if(BUILD_BRIMSTONE_APP)
 endif()
 
 # Export targets for use by other projects
-install(EXPORT BrimstoneTargets
-    FILE BrimstoneTargets.cmake
-    NAMESPACE Brimstone::
-    DESTINATION lib/cmake/Brimstone
-)
-
-# Create and install package config file
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/BrimstoneConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfig.cmake
-    INSTALL_DESTINATION lib/cmake/Brimstone
-)
-
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
-
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfigVersion.cmake
-    DESTINATION lib/cmake/Brimstone
-)
+if(BUILD_BRIMSTONE_APP OR BUILD_COMPONENT_LIBS)
+    install(EXPORT BrimstoneTargets
+        FILE BrimstoneTargets.cmake
+        NAMESPACE Brimstone::
+        DESTINATION lib/cmake/Brimstone
+    )
+    
+    # Create and install package config file
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/BrimstoneConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfig.cmake
+        INSTALL_DESTINATION lib/cmake/Brimstone
+    )
+    
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion
+    )
+    
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/BrimstoneConfigVersion.cmake
+        DESTINATION lib/cmake/Brimstone
+    )
+endif()
