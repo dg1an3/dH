@@ -74,6 +74,98 @@ subject to: 0 ≤ beamlet_weight_j ≤ max_weight (via sigmoid transform)
 
 This is fundamentally a variational inference problem where the algorithm seeks optimal beamlet weights that produce dose distributions matching target specifications in an information-theoretic sense.
 
+## Building with CMake
+
+### Prerequisites
+
+- CMake 3.16 or newer
+- ITK (Insight Segmentation and Registration Toolkit) - required for main Brimstone system
+- For Windows: Visual Studio with MFC support (for Brimstone GUI application)
+- C++17 compatible compiler
+
+### Quick Start - Main Production System
+
+To build the main Brimstone production system (RtModel, Graph, and Brimstone GUI):
+
+1. **Configure the build:**
+   ```bash
+   mkdir build
+   cd build
+   cmake .. -DITK_DIR=/path/to/ITK/build
+   ```
+
+2. **Build the project:**
+   ```bash
+   cmake --build . --config Release
+   ```
+
+3. **Install (optional):**
+   ```bash
+   cmake --install . --prefix /path/to/install
+   ```
+
+### Build Options
+
+The CMake build system is modular and supports building different components:
+
+- `BUILD_BRIMSTONE_APP` - Build the Brimstone GUI application (default: ON, requires MFC on Windows)
+  - When enabled, builds: RtModel, Graph, and Brimstone
+- `BUILD_FOUNDATION_LIBS` - Build foundation libraries like MTL, FTL (default: OFF)
+- `BUILD_COMPONENT_LIBS` - Build component libraries like GEOM_MODEL, OPTIMIZER_BASE (default: OFF)
+- `BUILD_TESTS` - Build test applications (default: OFF)
+- `BUILD_SHARED_LIBS` - Build shared libraries instead of static (default: OFF)
+
+### Advanced Build Examples
+
+**Build only the core libraries (no GUI):**
+```bash
+cmake .. -DBUILD_BRIMSTONE_APP=OFF -DITK_DIR=/path/to/ITK/build
+cmake --build . --config Release
+```
+
+**Build with foundation and component libraries:**
+```bash
+cmake .. -DBUILD_FOUNDATION_LIBS=ON -DBUILD_COMPONENT_LIBS=ON -DITK_DIR=/path/to/ITK/build
+cmake --build . --config Release
+```
+
+**Build with tests:**
+```bash
+cmake .. -DBUILD_TESTS=ON -DITK_DIR=/path/to/ITK/build
+cmake --build . --config Release
+```
+
+### Project Structure
+
+The build system supports multiple configurations:
+
+**Main Production System (default):**
+- **RtModel** - Core optimization and dose calculation library
+- **Graph** - Visualization and DVH graph library  
+- **Brimstone** - MFC-based GUI application (Windows only)
+
+**Foundation Libraries (optional):**
+- MTL - Math Template Library
+- FTL - Foundation Template Library
+
+**Component Libraries (optional):**
+- GEOM_MODEL - Geometric modeling
+- OPTIMIZER_BASE - Optimization framework
+- XMLLogging - XML logging utilities
+
+### Legacy Build System
+
+⚠️ **IMPORTANT:** The original Visual Studio solution files are **deprecated** and maintained only for backward compatibility.
+
+- **Brimstone_src.sln** - Main production system (deprecated)
+- Other .sln files - Component libraries and tests (deprecated)
+
+See [DEPRECATION.md](DEPRECATION.md) for migration timeline and details.
+
+**CMake is now the recommended and officially supported build system.**
+
+For comprehensive build instructions, see [BUILDING.md](BUILDING.md).
+
 [-MIND THE LICENSE-](https://raw.githubusercontent.com/dg1an3/pheonixrt/master/LICENSE)
 
 U. S. Patent 7,369,645

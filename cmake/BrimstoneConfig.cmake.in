@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Find ITK dependency
+find_dependency(ITK REQUIRED)
+
+# Include targets file
+include("${CMAKE_CURRENT_LIST_DIR}/BrimstoneTargets.cmake")
+
+check_required_components(Brimstone)
