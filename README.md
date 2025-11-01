@@ -74,6 +74,50 @@ subject to: 0 ≤ beamlet_weight_j ≤ max_weight (via sigmoid transform)
 
 This is fundamentally a variational inference problem where the algorithm seeks optimal beamlet weights that produce dose distributions matching target specifications in an information-theoretic sense.
 
+## Building with CMake
+
+### Prerequisites
+
+- CMake 3.16 or newer
+- ITK (Insight Segmentation and Registration Toolkit)
+- For Windows: Visual Studio with MFC support
+- C++17 compatible compiler
+
+### Build Instructions
+
+1. **Configure the build:**
+   ```bash
+   mkdir build
+   cd build
+   cmake .. -DITK_DIR=/path/to/ITK/build
+   ```
+
+2. **Build the project:**
+   ```bash
+   cmake --build . --config Release
+   ```
+
+3. **Install (optional):**
+   ```bash
+   cmake --install . --prefix /path/to/install
+   ```
+
+### Build Options
+
+- `BUILD_BRIMSTONE_APP` - Build the Brimstone GUI application (default: ON, requires MFC)
+- `BUILD_SHARED_LIBS` - Build shared libraries instead of static (default: OFF)
+
+### Project Structure
+
+The build system creates three main components:
+- **RtModel** - Core optimization and dose calculation library
+- **Graph** - Visualization and DVH graph library
+- **Brimstone** - MFC-based GUI application (Windows only)
+
+### Legacy Build System
+
+The original Visual Studio solution files (`Brimstone_src.sln`) are maintained for backward compatibility but CMake is now the recommended build system.
+
 [-MIND THE LICENSE-](https://raw.githubusercontent.com/dg1an3/pheonixrt/master/LICENSE)
 
 U. S. Patent 7,369,645

@@ -6,3 +6,18 @@ __pycache__/
 *.idb
 *.pdb
 venv/
+
+# CMake build artifacts
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!cmake/*.cmake
+!cmake/*.cmake.in
+!CMakeLists.txt
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
