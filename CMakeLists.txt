@@ -10,15 +10,21 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# MFC settings - required for all projects
-set(CMAKE_MFC_FLAG 2)  # Use MFC in a shared DLL
+# MFC settings - required for library projects
+# Note: PenBeamEdit uses wxWidgets instead of MFC
+set(CMAKE_MFC_FLAG 2)  # Use MFC in a shared DLL for libraries
+
+# wxWidgets setup for PenBeamEdit
+find_package(wxWidgets COMPONENTS core base REQUIRED)
+if(wxWidgets_FOUND)
+    include(${wxWidgets_USE_FILE})
+endif()
 
 # Global compile definitions
 if(WIN32)
     add_compile_definitions(
         WIN32
         _WINDOWS
-        _AFXDLL
         _MBCS
     )
 endif()

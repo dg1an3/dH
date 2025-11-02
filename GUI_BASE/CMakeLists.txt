@@ -19,6 +19,11 @@ target_link_libraries(GUI_BASE
     PUBLIC MODEL_BASE
 )
 
+# MFC-specific definitions
+target_compile_definitions(GUI_BASE PUBLIC
+    _AFXDLL
+)
+
 # Resource file (if needed)
 # target_sources(GUI_BASE PRIVATE GUI_BASE.rc)
 

@@ -13,5 +13,10 @@ target_link_libraries(GEOM_BASE
     PUBLIC MODEL_BASE
 )
 
+# MFC-specific definitions
+target_compile_definitions(GEOM_BASE PUBLIC
+    _AFXDLL
+)
+
 # Precompiled header support
 # target_precompile_headers(GEOM_BASE PRIVATE StdAfx.h)

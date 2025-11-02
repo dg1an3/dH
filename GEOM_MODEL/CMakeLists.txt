@@ -25,7 +25,8 @@ target_link_libraries(GEOM_MODEL
     PUBLIC XMLLogging
 )
 
-target_compile_definitions(GEOM_MODEL PRIVATE
+target_compile_definitions(GEOM_MODEL PUBLIC
+    _AFXDLL
     USE_XMLLOGGING
     $<$<CONFIG:Debug>:XMLLOGGING_ON>
 )

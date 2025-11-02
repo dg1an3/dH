@@ -31,7 +31,8 @@ target_link_libraries(GEOM_VIEW
     PUBLIC XMLLogging
 )
 
-target_compile_definitions(GEOM_VIEW PRIVATE
+target_compile_definitions(GEOM_VIEW PUBLIC
+    _AFXDLL
     USE_XMLLOGGING
 )
 

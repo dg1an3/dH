@@ -30,7 +30,8 @@ target_link_libraries(RT_MODEL
     PUBLIC XMLLogging
 )
 
-target_compile_definitions(RT_MODEL PRIVATE
+target_compile_definitions(RT_MODEL PUBLIC
+    _AFXDLL
     USE_XMLLOGGING
     $<$<CONFIG:Debug>:XMLLOGGING_ON>
 )
