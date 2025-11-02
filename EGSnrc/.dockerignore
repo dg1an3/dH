@@ -1,0 +1,25 @@
+# Git files
+.git
+.gitignore
+
+# Output files
+output/*
+*.3ddose
+*.egsdat
+*.egslst
+*.egslog
+
+# Temporary files
+*.tmp
+*~
+.DS_Store
+
+# Documentation (not needed in container)
+README.md
+
+# Keep only essential files
+!Dockerfile
+!docker-compose.yml
+!scripts/
+!input/
+!pegs4/

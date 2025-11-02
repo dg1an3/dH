@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  egsnrc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: egsnrc:latest
+    container_name: egsnrc_kernel_generator
+    volumes:
+      # Mount input files
+      - ./input:/work/input:ro
+      # Mount output directory for results
+      - ./output:/work/output
+      # Mount PEGS4 data
+      - ./pegs4:/work/pegs4
+      # Mount Brimstone kernel directory for direct output
+      - ../Brimstone:/brimstone_kernels
+    working_dir: /work
+    # Interactive shell by default
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  # Development container with full build environment
+  egsnrc-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: egsnrc:dev
+    container_name: egsnrc_dev
+    volumes:
+      - ./input:/work/input
+      - ./output:/work/output
+      - ./pegs4:/work/pegs4
+      - ./scripts:/work/scripts
+      - ../Brimstone:/brimstone_kernels
+    working_dir: /work
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  # Service for running a specific kernel generation job
+  egsnrc-kernel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: egsnrc:latest
+    container_name: egsnrc_kernel_job
+    volumes:
+      - ./input:/work/input:ro
+      - ./output:/work/output
+      - ./pegs4:/work/pegs4
+      - ../Brimstone:/brimstone_kernels
+    working_dir: /work
+    environment:
+      - ENERGY=6
+      - PARTICLES=1000000
+    # Override this with specific kernel generation command
+    command: bash -c "echo 'Use docker-compose run egsnrc-kernel <command>'"
+
+  # Utility service for converting kernels
+  egsnrc-convert:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: egsnrc:latest
+    container_name: egsnrc_converter
+    volumes:
+      - ./output:/work/output:ro
+      - ../Brimstone:/brimstone_kernels
+      - ./scripts:/opt/scripts
+    working_dir: /work
+    command: bash -c "echo 'Use: docker-compose run egsnrc-convert /opt/scripts/convert_kernel.sh <input> <output>'"
