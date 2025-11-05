@@ -29,7 +29,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from collections import deque
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 
 class HessianApproximatorNetwork(nn.Module):
