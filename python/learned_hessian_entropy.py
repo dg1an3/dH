@@ -30,7 +30,7 @@ class CholeskyHessianNetwork(nn.Module):
     """
     Neural network that learns to output Cholesky factor of inverse Hessian
 
-    This is specifically designed for variational Bayes entropy estimation.
+    This is specifically designed for variational bayes entropy estimation.
 
     Input: Optimization history {(s_k, y_k)}
     Output: Lower triangular L such that Σ = L @ L^T (covariance matrix)
