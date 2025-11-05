@@ -26,9 +26,6 @@ Why Cholesky?
 import torch
 import torch.nn as nn
 import numpy as np
-from typing import List, Tuple
-
-
 class CholeskyHessianNetwork(nn.Module):
     """
     Neural network that learns to output Cholesky factor of inverse Hessian
