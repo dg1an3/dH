@@ -8,8 +8,9 @@ This document provides detailed instructions for building the dH (Brimstone) rad
 2. [Quick Start](#quick-start)
 3. [Build Options](#build-options)
 4. [Platform-Specific Instructions](#platform-specific-instructions)
-5. [Troubleshooting](#troubleshooting)
-6. [Migration from Visual Studio Solution Files](#migration-from-visual-studio-solution-files)
+5. [ITK Dependency Management](#itk-dependency-management)
+6. [Troubleshooting](#troubleshooting)
+7. [Migration from Visual Studio Solution Files](#migration-from-visual-studio-solution-files)
 
 ## Prerequisites
 
@@ -26,7 +27,11 @@ This document provides detailed instructions for building the dH (Brimstone) rad
 - **ITK (Insight Segmentation and Registration Toolkit)** - Required for:
   - Main Brimstone production system (RtModel, Graph, Brimstone)
   - Component libraries
-  - Download and build from: https://itk.org/
+  - **Installation options:**
+    - **Option A (Manual Build):** Download and build from https://itk.org/
+    - **Option B (vcpkg - Recommended for Windows):** Install pre-built binaries via vcpkg package manager
+    - **Option C (System Package):** Linux/macOS package managers (may have older versions)
+  - See [ITK Dependency Management](#itk-dependency-management) for detailed instructions
 
 - **MFC (Microsoft Foundation Classes)** - Required for:
   - Brimstone GUI application (Windows only)
@@ -34,7 +39,7 @@ This document provides detailed instructions for building the dH (Brimstone) rad
 
 ## Quick Start
 
-### Windows with Visual Studio
+### Windows with Visual Studio (Manual ITK Build)
 
 1. **Set ITK_DIR environment variable:**
    ```cmd
@@ -49,6 +54,27 @@ This document provides detailed instructions for building the dH (Brimstone) rad
 3. **Build the project:**
    ```cmd
    cd build
+   cmake --build . --config Release
+   ```
+
+### Windows with vcpkg (Recommended - Faster Setup)
+
+1. **Install vcpkg (one-time setup):**
+   ```cmd
+   git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+   cd C:\vcpkg
+   bootstrap-vcpkg.bat
+   ```
+
+2. **Install ITK:**
+   ```cmd
+   vcpkg install itk:x64-windows
+   ```
+
+3. **Build the project:**
+   ```cmd
+   mkdir build && cd build
+   cmake .. -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
    cmake --build . --config Release
    ```
 
@@ -119,23 +145,58 @@ cmake .. \
 2. During installation, select:
    - "Desktop development with C++"
    - "MFC and ATL support"
-3. Build or install ITK
+3. Install ITK (choose one method below)
 
-#### Building
-```cmd
-REM Set ITK directory
-set ITK_DIR=C:\ITK-build
+#### Method 1: Using vcpkg (Recommended)
 
-REM Configure with Visual Studio generator
-mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022" -A x64 -DITK_DIR=%ITK_DIR%
+**Advantages:** Pre-built binaries, faster setup, no manual build required.
 
-REM Build
-cmake --build . --config Release
+1. **Install vcpkg:**
+   ```cmd
+   git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+   cd C:\vcpkg
+   bootstrap-vcpkg.bat
+   ```
 
-REM Or open in Visual Studio
-start dH.sln
-```
+2. **Install ITK:**
+   ```cmd
+   vcpkg install itk:x64-windows
+   ```
+   Note: This may take 20-30 minutes on first install but provides pre-built binaries.
+
+3. **Configure and build:**
+   ```cmd
+   mkdir build && cd build
+   cmake .. -G "Visual Studio 17 2022" -A x64 ^
+       -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+   cmake --build . --config Release
+   ```
+
+4. **Or open in Visual Studio:**
+   ```cmd
+   start dH.sln
+   ```
+
+#### Method 2: Manual ITK Build
+
+**Advantages:** Full control over ITK configuration and build options.
+
+1. **Build ITK from source:**
+   ```cmd
+   git clone https://github.com/InsightSoftwareConsortium/ITK.git C:\ITK-src
+   mkdir C:\ITK-build && cd C:\ITK-build
+   cmake ..\ITK-src -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+   cmake --build . --config Release
+   ```
+   Note: This can take 1-2 hours. ITK is a large library (~1-2 GB built).
+
+2. **Configure and build dH:**
+   ```cmd
+   set ITK_DIR=C:\ITK-build
+   mkdir build && cd build
+   cmake .. -G "Visual Studio 17 2022" -A x64 -DITK_DIR=%ITK_DIR%
+   cmake --build . --config Release
+   ```
 
 #### Generator Options
 - Visual Studio 2022: `-G "Visual Studio 17 2022"`
@@ -191,6 +252,129 @@ make -j$(sysctl -n hw.ncpu)
 sudo make install
 ```
 
+## ITK Dependency Management
+
+The Insight Toolkit (ITK) is a large dependency (~1-2 GB built) required for medical image processing in dH. This section compares different methods for obtaining ITK.
+
+### Comparison of ITK Installation Methods
+
+| Method | Setup Time | Build Time | Disk Space | Best For | CMake Configuration |
+|--------|------------|------------|------------|----------|---------------------|
+| **vcpkg (Recommended)** | 5 min | 20-30 min (first time) | ~2 GB | Windows developers, quick setup | `-DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake` |
+| **Manual Build** | 10 min | 1-2 hours | ~3 GB | Custom ITK configuration, cross-platform | `-DITK_DIR=/path/to/ITK-build` |
+| **System Package** | 2 min | None (pre-built) | ~500 MB | Linux/macOS, may have older version | Auto-detected or `-DITK_DIR=/usr/lib/cmake/ITK` |
+| **FetchContent** | 0 min | 1-2 hours (every clean build) | ~3 GB | CI/CD, reproducible builds | Automatic (requires CMake modification) |
+
+### Option 1: vcpkg (Recommended for Windows)
+
+**Pros:**
+- Pre-built binaries save 1-2 hours of build time
+- Handles dependencies automatically
+- Easy updates: `vcpkg upgrade`
+- Integrates seamlessly with Visual Studio
+- Works well with multiple projects
+
+**Cons:**
+- Requires ~2 GB disk space
+- ITK version controlled by vcpkg (may lag behind latest)
+- Additional tool to install
+
+**Setup:**
+```cmd
+REM One-time vcpkg installation
+git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+cd C:\vcpkg
+bootstrap-vcpkg.bat
+
+REM Install ITK
+vcpkg install itk:x64-windows
+
+REM Configure dH
+cmake .. -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+```
+
+### Option 2: Manual Build from Source
+
+**Pros:**
+- Full control over ITK modules and build options
+- Can use latest ITK version from git
+- Can optimize for specific hardware
+- Works on all platforms
+
+**Cons:**
+- Long initial build time (1-2 hours)
+- Requires manual dependency management
+- More complex setup
+
+**Setup:**
+```bash
+# Clone ITK
+git clone https://github.com/InsightSoftwareConsortium/ITK.git
+cd ITK && mkdir build && cd build
+
+# Configure (minimal build - only needed modules)
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_TESTING=OFF \
+    -DBUILD_EXAMPLES=OFF \
+    -DModule_ITKCommon=ON \
+    -DModule_ITKIOImageBase=ON \
+    -DModule_ITKIOXML=ON
+
+# Build (this takes time)
+cmake --build . --config Release -j
+
+# Use in dH
+cmake /path/to/dH -DITK_DIR=/path/to/ITK/build
+```
+
+### Option 3: System Package Manager (Linux/macOS)
+
+**Pros:**
+- Fastest setup (pre-built)
+- Managed by system package manager
+- Smallest disk footprint
+
+**Cons:**
+- Often older ITK versions
+- Limited module selection
+- Platform-specific
+
+**Setup:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install libinsighttoolkit5-dev
+
+# macOS (Homebrew)
+brew install itk
+
+# Configure dH (usually auto-detected)
+cmake .. -DBUILD_BRIMSTONE_APP=OFF
+```
+
+### Option 4: FetchContent (Advanced - CI/CD)
+
+**Pros:**
+- Fully automatic, no manual steps
+- Reproducible builds with pinned versions
+- Good for continuous integration
+
+**Cons:**
+- Very long configure time on clean builds
+- Rebuilds ITK if build directory is deleted
+- Requires modifying CMakeLists.txt
+
+**Setup:**
+This requires modifying the root `CMakeLists.txt`. Contact maintainers if you need this option for CI/CD pipelines.
+
+### Recommended Workflow by Platform
+
+- **Windows Development:** Use vcpkg (Option 1)
+- **Linux Development:** System package if available, otherwise manual build (Option 3 or 2)
+- **macOS Development:** Homebrew if available, otherwise manual build (Option 3 or 2)
+- **CI/CD Pipelines:** FetchContent or cached manual build (Option 4 or 2)
+- **Maximum Control:** Manual build from source (Option 2)
+
 ## Troubleshooting
 
 ### ITK Not Found
@@ -200,10 +384,53 @@ sudo make install
 CMake Error: By not providing "FindITK.cmake" this project has asked CMake to find a package configuration file provided by "ITK"
 ```
 
-**Solution:**
-Set the `ITK_DIR` variable to point to your ITK build directory:
+**Solutions:**
+
+**If using vcpkg:**
+```cmd
+REM Ensure you're using the vcpkg toolchain file
+cmake .. -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+
+REM Verify ITK is installed
+vcpkg list | findstr itk
+```
+
+**If using manual build:**
 ```bash
+# Set the ITK_DIR variable to point to your ITK build directory
 cmake .. -DITK_DIR=/path/to/ITK-build
+```
+
+### vcpkg Issues
+
+**Error: vcpkg not found or ITK not installed**
+
+**Solution:**
+```cmd
+REM Check vcpkg installation
+where vcpkg
+
+REM If not found, ensure vcpkg is bootstrapped
+cd C:\vcpkg
+bootstrap-vcpkg.bat
+
+REM Install ITK if missing
+vcpkg install itk:x64-windows
+
+REM List installed packages
+vcpkg list
+```
+
+**Error: Wrong architecture (x86 vs x64)**
+
+**Solution:**
+Ensure you install the correct architecture that matches your build:
+```cmd
+REM For 64-bit builds (most common)
+vcpkg install itk:x64-windows
+
+REM For 32-bit builds
+vcpkg install itk:x86-windows
 ```
 
 ### MFC Not Found (Windows)

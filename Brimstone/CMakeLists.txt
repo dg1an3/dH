@@ -30,8 +30,7 @@ set(BRIMSTONE_HEADERS
     PrescriptionToolbar.h
     SeriesDicomImporter.h
     Resource.h
-    stdafx.h
-    targetver.h
+    StdAfx.h
 )
 
 # Resource files
@@ -62,6 +61,17 @@ target_link_libraries(Brimstone
         Graph
 )
 
+# Link Intel IPP libraries if available (via RtModel, but also directly for PlanarView.cpp)
+if(IPP_FOUND)
+    target_link_libraries(Brimstone
+        PRIVATE
+            IPP::IPP
+    )
+    message(STATUS "Brimstone: Intel IPP optimizations enabled")
+else()
+    message(STATUS "Brimstone: Building without Intel IPP optimizations")
+endif()
+
 # Compile definitions for Windows MFC application
 if(MSVC)
     target_compile_definitions(Brimstone PRIVATE
@@ -71,9 +81,13 @@ if(MSVC)
         WINVER=0x0501
         _WIN32_WINNT=0x0501
     )
-    
+
+    # Workaround for VNL SSE inline issues with modern MSVC
+    target_compile_options(Brimstone PRIVATE /DVNL_SSE_FORCE_INLINE=inline)
+
     # Use precompiled headers
-    target_precompile_headers(Brimstone PRIVATE stdafx.h)
+    # Temporarily disabled due to VNL SSE inline issues
+    # target_precompile_headers(Brimstone PRIVATE StdAfx.h)
     
     # Set MFC usage
     set_target_properties(Brimstone PROPERTIES

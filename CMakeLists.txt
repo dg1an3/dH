@@ -23,6 +23,22 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Add cmake directory to module path for custom find modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Find Intel Performance Primitives (IPP) - required for optimized vector/image operations
+# Note: ippm (matrix operations) was replaced by ippvm in newer IPP versions
+find_package(IPP COMPONENTS ippi ipps ippcore)
+if(IPP_FOUND)
+    message(STATUS "Intel IPP found:")
+    message(STATUS "  Version: ${IPP_VERSION}")
+    message(STATUS "  Include dirs: ${IPP_INCLUDE_DIRS}")
+    message(STATUS "  Libraries: ${IPP_LIBRARIES}")
+else()
+    message(WARNING "Intel IPP not found. Some optimizations will be disabled.")
+    message(WARNING "Install IPP via NuGet package 'intelipp.devel.win-x64' or Intel oneAPI.")
+endif()
+
 # Find ITK - required for main Brimstone system
 if(BUILD_BRIMSTONE_APP OR BUILD_COMPONENT_LIBS)
     find_package(ITK REQUIRED COMPONENTS

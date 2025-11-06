@@ -21,3 +21,4 @@ Makefile
 install_manifest.txt
 CTestTestfile.cmake
 _deps/
+packages/

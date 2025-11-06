@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:*)",
+      "Bash(echo:*)",
+      "Bash(pyenv versions:*)",
+      "Bash(pyenv which python:*)",
+      "Bash(cmd.exe /c \"set PYENV & set PYTHON\")",
+      "Bash(cscript:*)",
+      "Bash(reg query \"HKCU\\Software\\Microsoft\\Command Processor\" /v AutoRun)",
+      "Bash(reg query \"HKLM\\Software\\Microsoft\\Command Processor\" /v AutoRun)",
+      "Bash(cmd.exe /c \"reg query HKCU\\Software\\Microsoft\\Command Processor /v AutoRun\")",
+      "Bash(cmd.exe /c \"reg query \"\"HKLM\\Software\\Microsoft\\Command Processor\"\" /v AutoRun\")",
+      "Bash(cmd.exe /D /c \"echo Test without AutoRun\")",
+      "Bash(cmd.exe /D /c \"reg query HKCU\\Software\\Microsoft\\Command Processor /v AutoRun\")",
+      "Bash(cmd.exe /D /c \"doskey /macros\")",
+      "Bash(cmd.exe /D /c \"echo %PROMPT%\")",
+      "Bash(cmd.exe /D /c \"set | findstr /i \"\"preexec post_cmd onecmd\"\"\")",
+      "Bash(cmd.exe /D /c \"where cmd.exe\")",
+      "Bash(cmd.exe /D /c \"echo stdout test\")",
+      "Bash(cat:*)",
+      "Bash(cmd.exe /D /c \"echo stdout\" 1)",
+      "Bash(stdout.txt 2)",
+      "Bash(stderr.txt)",
+      "Bash(rm:*)",
+      "Bash(cmd.exe /c \"echo test 2>nul\")",
+      "Bash(powershell.exe -Command \"Get-ItemProperty -Path ''HKCU:\\Software\\Microsoft\\Command Processor'' -ErrorAction SilentlyContinue | Select-Object AutoRun\")",
+      "Bash(powershell.exe:*)",
+      "Bash(cmd.exe /c \"echo Test after fix\")",
+      "Bash(pyenv:*)",
+      "Bash(jobs)",
+      "Bash(vcpkg search:*)",
+      "Bash(nuget restore:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(powershell -Command \"Install-PackageProvider -Name NuGet -Force -Scope CurrentUser; Install-Package -Name intelipp.devel.win-x64 -Source https://www.nuget.org/api/v2 -Destination ./packages -Force\")",
+      "Bash(cmake:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

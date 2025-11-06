@@ -13,9 +13,56 @@ The system consists of:
 
 ## Building the Project
 
-This is a Visual Studio C++ project using the `.sln` (solution) format.
+The project supports two build systems:
 
-### Main Solution
+### CMake Build (Recommended)
+
+CMake provides a modern, cross-platform build system with better dependency management.
+
+**Prerequisites:**
+1. Install Intel IPP via NuGet (see [IPP Installation](#intel-performance-primitives-ipp))
+2. Install ITK (Insight Toolkit)
+3. Visual Studio 2019 or later with C++ and MFC support
+
+**Build Steps:**
+```bash
+# Navigate to project root
+cd c:\dev\DLaneAtElekta\dH
+
+# Install IPP NuGet package (if not already installed)
+powershell -Command "Install-Package -Name intelipp.devel.win-x64 -Source https://www.nuget.org/api/v2 -Destination ./packages -Force"
+
+# Create build directory
+mkdir build
+cd build
+
+# Configure (adjust ITK_DIR to your ITK installation)
+cmake .. -DITK_DIR="C:/path/to/ITK/lib/cmake/ITK-5.3" -DBUILD_BRIMSTONE_APP=ON
+
+# Build
+cmake --build . --config Release
+
+# Install (optional)
+cmake --install . --prefix ../install
+```
+
+**CMake Options:**
+- `BUILD_BRIMSTONE_APP=ON/OFF` - Build main Brimstone GUI application (default: ON)
+- `BUILD_FOUNDATION_LIBS=ON/OFF` - Build foundation libraries like MTL, FTL (default: OFF)
+- `BUILD_COMPONENT_LIBS=ON/OFF` - Build component libraries (default: OFF)
+- `BUILD_TESTS=ON/OFF` - Build test applications (default: OFF)
+
+The CMake build automatically:
+- Detects Intel IPP from `packages/` directory or system installation
+- Enables `USE_IPP` preprocessor flag when IPP is found
+- Links IPP libraries to RtModel and Brimstone targets
+- Falls back to non-optimized implementations if IPP is not available
+
+### Legacy Visual Studio Solution Build
+
+The project includes legacy `.sln` solution files for Visual Studio.
+
+**Main Solution:**
 ```bash
 # Open the main solution in Visual Studio
 start Brimstone_src.sln
@@ -26,7 +73,7 @@ The solution contains three projects:
 - **Brimstone** (executable) - GUI application
 - **Graph** (library) - Visualization components
 
-### Build Configurations
+**Build Configurations:**
 - Debug|Win32, Debug|x64
 - Release|Win32, Release|x64
 - MinSizeRel, RelWithDebInfo variants available
@@ -36,6 +83,47 @@ The solution contains three projects:
 - **VNL (Vision-something-Numerics Library)** - Numerical optimization
 - **ITK (Insight Toolkit)** - Medical image processing (for Python utilities)
 - **ATL (Active Template Library)** - Collection classes
+- **Intel Performance Primitives (IPP)** - Optimized signal/image processing and linear algebra
+
+#### Intel Performance Primitives (IPP)
+
+IPP provides hardware-accelerated primitives used throughout the codebase:
+
+**Libraries Used:**
+- `ippi.lib` / `ippcv.lib` - Image processing (affine warps, pixel-wise operations)
+- `ipps.lib` - Signal processing (vector operations: copy, add, multiply, etc.)
+- `ippcore.lib` - Core IPP functionality
+- Note: Older versions also used `ippm.lib` for matrix operations (replaced by `ippvm.lib` in newer versions)
+
+**Installation:**
+
+*For CMake builds:*
+The CMake build system ([cmake/FindIPP.cmake](cmake/FindIPP.cmake)) automatically detects IPP from:
+1. NuGet package in `packages/` directory (recommended for Windows)
+2. System-installed IPP via `IPPROOT` environment variable (Intel oneAPI)
+
+To install IPP via NuGet for CMake builds:
+```powershell
+# Navigate to project root
+cd c:\dev\DLaneAtElekta\dH
+
+# Install IPP and dependencies using PowerShell
+Install-Package -Name intelipp.devel.win-x64 -Source https://www.nuget.org/api/v2 -Destination ./packages -Force
+```
+
+*For legacy Visual Studio solution builds:*
+- **Package**: `intelipp.devel.win-x64` (version 2022.3.0.387)
+- **Location**: [Brimstone/packages.config](Brimstone/packages.config)
+- **Automatic installation**: Package and dependencies (Intel OpenMP, TBB) are automatically restored when building in Visual Studio
+
+**Key Usage Areas:**
+- **Vector operations** ([RtModel/include/VectorOps.h](RtModel/include/VectorOps.h)) - Optimized memory allocation, copy, add, subtract, multiply via `ipps*` functions
+- **Image transformations** ([GenImaging/InPlaneResampleImageFilter.cpp](GenImaging/InPlaneResampleImageFilter.cpp)) - Affine warping with `ippiWarpAffineBack_32f_C1R`
+- **Intensity map accumulation** ([GenImaging/IntensityMapAccumulateImageFilter.cpp](GenImaging/IntensityMapAccumulateImageFilter.cpp)) - Pixel arithmetic with `ippiMulC_32f_C1R`, `ippiAdd_32f_C1IR`
+- **Histogram gradient computation** ([RtModel/HistogramGradient.cpp:9](RtModel/HistogramGradient.cpp#L9)) - Uses `ippi.h` for efficient image operations
+
+**Conditional Compilation:**
+IPP usage is controlled by the `USE_IPP` preprocessor flag. When enabled, IPP-optimized implementations replace generic template code for performance-critical vector operations.
 
 The codebase targets Windows XP or later (WINVER 0x0501).
 

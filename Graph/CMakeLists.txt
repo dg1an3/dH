@@ -50,9 +50,13 @@ if(MSVC)
         WINVER=0x0501
         _WIN32_WINNT=0x0501
     )
-    
+
+    # Workaround for VNL SSE inline issues with modern MSVC
+    target_compile_options(Graph PRIVATE /DVNL_SSE_FORCE_INLINE=inline)
+
     # Use precompiled headers
-    target_precompile_headers(Graph PRIVATE stdafx.h)
+    # Temporarily disabled due to VNL SSE inline issues
+    # target_precompile_headers(Graph PRIVATE stdafx.h)
     
     # Set MFC usage
     set_target_properties(Graph PROPERTIES

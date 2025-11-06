@@ -13,20 +13,20 @@
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 
 #ifndef WINVER				// Allow use of features specific to Windows 95 and Windows NT 4 or later.
-#define WINVER 0x0501		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
+#define WINVER 0x0400		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
 #endif
-//
-//#ifndef _WIN32_WINNT		// Allow use of features specific to Windows NT 4 or later.
-//#define _WIN32_WINNT 0x0400	// Change this to the appropriate value to target Windows 2000 or later.
-//#endif						
-//
-//#ifndef _WIN32_WINDOWS		// Allow use of features specific to Windows 98 or later.
-//#define _WIN32_WINDOWS 0x0410 // Change this to the appropriate value to target Windows Me or later.
-//#endif
-//
-//#ifndef _WIN32_IE			// Allow use of features specific to IE 4.0 or later.
-//#define _WIN32_IE 0x0400	// Change this to the appropriate value to target IE 5.0 or later.
-//#endif
+
+#ifndef _WIN32_WINNT		// Allow use of features specific to Windows NT 4 or later.
+#define _WIN32_WINNT 0x0400	// Change this to the appropriate value to target Windows 2000 or later.
+#endif						
+
+#ifndef _WIN32_WINDOWS		// Allow use of features specific to Windows 98 or later.
+#define _WIN32_WINDOWS 0x0410 // Change this to the appropriate value to target Windows Me or later.
+#endif
+
+#ifndef _WIN32_IE			// Allow use of features specific to IE 4.0 or later.
+#define _WIN32_IE 0x0400	// Change this to the appropriate value to target IE 5.0 or later.
+#endif
 
 #include <afxwin.h>         // MFC core and standard components
 #include <afxext.h>         // MFC extensions
@@ -41,27 +41,28 @@
 
 #include <atlcoll.h>
 
-//#include <XMLLogging.h>
-//USES_FMT;
+#include <XMLLogging.h>
+USES_FMT;
 
 // math include
 #include <math.h>
 
 // IPP includes
-//#include <ipps.h>
-//#include <ippcv.h>
+#include <ipps.h>
+#include <ippcv.h>
 
 // utility macros
 #include <UtilMacros.h>
 
 // MTL includes
-#include <MatrixNxM.h>
-
-// for VectorD conversions
-#include <itkVector.h>
+#include <MathUtil.h>
+#include <VectorOps.h>
 
 // geom includes
-#include <ItkUtils.h>
+#include <Volumep.h>
+#include <Structure.h>
+
+#include <Prescription.h>
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
