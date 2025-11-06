@@ -34,6 +34,12 @@
 // MTL includes
 #include <MatrixNxM.h>
 
+// Workaround for VNL SSE inline issues with modern MSVC
+// Must be defined before any ITK/VNL headers are included
+#ifndef VNL_SSE_FORCE_INLINE
+#define VNL_SSE_FORCE_INLINE inline
+#endif
+
 // for VectorD conversions
 #include <itkVector.h>
 
