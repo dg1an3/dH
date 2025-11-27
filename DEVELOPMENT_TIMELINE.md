@@ -239,6 +239,7 @@ This repository represents **20+ years of development** (2000-2025) of radiother
       │
 2001 ─┼─ VSIM_OGL prototype for Siemens VSim [ORAL HISTORY]
       │  GEOM_VIEW (Direct3D 8 migration)
+      │  DRRRenderer.cpp removed (lost to history) [ORAL HISTORY]
       │
 2002 ─┼─ RT_VIEW (Radiotherapy visualization)
       │  Core algorithm conceptualized
@@ -392,6 +393,31 @@ Docker Integration ────────────────────�
 **Industry Connection:**
 This work represents a bridge between academic/research radiotherapy software and commercial clinical systems, explaining the professional-grade architecture despite being a relatively small codebase.
 
+### ~2001: DRRRenderer - Original DRR Implementation (Removed)
+
+**File:** `VSIM_OGL/DRRRenderer.cpp` *(removed ~2001, predates all version control history)*
+
+**What is DRR?**
+A Digitally Reconstructed Radiograph (DRR) is a synthetic X-ray image computed from CT volume data. It simulates the view that would be seen from the treatment machine's beam's-eye-view (BEV) by ray-tracing through the CT density volume and accumulating attenuation values.
+
+**Role in VSim Prototype:**
+- DRR generation was a core feature of virtual simulation systems
+- Allowed comparison of planned beam geometry against actual patient anatomy
+- Used for patient positioning verification before treatment delivery
+- Essential for matching planned treatment to real-world setup
+
+**Why It Was Removed:**
+The DRR renderer was likely removed when the VSIM_OGL prototype transitioned to the commercial Siemens VSim product. The production implementation would have been rewritten in Siemens' proprietary codebase, leaving the prototype code orphaned.
+
+**Technical Approach (typical for era):**
+- Ray casting through CT volume from virtual X-ray source
+- Accumulation of linear attenuation coefficients along each ray
+- Exponential transformation to simulate radiographic exposure
+- Rendering to 2D projection image
+
+**Historical Significance:**
+This represents **lost code** from the earliest phase of development. The removal predates all version control systems used for this repository, making `DRRRenderer.cpp` one of the oldest known components of the codebase—existing only in oral history.
+
 ### ~2004: PenBeamEdit - Beamlet Intensity Editor
 
 **PenBeamEdit** (`/home/user/dH/PenBeamEdit/`) was developed around 2004 as a specialized tool for pencil beam intensity map editing.
@@ -421,6 +447,7 @@ With oral history context, the refined early timeline becomes:
       │
 2001 ─┼─ VSIM_OGL prototype for Siemens VSim
       │  GEOM_VIEW Direct3D migration
+      │  DRRRenderer.cpp (removed ~2001, lost to history)
       │
 2002 ─┼─ RT_VIEW radiotherapy visualization
       │  Core algorithm conceptualization
