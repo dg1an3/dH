@@ -6,7 +6,6 @@ variational free energy with learned Hessian approximation.
 """
 
 import numpy as np
-import torch
 from typing import Optional
 
 
