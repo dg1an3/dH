@@ -114,7 +114,7 @@ def compute_free_energy(kl_divergence, entropy):
     Compute variational free energy
 
     F = E_q[log p(D|θ)] - E_q[log q(θ)] + const
-      = -KL(q||p_target) - H[q(θ)]
+      = KL(q||p_target) - H[q(θ)]
 
     where we approximate:
     - KL divergence ≈ sum of KL terms (expected log likelihood)
