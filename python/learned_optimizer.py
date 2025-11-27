@@ -207,16 +207,30 @@ class LearnedOptimizerTrainer:
 
         trajectory = []
 
+        # Shared variable to store latest gradient
+        latest_grad = {}
+
+        def jac(x):
+            # Compute and store gradient
+            val, grad = objective_fn(x)
+            latest_grad['x'] = x.copy()
+            latest_grad['grad'] = grad.copy()
+            return grad
+
         def callback(xk):
-            # scipy doesn't easily give us gradient, so we compute it
-            _, grad = objective_fn(xk)
+            # Use stored gradient if available and matches xk
+            if 'x' in latest_grad and np.allclose(xk, latest_grad['x']):
+                grad = latest_grad['grad']
+            else:
+                # Fallback: recompute if not available (should rarely happen)
+                _, grad = objective_fn(xk)
             trajectory.append((xk.copy(), grad.copy()))
 
         result = minimize(
             lambda x: objective_fn(x)[0],
             x0,
             method='L-BFGS-B',
-            jac=lambda x: objective_fn(x)[1],
+            jac=jac,
             callback=callback,
             options={'maxiter': max_iters}
         )
