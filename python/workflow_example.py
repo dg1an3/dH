@@ -104,7 +104,7 @@ class VariationalBayesWorkflow:
         result = {
             'x_opt': x0,  # Would be actual optimized parameters
             'history': [],  # Would contain (s_k, y_k) pairs
-            'kl_divergence': 0.0,  # Final KL divergence sum
+            'kl_divergence': 0.0,  # Final objective value (sum of DVH KL terms)
             'iterations': 0,
             'success': True,
         }
