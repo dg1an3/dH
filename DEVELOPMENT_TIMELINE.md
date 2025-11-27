@@ -237,12 +237,16 @@ This repository represents **20+ years of development** (2000-2025) of radiother
 ```
 2000 ─┬─ OGL_BASE (OpenGL rendering)
       │
-2001 ─┼─ GEOM_VIEW (Direct3D 8 migration)
+2001 ─┼─ VSIM_OGL prototype for Siemens VSim [ORAL HISTORY]
+      │  GEOM_VIEW (Direct3D 8 migration)
       │
 2002 ─┼─ RT_VIEW (Radiotherapy visualization)
       │  Core algorithm conceptualized
       │
 2003 ─┼─ [Prolog verification code - predates git]
+      │
+2004 ─┼─ PenBeamEdit beamlet intensity editor [ORAL HISTORY]
+      │  IMRT workflow development
       │
 2006 ─┼─ First Git commits (CVS migration)
       │  Thread-safety, VS2005, 4-level pyramid
@@ -302,13 +306,15 @@ This repository represents **20+ years of development** (2000-2025) of radiother
 ## Key Milestones
 
 1. **2000-2002**: Core visualization framework (RT_VIEW, GEOM_VIEW)
-2. **2006**: Git/CVS repository established, multi-scale optimization
-3. **2007**: U.S. Patent 7,369,645 granted
-4. **2008-2009**: Peak algorithm development (r600-647)
-5. **2014**: ITK 4.3 modernization
-6. **2015**: Open source publication on GitHub
-7. **2019-2020**: Machine learning experiments
-8. **2025**: Python porting, Docker integration, AI-assisted documentation
+2. **~2001**: VSIM_OGL prototype for Siemens VSim application *(oral history)*
+3. **~2004**: PenBeamEdit beamlet intensity editor for IMRT *(oral history)*
+4. **2006**: Git/CVS repository established, multi-scale optimization
+5. **2007**: U.S. Patent 7,369,645 granted
+6. **2008-2009**: Peak algorithm development (r600-647)
+7. **2014**: ITK 4.3 modernization
+8. **2015**: Open source publication on GitHub
+9. **2019-2020**: Machine learning experiments
+10. **2025**: Python porting, Docker integration, AI-assisted documentation
 
 ---
 
@@ -363,6 +369,86 @@ Docker Integration ────────────────────�
 
 ---
 
+## Oral History
+
+*The following information comes from direct communication with the original developer, Derek G. Lane, and supplements the git/CVS history with context that predates or exists outside version control records.*
+
+### ~2001: VSIM_OGL - Siemens VSim Prototype
+
+**VSIM_OGL** (`/home/user/dH/VSIM_OGL/`) served as the **prototype for the Siemens VSim application**, developed around 2001.
+
+**Context:**
+- Siemens Medical Solutions was (and remains) a major manufacturer of radiotherapy treatment machines
+- VSim (Virtual Simulation) was a commercial product for virtual treatment simulation
+- The VSIM_OGL codebase in this repository represents early prototype/proof-of-concept work
+- This explains the sophisticated visualization architecture (OGL_BASE → GEOM_VIEW → RT_VIEW) developed during 2000-2002
+
+**Technical Significance:**
+- The prototype work drove development of the Direct3D 8 rendering pipeline
+- Treatment machine visualization (`CMachineRenderable`) modeled actual LINAC geometry
+- Beam visualization (`CBeamRenderable`) supported clinical workflow verification
+- The "lightfield" texture (`CLightfieldTexture`) simulated physical light field projection used in patient setup
+
+**Industry Connection:**
+This work represents a bridge between academic/research radiotherapy software and commercial clinical systems, explaining the professional-grade architecture despite being a relatively small codebase.
+
+### ~2004: PenBeamEdit - Beamlet Intensity Editor
+
+**PenBeamEdit** (`/home/user/dH/PenBeamEdit/`) was developed around 2004 as a specialized tool for pencil beam intensity map editing.
+
+**Context:**
+- By 2004, the core optimization algorithm was maturing
+- IMRT (Intensity-Modulated Radiation Therapy) requires precise control of beamlet weights
+- PenBeamEdit provided a dedicated interface for manual adjustment and visualization of intensity maps
+
+**Role in Development:**
+- Served as a testing ground for beamlet calculation and visualization
+- Allowed manual verification of optimization results
+- Predates the full Brimstone GUI integration of optimization features
+- The "pencil beam" terminology reflects the dose calculation model where each beam is decomposed into small pencil-shaped sub-beams
+
+**Technical Notes:**
+- Intensity maps are 2D grids of beamlet weights
+- Each beamlet contributes dose through TERMA calculation and kernel convolution
+- The editor allowed direct manipulation of these weights outside the optimization loop
+
+### Timeline Integration
+
+With oral history context, the refined early timeline becomes:
+
+```
+2000 ─┬─ OGL_BASE development begins
+      │
+2001 ─┼─ VSIM_OGL prototype for Siemens VSim
+      │  GEOM_VIEW Direct3D migration
+      │
+2002 ─┼─ RT_VIEW radiotherapy visualization
+      │  Core algorithm conceptualization
+      │
+2003 ─┼─ Prolog verification code
+      │  Algorithm formalization
+      │
+2004 ─┼─ PenBeamEdit beamlet intensity editor
+      │  IMRT workflow development
+      │
+2005 ─┼─ [Development continues - pre-git]
+      │
+2006 ─┼─ CVS/Git migration (April)
+      │  Multi-scale pyramid (4 levels)
+      │  Thread-safety improvements
+```
+
+### Significance
+
+The oral history reveals that this codebase has deeper roots in **commercial radiotherapy software development** than the git history alone suggests. The 2001 Siemens prototype work and 2004 PenBeamEdit development represent significant milestones that explain:
+
+1. **Why the visualization architecture is so sophisticated** - It was designed for commercial use
+2. **Why the optimization algorithm is clinically-oriented** - It emerged from real treatment planning needs
+3. **Why the codebase spans multiple distinct applications** - Different tools served different workflow stages
+4. **The 2006 git commits were a migration**, not the start of development - 5+ years of prior work existed
+
+---
+
 ## Intellectual Property
 
 - **U.S. Patent 7,369,645** - Radiotherapy treatment planning
@@ -373,4 +459,4 @@ Docker Integration ────────────────────�
 ---
 
 *Document generated: November 27, 2025*
-*Based on comprehensive analysis of git history, source code headers, and documentation*
+*Based on comprehensive analysis of git history, source code headers, documentation, and oral history from the original developer*
