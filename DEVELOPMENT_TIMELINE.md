@@ -416,7 +416,51 @@ The DRR renderer was likely removed when the VSIM_OGL prototype transitioned to 
 - Rendering to 2D projection image
 
 **Historical Significance:**
-This represents **lost code** from the earliest phase of development. The removal predates all version control systems used for this repository, making `DRRRenderer.cpp` one of the oldest known components of the codebase—existing only in oral history.
+The files have been **restored from commit 40e1350a (June 7, 2002)** and placed back in the repository as unbuilt historical source files:
+- `VSIM_OGL/DRRRenderer.cpp` / `.h`
+- `GEOM_VIEW/DRRRenderable.cpp` / `include/DRRRenderable.h`
+
+### DRR → TERMA Algorithm Lineage
+
+The DRR renderer represents an important **algorithmic ancestor** of the TERMA (Total Energy Released per unit MAss) calculation used in `RtModel/BeamDoseCalc.cpp`. Both share the same fundamental approach:
+
+| Aspect | DRR (2001) | TERMA (2008) |
+|--------|------------|--------------|
+| **Purpose** | Generate synthetic X-ray image | Calculate radiation dose deposition |
+| **Input** | CT volume (short voxels) | Mass density volume (REAL voxels) |
+| **Ray Origin** | Camera/X-ray source | Radiation source position |
+| **Accumulation** | Sum voxel values (CT numbers) | Integrate attenuation: `exp(-μ * path)` |
+| **Output** | 2D projection image | 3D TERMA volume |
+
+**Key Algorithm Similarities:**
+
+1. **Ray-Volume Intersection** (DRR: `ClipRaster()` vs TERMA: `MinDistToIntersectPlan()`)
+   - Both compute ray entry/exit points through volume boundaries
+   - Both use plane-crossing logic to step through voxels
+
+2. **Fixed-Point vs Floating-Point**
+   - DRR uses 16.16 fixed-point arithmetic for speed (`viStart[0] >> 16`)
+   - TERMA uses floating-point with ITK types for precision
+
+3. **Voxel Traversal**
+   - DRR: Simple summation along ray
+   - TERMA: Trilinear interpolation with neighborhood updates
+
+4. **Connection to Fortran Code**
+   - `PenBeam_indens/code/ray_trace_set_up.for` (Rock Mackie, 1988)
+   - Uses same plane-crossing algorithm for spherical convolution
+   - The `make_vector()` calls mirror the DRR's clipping logic
+
+**Evolution Path:**
+```
+1988: ray_trace_set_up.for (Mackie/Wisconsin)
+       ↓
+2001: DRRRenderer.cpp (VSim prototype - visualization)
+       ↓
+2004: PenBeamEdit (beamlet editing)
+       ↓
+2008: BeamDoseCalc.cpp (TERMA for dose calculation)
+```
 
 ### ~2004: PenBeamEdit - Beamlet Intensity Editor
 
