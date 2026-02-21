@@ -1,68 +1,112 @@
 """
-Setup script for rtmodel Python bindings
+Setup script for pybrimstone - Python wrapper for Brimstone optimization algorithm
+
+Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
 """
 
 import os
 import sys
-import subprocess
-from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
+from pathlib import Path
 
+import numpy
+from Cython.Build import cythonize
+from setuptools import Extension, setup
 
-class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir=''):
-        Extension.__init__(self, name, sources=[])
-        self.sourcedir = os.path.abspath(sourcedir)
+# Determine platform-specific settings
+is_windows = sys.platform.startswith("win")
+is_linux = sys.platform.startswith("linux")
 
+# Base paths
+PROJECT_ROOT = Path(__file__).parent.parent
+RTMODEL_DIR = PROJECT_ROOT / "RtModel"
+RTMODEL_INCLUDE = RTMODEL_DIR / "include"
+VECMAT_DIR = PROJECT_ROOT / "VecMat"
+GRAPH_DIR = PROJECT_ROOT / "Graph"
 
-class CMakeBuild(build_ext):
-    def build_extension(self, ext):
-        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+# Common include directories
+include_dirs = [
+    str(RTMODEL_INCLUDE),
+    str(VECMAT_DIR),
+    str(GRAPH_DIR),
+    numpy.get_include(),
+]
 
-        # Required for auto-detection of auxiliary "native" libs
-        if not extdir.endswith(os.path.sep):
-            extdir += os.path.sep
+# Common library directories
+library_dirs = []
 
-        cmake_args = [
-            f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}',
-            f'-DPYTHON_EXECUTABLE={sys.executable}',
-        ]
+# Common libraries to link
+libraries = []
 
-        cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
+# Compiler flags
+extra_compile_args = []
+extra_link_args = []
 
-        cmake_args += [f'-DCMAKE_BUILD_TYPE={cfg}']
-        build_args += ['--', '-j4']
+if is_windows:
+    # Windows-specific settings
+    extra_compile_args = [
+        "/std:c++14",
+        "/EHsc",
+        "/D_USE_MATH_DEFINES",
+        "/DUSE_RTOPT",
+        "/DWIN32",
+        "/D_WINDOWS",
+    ]
+    # Add ITK paths (adjust as needed for your system)
+    # include_dirs.append("C:/Program Files/ITK/include")
+    # library_dirs.append("C:/Program Files/ITK/lib")
 
-        env = os.environ.copy()
-        env['CXXFLAGS'] = f'{env.get("CXXFLAGS", "")} -DVERSION_INFO=\\"{self.distribution.get_version()}\\"'
+elif is_linux:
+    # Linux-specific settings
+    extra_compile_args = [
+        "-std=c++14",
+        "-DUSE_RTOPT",
+        "-fPIC",
+    ]
+    extra_link_args = ["-Wl,-rpath,$ORIGIN"]
 
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
+# Define extensions
+extensions = [
+    Extension(
+        name="pybrimstone.core",
+        sources=[
+            "pybrimstone/core.pyx",
+            # C++ source files to compile
+            str(RTMODEL_DIR / "PlanOptimizer.cpp"),
+            str(RTMODEL_DIR / "ConjGradOptimizer.cpp"),
+            str(RTMODEL_DIR / "Prescription.cpp"),
+            str(RTMODEL_DIR / "KLDivTerm.cpp"),
+            str(RTMODEL_DIR / "VOITerm.cpp"),
+            str(RTMODEL_DIR / "ObjectiveFunction.cpp"),
+            str(RTMODEL_DIR / "PlanPyramid.cpp"),
+            str(RTMODEL_DIR / "Plan.cpp"),
+            str(RTMODEL_DIR / "Beam.cpp"),
+            str(RTMODEL_DIR / "Structure.cpp"),
+            str(RTMODEL_DIR / "Series.cpp"),
+            str(RTMODEL_DIR / "Histogram.cpp"),
+            str(RTMODEL_DIR / "HistogramGradient.cpp"),
+        ],
+        include_dirs=include_dirs,
+        library_dirs=library_dirs,
+        libraries=libraries,
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        language="c++",
+    ),
+]
 
-        subprocess.check_call(
-            ['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env
-        )
-        subprocess.check_call(
-            ['cmake', '--build', '.'] + build_args, cwd=self.build_temp
-        )
-
-
-setup(
-    name='rtmodel',
-    version='0.1.0',
-    author='Derek G. Lane',
-    description='Python bindings for RtModel variational Bayes radiotherapy optimization',
-    long_description='',
-    ext_modules=[CMakeExtension('rtmodel_core')],
-    cmdclass={'build_ext': CMakeBuild},
-    zip_safe=False,
-    python_requires='>=3.7',
-    install_requires=[
-        'numpy>=1.19.0',
-        'scipy>=1.5.0',
-    ],
-    extras_require={
-        'dev': ['pytest', 'black', 'mypy'],
+# Cythonize extensions
+ext_modules = cythonize(
+    extensions,
+    compiler_directives={
+        "language_level": "3",
+        "embedsignature": True,
+        "boundscheck": False,
+        "wraparound": False,
     },
+)
+
+# Run setup
+setup(
+    ext_modules=ext_modules,
+    zip_safe=False,
 )
