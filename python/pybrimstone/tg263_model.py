@@ -198,7 +198,7 @@ class TG263Classifier(nn.Module):
         if self.use_attention:
             # Create mask from lengths
             if lengths is not None:
-                batch_size, seq_len = char_indices.shape
+                seq_len = encoder_outputs.size(1)
                 mask = torch.arange(seq_len, device=char_indices.device)[None, :] < lengths[:, None]
             else:
                 mask = None
