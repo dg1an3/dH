@@ -12,7 +12,9 @@
 
 #include <BeamDoseCalc.h>
 
+#ifdef HAS_DCMTK
 #include "SeriesDicomImporter.h"
+#endif
 #include "PlanSetupDlg.h"
 
 #ifdef _DEBUG
@@ -210,8 +212,12 @@ void CBrimstoneDoc::OnGenbeamlets()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void CBrimstoneDoc::OnFileImportDcm() 
+void CBrimstoneDoc::OnFileImportDcm()
 {
+#ifndef HAS_DCMTK
+	AfxMessageBox(_T("DICOM import not available (built without DCMTK)"));
+	return;
+#else
 	// remove existing data
 	if (!SaveModified())
 		return;
@@ -271,4 +277,5 @@ void CBrimstoneDoc::OnFileImportDcm()
 		// update views for new document objects
 		SendInitialUpdate();
 	}
+#endif // HAS_DCMTK
 }

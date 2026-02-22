@@ -45,6 +45,9 @@ set(RTMODEL_HEADERS
     include/Series.h
     include/SphereConvolve.h
     include/Structure.h
+    include/utilmacros.h
+    include/VectorN.h
+    include/VectorOps.h
     include/VOITerm.h
     stdafx.h
 )
@@ -62,10 +65,11 @@ target_include_directories(RtModel
 )
 
 # Link ITK libraries
-target_link_libraries(RtModel
-    PUBLIC
-        ${ITK_LIBRARIES}
-)
+if(TARGET ITK::Manual)
+    target_link_libraries(RtModel PUBLIC ITK::Manual)
+else()
+    target_link_libraries(RtModel PUBLIC ${ITK_LIBRARIES})
+endif()
 
 # Link Intel IPP libraries if available
 if(IPP_FOUND)
@@ -81,12 +85,16 @@ endif()
 
 # Compile definitions for Windows
 if(MSVC)
-    target_compile_definitions(RtModel PRIVATE
-        UNICODE
-        _UNICODE
-        _AFXDLL
-        WINVER=0x0501
-        _WIN32_WINNT=0x0501
+    target_compile_definitions(RtModel
+        PUBLIC
+            USE_RTOPT
+            NOMINMAX
+        PRIVATE
+            UNICODE
+            _UNICODE
+            _AFXDLL
+            WINVER=0x0501
+            _WIN32_WINNT=0x0501
     )
 
     # Workaround for VNL SSE inline issues with modern MSVC

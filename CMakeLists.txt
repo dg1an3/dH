@@ -40,23 +40,85 @@ else()
 endif()
 
 # Find ITK - required for main Brimstone system
+# Supports three modes:
+#   1. Standard find_package(ITK) with a proper CMake installation
+#   2. Manual ITK_SRC_DIR + ITK_BUILD_DIR for build-tree installations
+#   3. Auto-detection of common local paths
 if(BUILD_BRIMSTONE_APP OR BUILD_COMPONENT_LIBS)
-    find_package(ITK REQUIRED COMPONENTS
-        ITKCommon
-        ITKIOImageBase
-        ITKIOXML
-        ITKImageGrid
-        ITKImageFilterBase
-        ITKImageFunction
-        ITKImageCompose
-        ITKSmoothing
-        ITKTransform
-        ITKRegistrationCommon
-        ITKPath
-        ITKSpatialObjects
-        ITKStatistics
-    )
-    include(${ITK_USE_FILE})
+    set(ITK_FOUND FALSE)
+
+    # Option: Manual ITK paths (for build-tree ITK installations)
+    set(ITK_SRC_DIR "" CACHE PATH "Path to ITK source tree (contains Modules/)")
+    set(ITK_BUILD_DIR "" CACHE PATH "Path to ITK build tree (contains lib/)")
+
+    # Try standard find_package first (works with properly installed ITK)
+    if(NOT ITK_SRC_DIR AND NOT ITK_BUILD_DIR)
+        find_package(ITK QUIET COMPONENTS
+            ITKCommon
+            ITKIOImageBase
+            ITKIOXML
+            ITKImageGrid
+            ITKImageFilterBase
+            ITKImageFunction
+            ITKImageCompose
+            ITKSmoothing
+            ITKTransform
+            ITKRegistrationCommon
+            ITKPath
+            ITKSpatialObjects
+            ITKStatistics
+        )
+        if(ITK_FOUND)
+            include(${ITK_USE_FILE})
+            message(STATUS "ITK found via find_package: ${ITK_DIR}")
+        endif()
+    endif()
+
+    # Fall back to manual ITK detection
+    if(NOT ITK_FOUND)
+        # Auto-detect common local paths if not explicitly set
+        if(NOT ITK_SRC_DIR)
+            foreach(_candidate
+                "C:/kits/install/InsightToolkit-5.3.0"
+                "C:/kits/InsightToolkit-5.3.0"
+                "$ENV{ITK_DIR}"
+            )
+                if(EXISTS "${_candidate}/Modules/Core/Common/include")
+                    set(ITK_SRC_DIR "${_candidate}" CACHE PATH "Path to ITK source tree" FORCE)
+                    message(STATUS "Auto-detected ITK source at: ${ITK_SRC_DIR}")
+                    break()
+                endif()
+            endforeach()
+        endif()
+
+        if(NOT ITK_BUILD_DIR)
+            foreach(_candidate
+                "C:/kits/install/InsightToolkit-5.3.0_vc2022x64"
+                "C:/kits/InsightToolkit-5.3.0_vc2022x64"
+                "$ENV{ITK_BUILD_DIR}"
+            )
+                if(EXISTS "${_candidate}/lib")
+                    set(ITK_BUILD_DIR "${_candidate}" CACHE PATH "Path to ITK build tree" FORCE)
+                    message(STATUS "Auto-detected ITK build at: ${ITK_BUILD_DIR}")
+                    break()
+                endif()
+            endforeach()
+        endif()
+
+        include(FindITKManual)
+        if(ITK_MANUAL_FOUND)
+            set(ITK_FOUND TRUE)
+            set(ITK_USE_MANUAL TRUE)
+        endif()
+    endif()
+
+    if(NOT ITK_FOUND)
+        message(FATAL_ERROR
+            "ITK not found. Please set one of:\n"
+            "  -DITK_DIR=<path>  (for installed ITK with working CMake config)\n"
+            "  -DITK_SRC_DIR=<source> -DITK_BUILD_DIR=<build>  (for build-tree ITK)"
+        )
+    endif()
 endif()
 
 # Find MFC if building the Brimstone application

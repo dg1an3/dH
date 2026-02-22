@@ -409,17 +409,17 @@ void CPrescriptionToolbar::OnBnClickedCheckContour()
 	if (m_btnContour.GetCheck())
 	{
 		GetView()->m_wndPlanarView.SetSelectedStructure(GetSelectedStruct());
-		GetView()->m_wndPlanarView.SetSelectedContour(NULL);
-		GetView()->m_wndPlanarView.SetSelectedVertex(NULL);
+		GetView()->m_wndPlanarView.SetSelectedContour(nullptr);
+		GetView()->m_wndPlanarView.SetSelectedVertex(-1);
 
 		// TODO: put Invalidate in SetSelectedStructure
 		GetView()->m_wndPlanarView.Invalidate();
 	}
 	else
 	{
-		GetView()->m_wndPlanarView.SetSelectedStructure(NULL);
-		GetView()->m_wndPlanarView.SetSelectedContour(NULL);
-		GetView()->m_wndPlanarView.SetSelectedVertex(NULL);
+		GetView()->m_wndPlanarView.SetSelectedStructure(nullptr);
+		GetView()->m_wndPlanarView.SetSelectedContour(nullptr);
+		GetView()->m_wndPlanarView.SetSelectedVertex(-1);
 
 		GetView()->m_wndPlanarView.Invalidate();
 	}

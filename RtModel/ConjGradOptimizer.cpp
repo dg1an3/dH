@@ -358,7 +358,7 @@ void
 		// note: m_FinalValue contains the KL divergence sum (expected log likelihood term)
 		m_FreeEnergy = m_FinalValue - m_Entropy;
 
-		Log(_T("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f"),
+		TRACE(_T("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f\n"),
 			num_iterations_, m_FinalValue, m_Entropy, m_FreeEnergy);
 	}
 

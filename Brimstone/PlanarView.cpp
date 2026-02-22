@@ -146,15 +146,36 @@ inline void Resample(const VolumeReal *pOrig,
 	coeffs[1][1] = mXform(1, 1);
 	coeffs[1][2] = mXform(1, 3);
 
+#ifdef USE_IPP
 	IppStatus stat = ippiWarpAffineBack_32f_C1R(
-		pOrigVoxel, 
+		pOrigVoxel,
 		MakeIppiSize(pOrig->GetBufferedRegion()),
-		pOrig->GetBufferedRegion().GetSize()[0] * sizeof(VOXEL_REAL), 
+		pOrig->GetBufferedRegion().GetSize()[0] * sizeof(VOXEL_REAL),
 		MakeIppiRect(pOrig->GetBufferedRegion()),
-		pNew->GetBufferPointer(), 
-		pNew->GetBufferedRegion().GetSize()[0] * sizeof(VOXEL_REAL), 
+		pNew->GetBufferPointer(),
+		pNew->GetBufferedRegion().GetSize()[0] * sizeof(VOXEL_REAL),
 		MakeIppiRect(pNew->GetBufferedRegion()),
 		coeffs, IPPI_INTER_LINEAR);
+#else
+	// Non-IPP fallback: nearest-neighbor resampling using affine transform
+	auto origSize = pOrig->GetBufferedRegion().GetSize();
+	auto newSize = pNew->GetBufferedRegion().GetSize();
+	VOXEL_REAL *pNewBuf = pNew->GetBufferPointer();
+	for (unsigned int y = 0; y < newSize[1]; y++)
+	{
+		for (unsigned int x = 0; x < newSize[0]; x++)
+		{
+			double srcX = coeffs[0][0] * x + coeffs[0][1] * y + coeffs[0][2];
+			double srcY = coeffs[1][0] * x + coeffs[1][1] * y + coeffs[1][2];
+			int sx = (int)(srcX + 0.5);
+			int sy = (int)(srcY + 0.5);
+			if (sx >= 0 && sx < (int)origSize[0] && sy >= 0 && sy < (int)origSize[1])
+				pNewBuf[y * newSize[0] + x] = pOrigVoxel[sy * origSize[0] + sx];
+			else
+				pNewBuf[y * newSize[0] + x] = 0;
+		}
+	}
+#endif
 
 }	// Resample
 
@@ -339,12 +360,12 @@ void
 			{
 				dH::Structure::PolygonType *pPoly = pStruct->GetContour(nAtContour);
 
-				pDC->MoveTo(ToDC(pPoly->GetPoint(0)->GetPosition(), origin, spacing));
+				pDC->MoveTo(ToDC(pPoly->GetPoint(0)->GetPositionInObjectSpace(), origin, spacing));
 				for (int nAtVert = 1; nAtVert < pPoly->GetNumberOfPoints(); nAtVert++)
 				{
-					pDC->LineTo(ToDC(pPoly->GetPoint(nAtVert)->GetPosition(), origin, spacing));
+					pDC->LineTo(ToDC(pPoly->GetPoint(nAtVert)->GetPositionInObjectSpace(), origin, spacing));
 				}
-				pDC->LineTo(ToDC(pPoly->GetPoint(0)->GetPosition(), origin, spacing));
+				pDC->LineTo(ToDC(pPoly->GetPoint(0)->GetPositionInObjectSpace(), origin, spacing));
 			}
 		}
 
@@ -383,7 +404,7 @@ void
 						dH::Structure::PolygonType *pContour = GetSelectedContour();
 						for (int nAtVert = 0; nAtVert < pContour->GetNumberOfPoints(); nAtVert++)
 						{
-							CRect rect(ToDC(pContour->GetPoint(nAtVert)->GetPosition(), origin, spacing), CSize(5, 5));
+							CRect rect(ToDC(pContour->GetPoint(nAtVert)->GetPositionInObjectSpace(), origin, spacing), CSize(5, 5));
 							rect -= CPoint(2, 2);
 							pDC->Rectangle(rect);
 						}
@@ -409,7 +430,7 @@ CPlanarView::ContourHitTest(CPoint& point, dH::Structure::PolygonType *pContour,
 	{
 		// pVertex = // const_cast< Vector<REAL, 2> * >(&pContour->GetVertexAt(nVertex));
 
-		CRect rectHandle(ToDC(pContour->GetPoint(*pnVertex)->GetPosition(), origin, spacing), CSize(4, 4));
+		CRect rectHandle(ToDC(pContour->GetPoint(*pnVertex)->GetPositionInObjectSpace(), origin, spacing), CSize(4, 4));
 		rectHandle -= CPoint(2, 2);
 		rectHandle.InflateRect(5, 5);
 		if (rectHandle.PtInRect(point))
@@ -446,12 +467,12 @@ CRgn *
 	// draw the path
 	dc.BeginPath();
 
-	dc.MoveTo(ToDC(pContour->GetPoint(0)->GetPosition(), origin, spacing));
+	dc.MoveTo(ToDC(pContour->GetPoint(0)->GetPositionInObjectSpace(), origin, spacing));
 	for (int nAtVert = 1; nAtVert < pContour->GetNumberOfPoints(); nAtVert++)
 	{
-		dc.LineTo(ToDC(pContour->GetPoint(nAtVert)->GetPosition(), origin, spacing));
+		dc.LineTo(ToDC(pContour->GetPoint(nAtVert)->GetPositionInObjectSpace(), origin, spacing));
 	}
-	dc.LineTo(ToDC(pContour->GetPoint(0)->GetPosition(), origin, spacing));
+	dc.LineTo(ToDC(pContour->GetPoint(0)->GetPositionInObjectSpace(), origin, spacing));
 
 	dc.EndPath();
 
@@ -874,7 +895,9 @@ void CPlanarView::OnLButtonDown(UINT nFlags, CPoint point)
 		dH::Structure::PolygonType::PointType vVert;
 		vVert[0] = point.x * sliceSpacing[0] + sliceOrigin[0];
 		vVert[1] = point.y * sliceSpacing[1] + sliceOrigin[1];
-		GetSelectedContour()->AddPoint(vVert);
+		itk::SpatialObjectPoint<2> soPt;
+		soPt.SetPositionInObjectSpace(vVert);
+		GetSelectedContour()->AddPoint(soPt);
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 		return;
 	}
@@ -882,8 +905,8 @@ void CPlanarView::OnLButtonDown(UINT nFlags, CPoint point)
 		&& GetSelectedStructure() != NULL)
 	{
 		dH::Structure *pStruct = GetSelectedStructure();
-		SetSelectedContour(NULL);
-		SetSelectedVertex(NULL);
+		SetSelectedContour(nullptr);
+		SetSelectedVertex(-1);
 
 		// see if we hit one of the selected structures contours
 		for (int nAtContour = 0; nAtContour < pStruct->GetContourCount(); nAtContour++)
@@ -900,7 +923,7 @@ void CPlanarView::OnLButtonDown(UINT nFlags, CPoint point)
 					{
 						SetSelectedVertex(nVertex);
 						m_ptOpStart = point;
-						m_vVertexStart = pContour->GetPoint(nVertex)->GetPosition();
+						m_vVertexStart = pContour->GetPoint(nVertex)->GetPositionInObjectSpace();
 					}
 				}
 			}
@@ -931,7 +954,7 @@ void
 	{
 		const Point<REAL>& origin = m_volumeResamp[0]->GetOrigin();
 		GetSelectedStructure()->AddContour(GetSelectedContour(), origin[2]);
-		SetSelectedContour(NULL);
+		SetSelectedContour(nullptr);
 
 		m_bAddContourMode = false;
 		m_bEditContourMode = true;
@@ -1074,12 +1097,14 @@ void
 		const Vector<REAL>& spacing = m_volumeResamp[0]->GetSpacing();
 	
 		// compute shift of point
-		dH::Structure::PolygonType::PointType vShift = GetSelectedContour()->GetPoint(GetSelectedVertex())->GetPosition();
+		dH::Structure::PolygonType::PointType vShift = GetSelectedContour()->GetPoint(GetSelectedVertex())->GetPositionInObjectSpace();
 		vShift[0] = spacing[0] * ptDelta.x; // + origin[0];
 		vShift[1] = spacing[1] * ptDelta.y; // + origin[1];
 
-		GetSelectedContour()->ReplacePoint(GetSelectedContour()->GetPoint(GetSelectedVertex())->GetPosition(),
-			vShift);
+		// Modify the point in-place (ITK 5 API)
+		auto& points = GetSelectedContour()->GetPoints();
+		if (GetSelectedVertex() >= 0 && GetSelectedVertex() < (int)points.size())
+			points[GetSelectedVertex()].SetPositionInObjectSpace(vShift);
 
 		// update display
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

@@ -47,6 +47,7 @@ if(MSVC)
         UNICODE
         _UNICODE
         _AFXDLL
+        NOMINMAX
         WINVER=0x0501
         _WIN32_WINNT=0x0501
     )

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <VOITerm.h>
+#include <MatrixNxM.h>
 
 namespace dH
 {

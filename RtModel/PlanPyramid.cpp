@@ -138,7 +138,8 @@ void
 			pIM->Allocate();
 
 			// set up the intensity map spacing
-			pIM->SetSpacing(beamletSpacing);
+			REAL spacing[] = {beamletSpacing};
+			pIM->SetSpacing(spacing);
 			/// TODO: figure out the origin
 			REAL origin[] = {0}; 
 				// {-beamletSpacing * nBeamletCount};

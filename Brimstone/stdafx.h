@@ -48,8 +48,10 @@ USES_FMT;
 #include <math.h>
 
 // IPP includes
+#ifdef USE_IPP
 #include <ipps.h>
 #include <ippcv.h>
+#endif
 
 // utility macros
 #include <UtilMacros.h>
