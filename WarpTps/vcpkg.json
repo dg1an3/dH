@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "warptps",
+  "version": "1.0.0",
+  "dependencies": [
+    "boost-system",
+    "boost-date-time",
+    "boost-regex",
+    "boost-geometry",
+    "boost-ublas",
+    "boost-asio",
+    "libpng",
+    "zlib",
+    "pybind11"
+  ],
+  "overrides": [
+    {
+      "name": "boost-cmake",
+      "version": "1.87.0"
+    }
+  ]
+}
