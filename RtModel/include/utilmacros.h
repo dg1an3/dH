@@ -217,7 +217,11 @@ if (!(expr))				\
 #define EndLogSection() \
 	OutputDebugString(_T("</log_section>\n")); }
 
-#define Log OutputDebugString
+#define Log(...) do { \
+	CString __logMsg; \
+	__logMsg.Format(__VA_ARGS__); \
+	OutputDebugString(__logMsg.GetBuffer()); \
+} while(0)
 
 #endif
 

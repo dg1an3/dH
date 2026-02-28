@@ -7,6 +7,7 @@
 
 
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+#define NOMINMAX			// Prevent Windows min/max macros
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
 
 #ifndef VC_EXTRALEAN

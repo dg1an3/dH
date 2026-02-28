@@ -6,4 +6,9 @@ __pycache__/
 *.idb
 *.pdb
 venv/
-_codeql_detected_source_root
+_codeql_detected_source_root*.lib
+*.pdb
+*.obj
+x64/
+Debug/
+Release/

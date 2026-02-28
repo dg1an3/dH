@@ -717,11 +717,18 @@ void
 	// make sure REAL is double
 	ASSERT(sizeof(REAL) == 8);
 
-	IppStatus stat = ippsConv_64f(
-		&buffer_in[0], buffer_in.GetDim(),
-		&kernel_in[0], kernel_in.GetDim(),
-		&buffer_out[0]);
-	ASSERT(stat == ippStsNoErr);
+	// convolution (replaces IPP ippsConv_64f)
+	for (int i = 0; i < buffer_out.GetDim(); i++)
+	{
+		REAL sum = 0.0;
+		for (int j = 0; j < kernel_in.GetDim(); j++)
+		{
+			int idx = i - j;
+			if (idx >= 0 && idx < buffer_in.GetDim())
+				sum += buffer_in[idx] * kernel_in[j];
+		}
+		buffer_out[i] = sum;
+	}
 
 	TraceVector(_T("buffer_out"), buffer_out);
 
