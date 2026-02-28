@@ -1,0 +1,584 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""res\\Brimstone.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#include ""afxprint.rc""       // printing/print preview resources\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\Brimstone.ico"
+IDR_BRIMSTTYPE          ICON                    "res\\BrimstoneDoc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+IDB_LEGEND              BITMAP                  "res\\legend.bmp"
+IDB_RAINBOW             BITMAP                  "res\\rainbow.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE
+    SEPARATOR
+    BUTTON      ID_SCANBEAMLETS
+    SEPARATOR
+    BUTTON      ID_OPTIMIZE
+    BUTTON      ID_OPT_DASHBOARD
+    SEPARATOR
+    BUTTON      ID_VIEW_STRUCT_COLORWASH
+    SEPARATOR
+    BUTTON      ID_EDIT_CUT
+    BUTTON      ID_EDIT_COPY
+    BUTTON      ID_EDIT_PASTE
+    SEPARATOR
+    BUTTON      ID_FILE_PRINT
+    SEPARATOR
+    BUTTON      ID_APP_ABOUT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
+        MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
+        MENUITEM SEPARATOR
+        MENUITEM "&Import DICOM...",            ID_FILE_IMPORT_DCM
+        MENUITEM SEPARATOR
+        MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
+        MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
+        MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_EDIT_UNDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+        MENUITEM SEPARATOR
+    END
+    POPUP "&Plan"
+    BEGIN
+        MENUITEM "Generate Beamlets",           ID_GENBEAMLETS
+        MENUITEM "Add Prescription",            ID_PLAN_ADD_PRESC
+        MENUITEM SEPARATOR
+        MENUITEM "&Optimize",                   ID_OPTIMIZE
+        MENUITEM "Optimzer &Dashboard",         ID_OPT_DASHBOARD
+    END
+    POPUP "&View"
+    BEGIN
+        POPUP "Scan Beamlets"
+        BEGIN
+            MENUITEM "G0",                          ID_SCANBEAMLETS_G0
+            MENUITEM "G1",                          ID_SCANBEAMLETS_G1
+            MENUITEM "G2",                          ID_SCANBEAMLETS_G2
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About Brimstone...",         ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS 
+BEGIN
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL
+    "P",            ID_FILE_PRINT,          VIRTKEY, CONTROL
+    "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL
+    VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT
+    VK_DELETE,      ID_EDIT_CUT,            VIRTKEY, SHIFT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL
+    VK_INSERT,      ID_EDIT_PASTE,          VIRTKEY, SHIFT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY 
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOG  0, 0, 235, 55
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Brimstone"
+FONT 8, "MS Sans Serif"
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "Brimstone Version 1.0",IDC_STATIC,40,10,119,8,
+                    SS_NOPREFIX
+    LTEXT           "Copyright (C) 2004",IDC_STATIC,40,25,119,8
+    DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
+END
+
+IDD_PRESCDLG DIALOGEX 0, 0, 108, 260
+STYLE DS_SETFONT | WS_CHILD
+FONT 12, "Arial", 700, 0, 0x0
+BEGIN
+    COMBOBOX        IDC_STRUCTSELECT,14,20,79,102,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Visible",IDC_STRUCT_VISIBLE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,12,40,36,10
+    CONTROL         "Histogram",IDC_STRUCT_HISTO_VISIBLE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,49,40,48,10
+    CONTROL         "None",IDC_RADIO_NONE,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP | WS_TABSTOP,18,69,32,10
+    CONTROL         "Target",IDC_RADIO_TARGET,"Button",BS_AUTORADIOBUTTON | 
+                    WS_TABSTOP,18,80,36,10
+    CONTROL         "OAR",IDC_RADIO_OAR,"Button",BS_AUTORADIOBUTTON | 
+                    WS_TABSTOP,18,91,30,10
+    EDITTEXT        IDC_EDIT1,55,112,36,15,ES_AUTOHSCROLL
+    CONTROL         "Slider1",IDC_STRUCTWEIGHT,"msctls_trackbar32",
+                    TBS_AUTOTICKS | TBS_TOP | WS_DISABLED | WS_TABSTOP,12,
+                    130,83,17
+    EDITTEXT        IDC_VOLUME1_EDIT,17,180,35,17,ES_AUTOHSCROLL | 
+                    ES_READONLY | ES_NUMBER | WS_DISABLED
+    EDITTEXT        IDC_DOSE1_EDIT2,56,180,35,17,ES_AUTOHSCROLL | ES_NUMBER | 
+                    WS_DISABLED
+    EDITTEXT        IDC_VOLUME2_EDIT,17,202,35,17,ES_AUTOHSCROLL | 
+                    ES_READONLY | ES_NUMBER | WS_DISABLED | NOT WS_TABSTOP
+    EDITTEXT        IDC_DOSE2_EDIT2,56,202,35,17,ES_AUTOHSCROLL | ES_NUMBER | 
+                    WS_DISABLED
+    CONTROL         "Slider1",IDC_OPTPARAM,"msctls_trackbar32",TBS_AUTOTICKS | 
+                    TBS_VERT | TBS_TOP | NOT WS_VISIBLE | WS_TABSTOP,7,238,
+                    20,15
+    GROUPBOX        "Structure",IDC_STATIC,7,7,94,47
+    LTEXT           "Weight:",IDC_STATIC,24,114,26,9
+    LTEXT           "Volume (%)",IDC_STATIC,16,164,38,9
+    LTEXT           "Dose (Gy)",IDC_STATIC,59,164,32,11
+    GROUPBOX        "Prescription",IDC_STATIC,7,57,94,196
+END
+
+IDD_PLANSETUPDLG DIALOG  0, 0, 186, 122
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Plan Setup"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,34,101,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,109,101,50,14
+    LTEXT           "Number of Beams",IDC_STATIC,7,15,72,18
+    EDITTEXT        IDC_EDIT_BEAMCOUNT,92,15,87,13,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    LTEXT           "Isocenter Offset (cm)",IDC_STATIC,7,43,72,18
+    EDITTEXT        IDC_EDIT_ISO_OFS_X,92,42,87,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_ISO_OFS_Y,92,59,87,13,ES_AUTOHSCROLL
+END
+
+IDD_ADDPRESC DIALOG  0, 0, 192, 121
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add Prescription"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,33,100,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,110,100,50,14
+    COMBOBOX        IDC_STRUCTCOMBO,63,7,99,89,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Structure",IDC_STATIC,13,7,42,16
+    LTEXT           "Point 1",IDC_STATIC,7,41,49,16
+    LTEXT           "Point 2",IDC_STATIC,7,63,48,16
+    EDITTEXT        IDC_VOLUME1_EDIT,61,38,51,17,ES_AUTOHSCROLL
+    EDITTEXT        IDC_DOSE1_EDIT,125,38,51,17,ES_AUTOHSCROLL
+    LTEXT           "Volume",IDC_STATIC,66,24,49,9
+    LTEXT           "Dose",IDC_STATIC,125,25,49,11
+    LTEXT           "0.0",IDC_STATIC,63,63,48,10
+    EDITTEXT        IDC_DOSE2_EDIT,126,58,51,17,ES_AUTOHSCROLL
+END
+
+IDD_OPTIMIZERTEST_DIALOG DIALOGEX 0, 0, 644, 456
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "OptimizerTest"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    CONTROL         "Component 1",IDC_CHECK_COMP1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,79,54,13
+    CONTROL         "Component 2",IDC_CHECK_COMP2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,96,54,13
+    CONTROL         "Component 3",IDC_CHECK_COMP3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,113,54,13
+    CONTROL         "Diff Approx",IDC_DIFF_APPROX_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,543,133,70,13
+    CONTROL         "Transform Param",IDC_XFORM_CHECK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,543,161,66,13
+    CONTROL         "Log Scale",IDC_LOG_CHECK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,543,266,52,13
+    GROUPBOX        "Iterations",IDC_STATIC_ITER_GRAPH,7,297,504,140
+    GROUPBOX        "Param",IDC_STATIC_PARAM_GRAPH,7,147,504,140
+    GROUPBOX        "Gradient",IDC_STATIC_GRAD_GRAPH,7,7,504,140
+    SCROLLBAR       IDC_ITER_SCROLLBAR,7,437,504,12
+    SCROLLBAR       IDC_PARAM_SCROLLBAR,7,286,504,12
+    GROUPBOX        "Distance",IDC_STATIC_DIST_GRAPH,7,297,504,104
+    PUSHBUTTON      "Done",IDOK,540,405,77,21
+    PUSHBUTTON      ">>",IDC_BTN_NEXT,571,242,40,15
+    PUSHBUTTON      "<<",IDC_BTN_PREV,523,242,40,15
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Brimstone MFC Application"
+            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "InternalName", "Brimstone"
+            VALUE "LegalCopyright", "Copyright (C) 2004"
+            VALUE "OriginalFilename", "Brimstone.EXE"
+            VALUE "ProductName", "Brimstone Application"
+            VALUE "ProductVersion", "1, 0, 0, 1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 48
+    END
+
+    IDD_PRESCDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 101
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 253
+    END
+
+    IDD_PLANSETUPDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
+
+    IDD_ADDPRESC, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 185
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 114
+    END
+
+    IDD_OPTIMIZERTEST_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 635
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 449
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_PRESCDLG DLGINIT
+BEGIN
+    IDC_STRUCTSELECT, 0x403, 4, 0
+0x5443, 0x0056, 
+    IDC_STRUCTSELECT, 0x403, 4, 0
+0x5450, 0x0056, 
+    IDC_STRUCTSELECT, 0x403, 4, 0
+0x5447, 0x0056, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDR_MAINFRAME           "Brimstone\n\nBrimst\n\n\nBrimstone.Document\nBrimst Document"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "Brimstone"
+    AFX_IDS_IDLEMESSAGE     "Ready"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_NEW             "Create a new document\nNew"
+    ID_FILE_OPEN            "Open an existing document\nOpen"
+    ID_FILE_CLOSE           "Close the active document\nClose"
+    ID_FILE_SAVE            "Save the active document\nSave"
+    ID_FILE_SAVE_AS         "Save the active document with a new name\nSave As"
+    ID_FILE_PAGE_SETUP      "Change the printing options\nPage Setup"
+    ID_FILE_PRINT_SETUP     "Change the printer and printing options\nPrint Setup"
+    ID_FILE_PRINT           "Print the active document\nPrint"
+    ID_FILE_PRINT_PREVIEW   "Display full pages\nPrint Preview"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
+    ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_MRU_FILE1       "Open this document"
+    ID_FILE_MRU_FILE2       "Open this document"
+    ID_FILE_MRU_FILE3       "Open this document"
+    ID_FILE_MRU_FILE4       "Open this document"
+    ID_FILE_MRU_FILE5       "Open this document"
+    ID_FILE_MRU_FILE6       "Open this document"
+    ID_FILE_MRU_FILE7       "Open this document"
+    ID_FILE_MRU_FILE8       "Open this document"
+    ID_FILE_MRU_FILE9       "Open this document"
+    ID_FILE_MRU_FILE10      "Open this document"
+    ID_FILE_MRU_FILE11      "Open this document"
+    ID_FILE_MRU_FILE12      "Open this document"
+    ID_FILE_MRU_FILE13      "Open this document"
+    ID_FILE_MRU_FILE14      "Open this document"
+    ID_FILE_MRU_FILE15      "Open this document"
+    ID_FILE_MRU_FILE16      "Open this document"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
+    ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_EDIT_CLEAR           "Erase the selection\nErase"
+    ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
+    ID_EDIT_COPY            "Copy the selection and put it on the Clipboard\nCopy"
+    ID_EDIT_CUT             "Cut the selection and put it on the Clipboard\nCut"
+    ID_EDIT_FIND            "Find the specified text\nFind"
+    ID_EDIT_PASTE           "Insert Clipboard contents\nPaste"
+    ID_EDIT_REPEAT          "Repeat the last action\nRepeat"
+    ID_EDIT_REPLACE         "Replace specific text with different text\nReplace"
+    ID_EDIT_SELECT_ALL      "Select the entire document\nSelect All"
+    ID_EDIT_UNDO            "Undo the last action\nUndo"
+    ID_EDIT_REDO            "Redo the previously undone action\nRedo"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle ToolBar"
+    ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCSIZE          "Change the window size"
+    AFX_IDS_SCMOVE          "Change the window position"
+    AFX_IDS_SCMINIMIZE      "Reduce the window to an icon"
+    AFX_IDS_SCMAXIMIZE      "Enlarge the window to full size"
+    AFX_IDS_SCNEXTWINDOW    "Switch to the next document window"
+    AFX_IDS_SCPREVWINDOW    "Switch to the previous document window"
+    AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCRESTORE       "Restore the window to normal size"
+    AFX_IDS_SCTASKLIST      "Activate Task List"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_PREVIEW_CLOSE   "Close print preview mode\nCancel Preview"
+END
+
+STRINGTABLE 
+BEGIN
+    IDM_DOSEUPDATE          "MSG Update Dose"
+    IDC_LEGEND              "Isodose legend"
+    IDC_PRESCTOOLBAR        "Prescription Toolbar"
+    IDC_STRUCTSELECT        "Select structure for prescription"
+    IDC_OPTPARAM            "Select opt parameter"
+    IDC_STRUCTWEIGHT        "Select structure weight"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_SCANBEAMLETS         "Scans beamlets"
+    IDM_IMPORT_DCM          "Import DICOM image && sset files"
+    ID_OPT_DASHBOARD        "Calls up Optimizer Dashboard"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif //_WIN32
+#include "res\Brimstone.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"         // Standard components
+#include "afxprint.rc"       // printing/print preview resources
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

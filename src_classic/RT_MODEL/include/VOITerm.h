@@ -1,0 +1,105 @@
+// VOITerm.h: interface for the CVOITerm class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#if !defined(AFX_VOITERM_H__BC410BA9_C9C4_472B_8984_0AB4C818ECA9__INCLUDED_)
+#define AFX_VOITERM_H__BC410BA9_C9C4_472B_8984_0AB4C818ECA9__INCLUDED_
+
+#include <Histogram.h>
+
+#if _MSC_VER > 1000
+#pragma once
+#endif // _MSC_VER > 1000
+
+class CStructure;
+
+///////////////////////////////////////////////////////////////////////////////
+// class CVOITerm
+// 
+// base class for objective function terms
+///////////////////////////////////////////////////////////////////////////////
+class CVOITerm : public CModelObject
+{
+public:
+	// constructor / destructor
+	CVOITerm(CStructure *pStructure = NULL, REAL weight = 1.0);
+	virtual ~CVOITerm();
+
+	// serialization
+	DECLARE_SERIAL(CVOITerm);
+	virtual void Serialize(CArchive& ar);
+
+	// assignment
+	virtual CVOITerm& operator=(const CVOITerm& otherTerm);
+
+	// structure accessors
+	void SetStructure(CStructure *pStructure);
+
+	// returns the specified subcopy 
+	virtual CVOITerm *GetLevel(int nLevel, BOOL bCreate = FALSE);
+
+	// accessors for structure and histogram
+	CStructure *GetVOI();
+	CHistogram *GetHistogram();
+	const CHistogram *GetHistogram() const;
+
+	// weight accessors
+	REAL GetWeight() const;
+	void SetWeight(REAL weight);
+
+	// over-ride for real terms
+	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude);
+
+protected:
+	friend class CPrescription;
+
+	// helper to create pyramid - constructs a copy, except with nScale + 1
+	virtual CVOITerm *Subcopy(CVOITerm *pSubcopy = NULL);
+
+	// the structure and scale
+	CStructure *m_pVOI;
+	int m_nLevel;
+
+	// the histogram for the term
+	CHistogram m_histogram;
+
+	// the weight
+	REAL m_weight;
+
+	// mini-me
+	CVOITerm *m_pNextScale;
+
+};	// class CVOITerm
+
+
+#ifdef BIOLOGICAL_INDICES
+
+///////////////////////////////////////////////////////////////////////////////
+// class CTCPTerm
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+class CTCPTerm : public CVOITerm
+{
+public:
+	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL);
+
+};	// class CTCPTerm
+
+
+///////////////////////////////////////////////////////////////////////////////
+// class CNTCPTerm
+// 
+// <description>
+///////////////////////////////////////////////////////////////////////////////
+class CNTCPTerm : public CVOITerm
+{
+public:
+	virtual REAL Eval(const CVectorN<>& d_vInput, CVectorN<> *pvGrad = NULL);
+
+};	// class CNTCPTerm
+
+#endif
+
+
+#endif // !defined(AFX_VOITERM_H__BC410BA9_C9C4_472B_8984_0AB4C818ECA9__INCLUDED_)

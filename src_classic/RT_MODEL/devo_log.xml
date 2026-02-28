@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<entry>
+	<date>2005-Oct-08</date>
+	<summary>adaptive beamlet rep test</summary>
+	<locus>Beam.cpp; Histogram.cpp</locus>
+	<changes>
+	added function to compute adapted beamlets in Beam.cpp
+added function to resample regions for dVolumes, if the dVolumes are adapted
+adaptive gridding --> computing binomial filter 1d and filtering along x-axis, then decimating
+</changes>
+	<result>
+	just filtering w/o resampling --> results were comparable to without filtering
+w/ resampling --> degradation in quality
+</result>
+	<conclusion>
+	change in quality with resampling may be due to reduction in number of counts in histograms (i.e. sampling error in intensity domain)
+to test, followed up with experiment to increase sigma for G0 and G1.  also, changed tolerance for G0 and G1 to reflect this.
+	this improves result somewhat, but does not completely offset the quality issues
+for 3d case, it could be that the number of samples will offset this, and it will provide performance benefits while maintaining quality
+for now, the code for adaptive beamlets will be placed in #define blocks
+</conclusion>
+</entry>

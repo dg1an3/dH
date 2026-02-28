@@ -1,0 +1,46 @@
+
+Resolve:
+	How to handle draw lists, when a draw list may be used for both opaque and transparent rendering
+
+		-> draw list to describe the opaque parts (lines, opaque)
+			DescribeOpaque
+
+		-> draw list to describe the surface (opaque or transparent, depending on CRenderable's alpha value)
+			DescribeAlpha
+
+
+	To actually render
+		-> For each CRenderable,
+			Call DescribeOpaque for each (or call list Opaque)
+
+		-> For each CRenderable w/ an alpha value > max_alpha
+			Call DescribeAlpha for each (or call list Alpha) w/ blending set OFF
+
+		-> For each CRenderable w/ an alpha value < max_alpha, sorted by centroid
+			Call DescribeAlpha for each w/ 
+				blending ON
+				depth buffer write OFF
+				front face transparent (culling)
+				back face material set to no lighting effects
+		
+		-> For each CRenderable w/ an alpha value < max_alpha, sorted by centroid
+			Call DescribeAlpha for each w/ 
+				blending ON
+				depth buffer write ON
+				front face transparent (culling)
+				back face material set to no lighting effects
+		
+		-> For each CRenderable w/ an alpha value < max_alpha, sorted by centroid
+			Call DescribeAlpha for each w/ 
+				blending ON
+				depth buffer write OFF
+				front face material set with lighting effects
+				back face transparent
+		
+		-> For each CRenderable w/ an alpha value < max_alpha, sorted by centroid
+			Call DescribeAlpha for each w/ 
+				blending ON
+				depth buffer write ON
+				front face material set with lighting effects
+				back face transparent
+		
