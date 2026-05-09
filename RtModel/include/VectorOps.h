@@ -5,7 +5,6 @@
 
 #ifdef USE_IPP
 #include <ipps.h>
-#include <ippm.h>
 #endif
 
 // subst for forcing inline of function expansions
@@ -360,34 +359,7 @@ ELEM_TYPE
 }	// VectorLength
 
 
-#ifdef USE_IPP
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template<> INLINE
-float 
-	VectorLength(const float *pV, int nLength) 
-{													
-	float length;									
-	CK_IPP(ippmL2Norm_v_32f(pV, sizeof(float), &length, nLength));
-
-	return length;								
-
-}	// VectorLength(const float *pV, int nLength) 
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template<> INLINE
-double 
-	VectorLength(const double *pV, int nLength) 
-{													
-	double length;									
-	CK_IPP(ippmL2Norm_v_64f(pV, sizeof(double), &length, nLength));
-
-	return length;								
-
-}	// VectorLength(const double *pV, int nLength) 
-
-#endif
+// ippm matrix module removed in modern IPP; rely on the templated VectorLength above.
 
 
 
@@ -412,40 +384,7 @@ ELEM_TYPE
 }	// DotProduct
 
 
-#ifdef USE_IPP
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template<> INLINE								
-float 
-	DotProduct(const float *vLeft,					
-			const float *vRight, int nLength)
-{															
-	float prod;
-	CK_IPP(ippmDotProduct_vv_32f(vLeft, sizeof(float), vRight, sizeof(float),
-		&prod, nLength));
-
-	return prod;											
-
-}	// DotProduct(const float *vLeft,					
-	//		const float *vRight, int nLength)
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template<> INLINE								
-double 
-	DotProduct(const double *vLeft,					
-			const double *vRight, int nLength)
-{															
-	double prod;
-	CK_IPP(ippmDotProduct_vv_64f(vLeft, sizeof(double), vRight, sizeof(double), 
-		&prod, nLength));
-
-	return prod;											
-
-}	// DotProduct(const double *vLeft,					
-	//		const double *vRight, int nLength)
-
-#endif
+// ippm matrix module removed in modern IPP; rely on the templated DotProduct above.
 
 
 

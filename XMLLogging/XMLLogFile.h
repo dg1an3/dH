@@ -9,7 +9,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <typeinfo.h>
+#include <typeinfo>
 
 #include <vector>
 

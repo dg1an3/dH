@@ -358,8 +358,12 @@ void
 		// note: m_FinalValue contains the KL divergence sum (expected log likelihood term)
 		m_FreeEnergy = m_FinalValue - m_Entropy;
 
-		Log(_T("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f"),
-			num_iterations_, m_FinalValue, m_Entropy, m_FreeEnergy);
+		{
+			CString __logMsg;
+			__logMsg.Format(_T("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f"),
+				num_iterations_, m_FinalValue, m_Entropy, m_FreeEnergy);
+			Log(__logMsg);
+		}
 	}
 
 	// now reset the final value, using the new AV vector
