@@ -8,6 +8,9 @@
 #include <ippi.h>
 #endif
 
+#include <itkLinearInterpolateImageFunction.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
+
 #include <Series.h>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -125,19 +128,21 @@ inline void Resample(const VolumeReal *pOrig,
 	// calculate plane
 	REAL planeZ = (pNew->GetOrigin()[2] - pOrig->GetOrigin()[2]) / pOrig->GetSpacing()[2];
 
-	// calculate original voxel starting position
-	const VOXEL_REAL *pOrigVoxel = pOrig->GetBufferPointer();
+	// Bounds-check the source slice index. mXform translates pNew indices to
+	// pOrig indices, so a valid in-range source slice is the precondition for
+	// any output pixel having data.
 	VolumeReal::IndexType idx;
 	idx[0] = 0;
 	idx[1] = 0;
-	idx[2] = // nSlice; // 
-		::Round<int>(planeZ);
+	idx[2] = ::Round<int>(planeZ);
 	if (!pOrig->GetBufferedRegion().IsInside(idx))
 	{
 		return;
 	}
-	pOrigVoxel += pOrig->ComputeOffset(idx);
 
+	// 2-D affine back-warp: for each output pixel (x, y) in slice 0 of pNew,
+	// look up (xs, ys, planeZ) in pOrig. Replaces the deprecated
+	// ippiWarpAffineBack_32f_C1R short-form (removed in modern IPP).
 	double coeffs[2][3];
 	coeffs[0][0] = mXform(0, 0);
 	coeffs[0][1] = mXform(0, 1);
@@ -146,10 +151,34 @@ inline void Resample(const VolumeReal *pOrig,
 	coeffs[1][1] = mXform(1, 1);
 	coeffs[1][2] = mXform(1, 3);
 
-	// ippiWarpAffineBack_32f_C1R was removed in modern IPP. For now this is
-	// stubbed so the build proceeds; the rendered slice will not be affine-
-	// resampled. TODO: replace with itk::ResampleImageFilter or equivalent.
-	(void)pOrigVoxel; (void)coeffs; (void)pOrig; (void)pNew;
+	using LinearInterp = itk::LinearInterpolateImageFunction<VolumeReal, double>;
+	using NNInterp     = itk::NearestNeighborInterpolateImageFunction<VolumeReal, double>;
+	itk::InterpolateImageFunction<VolumeReal, double>::Pointer interpolator;
+	if (bBilinear)
+		interpolator = LinearInterp::New();
+	else
+		interpolator = NNInterp::New();
+	interpolator->SetInputImage(pOrig);
+
+	const auto& newSize = pNew->GetBufferedRegion().GetSize();
+	const int newW = static_cast<int>(newSize[0]);
+	const int newH = static_cast<int>(newSize[1]);
+	VOXEL_REAL* pNewVoxel = pNew->GetBufferPointer();
+
+	itk::ContinuousIndex<double, 3> cidx;
+	cidx[2] = static_cast<double>(idx[2]);
+	for (int y = 0; y < newH; ++y)
+	{
+		for (int x = 0; x < newW; ++x)
+		{
+			cidx[0] = coeffs[0][0] * x + coeffs[0][1] * y + coeffs[0][2];
+			cidx[1] = coeffs[1][0] * x + coeffs[1][1] * y + coeffs[1][2];
+			VOXEL_REAL value = 0;
+			if (interpolator->IsInsideBuffer(cidx))
+				value = static_cast<VOXEL_REAL>(interpolator->EvaluateAtContinuousIndex(cidx));
+			pNewVoxel[y * newW + x] = value;
+		}
+	}
 
 }	// Resample
 
