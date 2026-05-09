@@ -310,7 +310,7 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 	{
 		DcmItem *pROIItem = pSSROISequence->getItem(nAtROI);
 
-		long nROINumber;
+		Sint32 nROINumber;
 		CHK_DCM(pROIItem->findAndGetSint32(DCM_ROINumber, nROINumber));
 
 		OFString strName;
@@ -333,7 +333,7 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 	{
 		DcmItem *pROIContourItem = pROIContourSequence->getItem(nAtROIContour);
 
-		long nRefROINumber = 0;
+		Sint32 nRefROINumber = 0;
 		CHK_DCM(pROIContourItem->findAndGetSint32(DCM_ReferencedROINumber, nRefROINumber));
 		dH::Structure *pStruct = mapROIs[nRefROINumber];
 		ASSERT(pStruct != NULL);
@@ -355,7 +355,7 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 			CHK_DCM(pContourItem->findAndGetOFString(DCM_ContourGeometricType, strContourGeometricType));
 			if (strContourGeometricType == "CLOSED_PLANAR")
 			{
-				long nContourPoints;
+				Sint32 nContourPoints;
 				CHK_DCM(pContourItem->findAndGetSint32(DCM_NumberOfContourPoints, nContourPoints));
 
 				OFString strContourData;
@@ -389,7 +389,12 @@ void CSeriesDicomImporter::ImportDicomStructureSet(DcmFileFormat *pFileFormat)
 						slice_z = coord[2];
 					}
 					// ASSERT(IsApproxEqual(coord_z, slice_z));
-					pPoly->AddPoint(dH::Structure::PolygonType::PointType(coord)); // AddVertex(MakeVector<2>(coord_x, coord_y)); // (vVert);
+					// ITK 5.x: AddPoint takes SpatialObjectPoint, not Point.
+					{
+						itk::SpatialObjectPoint<2> sopVert;
+						sopVert.SetPositionInObjectSpace(dH::Structure::PolygonType::PointType(coord));
+						pPoly->AddPoint(sopVert);
+					}
 				}
 				pStruct->AddContour(pPoly, slice_z);
 			}

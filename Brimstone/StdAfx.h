@@ -12,20 +12,16 @@
 
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 
-#ifndef WINVER				// Allow use of features specific to Windows 95 and Windows NT 4 or later.
-#define WINVER 0x0400		// Change this to the appropriate value to target Windows 98 and Windows 2000 or later.
+#ifndef WINVER
+#define WINVER 0x0601		// Windows 7 (minimum supported by modern MFC)
 #endif
 
-#ifndef _WIN32_WINNT		// Allow use of features specific to Windows NT 4 or later.
-#define _WIN32_WINNT 0x0400	// Change this to the appropriate value to target Windows 2000 or later.
-#endif						
-
-#ifndef _WIN32_WINDOWS		// Allow use of features specific to Windows 98 or later.
-#define _WIN32_WINDOWS 0x0410 // Change this to the appropriate value to target Windows Me or later.
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
 #endif
 
-#ifndef _WIN32_IE			// Allow use of features specific to IE 4.0 or later.
-#define _WIN32_IE 0x0400	// Change this to the appropriate value to target IE 5.0 or later.
+#ifndef _WIN32_IE
+#define _WIN32_IE 0x0700
 #endif
 
 #include <afxwin.h>         // MFC core and standard components
@@ -56,10 +52,10 @@ USES_FMT;
 
 // MTL includes
 #include <MathUtil.h>
+#include <MatrixNxM.h>
 #include <VectorOps.h>
 
-// geom includes
-#include <Volumep.h>
+// geom includes (Volumep.h removed — legacy CVolume<> no longer used; Structure.h uses ITK)
 #include <Structure.h>
 
 #include <Prescription.h>

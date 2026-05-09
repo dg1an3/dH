@@ -27,8 +27,8 @@ public:
 	dH::Plan::Pointer m_pPlan;
 
 #ifdef USE_RTOPT
-	// stores the PlanOptimizer object
-	auto_ptr<dH::PlanOptimizer> m_pOptimizer;
+	// stores the PlanOptimizer object (auto_ptr removed in C++17)
+	std::unique_ptr<dH::PlanOptimizer> m_pOptimizer;
 #endif
 
 // Operations

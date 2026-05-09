@@ -80,7 +80,7 @@ int
 
 		// Just add a NULL for region rotate, because the logic below will initialize it when
 		//		a dVolume is available
-		m_groupVolRegion.push_back(NULL);
+		m_groupVolRegion.push_back(nullptr);
 	} 
 
 	// see if the region rotate is in need of initialization
@@ -541,16 +541,23 @@ void CHistogramWithGradient::Conv_dGauss(const CVectorN<>& buffer_in,
 
 #ifdef REAL_FLOAT
 #error REAL_FLOAT not supported!
-	IppStatus stat = ippsConv_32f(
-		&buffer_in[0], buffer_in.GetDim(),
-		&m_bin_dKernel[0], m_bin_dKernel.GetDim(),
-		&buffer_out_temp[0]);
 #else
-	IppStatus stat = ippsConv_64f(
-		&buffer_in[0], buffer_in.GetDim(),
-		&kernel_in[0], kernel_in.GetDim(),
-		&buffer_out[0]);
-	ASSERT(stat == ippStsNoErr);
+	{
+		// Manual 1-D linear convolution (see Histogram.cpp::ConvGauss).
+		const int srcLen = buffer_in.GetDim();
+		const int kerLen = kernel_in.GetDim();
+		const int dstLen = srcLen + kerLen - 1;
+		ASSERT(buffer_out.GetDim() == dstLen);
+		for (int n = 0; n < dstLen; ++n)
+		{
+			double acc = 0.0;
+			const int kMin = (n - srcLen + 1 > 0) ? n - srcLen + 1 : 0;
+			const int kMax = (n < kerLen - 1) ? n : kerLen - 1;
+			for (int k = kMin; k <= kMax; ++k)
+				acc += kernel_in[k] * buffer_in[n - k];
+			buffer_out[n] = acc;
+		}
+	}
 #endif
 
 }	// CHistogramWithGradient::Conv_dGauss
