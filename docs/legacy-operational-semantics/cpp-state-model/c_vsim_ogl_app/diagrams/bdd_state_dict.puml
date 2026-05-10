@@ -1,0 +1,48 @@
+@startuml bdd_state_dict
+' SysML Block Definition Diagram
+title <<bdd>> CVSIM_OGLApp state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : AppMode
+    com_initialized : bool
+    registry_key_set : bool
+    profile_loaded : bool
+    plan_doc_template : opaque | none
+    series_doc_template : opaque | none
+    main_frame_visible : bool
+    cmd_line_processed : bool
+    pdoc_manager : opaque | none
+    open_documents : list of opaque
+    beam_pointers_synced : bool
+    sphere_structure_added : bool
+}
+
+class AppMode <<enumeration>> {
+    pre_init
+    initialized
+    showing_about
+    exited
+}
+
+state "1" -- "1" AppMode : win
+
+note bottom of state
+    Glue-medium: a small but real
+    state machine. The init/exit
+    lifecycle plus one modal sub-
+    state (CAboutDlg.DoModal()).
+end note
+
+@enduml
