@@ -1,0 +1,63 @@
+@startuml bdd_state_dict
+title <<bdd>> CBeamParamCollimCtrl state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+    BackgroundColor<<reentrancy>>  #ffcccc
+    BorderColor<<reentrancy>>      #c62828
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : DialogMode
+    pbeam : CBeam* | none
+    .. DDX-bound int fields ..
+    n_collim_angle : int (degrees)
+    n_jaw_x1 : int (cm)
+    n_jaw_x2 : int (cm)
+    n_jaw_y1 : int (cm)
+    n_jaw_y2 : int (cm)
+    .. spin button ranges ..
+    collim_range : range | none
+    jaw_x1_range : range | none
+    jaw_x2_range : range | none
+    jaw_y1_range : range | none
+    jaw_y2_range : range | none
+    .. re-entrancy guard ..
+    updating_data : bool
+}
+
+class DialogMode <<enumeration>> {
+    pre_init
+    ready
+    bound
+}
+
+class reentrancy_note <<reentrancy>> {
+    updating_data is a MODULE-GLOBAL
+    BOOL in source (cpp:31), not a
+    member -- two instances would
+    share it. Bug-prone but preserved
+    verbatim.
+}
+
+state "1" -- "1" DialogMode : win
+state ..> reentrancy_note : updating_data
+
+note bottom of state
+    Twin of c_beam_param_pos_ctrl,
+    but with the m_bUpdatingData
+    re-entrancy guard. PosCtrl
+    addresses the same problem
+    with commented-out Remove/Add-
+    Observer pairs (incomplete).
+end note
+
+@enduml

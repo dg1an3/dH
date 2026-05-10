@@ -1,0 +1,34 @@
+@startuml stm_primary
+title <<stm>> CMachineRenderable Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+skinparam shadowing false
+top to bottom direction
+
+state "unbound" as Unbound <<browse>>
+state "bound" as Bound <<browse>>
+state "destroyed" as Destroyed <<terminal>>
+
+Unbound -down-> Bound : set_beam(B)\nset_object(B) [B != none]
+Bound -up-> Unbound : set_beam(none)
+Bound --> Bound : set_beam(B') [B' != none]\ndraw_transparent\non_invalidate
+Bound --> Bound : draw_opaque [m_bWireFrame=false; no-op]
+Bound -down-> Destroyed : destruct
+Unbound -down-> Destroyed : destruct
+
+note right of Bound
+    DrawOpaque body is dead code:
+    m_bWireFrame is initialized FALSE
+    in ctor and never written.
+    DrawTransparent always renders
+    table + gantry + collimator.
+end note
+
+@enduml

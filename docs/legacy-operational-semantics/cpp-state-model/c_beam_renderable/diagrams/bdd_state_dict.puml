@@ -1,0 +1,72 @@
+@startuml bdd_state_dict
+title <<bdd>> CBeamRenderable state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+    BackgroundColor<<deadcode>>    #ffcccc
+    BorderColor<<deadcode>>        #c62828
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : BeamMode
+    pbeam : CBeam* | none
+    color : COLORREF
+    alpha : double
+    .. 4 toggle flags (3 functionally dead) ..
+    central_axis_enabled : bool (TRUE; never read live)
+    graticule_enabled : bool (FALSE; never read live)
+    field_divergence_surfaces_enabled : bool (FALSE; body empty)
+    block_divergence_surfaces_enabled : bool (TRUE; the only LIVE)
+    .. collimator-corner cache (set in dead code, stays at zero) ..
+    v_min : CVectorD<2>
+    v_max : CVectorD<2>
+    v_min_x_max_y : CVectorD<2>
+    v_max_x_min_y : CVectorD<2>
+    .. D3D8 mesh (the LIVE rendering artifact) ..
+    block_div_surf_mesh : LPD3DXMESH | none
+    .. recomputed on every OnBeamChanged ..
+    modelview_matrix : CMatrixD<4>
+    .. observer ..
+    observer_attached : bool
+}
+
+class BeamMode <<enumeration>> {
+    unbound
+    bound
+    mesh_cached
+    destroyed
+}
+
+class dead_code_dominance <<deadcode>> {
+    DrawOpaque body: ENTIRELY commented out (cpp:192-241).
+    DrawFieldDivergenceSurfaces body: ENTIRELY commented out (cpp:469-478).
+    DrawGraticule, DrawField, DrawBlocks,
+    DrawCentralAxis, DrawFieldDivergenceLines:
+    defined but only called by dead DrawOpaque.
+    --
+    Migration leftover: CRenderContext (OpenGL) ->
+    LPDIRECT3DDEVICE8 (D3D8). Only
+    DrawBlockDivergenceSurfaces survived.
+}
+
+state "1" -- "1" BeamMode : win
+state ..> dead_code_dominance : surrounded by
+
+note bottom of state
+    The largest renderable in RT_VIEW
+    by source line count, but most of
+    the bulk is preserved-verbatim
+    dead code from a partial API
+    migration. The actual LIVE state
+    surface is small.
+end note
+
+@enduml

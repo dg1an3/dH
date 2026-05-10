@@ -1,0 +1,49 @@
+@startuml bdd_state_dict
+title <<bdd>> CBeamParamPosCtrl state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : DialogMode
+    pbeam : CBeam* | none
+    .. DDX-bound int fields ..
+    n_gantry_angle : int (degrees)
+    n_couch_angle : int (degrees)
+    n_table_x : int
+    n_table_y : int
+    n_table_z : int
+    .. spin button ranges (set in OnInitDialog) ..
+    gantry_range : range | none
+    couch_range : range | none
+    table_x_range : range | none
+    table_y_range : range | none
+    table_z_range : range | none
+}
+
+class DialogMode <<enumeration>> {
+    pre_init
+    ready
+    bound
+}
+
+state "1" -- "1" DialogMode : win
+
+note bottom of state
+    Glue-medium MFC dialog with
+    DDX bidirectional binding to
+    a CBeam. Twin of CBeamParam-
+    CollimCtrl, but lacks the
+    re-entrancy guard.
+end note
+
+@enduml

@@ -1,0 +1,50 @@
+@startuml stm_primary
+title <<stm>> CBeamRenderable Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+skinparam shadowing false
+top to bottom direction
+
+state "unbound" as Unbound <<browse>>
+state "Browse" as Browse <<browse>> {
+    state "bound" as Bound <<browse>>
+    state "mesh_cached" as Cached <<browse>>
+
+    Bound -down-> Cached : draw_transparent\n[mesh lazy-generated from block 0]
+    Cached --> Cached : draw_transparent\non_beam_changed\ndraw_opaque [no-op]
+    Bound --> Bound : on_beam_changed\ndraw_opaque [no-op]
+}
+state "destroyed" as Destroyed <<terminal>>
+
+Unbound -down-> Bound : set_beam(B)\nset_object(B) [B != none]
+Bound -up-> Unbound : set_beam(none)
+Browse -down-> Destroyed : destruct
+Unbound --> Destroyed : destruct
+
+note right of Bound
+    DrawOpaque body is ENTIRELY
+    block-commented (cpp:192-241).
+    The graticule, field, blocks,
+    central axis, and field
+    divergence lines paths are all
+    dead code preserved verbatim.
+end note
+
+note right of Cached
+    Only DrawBlockDivergenceSurfaces
+    (cpp:487-541) actually renders.
+    Mesh cache is NOT invalidated
+    by on_beam_changed -- if
+    block 0 vertices change after
+    caching, the cached mesh goes
+    stale. Quirk preserved.
+end note
+
+@enduml
