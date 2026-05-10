@@ -1,0 +1,88 @@
+@startuml par_invariants
+' SysML Parametric Diagram
+' Cross-field invariants and constraints maintained by the LTS.
+
+title <<par>> CSimView Cross-field Invariants
+
+skinparam class {
+    BackgroundColor<<constraint>> #ffffcc
+    BorderColor<<constraint>>     #999900
+    BackgroundColor<<invariant>>  #f3e5f5
+    BorderColor<<invariant>>      #7b1fa2
+}
+hide circle
+hide empty methods
+skinparam shadowing false
+top to bottom direction
+
+' --- Validation-time constraints (gates) ---
+
+class beam_changed_gate <<constraint>> {
+    parameters: state.current_beam
+    --
+    Validation-time:
+    state.current_beam != none
+    --
+    Enforced by: ui_state_dcg.step//2 [beam_changed]
+    Rationale: OnBeamChanged dereferences
+    m_pCurrentBeam unconditionally (cpp:297)
+    -- predicate guard prevents the
+    NULL-pointer hazard at the LTS level.
+}
+
+class is_loaded_gate <<constraint>> {
+    parameters: state.win
+    --
+    Validation-time:
+    state.win == view_active
+    --
+    Enforced by: ui_state_dcg.step//2 [view_beam],
+    [view_lightfield], [set_current_beam], [beam_changed]
+    Rationale: most ON_COMMAND handlers assume
+    OnInitialUpdate has populated renderables.
+}
+
+' --- State-time invariants (preserved by every mutating step) ---
+
+class ui_cascade_consistency <<invariant>> {
+    parameters: state.ui_cascade vs other state fields
+    --
+    State-time:
+    state.ui_cascade == derive_state-output(state)
+    --
+    Preserved by: derive_state/2 at the end of every
+    step//2 rule that mutates beam_renderable_*,
+    surface_textured, wireframe, colorwash, current_beam,
+    or patient_surface_renderable.
+}
+
+class modelview_dirty_discipline <<invariant>> {
+    parameters: modelview_dirty, beam_changed
+    --
+    State-time:
+    modelview_dirty == true
+      ==> next beam_changed will recompute the matrix
+    modelview_dirty == false
+      ==> after_beam_changed (matrix is current)
+    --
+    Set by: init, initial_update, toggle_view_beam,
+            toggle_view_lightfield
+    Cleared by: beam_changed
+}
+
+class stale_field_preservation <<invariant>> {
+    parameters: patient_enabled, slider_pos, beam_renderable_pointer
+    --
+    State-time:
+    patient_enabled is initialized in ctor and
+      never read or written (m_bPatientEnabled).
+    slider_pos is declared but never accessed.
+    beam_renderable_pointer is initialized to none
+      and never reassigned -- OnViewBeam's deref
+      is a known crash hazard preserved verbatim.
+    --
+    Preserved by: every step//2 rule (no rule
+    writes any of these fields).
+}
+
+@enduml
