@@ -1,0 +1,100 @@
+@startuml par_transition_plan
+' SysML Parametric Diagram
+' Visualizes the TransitionPlan.txt migration plan as a labeled
+' transition system over the codebase's evolution. Done vs implemented
+' marks made checkable via Prolog queries.
+
+title <<par>> CPenBeamEditView TransitionPlan (5-step migration LTS)
+
+skinparam class {
+    BackgroundColor<<plan_done>>        #c8e6c9
+    BorderColor<<plan_done>>            #2e7d32
+    BackgroundColor<<plan_pending>>     #fff9c4
+    BorderColor<<plan_pending>>         #f9a825
+    BackgroundColor<<plan_discrepant>>  #ffcccc
+    BorderColor<<plan_discrepant>>      #c62828
+    BackgroundColor<<plan_aspirational>> #f3e5f5
+    BorderColor<<plan_aspirational>>    #7b1fa2
+}
+hide circle
+hide empty methods
+skinparam shadowing false
+top to bottom direction
+
+class step_1 <<plan_done>> {
+    label: cimage_to_cvolume
+    --
+    description: Change CImage -> CVolume
+    --
+    marked done: YES (X)
+    actually implemented: YES
+    target: PenBeamEditView, VSIM_MODEL volumes
+}
+
+class step_2 <<plan_done>> {
+    label: gui_base_cdib_adopted
+    --
+    description: Use CDib from GUI_BASE
+    --
+    marked done: YES (X)
+    actually implemented: YES
+    target: PenBeamEditView.cpp:163 colormap.Load
+}
+
+class step_3 <<plan_discrepant>> {
+    label: plan_extended_with_beam_doses
+    --
+    description: Add to CPlan to contain beam doses,
+                 beam weights, and total dose
+    --
+    marked done: NO
+    actually implemented: YES
+    -- DISCREPANCY --
+    Source: PenBeamEdit.cpp:286-311 (loop sums weighted
+    pencil-beam doses into pPlan->GetDoseMatrix; SetWeight
+    on each CBeam). The X mark is missing despite this
+    being implemented.
+}
+
+class step_4 <<plan_aspirational>> {
+    label: gl_slice_blender_added
+    --
+    description: Add an OpenGLRenderer to draw a slice
+                 with LUT blending of two images
+    --
+    marked done: NO
+    actually implemented: NO
+    -- DEFERRED --
+    Eventually realized in modern Brimstone/PlanarView.cpp::
+    DrawImages with LUT + alpha blending (per
+    DEVELOPMENT_TIMELINE.md Part 7 Direction C).
+}
+
+class step_5 <<plan_pending>> {
+    label: dvh_view_attached
+    --
+    description: Add a DVH graph view
+                 (use Microsoft Chart control?)
+    --
+    marked done: NO
+    actually implemented: YES
+    -- DISCREPANCY --
+    Source: PenBeamEditView.h:53 CGraph m_graph
+    + PenBeamEditView.cpp:189-218 OnUpdate. The
+    "Microsoft Chart?" question was answered
+    "no -- use the project's CGraph".
+}
+
+step_1 -down-> step_2
+step_2 -down-> step_3
+step_3 -down-> step_4
+step_4 -down-> step_5
+
+note right of step_3
+    Step 3 and Step 5 are
+    BOTH discrepancies between
+    plan and source. Both are
+    implemented but not marked X.
+end note
+
+@enduml

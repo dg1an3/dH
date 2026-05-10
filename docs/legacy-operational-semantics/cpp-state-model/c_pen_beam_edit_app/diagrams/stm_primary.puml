@@ -1,0 +1,47 @@
+@startuml stm_primary
+title <<stm>> CPenBeamEditApp Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<modal>>    #fff3e0
+    BorderColor<<modal>>        #e65100
+    FontColor<<modal>>          #bf360c
+    BackgroundColor<<scan>>     #e8eaf6
+    BorderColor<<scan>>         #283593
+    FontColor<<scan>>           #1a237e
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_init" as PreInit <<browse>>
+state "Browse" as Browse <<browse>> {
+    state "initialized" as Initialized <<browse>>
+    state "showing_about" as About <<modal>>
+    state "importing" as Importing <<scan>>
+
+    Initialized -down-> About : on_app_about
+    About -up-> Initialized   : about_close
+
+    Initialized -right-> Importing : on_file_import
+    Importing : 8-phase OnFileImport pipeline
+    Importing -left-> Initialized : import_done\nimport_cancelled
+    Importing --> Importing : import_phase_complete
+
+    note right of Initialized
+        on_file_new / on_file_open
+        / on_file_print_setup
+        forwarded to CWinApp
+        defaults (no override)
+    end note
+}
+state "exited" as Exited <<terminal>>
+
+PreInit -down-> Initialized : init_instance
+Browse -down-> Exited : (CWinApp::ExitInstance, inherited)
+
+@enduml

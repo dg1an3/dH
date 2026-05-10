@@ -1,0 +1,50 @@
+@startuml bdd_state_dict
+title <<bdd>> CPenBeamEditView state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : ViewMode
+    .. colormap (loaded once in OnCreate from IDB_RAINBOW) ..
+    colormap_loaded : bool
+    colormap_size : int
+    .. graph child window ..
+    graph_window_created : bool
+    graph_data_series_count : int
+    .. histogram (composed CHistogram) ..
+    histogram_volume_set : opaque | none
+    histogram_region_set : opaque | none
+    .. layout ..
+    last_size : (int, int)
+}
+
+class ViewMode <<enumeration>> {
+    pre_create
+    created
+    plan_bound
+    closed
+}
+
+state "1" -- "1" ViewMode : win
+
+note bottom of state
+    Glue-medium with composed CHistogram
+    + CGraph child window. The plan_bound
+    sub-state distinguishes "histogram has
+    been hydrated by OnUpdate" from "graph
+    exists but has no data".
+end note
+
+@enduml

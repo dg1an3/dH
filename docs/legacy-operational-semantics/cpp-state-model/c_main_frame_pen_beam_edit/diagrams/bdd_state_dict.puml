@@ -1,0 +1,38 @@
+@startuml bdd_state_dict
+title <<bdd>> CMainFrame (PenBeamEdit) state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : FrameMode
+    toolbar_created : bool
+    status_bar_created : bool
+    docking_enabled : bool
+}
+
+class FrameMode <<enumeration>> {
+    pre_create
+    created
+    closed
+}
+
+state "1" -- "1" FrameMode : win
+
+note bottom of state
+    Glue-medium-light: just two
+    control bars and one docking
+    flag. Empty constructor and
+    destructor.
+end note
+
+@enduml

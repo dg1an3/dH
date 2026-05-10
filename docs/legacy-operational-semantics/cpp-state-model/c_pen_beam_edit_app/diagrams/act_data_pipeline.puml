@@ -1,0 +1,93 @@
+@startuml act_data_pipeline
+title <<act>> CPenBeamEditApp OnFileImport Pipeline
+
+skinparam activityBackgroundColor #e3f2fd
+skinparam activityBorderColor     #1565c0
+skinparam activityFontColor       #0d47a1
+skinparam activityDiamondBackgroundColor #fff3e0
+skinparam activityDiamondBorderColor     #e65100
+skinparam shadowing false
+
+|Phase 1: file dialog (cpp:218-224)|
+start
+:CFileDialog dlgFile(TRUE, "dat", "density.dat");
+if (DoModal == IDOK ?) then (yes)
+    :strPath := dlgFile.GetPathName().Left(ReverseFind('\\'));
+else (no)
+    :return -- import cancelled;
+    stop
+endif
+
+|Phase 2: setup plan paths (cpp:226-236)|
+:GetFirstDocTemplate() -> CPlan;
+:pPlan->SetPathName("ImportedPlan.pln")
+   pPlan->SetPathName("IMPORT.PLN")
+   pPlan->SetModifiedFlag();
+note right
+  SetPathName called TWICE.
+  Second call wins.
+end note
+
+|Phase 3: create series (cpp:238-244)|
+:m_pSeriesDocTemplate->CreateNewDocument();
+:pSeries->SetPathName("IMPORT.SER")
+   pSeries->SetModifiedFlag();
+
+|Phase 4: read density (cpp:247-248)|
+:**ReadAsciiImage(strPath + "\\density.dat",
+                  &pSeries->volume, 1000.0)**;
+note right
+  Boundary: CStdioFile line-by-line.
+  Density values scaled by 1000.
+end note
+
+|Phase 5: init structure (cpp:251-270)|
+:CStructure constructed
+   added to pSeries->m_arrStructures;
+:pRegion->SetDimensions(W, H, D);
+:initialize region: ones in vertical strip
+   nAtX in 46..54 (NOT all ones!);
+note right
+  Comment claims "all ones" but
+  the loop only writes 1s where
+  nAtX > 45 && nAtX < 55. Quirk
+  preserved verbatim.
+end note
+
+|Phase 6: read pencil beams (cpp:286-311)|
+:pPlan->SetSeries(pSeries);
+:GetDoseMatrix->SetDimensions(W, H, D);
+repeat
+    :read dose%i.dat (nAt = 1..99);
+    :CBeam pPencilBeam
+       SetWeight(gaussian(50, 7))
+       SetDoseValid(TRUE)
+       pPlan->AddBeam(pPencilBeam);
+    :weighted accumulation:
+       totalDose += weight * pencil_dose
+       maxDose := max(maxDose, totalDose);
+repeat while (nAt < 100 ?)
+note right
+  Loop starts at nAt=1, NOT 0.
+  Reads 99 beams not 100.
+end note
+
+|Phase 7: normalize dose (cpp:314-320)|
+:for each (nAtY, nAtX): totalDose /= maxDose;
+note right
+  Outer nAtY reuses scope from
+  cpp:261's loop. Pre-C++03 MSVC
+  scope leak. Preserved verbatim.
+end note
+
+|Phase 8: update views (cpp:323-324)|
+:pPlan->UpdateAllViews(NULL);
+:m_pMainWnd->RedrawWindow();
+
+|Output|
+:Plan synthesized:
+   pSeries with density volume + strip-region structure
+   pPlan with 99 weighted pencil-beam dose components
+   totalDose normalized to [0, 1];
+stop
+@enduml
