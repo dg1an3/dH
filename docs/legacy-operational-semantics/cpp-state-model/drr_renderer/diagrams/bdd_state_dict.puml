@@ -1,0 +1,108 @@
+@startuml bdd_state_dict
+' SysML Block Definition Diagram
+' Schema for the CDRRRenderer state{} dict.
+
+title <<bdd>> CDRRRenderer state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+    BackgroundColor<<displayRow>>  #f3e5f5
+    BorderColor<<displayRow>>      #7b1fa2
+    BackgroundColor<<uiCascade>>   #c8e6c9
+    BorderColor<<uiCascade>>       #2e7d32
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+skinparam Padding 4
+left to right direction
+
+package "Root" {
+    class state <<root>> {
+        win : DRRMode
+        view : opaque | none
+        for_volume : VolumeId | none
+        volume_transform : Matrix4
+        recompute : bool
+        n_steps : int
+        n_shift : int
+        n_res_div : int
+        image_width : int
+        image_height : int
+        viewport : int[4]
+        n_max : int
+        n_min : int
+        over_max : bool
+        thread : opaque | none
+        thread_running : bool
+        observer_attached_to_camera_projection : bool
+        ..
+        + 1 stale field (use_tandem_rays; see markdown 2.2)
+    }
+    note bottom of state
+        Key insight: the m_pThread field is the
+        only handle on the background hi-res pass.
+        AfxBeginThread spawn at cpp:539 is commented
+        out -- thread_running stays false in this
+        build, but the LTS preserves the state for
+        a future un-comment.
+    end note
+}
+
+package "Display Rows" {
+    class accumulated_pixel <<displayRow>> {
+        y : int
+        x : int
+        value : int
+    }
+    class post_pixel <<displayRow>> {
+        y : int
+        x : int
+        value : int
+        rgba : (R, G, B, A)
+    }
+}
+
+package "Ray-Trace Anchors" {
+    class fx_vec <<recordType>> {
+        x : int_16_16
+        y : int_16_16
+        z : int_16_16
+    }
+    class drr_pipeline <<recordType>> {
+        width : int
+        height : int
+        depth : int
+        n_steps : int
+        n_shift : int
+        vi_start : fx_vec
+        vi_end : fx_vec
+        vi_step_x_start : fx_vec
+        vi_step_x_end : fx_vec
+        vi_step_y_start : fx_vec
+        vi_step_y_end : fx_vec
+    }
+}
+
+package "Enumerations" {
+    class DRRMode <<enumeration>> {
+        unbound
+        dirty
+        computed
+        bg_computing
+    }
+}
+
+state "1" *-- "*" accumulated_pixel : pixels (during march)
+state "1" *-- "*" post_pixel : pixels (after post_process)
+state "1" -- "1" DRRMode : win
+drr_pipeline "1" *-- "6" fx_vec : anchors
+
+@enduml

@@ -1,0 +1,76 @@
+@startuml stm_primary
+' SysML State Machine Diagram
+' Primary LTS for CDRRRenderer (VSIM_OGL/DRRRenderer.cpp).
+
+title <<stm>> CDRRRenderer Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<scan>>     #e8eaf6
+    BorderColor<<scan>>         #283593
+    FontColor<<scan>>           #1a237e
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+
+skinparam shadowing false
+top to bottom direction
+
+' ==========================================================================
+' Browse tier (the volume-bound viewing modes)
+' ==========================================================================
+
+state "Browse" as Browse <<browse>> {
+    state "unbound" as Unbound <<browse>>
+    state "dirty" as Dirty <<browse>>
+    state "computed" as Computed <<browse>>
+
+    Unbound -down-> Dirty       : set_volume(V) [V != none]
+    Dirty -down-> Computed      : compute_drr\ndraw_scene [recompute]
+    Computed -up-> Dirty        : camera_projection_change\nset_volume_transform(M)\nset_volume(V) [V != none]
+    Computed --> Unbound        : set_volume(none)
+    Dirty --> Unbound           : set_volume(none)
+
+    note right of Unbound
+        forVolume == NULL
+        DrawScene is a no-op (cpp:466)
+    end note
+
+    note right of Computed
+        m_arrPixels valid
+        glDrawPixels is the
+        boundary call (cpp:518)
+    end note
+}
+
+' ==========================================================================
+' Scan tier (background hi-res recompute)
+' ==========================================================================
+
+state "bg_computing" as BgComputing <<scan>>
+note right of BgComputing
+    UNREACHABLE in source as
+    preserved -- AfxBeginThread
+    spawn at cpp:539 is commented out.
+    State retained so a future
+    un-comment does not change
+    the LTS surface.
+end note
+
+Computed -right-> BgComputing  : (bg_thread_started)\n[m_nResDiv > 1]
+BgComputing -left-> Computed   : bg_thread_complete
+BgComputing -down-> Dirty      : camera_projection_change\n(thread aborted)
+
+' ==========================================================================
+' Terminal
+' ==========================================================================
+
+state "destroyed" as Destroyed <<terminal>>
+
+Browse -down-> Destroyed       : destruct
+BgComputing -down-> Destroyed  : destruct (thread aborted)
+
+@enduml

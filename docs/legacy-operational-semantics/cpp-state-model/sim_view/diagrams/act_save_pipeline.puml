@@ -1,0 +1,55 @@
+@startuml act_save_pipeline
+' SysML Activity Diagram
+' Save pathway: ID_EXPORT_FIELDCOM and ID_EXPORT_NUAGES handlers.
+' Both are effectively no-ops in this build but the structural
+' diagram is preserved for cross-deliverable consistency.
+
+title <<act>> CSimView Save Pipeline (export commands)
+
+skinparam activityBackgroundColor #e3f2fd
+skinparam activityBorderColor     #1565c0
+skinparam activityFontColor       #0d47a1
+skinparam activityDiamondBackgroundColor #fff3e0
+skinparam activityDiamondBorderColor     #e65100
+skinparam shadowing false
+
+|Phase 1: ui_state_dcg.pl|
+start
+:dispatch event terminal
+   - export_fieldcom OR export_nuages;
+
+|Phase 2: edit_ops.pl|
+if (which command?) then (export_fieldcom)
+    :**edit_ops:export_fieldcom(S, S)**
+       - state-pure no-op;
+    if (USE_ExportFieldCOM defined?) then (yes)
+        |Phase 3: COM boundary|
+        :IMeshPtr->put_Label
+        IMeshPtr->put_Vertices
+        IMeshPtr->put_Normals
+        IMeshPtr->put_Indices
+        IFileStorage->put_Pathname
+        IFileStorage->Save (cpp:471-532);
+        note right
+          Boundary - not translated.
+          kind: COM (FieldCOM.Mesh, FieldCOM.FileStorage)
+        end note
+    else (no)
+        :empty body (cpp:537-540);
+    endif
+else (export_nuages)
+    :**edit_ops:export_nuages(S, S)**
+       - state-pure no-op;
+    :body block-commented in source (cpp:544-586);
+    note right
+      Originally wrote {Name}.cnt files
+      via fopen/fprintf. Currently disabled.
+    end note
+endif
+
+|Output|
+:state{} unchanged
+   - no field mutated by either export handler
+   - external file/COM side-effect only when enabled;
+stop
+@enduml

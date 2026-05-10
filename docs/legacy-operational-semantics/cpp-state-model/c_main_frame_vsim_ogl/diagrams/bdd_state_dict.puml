@@ -1,0 +1,55 @@
+@startuml bdd_state_dict
+title <<bdd>> CMainFrame (VSIM_OGL) state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : FrameMode
+    .. docking bar visibility ..
+    toolbar_visible : bool
+    status_bar_visible : bool
+    beam_param_bar_visible : bool
+    explorer_bar_visible : bool
+    .. embedded sub-controls ..
+    pos_ctrl_created : bool
+    collim_ctrl_created : bool
+    object_explorer_created : bool
+    explorer_font : opaque | none
+    .. tree-item class registrations ..
+    mesh_renderable_registered : bool
+    beam_renderable_registered : bool
+    .. registry-restored bar layout ..
+    bar_state_loaded : bool
+    .. stale fields preserved verbatim ..
+    view_lightpatch : bool
+    view_beam : bool
+}
+
+class FrameMode <<enumeration>> {
+    pre_create
+    created
+    closing
+    closed
+}
+
+state "1" -- "1" FrameMode : win
+
+note bottom of state
+    Glue-medium: lifecycle plus four
+    docking-bar visibility flags
+    that the framework toggles on
+    user View-menu interaction.
+    Two stale fields preserved.
+end note
+
+@enduml

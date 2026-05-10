@@ -1,0 +1,89 @@
+@startuml bdd_state_dict
+' SysML Block Definition Diagram
+' Visual schema for the state{} dict consumed by ui_state_dcg.pl.
+
+title <<bdd>> CSimView state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+    BackgroundColor<<displayRow>>  #f3e5f5
+    BorderColor<<displayRow>>      #7b1fa2
+    BackgroundColor<<uiCascade>>   #c8e6c9
+    BorderColor<<uiCascade>>       #2e7d32
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+skinparam Padding 4
+left to right direction
+
+package "Root" {
+    class state <<root>> {
+        win : ViewMode
+        current_beam : BeamId | none
+        beam_renderable_pointer : opaque | none
+        patient_surface_renderable : opaque | none
+        machine_renderable : opaque | none
+        beam_renderable_enabled : bool
+        surface_textured : bool
+        wireframe : bool
+        colorwash : bool
+        modelview_dirty : bool
+        rev_window_created : bool
+        timer_set : bool
+        ..
+        + 5 stale / window-config fields (see markdown 2.2)
+    }
+    note bottom of state
+        Key insight: m_pBeamRenderable (beam_renderable_pointer)
+        is NEVER assigned. OnViewBeam dereferences NULL in
+        production. The LTS preserves the field verbatim and
+        models the *intended* toggle to expose the bug.
+    end note
+}
+
+package "Display Rows" {
+    class surface_renderable <<displayRow>> {
+        id : atom
+        color : COLORREF
+        icon_id : UINT
+        modelview : Matrix4
+    }
+}
+
+package "UI Cascade" {
+    class ui_cascade <<uiCascade>> {
+        view_beam : ui
+        view_lightfield : ui
+        view_wireframe : ui
+        view_colorwash : ui
+    }
+    class ui <<uiCascade>> {
+        enable : bool
+        check : 0..1
+    }
+}
+
+package "Enumerations" {
+    class ViewMode <<enumeration>> {
+        view_unloaded
+        view_active
+    }
+}
+
+' ----------------------------------------------------------
+' Composition relations from the state{} root outward
+' ----------------------------------------------------------
+state "1" *-- "*" surface_renderable : surface_renderables
+state "1" *-- "1" ui_cascade : ui_cascade
+state "1" -- "1" ViewMode : win
+ui_cascade "1" *-- "4" ui : view_*
+
+@enduml
