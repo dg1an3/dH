@@ -1,0 +1,36 @@
+@startuml stm_primary
+title <<stm>> CBeamParamCollimCtrl Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>> #e3f2fd
+    BorderColor<<browse>>     #1565c0
+    FontColor<<browse>>       #0d47a1
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_init" as PreInit <<browse>>
+state "ready" as Ready <<browse>>
+state "bound" as Bound <<browse>>
+
+PreInit -down-> Ready : on_init_dialog
+Ready -down-> Bound : set_beam(B) [B != none]
+Bound -up-> Ready : set_beam(none)
+Bound --> Bound : set_beam(B') [normal: refreshes; if updating_data: skipped]
+Bound --> Bound : on_apply_changes\non_apply_spin_changes(_)\ndo_data_exchange(true)\n   -- transient updating_data flag
+Ready --> Ready : do_data_exchange(false)
+Bound --> Bound : do_data_exchange(false)
+
+note right of Bound
+    Re-entrancy guard:
+    DoDataExchange(true) sets
+    updating_data := true around
+    SetCollim* calls. If a CBeam
+    observer reacts by calling
+    SetBeam, the !updating_data
+    check at SetBeam skips
+    UpdateData(FALSE), breaking
+    the loop.
+end note
+
+@enduml
