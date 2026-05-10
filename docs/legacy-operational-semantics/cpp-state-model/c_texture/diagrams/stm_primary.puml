@@ -1,0 +1,36 @@
+@startuml stm_primary
+title <<stm>> CTexture Primary State Machine
+skinparam state {
+    BackgroundColor<<browse>> #e3f2fd
+    BorderColor<<browse>> #1565c0
+    FontColor<<browse>> #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>> #2e7d32
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_construct" as Pre <<browse>>
+state "ready" as Ready <<browse>>
+state "dc_held" as DcHeld <<browse>>
+state "bound" as Bound <<browse>>
+state "destroyed" as Dead <<terminal>>
+
+Pre -down-> Ready : construct
+Ready --> Ready : set_width_height(W,H)\nset_wrap(B)\nload_bitmap(R)\nset_projection(M) [fires!]
+Ready -right-> DcHeld : get_dc
+DcHeld --> DcHeld : draw_border(W)
+DcHeld -left-> Ready : release_dc
+Ready -down-> Bound : bind(View)
+Bound --> Bound : set_projection(M) [fires!]
+Bound -up-> Ready : unbind
+Ready -down-> Dead : destruct
+Bound -down-> Dead : destruct
+
+note right of Bound
+    OBSERVABLE: only SetProjection
+    fires GetChangeEvent. Changing
+    the bitmap content via
+    GetDC->draw->ReleaseDC is SILENT.
+end note
+@enduml
