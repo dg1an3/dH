@@ -1,0 +1,69 @@
+@startuml bdd_record
+' SysML Block Definition Diagram
+' Schema for the CTreatmentMachine record (model-summary form, glue-light).
+
+title <<bdd>> CTreatmentMachine record schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<observable>>  #f3e5f5
+    BorderColor<<observable>>      #7b1fa2
+    BackgroundColor<<quirk>>       #ffcccc
+    BorderColor<<quirk>>           #c62828
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+left to right direction
+
+class c_treatment_machine <<root>> {
+    .. machine identification ..
+    manufacturer : CString
+    model : CString
+    serial_number : CString
+    --
+    .. machine parameters ..
+    sad : double
+    scd : double
+    sid : double
+    --
+    .. derived (ctor only) ..
+    projection : CMatrix<4>
+    --
+    inherits CModelObject
+    public-field layout
+    serializable (omits projection)
+}
+
+class observable_in_name_only <<observable>> {
+    inherits CModelObject
+    --
+    fires NOTHING in this class.
+    Observable surface is unused.
+}
+
+c_treatment_machine --> observable_in_name_only : structural
+
+class projection_stale_quirk <<quirk>> {
+    set_sad / set_scd / set_sid do not
+    recompute projection. Projection
+    becomes stale silently.
+    --
+    serialize_load also omits projection
+    so post-load projection = ctor default.
+}
+
+c_treatment_machine ..> projection_stale_quirk : preserved verbatim
+
+note bottom of c_treatment_machine
+    Trivial glue-light. Seven public
+    fields, no setters in source.
+    The modern Brimstone has no direct
+    descendant -- machine geometry
+    moved into kernel data files.
+end note
+
+@enduml

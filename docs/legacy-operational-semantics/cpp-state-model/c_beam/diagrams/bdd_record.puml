@@ -1,0 +1,76 @@
+@startuml bdd_record
+' SysML Block Definition Diagram
+' Schema for the CBeam record (model-summary form, glue-light target).
+
+title <<bdd>> CBeam record schema (OBSERVABLE -- inherits CModelObject)
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+    BackgroundColor<<observable>>  #f3e5f5
+    BorderColor<<observable>>      #7b1fa2
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+left to right direction
+
+class c_beam <<root>> {
+    machine : CTreatmentMachine
+    --
+    .. angles ..
+    collim_angle : double
+    gantry_angle : double
+    couch_angle : double
+    --
+    .. table + collim ..
+    table_offset : CVector<3>
+    collim_min : CVector<2>
+    collim_max : CVector<2>
+    --
+    .. derived caches (mutable) ..
+    beam_to_fixed_xform : CMatrix<4>
+    beam_to_patient_xform : CMatrix<4>
+    --
+    .. blocks + weight + dose ..
+    has_shielding_blocks : BOOL
+    blocks : list of CPolygon*
+    weight : double
+    dose_valid : BOOL
+    dose_matrix : CVolume<double>
+    --
+    OBSERVABLE (inherits CModelObject)
+    serializable (DECLARE_SERIAL)
+}
+
+class change_event <<observable>> {
+    fired by:
+    set_collim_angle / set_gantry_angle
+    set_couch_angle / set_table_offset
+    set_collim_min / set_collim_max
+    set_beam_to_patient_xform
+    add_block / set_weight
+    --
+    NOT fired by:
+    set_dose_valid (anti-pattern)
+    serialize_load / save (IO boundary)
+    get_beam_to_*_xform (silent cache)
+}
+
+c_beam --> change_event : GetChangeEvent()
+
+class c_treatment_machine <<recordType>>
+c_beam "1" *-- "1" c_treatment_machine : machine
+
+note bottom of c_beam
+    Glue-light + observable. Most important
+    glue-light target because CSimView's
+    [beam_changed] step is driven by this
+    fan-out. See fires_change_event/1.
+end note
+
+@enduml
