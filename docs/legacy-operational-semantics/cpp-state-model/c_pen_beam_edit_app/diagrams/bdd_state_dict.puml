@@ -1,0 +1,75 @@
+@startuml bdd_state_dict
+title <<bdd>> CPenBeamEditApp state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : AppMode
+    plan_doc_template : opaque | none
+    series_doc_template : opaque | none
+    main_frame_visible : bool
+    cmd_line_processed : bool
+    registry_key_set : bool
+    profile_loaded : bool
+    import : import_state | none
+    aux_fields_init : bool
+}
+
+class import_state <<recordType>> {
+    phase : ImportPhase
+    selected_path : str | none
+    plan : opaque | none
+    series : opaque | none
+    structure : opaque | none
+    n_pencil_beams_read : int
+    max_dose : double
+    normalized : bool
+    views_updated : bool
+}
+
+class AppMode <<enumeration>> {
+    pre_init
+    initialized
+    showing_about
+    importing
+    exited
+}
+
+class ImportPhase <<enumeration>> {
+    file_dialog
+    setup_plan_paths
+    create_series
+    read_density
+    init_structure
+    read_pencil_beams
+    normalize_dose
+    update_views
+    complete
+}
+
+state "1" -- "1" AppMode : win
+state "1" o-- "0..1" import_state : import
+import_state "1" -- "1" ImportPhase : phase
+
+note bottom of state
+    Glue-medium with a stretch:
+    OnFileImport is a multi-phase
+    pipeline modeled separately in
+    import_pipeline.pl. The 8-phase
+    progression mirrors the
+    procedural blocks in the source.
+end note
+
+@enduml
