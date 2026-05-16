@@ -55,10 +55,20 @@ except ImportError:
 # available regardless of Cython extension build state).
 from .course_prior import BeamletObjectiveTerm, CoursePriorTerm  # noqa: E402
 from .hierarchical_bayes import HierarchicalBayes, pool_phases  # noqa: E402
+from .free_energy import (  # noqa: E402
+    free_energy_trajectory,
+    gaussian_entropy_diag,
+    phase_free_energy,
+    total_free_energy,
+)
 
 __all__.extend([
     "BeamletObjectiveTerm",
     "CoursePriorTerm",
     "HierarchicalBayes",
     "pool_phases",
+    "free_energy_trajectory",
+    "gaussian_entropy_diag",
+    "phase_free_energy",
+    "total_free_energy",
 ])

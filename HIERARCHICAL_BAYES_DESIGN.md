@@ -280,6 +280,19 @@ Coordinate ascent on the hierarchical model should monotonically decrease
 double-counting the prior precision, since it appears both in the inner
 optimization as the `CoursePriorTerm` weight and in the pooling formula).
 
+*Implementation status:* Python reference in
+`python/pybrimstone/free_energy.py`; F_total decomposes as
+`Σ_p [data_cost_p(μ_p) + 0.5 Σ precision_eta · (μ_p − μ_η)² − H(q_p)]`
+with H the diagonal Gaussian entropy. Acceptance test under analytical
+phase mocks with data-only variance reporting confirms strict monotone
+decrease across outer iterations. A contrasting test under
+joint-variance reporting confirms the failure mode predicted in Step 3 —
+F_total drifts upward — so the diagnostic actually catches the
+double-counting bug rather than just rubber-stamping correctness. The
+C++ counterpart wires `DynamicCovarianceOptimizer::GetFreeEnergy()`
+(`ConjGradOptimizer.h:54`) per phase plus a Course-level cross term;
+that's a follow-up once the wrapper exposes both halves.
+
 **Step 5 — DVH uncertainty bands (the deliverable).**
 Sample beamlet weights from the converged per-phase `q(θ_p) = N(μ_p, σ_p²)`,
 recompute dose for each sample (parallel `optimizer.optimize()`-free dose
