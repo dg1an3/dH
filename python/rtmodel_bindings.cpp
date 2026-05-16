@@ -170,7 +170,13 @@ PYBIND11_MODULE(rtmodel_core, m) {
         .def("get_entropy", &DynamicCovarianceOptimizer::GetEntropy,
              "Get computed entropy (if free energy calculation enabled)")
         .def("get_free_energy", &DynamicCovarianceOptimizer::GetFreeEnergy,
-             "Get computed free energy (if enabled)");
+             "Get computed free energy (if enabled)")
+        .def("get_adaptive_variance",
+             [](const DynamicCovarianceOptimizer& opt) {
+                 return vector_to_numpy(opt.GetAdaptiveVariance());
+             },
+             "Per-parameter adaptive variance (sigma_weights). Required by "
+             "the hierarchical-Bayes outer loop; see HIERARCHICAL_BAYES_DESIGN.md.");
 
     // Helper functions
     m.def("vector_to_numpy", &vector_to_numpy, "Convert CVectorN to numpy array");
