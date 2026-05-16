@@ -54,5 +54,11 @@ except ImportError:
 # Course-level prior for hierarchical-Bayes outer loop (pure Python, always
 # available regardless of Cython extension build state).
 from .course_prior import BeamletObjectiveTerm, CoursePriorTerm  # noqa: E402
+from .hierarchical_bayes import HierarchicalBayes, pool_phases  # noqa: E402
 
-__all__.extend(["BeamletObjectiveTerm", "CoursePriorTerm"])
+__all__.extend([
+    "BeamletObjectiveTerm",
+    "CoursePriorTerm",
+    "HierarchicalBayes",
+    "pool_phases",
+])

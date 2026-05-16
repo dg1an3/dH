@@ -253,6 +253,20 @@ final callback record, pools to `(μ_η, σ_η)`, updates each
 `CoursePriorTerm`, repeats. Coordinate ascent at the Course level.
 Convergence diagnostic: η should stabilize across outer iterations.
 
+*Caveat surfaced during implementation:* the σ_p harvested from each
+phase must reflect the **data-only** posterior variance, not the
+joint (data + prior) posterior. If the phase reports the joint
+variance — which is what `m_vAdaptVariance` will tend to do if the
+prior is enabled during the inner solve — pooling re-counts the prior
+precision and the outer-loop dynamics degrade from geometric to
+O(1/n) convergence. Either (a) compute σ_p with the prior disabled
+in the inner solve, (b) subtract the prior precision before pooling
+(`σ_p,data⁻² = σ_p,joint⁻² − λ_prior`), or (c) accept slow convergence
+as evidence the inner solve is operating in a regime where σ is
+dominated by the prior. The Step-3 reference implementation in
+`python/pybrimstone/hierarchical_bayes.py` is correct either way;
+the responsibility falls on the phase-optimizer wrapper.
+
 **Step 4 — Validate against explicit free energy.**
 Turn on `SetComputeFreeEnergy(true)` per phase, sum across phases plus the
 Course prior energy:
