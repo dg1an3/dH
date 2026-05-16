@@ -337,8 +337,11 @@ This design depends on facts that are stated incorrectly in other docs:
    the existing brimstone prescription combines terms with hand-tuned weights.
    First prototype: use the Bayes-fixed weight; treat global rebalancing as
    a single tunable scalar applied to the whole `F_total`.
-4. **`evaluate(dose)` vs. `evaluate(beamlet_weights)`** — Wiring Note above;
-   resolve during Step 2 implementation.
+4. **`evaluate(dose)` vs. `evaluate(beamlet_weights)`** — *Resolved during
+   Step 2 implementation.* Adopted option (a): added a `BeamletObjectiveTerm`
+   base class as a sibling of the dose-space `ObjectiveTerm`. `CoursePriorTerm`
+   subclasses it. See `python/pybrimstone/course_prior.py`. The dose-space
+   `ObjectiveTerm` interface in `CYTHON_WRAPPER_DESIGN.md` is unchanged.
 
 ## References
 

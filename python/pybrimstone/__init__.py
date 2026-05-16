@@ -49,3 +49,10 @@ try:
 except ImportError:
     # PyTorch not installed - TG-263 features not available
     pass
+
+
+# Course-level prior for hierarchical-Bayes outer loop (pure Python, always
+# available regardless of Cython extension build state).
+from .course_prior import BeamletObjectiveTerm, CoursePriorTerm  # noqa: E402
+
+__all__.extend(["BeamletObjectiveTerm", "CoursePriorTerm"])
