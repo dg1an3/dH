@@ -30,10 +30,14 @@ References below cite source line numbers verified against the current branch.
   `SetComputeFreeEnergy(true)`
   (`RtModel/include/ConjGradOptimizer.h:42`, `cpp:212`, with the
   `F = KL − Entropy` block at `cpp:352`).
-- Five-level pyramid with `DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25}`
-  (`RtModel/PlanOptimizer.cpp:36`).
-  *Note:* `CLAUDE.md` and `CYTHON_WRAPPER_DESIGN.md` both describe four
-  levels — those references are stale; source of truth is the array above.
+- Four-level pyramid (`PlanPyramid::MAX_SCALES = 4`,
+  `RtModel/include/PlanPyramid.h:22`) with active sigmas
+  `{8.0, 3.2, 1.3, 0.5}` drawn from `DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25}`
+  (`RtModel/PlanOptimizer.cpp:36`). The 5th array entry (0.25) is
+  **dormant** — the loop at `PlanOptimizer.cpp:90, 284` only iterates
+  `nLevel < MAX_SCALES`, so index 4 is never read. `CLAUDE.md`'s
+  "4 levels: 8.0mm → 3.2mm → 1.3mm → 0.5mm" description is accurate
+  to the active level count.
 
 **Cython wrapper roadmap (`CYTHON_WRAPPER_DESIGN.md`):**
 - `OptimizationCallback.on_iteration(iteration, level, cost, gradient_norm,
@@ -211,12 +215,12 @@ itself.
 
 ## Pyramid Level Strategy
 
-The 5-level pyramid (8.0 → 0.25 mm voxels) raises a where-to-apply question
-for the Course prior:
+The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply
+question for the Course prior:
 
 **Option A — finest-only (recommended for prototype):**
 The hierarchical outer loop wraps level-0 optimization only. Coarser levels
-(4 through 1) run independently per phase, then the prior pull is enabled
+(3 through 1) run independently per phase, then the prior pull is enabled
 for level 0. Clean, easy to reason about, and σ at level 0 means roughly
 what we want it to mean.
 
@@ -229,6 +233,12 @@ without renormalization.
 Recommendation: Option A for the first prototype. Revisit after the
 calibration experiment — if σ is well-calibrated at all levels, Option B is
 strictly more powerful.
+
+*Aside on the dormant 5th sigma:* if `MAX_SCALES` is ever bumped to 5
+to activate the 0.25 mm level, the σ-calibration question gets sharper
+at the new bottom-of-pyramid (less per-voxel data per beamlet), and
+Option B becomes more attractive. Worth keeping in mind but out of
+scope here.
 
 ## Prototype Path
 
@@ -351,14 +361,22 @@ in (4) to mean anything. (4) is the customer-facing claim.
   variance σ pooled here is a different quantity that lives at a different
   layer. Both can coexist; neither blocks the other.
 
-## Documentation Cleanup Identified
+## Documentation Cleanup
 
-This design depends on facts that are stated incorrectly in other docs:
+Initial drafts of this doc incorrectly described the pyramid as having
+five active levels, conflating the 5-entry `DEFAULT_LEVELSIGMA[]` array
+with the level count. The pyramid actually has **4 active levels**
+(`PlanPyramid::MAX_SCALES = 4`, `RtModel/include/PlanPyramid.h:22`);
+the 5th array entry is unreachable from the optimizer loop. `CLAUDE.md`
+is accurate on this point. The Step-3 and Step-5 implementations don't
+depend on the level count at all (they operate on the converged
+posterior, not the pyramid stages), so the correction is purely
+documentary.
 
-- `DEFAULT_LEVELSIGMA[]` has **5** entries (`{8.0, 3.2, 1.3, 0.5, 0.25}`,
-  `PlanOptimizer.cpp:36`), not 4. `CLAUDE.md` and `CYTHON_WRAPPER_DESIGN.md`
-  both say "4 levels" and should be updated. (Not part of this design; flagged
-  for a follow-up doc PR.)
+One minor inaccuracy worth flagging in `CLAUDE.md`: the "Modifying
+optimization parameters" section says "Pyramid level sigmas:
+`DEFAULT_LEVELSIGMA[]` in PlanPyramid" — the array is actually defined
+in `RtModel/PlanOptimizer.cpp:36`, not in PlanPyramid. Trivial fix.
 
 ## Open Questions
 
