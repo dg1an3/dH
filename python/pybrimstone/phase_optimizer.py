@@ -50,6 +50,15 @@ class PhaseOptimizer:
         max_iter, tol: inner CG controls.
         adaptive_variance: tuple (var_min, var_max) for the dynamic-
             covariance update inside CG.
+        max_step_norm: optional cap on the L2 norm of the CG step in
+            optimizer-parameter space. Defaults to 20.0, which is large
+            enough not to bind on legitimate steps (the sigmoid maps
+            |x|=20 to essentially saturated already) but small enough
+            to prevent the line-search runaway documented in
+            HIERARCHICAL_BAYES_DESIGN.md "The Calibration Open Question"
+            -- without this cap, Brent can find lambda ~ 1e7 in flat-cost
+            saturation regions and the optimizer params escape. Set to
+            None to disable.
     """
 
     def __init__(
@@ -60,6 +69,7 @@ class PhaseOptimizer:
         max_iter: int = 200,
         tol: float = 1e-4,
         adaptive_variance: Tuple[float, float] = (0.01, 1.0),
+        max_step_norm: Optional[float] = 20.0,
     ):
         self.prescription = prescription
         self.n_params = int(n_params)
@@ -73,6 +83,7 @@ class PhaseOptimizer:
         self.max_iter = int(max_iter)
         self.tol = float(tol)
         self.adaptive_variance = adaptive_variance
+        self.max_step_norm = max_step_norm
 
         # Track the Course prior term currently installed in the prescription
         # so we can detect when HierarchicalBayes hands us a new one and
@@ -119,6 +130,7 @@ class PhaseOptimizer:
             adaptive_variance=self.adaptive_variance,
             max_iter=self.max_iter,
             tol=self.tol,
+            max_step_norm=self.max_step_norm,
         )
 
         # Variance lower-bounded to keep pool_phases / Course prior precision finite.

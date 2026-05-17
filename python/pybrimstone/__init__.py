@@ -58,7 +58,9 @@ from .course_prior import CoursePriorTerm  # noqa: E402
 from .kl_term import KLDivTerm  # noqa: E402
 from .prescription import Prescription  # noqa: E402
 from .dose_calc import gaussian_bump_dose_operator  # noqa: E402
+from .terma_kernel_dose import TermaKernelDoseCalc  # noqa: E402
 from .phase_optimizer import PhaseOptimizer  # noqa: E402
+from .bootstrap import BootstrapPhaseOptimizer, subsample_mask  # noqa: E402
 from .hierarchical_bayes import HierarchicalBayes, pool_phases  # noqa: E402
 from .free_energy import (  # noqa: E402
     free_energy_trajectory,
@@ -82,7 +84,10 @@ __all__.extend([
     "KLDivTerm",
     "Prescription",
     "PhaseOptimizer",
+    "BootstrapPhaseOptimizer",
+    "subsample_mask",
     "gaussian_bump_dose_operator",
+    "TermaKernelDoseCalc",
     "HierarchicalBayes",
     "pool_phases",
     "free_energy_trajectory",

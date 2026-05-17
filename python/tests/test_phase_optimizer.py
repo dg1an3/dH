@@ -50,6 +50,67 @@ class TestLibraryCGParity:
         assert all(r["sigma_weights"] is not None for r in records)
 
 
+class TestBoundedLineSearch:
+    """
+    Robustness fix for the sigmoid-saturation runaway documented in the
+    calibration experiment. polak_ribiere_cg with max_step_norm caps the
+    step taken in parameter space, preventing Brent from finding lambda
+    ~ 1e7 in flat-cost saturation regions.
+    """
+
+    def test_runaway_problem_capped(self):
+        """
+        Pathological problem: cost is flat everywhere -- Brent will pick
+        the largest lambda it can. With max_step_norm set, the step is
+        capped and x stays close to x0.
+        """
+        f = lambda x: 0.0  # totally flat
+        grad = lambda x: np.array([1.0, 0.0])  # constant gradient direction
+        x0 = np.array([0.0, 0.0])
+
+        # Without max_step_norm, x can move very far (Brent finds huge lam).
+        x_uncapped, _, _, _ = polak_ribiere_cg(
+            f, grad, x0, max_iter=1, max_step_norm=None,
+        )
+        # With max_step_norm=5, the step is bounded by 5.
+        x_capped, _, _, _ = polak_ribiere_cg(
+            f, grad, x0, max_iter=1, max_step_norm=5.0,
+        )
+        assert np.linalg.norm(x_capped - x0) <= 5.0 + 1e-6
+        # The capped result is much closer to x0 than the uncapped one
+        # (which can be 1e6+ depending on Brent's wandering).
+        assert np.linalg.norm(x_capped - x0) <= np.linalg.norm(x_uncapped - x0) + 1e-6
+
+    def test_well_behaved_problem_unaffected(self):
+        """
+        On a normal quadratic, the optimal step is much smaller than a
+        reasonable cap, so adding the cap should not change the answer.
+        """
+        f = lambda x: float(x[0] ** 2 + x[1] ** 2)
+        grad = lambda x: np.array([2 * x[0], 2 * x[1]])
+        x0 = np.array([3.0, 4.0])
+
+        x_no_cap, _, _, _ = polak_ribiere_cg(f, grad, x0)
+        x_cap, _, _, _ = polak_ribiere_cg(f, grad, x0, max_step_norm=20.0)
+        assert np.allclose(x_no_cap, x_cap, atol=1e-3)
+
+    def test_phase_optimizer_default_is_bounded(self):
+        """PhaseOptimizer defaults to max_step_norm=20 -- regression guard."""
+        from pybrimstone.dose_calc import gaussian_bump_dose_operator
+        from pybrimstone.kl_term import KLDivTerm
+        from pybrimstone.prescription import Prescription
+
+        grid = (4, 4, 4)
+        centers = np.array([[2.0, 2.0, 2.0]])
+        D = gaussian_bump_dose_operator(grid, centers, sigma=1.0)
+        mask = np.zeros(64); mask[20:30] = 1.0
+        p = Prescription(D, use_transform=True)
+        p.add_dose_term(KLDivTerm.from_interval(mask, 0.4, 0.7))
+
+        opt = PhaseOptimizer(p, n_params=1, max_iter=5, tol=1e-2)
+        assert opt.max_step_norm == 20.0
+
+
 # ---------------------------------------------------------------------------
 # Gaussian-bump dose operator
 # ---------------------------------------------------------------------------

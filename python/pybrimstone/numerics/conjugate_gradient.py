@@ -33,12 +33,37 @@ def brent_line_minimize(
     point: np.ndarray,
     direction: np.ndarray,
     tol: float = 1e-4,
+    max_step_norm: float | None = None,
 ) -> Tuple[float, float]:
-    """Line minimization along a direction. Matches vnl_brent_minimizer usage."""
+    """
+    Line minimization along a direction. Matches vnl_brent_minimizer usage.
+
+    Args:
+        max_step_norm: optional cap on ||lambda * direction||. When set, the
+            unconstrained Brent minimum is clipped so the step taken in
+            parameter space has L2 norm <= max_step_norm. This is the
+            robustness fix for the sigmoid-saturation runaway documented
+            in HIERARCHICAL_BAYES_DESIGN.md "The Calibration Open Question":
+            without it, Brent can find lambda ~ 1e7 in flat-cost saturation
+            regions and the optimizer params escape to absurd values.
+            None (default) preserves the original unconstrained behavior
+            so existing tests keep passing.
+    """
     def line_func(lam):
         return f(point + lam * direction)
     result = minimize_scalar(line_func, method="brent", options={"xtol": tol})
-    return result.x, result.fun
+    lam = result.x
+
+    if max_step_norm is not None:
+        d_norm = float(np.linalg.norm(direction))
+        if d_norm > 1e-12:
+            lambda_bound = max_step_norm / d_norm
+            lam = float(np.clip(lam, -lambda_bound, lambda_bound))
+            # Recompute f at the clipped lambda (Brent gave us f at the
+            # unclipped value).
+            return lam, float(line_func(lam))
+
+    return lam, result.fun
 
 
 def update_dynamic_covariance(
@@ -102,6 +127,7 @@ def polak_ribiere_cg(
     line_tol: float = 1e-4,
     callback: Optional[Callable] = None,
     adaptive_variance: Optional[Tuple[float, float]] = None,
+    max_step_norm: float | None = None,
 ) -> Tuple[np.ndarray, float, int, bool]:
     """
     Polak-Ribiere conjugate gradient minimization.
@@ -144,7 +170,7 @@ def polak_ribiere_cg(
 
     iteration = 0
     for iteration in range(max_iter):
-        lam, f_new = brent_line_minimize(f, x, d, tol=line_tol)
+        lam, f_new = brent_line_minimize(f, x, d, tol=line_tol, max_step_norm=max_step_norm)
         x = x + lam * d
 
         if 2.0 * abs(f_val - f_new) <= tol * (abs(f_val) + abs(f_new) + ZEPS):

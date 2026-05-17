@@ -31,6 +31,7 @@ PhaseOptimizer = Callable[[CoursePriorTerm], Tuple[np.ndarray, np.ndarray]]
 def pool_phases(
     mus: Sequence[np.ndarray],
     variances: Sequence[np.ndarray],
+    normalize: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Mean-field Gaussian pooling across phases.
@@ -51,6 +52,13 @@ def pool_phases(
         mus: list of P arrays, each shape (n_beamlets,), per-phase posterior means.
         variances: list of P arrays, each shape (n_beamlets,), per-phase posterior
             variances (i.e., m_vAdaptVariance from the C++ optimizer).
+        normalize: if True, rescale each phase's variance to mean 1 before
+            pooling. The ROW 2 prescription from
+            HIERARCHICAL_BAYES_DESIGN.md "The Calibration Open Question":
+            when shape is stable across phases but absolute magnitude is
+            not (e.g., bootstrap variance polluted by line-search runaway
+            on some phases), normalizing strips out the magnitude noise
+            while preserving the relative per-beamlet uncertainty shape.
 
     Returns:
         (mu_eta, var_eta): each shape (n_beamlets,).
@@ -74,6 +82,12 @@ def pool_phases(
         )
     if np.any(var_arr <= 0):
         raise ValueError("variances must be strictly positive")
+
+    if normalize:
+        # Per-phase rescale to mean-1. Preserves shape, strips magnitude.
+        # Done as var / mean(var); equivalent to dividing precisions by their
+        # per-phase mean precision (up to a constant that cancels).
+        var_arr = var_arr / var_arr.mean(axis=1, keepdims=True)
 
     precisions = 1.0 / var_arr                          # (P, n_beamlets)
     precision_eta = precisions.mean(axis=0)              # (n_beamlets,)
@@ -111,6 +125,7 @@ class HierarchicalBayes:
         self,
         phase_optimizers: List[PhaseOptimizer],
         course_prior_terms: List[CoursePriorTerm],
+        normalize_variance: bool = False,
     ):
         if len(phase_optimizers) != len(course_prior_terms):
             raise ValueError(
@@ -122,6 +137,7 @@ class HierarchicalBayes:
 
         self.phase_optimizers = list(phase_optimizers)
         self.course_prior_terms = list(course_prior_terms)
+        self.normalize_variance = bool(normalize_variance)
         self.history: List[dict] = []
 
     def run(self, max_outer_iters: int = 20, tol: float = 1e-4) -> dict:
@@ -152,7 +168,7 @@ class HierarchicalBayes:
                 variances.append(np.asarray(var_p, dtype=np.float64))
 
             # M-step
-            mu_eta, var_eta = pool_phases(mus, variances)
+            mu_eta, var_eta = pool_phases(mus, variances, normalize=self.normalize_variance)
             precision_eta = 1.0 / var_eta
 
             # Update each phase's prior in place. The CoursePriorTerm holds

@@ -84,6 +84,74 @@ class TestPoolPhases:
             pool_phases([np.zeros(3)], [np.array([1.0, 0.0, 1.0])])
 
 
+class TestPoolPhasesNormalize:
+    """
+    The ROW 2 prescription from HIERARCHICAL_BAYES_DESIGN.md: normalize
+    each phase's variance to mean=1 before pooling. Use when shape is
+    stable across phases but absolute magnitude is not (e.g., bootstrap
+    polluted by line-search runaway).
+    """
+
+    def test_normalize_off_matches_unnormalized(self):
+        """normalize=False (default) should not change pool behavior."""
+        mu_1 = np.array([0.0, 0.0])
+        mu_2 = np.array([2.0, 4.0])
+        var = np.array([1.0, 1.0])
+        a = pool_phases([mu_1, mu_2], [var, var], normalize=False)
+        b = pool_phases([mu_1, mu_2], [var, var])
+        assert np.allclose(a[0], b[0])
+        assert np.allclose(a[1], b[1])
+
+    def test_normalize_strips_uniform_scale(self):
+        """
+        If two phases have variances that differ only by an overall scale,
+        normalize=True should pool them as if they had the same magnitude.
+        """
+        mu_a = np.array([1.0, 2.0])
+        mu_b = np.array([3.0, 4.0])
+        var_small = np.array([0.1, 0.4])
+        var_large = var_small * 1000.0  # same shape, 1000x scale
+
+        # Without normalize: var_large gets ~zero weight (precision is tiny),
+        # so the pool collapses to mu_a essentially.
+        mu_no, _ = pool_phases([mu_a, mu_b], [var_small, var_large], normalize=False)
+
+        # With normalize: both phases contribute equally because shape is
+        # identical after rescale -> mu_eta is the simple mean.
+        mu_yes, _ = pool_phases([mu_a, mu_b], [var_small, var_large], normalize=True)
+
+        assert np.allclose(mu_yes, 0.5 * (mu_a + mu_b))
+        # Without normalize, mu_no is much closer to mu_a than to mu_b.
+        assert np.linalg.norm(mu_no - mu_a) < np.linalg.norm(mu_no - mu_b)
+
+    def test_normalize_preserves_shape(self):
+        """
+        Per-phase normalization preserves relative per-beamlet shape:
+        beamlets with bigger var stay bigger relative to the others
+        within the same phase.
+        """
+        mu = np.array([0.0, 0.0, 0.0])
+        # Phase a: shape [1, 2, 4]; phase b: shape [10, 20, 40] (same)
+        var_a = np.array([1.0, 2.0, 4.0])
+        var_b = var_a * 100
+        _, var_eta = pool_phases([mu, mu], [var_a, var_b], normalize=True)
+        # Pooled var_eta should have the same shape as the input shape.
+        # After normalization both phases become [1/7*3, 2/7*3, 4/7*3]
+        # = [3/7, 6/7, 12/7]; precision = 7/3, 7/6, 7/12; mean prec = same;
+        # var_eta = inverse mean precision per beamlet -> shape preserved.
+        ratio = var_eta / var_eta[0]
+        assert np.allclose(ratio, var_a / var_a[0])
+
+    def test_normalize_pool_variance_is_mean_normalized(self):
+        """When inputs are already mean-1, var_eta has mean close to 1."""
+        mu = np.zeros(4)
+        var_a = np.array([0.5, 1.0, 1.5, 1.0])  # mean 1.0
+        var_b = np.array([1.5, 0.5, 1.0, 1.0])  # mean 1.0
+        _, var_eta = pool_phases([mu, mu], [var_a, var_b], normalize=True)
+        # Per-phase normalize is a no-op here; sanity check.
+        assert np.isclose(var_eta.mean(), 1.0, atol=0.1)
+
+
 class TestHierarchicalBayes:
     """
     End-to-end coordinate ascent with analytical-solve mock phase optimizers.

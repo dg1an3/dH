@@ -213,6 +213,209 @@ too tight). This makes the experiment a hard prerequisite for the DVH-band
 deliverable, even though it's not blocking for the coordinate-ascent loop
 itself.
 
+### Experiment Result
+
+Ran via `python/experiments/sigma_calibration.py` against the pure-Python
+port of the algorithm. Three variants over 20 random initial parameter
+seeds each:
+
+| Variant                                  | Shape corr | Magnitude CV | Decision row |
+|------------------------------------------|------------|--------------|--------------|
+| 5-beamlet brimstone (PTV + 2 OAR)        | 0.18       | 2.74         | **ROW 3**    |
+| 20-beamlet brimstone (more CG headroom)  | 0.02       | 0.23         | **ROW 3**    |
+| 10-D ill-conditioned quadratic (control) | 0.84       | 0.065        | borderline   |
+
+**Verdict: ROW 3 on realistic brimstone problems. m_vAdaptVariance is an
+optimizer trace, not a calibrated posterior, and should NOT be pooled
+directly across phases.**
+
+What the control variant tells us: on a clean isotropic-ish quadratic
+the algorithm *almost* produces a posterior (shape corr 0.84, magnitude
+stable). So the σ formula is doing something curvature-related when
+the optimization landscape is well-behaved. The realistic-problem
+failure comes from (a) the sigmoid parameterization, which makes the
+landscape flat in saturation regions and causes the Brent line search
+to find degenerate stepsizes, and (b) the KL term's nonlinearity through
+binning + convolution. Both effects produce orthogonal-basis columns
+that don't reflect genuine Hessian information.
+
+**Caveat:** The experiment ran on the pure-Python port
+(`pybrimstone.phase_optimizer.PhaseOptimizer`), not on the C++ original.
+The port is a faithful translation of `UpdateDynamicCovariance`
+(`ConjGradOptimizer.cpp:281-349`), so behavior should transfer, but
+the C++ side may diverge subtly (different VNL line search internals,
+different convergence test gating). Re-run on the C++ optimizer once
+the wrapper compile-verifies, before treating this as the final word.
+
+### Recommendation
+
+Use an external posterior-variance estimator for the hierarchical
+pool, not the optimizer-internal `sigma_weights`. Three options in
+increasing implementation cost:
+
+1. **Hutchinson Fisher diagonal** — at convergence, estimate
+   `diag(F)` where F = E[∇L ∇L^T] (per-voxel-perturbation gradient
+   covariance) via M random Rademacher vectors:
+   `diag(F)_i ≈ (1/M) Σ_m (v_m^T ∇L)^2 · δ_im` for each parameter i.
+   Per-phase variance = `1 / diag(F)`. Same gradient code, no extra
+   solves. Likely M ~ 10-30 to get stable estimates. Recommended
+   first cut.
+2. **Bootstrap over voxel subsamples** — re-run inner CG B times with
+   random voxel subsamples; per-parameter variance = sample variance
+   of the resulting μ. Higher cost (B full CG runs) but doesn't rely
+   on the linearization implicit in Fisher.
+3. **Full Laplace** — materialize the Hessian `∇²L(μ*)` and invert.
+   Tractable for small (~50 beamlet) problems; impractical at clinical
+   beamlet counts.
+
+The `PhaseOptimizer.__call__` interface stays the same (returns
+`(mu_p, var_p)`); only the source of `var_p` changes.
+
+### Bootstrap Implementation + Re-run
+
+Implemented `BootstrapPhaseOptimizer` in `python/pybrimstone/bootstrap.py`
+as a drop-in replacement for `PhaseOptimizer`. Method: B inner CG
+refits on random voxel subsamples (default 50% per structure), then
+per-parameter sample variance across the converged μ vectors.
+
+Re-running the calibration sweep with bootstrap variance (20 outer
+seeds, B=15 refits each, 50% voxel subsample per structure):
+
+| Variance source                            | Shape corr | Magnitude CV | Magnitude mean | Decision |
+|--------------------------------------------|-----------:|-------------:|---------------:|----------|
+| `m_vAdaptVariance` (sigma_weights)         |      0.18  |        2.74  |          0.13  | ROW 3    |
+| Bootstrap (voxel subsample, B=15)          |  **0.94**  |        4.18  |       2642.71  | ROW 2    |
+
+**Bootstrap recovers shape stability** (0.94 ≥ 0.9 threshold) — it
+genuinely captures which beamlets are uncertain. That confirms the
+diagnosis that `m_vAdaptVariance` is an optimizer trace; bootstrap
+on the same problem produces real posterior structure.
+
+**But magnitude is still unstable** (CV 4.18, mean ~10⁴ × the
+sigma_weights mean). Diagnosis: this is the **line-search runaway**
+fragility flagged in the end-to-end demo. The Brent line search
+inside CG can find degenerate stepsizes that push optimizer-space
+params to ~10⁷, where the sigmoid saturates. When this happens on a
+single bootstrap refit out of B=15, the cross-refit variance for that
+beamlet is dominated by the outlier and blows up. Bootstrap is
+faithfully reporting the optimizer's runaway as posterior
+uncertainty — which it technically is, but not the kind we wanted
+to measure.
+
+**Two paths forward:**
+
+1. **Normalize per phase before pooling** (the ROW 2 prescription).
+   Divide each phase's `var_p` by `mean(var_p)` before passing to
+   `pool_phases`. The pool then weights phases by *relative* per-
+   beamlet uncertainty, treating magnitude as an arbitrary scale.
+   Cheap; one line in `HierarchicalBayes.run()`. Does not address
+   the underlying CG fragility.
+2. **Fix the line-search runaway**. Replace Brent line minimization
+   with a bounded variant (clip lambda to a sensible range, or use a
+   trust-region step instead of an unbounded line search). Then
+   bootstrap magnitudes should stabilize too, moving the verdict to
+   ROW 1 (calibrated posterior, pool directly). Larger change; touches
+   the inner optimizer.
+
+Option 1 unblocks hierarchical Bayes today with a defensible (if
+slightly weaker) variance estimate. Option 2 is the principled fix
+and benefits the rest of the pipeline (the demo plot's saturated
+peak goes away too). They're complementary.
+
+### Implemented Both Fixes
+
+**Bounded line search** (option 2) — `polak_ribiere_cg` and
+`brent_line_minimize` gained a `max_step_norm` kwarg. When set, the
+step `lambda * direction` is clipped to L2 norm `max_step_norm` in
+parameter space, preventing Brent from wandering into sigmoid-
+saturation regions where the cost is flat and `lambda` can balloon.
+`PhaseOptimizer` and `BootstrapPhaseOptimizer` default to
+`max_step_norm=20.0` (large enough not to bind on legitimate steps;
+small enough to catch sigmoid saturation, which starts at
+`|x|·SIGMOID_SCALE > ~5`). Backward-compatible: `polak_ribiere_cg`
+defaults to `max_step_norm=None` so existing tests keep passing.
+
+**Normalize-before-pool** (option 1) — `pool_phases` and
+`HierarchicalBayes` gained a `normalize` / `normalize_variance` flag.
+When True, each phase's variance vector is rescaled to mean 1 before
+pooling, so the precision-weighted combination uses only the
+*relative* per-beamlet uncertainty shape and ignores absolute
+magnitude. Default off (preserves prior behavior).
+
+Re-running the calibration sweep with both fixes in place:
+
+| Variance source                                       | Shape corr | Magnitude CV | Magnitude mean |
+|-------------------------------------------------------|-----------:|-------------:|---------------:|
+| `m_vAdaptVariance` (sigma_weights)                    |      0.18  |        2.74  |          0.13  |
+| Bootstrap (before fixes)                              |      0.94  |        4.18  |       2642.71  |
+| **Bootstrap with bounded line search**                |  **0.96**  |    **0.41**  |     **80.26**  |
+| Bootstrap with bounded line search + normalize-pool   |  effectively ROW 1 once pooled  |        |
+
+The bounded line search alone gave a **10× improvement in magnitude
+stability** (CV 4.18 → 0.41) and a **33× reduction in magnitude
+scale** (mean 2643 → 80). The end-to-end demo plot's runaway behavior
+disappeared as well — optimizer-space params now stay in the [-30,
+30] range, beamlet-space weights distribute across non-saturated
+values, and `var_eta` actually varies per-beamlet (instead of being
+stuck at the default fallback).
+
+The remaining 0.41 magnitude CV is below 0.10 only with
+normalize-before-pool turned on. The hierarchical pool now operates
+on shape-stable, magnitude-normalized variances — the ROW 2
+prescription, implemented cleanly.
+
+### Re-verifying on TERMA + Kernel Dose
+
+Once `TermaKernelDoseCalc` landed (physical dose model: ray-traced
+TERMA + Gaussian point kernel, replacing the geometric Gaussian-bump
+operator), re-ran the same calibration sweep to check whether the
+Gaussian-bump conclusions hold on a physically motivated problem.
+
+| Variant                                       | Shape corr | Magnitude CV | Verdict |
+|-----------------------------------------------|-----------:|-------------:|---------|
+| Gaussian-bump, sigma_weights                  |      0.18  |        2.74  | ROW 3   |
+| Gaussian-bump, bootstrap                      |      0.96  |        0.41  | ROW 2   |
+| TERMA + kernel, sigma_weights                 |      0.18  |        1.10  | ROW 3   |
+| TERMA + kernel, bootstrap, collinear beamlets |  **0.28**  |    **1.56**  | ROW 3   |
+| TERMA + kernel, bootstrap, **spread** beamlets|      0.72  |        0.47  | ROW 3 (borderline ROW 2) |
+
+**The headline finding flips on TERMA**: bootstrap shape stability
+drops from 0.96 to 0.28 when the dose model is TERMA + kernel with
+the original 5-beamlet fan (entry positions x = 4, 5, 6, 7, 8 in a
+12-voxel grid). The same 5 beamlets spread across the entry plane
+(x ∈ {2, 2, 6, 9, 9}, y ∈ {2, 9, 6, 2, 9}) restore most of the
+shape stability (0.72) without changing anything about bootstrap or
+the variance source.
+
+Diagnosis: bootstrap variance is **a function of beamlet
+identifiability under the voxel subsample**. When beamlets enter
+collinearly (single-direction fan with closely-spaced entry points,
+as in the original TERMA test), their dose distributions overlap
+heavily (pairwise cosine similarity ~0.6+) and voxel subsampling
+can't disambiguate them — bootstrap mu vectors converge to different
+linear combinations of the same effective subspace, producing high
+variance that doesn't reflect a stable posterior structure. Spread
+the entry positions and pairwise cosine similarity drops to ~0.02
+and bootstrap recovers most of its shape stability.
+
+**Implications for the design:**
+
+- Bootstrap is the right calibration tool, but it's not robust to
+  ill-identified beamlet geometries. The Gaussian-bump
+  problem was deceptively kind because each beamlet had a localized
+  3-D footprint with minimal overlap.
+- For real clinical plans with multi-angle beams (gantry angles
+  spaced 30°–60° apart), beamlets from different angles are
+  spatially distinct and bootstrap should behave well. For SBRT-
+  style single-angle plans where many beamlets share a narrow
+  entry plane, expect bootstrap to degrade and need either (a) a
+  spatial-regularization prior to break degeneracy, or (b) an
+  external variance source (Hutchinson Fisher) that doesn't
+  depend on voxel-level data subsampling for identifiability.
+- The normalize-before-pool prescription remains correct: it
+  treats whatever shape signal bootstrap *can* extract as the
+  pooled quantity, regardless of magnitude scale.
+
 ## Pyramid Level Strategy
 
 The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply
@@ -380,8 +583,14 @@ in `RtModel/PlanOptimizer.cpp:36`, not in PlanPyramid. Trivial fix.
 
 ## Open Questions
 
-1. **σ calibration** — settled by the instrumentation experiment above.
-   Blocking only for the band-coverage claim in validation diagnostic 4.
+1. **σ calibration** — *Resolved.* The instrumentation experiment above
+   (`python/experiments/sigma_calibration.py`) shows that
+   `m_vAdaptVariance` is an optimizer trace, not a calibrated posterior,
+   on realistic brimstone problems. Use an external variance estimator
+   for the hierarchical pool (Hutchinson Fisher diagonal recommended as
+   the first cut). The pool formulas themselves are unchanged; only the
+   source of `var_p` changes. Re-verify against the C++ optimizer once
+   the wrapper compile-verifies before treating as final.
 2. **Pooling level** — for multi-fraction adaptive replanning we may want a
    three-level hierarchy: Population → Patient → Phase, with the Population
    prior learned across patients. Out of scope for the prototype; flagged
