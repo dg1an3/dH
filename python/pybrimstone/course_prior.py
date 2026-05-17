@@ -9,8 +9,8 @@ variance).
 The term lives in beamlet-weight space rather than dose space -- this is the
 "option (a)" resolution of Open Question 4 in HIERARCHICAL_BAYES_DESIGN.md,
 which the design doc flagged as smaller-change and structure-preserving.
-A new BeamletObjectiveTerm base class encodes that contract; the existing
-dose-space ObjectiveTerm interface in CYTHON_WRAPPER_DESIGN.md is unaffected.
+The BeamletObjectiveTerm base class lives in objective_terms.py (it became
+a shared abstraction once KLDivTerm landed as a DoseObjectiveTerm sibling).
 """
 
 from __future__ import annotations
@@ -19,23 +19,10 @@ from typing import Tuple, Union
 
 import numpy as np
 
+from .objective_terms import BeamletObjectiveTerm
+
 
 Precision = Union[float, np.ndarray]
-
-
-class BeamletObjectiveTerm:
-    """
-    Objective term that evaluates in beamlet-weight space.
-
-    Sibling of the dose-space ObjectiveTerm from CYTHON_WRAPPER_DESIGN.md:95-100.
-    The hierarchical-Bayes Course prior is naturally a Gaussian over beamlet
-    weights, so it skips the dose-calc step in its evaluation. Other beamlet-
-    space regularizers (L1, smoothness, etc.) can subclass this too.
-    """
-
-    def evaluate(self, beamlet_weights: np.ndarray) -> Tuple[float, np.ndarray]:
-        """Return (cost, gradient w.r.t. beamlet_weights)."""
-        raise NotImplementedError
 
 
 class CoursePriorTerm(BeamletObjectiveTerm):

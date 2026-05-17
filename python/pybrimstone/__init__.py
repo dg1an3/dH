@@ -51,9 +51,12 @@ except ImportError:
     pass
 
 
-# Course-level prior for hierarchical-Bayes outer loop (pure Python, always
+# Pure-Python brimstone port + hierarchical-Bayes outer loop (always
 # available regardless of Cython extension build state).
-from .course_prior import BeamletObjectiveTerm, CoursePriorTerm  # noqa: E402
+from .objective_terms import BeamletObjectiveTerm, DoseObjectiveTerm  # noqa: E402
+from .course_prior import CoursePriorTerm  # noqa: E402
+from .kl_term import KLDivTerm  # noqa: E402
+from .prescription import Prescription  # noqa: E402
 from .hierarchical_bayes import HierarchicalBayes, pool_phases  # noqa: E402
 from .free_energy import (  # noqa: E402
     free_energy_trajectory,
@@ -72,7 +75,10 @@ from .dvh_uncertainty import (  # noqa: E402
 
 __all__.extend([
     "BeamletObjectiveTerm",
+    "DoseObjectiveTerm",
     "CoursePriorTerm",
+    "KLDivTerm",
+    "Prescription",
     "HierarchicalBayes",
     "pool_phases",
     "free_energy_trajectory",
