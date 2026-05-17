@@ -299,6 +299,16 @@ recompute dose for each sample (parallel `optimizer.optimize()`-free dose
 calc — pure forward pass), bin into structure DVHs, plot 5th/50th/95th
 percentile bands per structure. This is what gets demoed.
 
+*Implementation status:* Python reference in
+`python/pybrimstone/dvh_uncertainty.py` with the full pipeline
+`sample_phase_posterior → compute_dose → compute_dvh → compute_dvh_bands`
+plus a top-level `dvh_uncertainty_bands(...)` and a `plot_dvh_bands(...)`
+matplotlib helper (imported lazily). `compute_dose` accepts either a
+beamlet-to-dose matrix or a callable, so the real C++ TERMA + kernel
+convolution can slot in once exposed through the wrapper without
+changing the rest of the pipeline. The demo image generated from a
+synthetic 2-phase plan shows the customer-facing artifact.
+
 ## Phasing Within the Wrapper Roadmap
 
 Slots into `CYTHON_WRAPPER_DESIGN.md` as "Phase 4.5":

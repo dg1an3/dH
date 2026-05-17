@@ -61,6 +61,14 @@ from .free_energy import (  # noqa: E402
     phase_free_energy,
     total_free_energy,
 )
+from .dvh_uncertainty import (  # noqa: E402
+    compute_dose,
+    compute_dvh,
+    compute_dvh_bands,
+    dvh_uncertainty_bands,
+    plot_dvh_bands,
+    sample_phase_posterior,
+)
 
 __all__.extend([
     "BeamletObjectiveTerm",
@@ -71,4 +79,10 @@ __all__.extend([
     "gaussian_entropy_diag",
     "phase_free_energy",
     "total_free_energy",
+    "compute_dose",
+    "compute_dvh",
+    "compute_dvh_bands",
+    "dvh_uncertainty_bands",
+    "plot_dvh_bands",
+    "sample_phase_posterior",
 ])
