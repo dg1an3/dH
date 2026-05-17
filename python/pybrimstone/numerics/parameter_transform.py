@@ -16,6 +16,7 @@ from beamlet space back to optimizer space.
 from __future__ import annotations
 
 import numpy as np
+from scipy.special import expit
 
 
 INPUT_SCALE = 0.5
@@ -23,8 +24,9 @@ SIGMOID_SCALE = 0.2
 
 
 def sigmoid(x: np.ndarray | float, scale: float = SIGMOID_SCALE) -> np.ndarray | float:
-    """Scaled sigmoid: 1 / (1 + exp(-scale * x))."""
-    return 1.0 / (1.0 + np.exp(-x * scale))
+    """Scaled sigmoid: 1 / (1 + exp(-scale * x)). Uses scipy.special.expit
+    for numerical stability under large |x*scale|."""
+    return expit(x * scale)
 
 
 def transform(v: np.ndarray | float, input_scale: float = INPUT_SCALE) -> np.ndarray | float:

@@ -57,6 +57,8 @@ from .objective_terms import BeamletObjectiveTerm, DoseObjectiveTerm  # noqa: E4
 from .course_prior import CoursePriorTerm  # noqa: E402
 from .kl_term import KLDivTerm  # noqa: E402
 from .prescription import Prescription  # noqa: E402
+from .dose_calc import gaussian_bump_dose_operator  # noqa: E402
+from .phase_optimizer import PhaseOptimizer  # noqa: E402
 from .hierarchical_bayes import HierarchicalBayes, pool_phases  # noqa: E402
 from .free_energy import (  # noqa: E402
     free_energy_trajectory,
@@ -79,6 +81,8 @@ __all__.extend([
     "CoursePriorTerm",
     "KLDivTerm",
     "Prescription",
+    "PhaseOptimizer",
+    "gaussian_bump_dose_operator",
     "HierarchicalBayes",
     "pool_phases",
     "free_energy_trajectory",
