@@ -112,6 +112,7 @@ class BootstrapPhaseOptimizer:
         max_iter: int = 200,
         tol: float = 1e-4,
         adaptive_variance: Tuple[float, float] = (0.01, 1.0),
+        max_step_norm: Optional[float] = 20.0,
         bootstrap_seed: int = 0,
     ):
         if not callable(prescription_factory):
@@ -130,6 +131,7 @@ class BootstrapPhaseOptimizer:
         self.max_iter = int(max_iter)
         self.tol = float(tol)
         self.adaptive_variance = adaptive_variance
+        self.max_step_norm = max_step_norm
         self.bootstrap_seed = int(bootstrap_seed)
 
     def _build_inner(self, prescription: Prescription) -> PhaseOptimizer:
@@ -140,6 +142,7 @@ class BootstrapPhaseOptimizer:
             max_iter=self.max_iter,
             tol=self.tol,
             adaptive_variance=self.adaptive_variance,
+            max_step_norm=self.max_step_norm,
         )
 
     def __call__(

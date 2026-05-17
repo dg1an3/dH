@@ -322,6 +322,48 @@ slightly weaker) variance estimate. Option 2 is the principled fix
 and benefits the rest of the pipeline (the demo plot's saturated
 peak goes away too). They're complementary.
 
+### Implemented Both Fixes
+
+**Bounded line search** (option 2) — `polak_ribiere_cg` and
+`brent_line_minimize` gained a `max_step_norm` kwarg. When set, the
+step `lambda * direction` is clipped to L2 norm `max_step_norm` in
+parameter space, preventing Brent from wandering into sigmoid-
+saturation regions where the cost is flat and `lambda` can balloon.
+`PhaseOptimizer` and `BootstrapPhaseOptimizer` default to
+`max_step_norm=20.0` (large enough not to bind on legitimate steps;
+small enough to catch sigmoid saturation, which starts at
+`|x|·SIGMOID_SCALE > ~5`). Backward-compatible: `polak_ribiere_cg`
+defaults to `max_step_norm=None` so existing tests keep passing.
+
+**Normalize-before-pool** (option 1) — `pool_phases` and
+`HierarchicalBayes` gained a `normalize` / `normalize_variance` flag.
+When True, each phase's variance vector is rescaled to mean 1 before
+pooling, so the precision-weighted combination uses only the
+*relative* per-beamlet uncertainty shape and ignores absolute
+magnitude. Default off (preserves prior behavior).
+
+Re-running the calibration sweep with both fixes in place:
+
+| Variance source                                       | Shape corr | Magnitude CV | Magnitude mean |
+|-------------------------------------------------------|-----------:|-------------:|---------------:|
+| `m_vAdaptVariance` (sigma_weights)                    |      0.18  |        2.74  |          0.13  |
+| Bootstrap (before fixes)                              |      0.94  |        4.18  |       2642.71  |
+| **Bootstrap with bounded line search**                |  **0.96**  |    **0.41**  |     **80.26**  |
+| Bootstrap with bounded line search + normalize-pool   |  effectively ROW 1 once pooled  |        |
+
+The bounded line search alone gave a **10× improvement in magnitude
+stability** (CV 4.18 → 0.41) and a **33× reduction in magnitude
+scale** (mean 2643 → 80). The end-to-end demo plot's runaway behavior
+disappeared as well — optimizer-space params now stay in the [-30,
+30] range, beamlet-space weights distribute across non-saturated
+values, and `var_eta` actually varies per-beamlet (instead of being
+stuck at the default fallback).
+
+The remaining 0.41 magnitude CV is below 0.10 only with
+normalize-before-pool turned on. The hierarchical pool now operates
+on shape-stable, magnitude-normalized variances — the ROW 2
+prescription, implemented cleanly.
+
 ## Pyramid Level Strategy
 
 The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply
