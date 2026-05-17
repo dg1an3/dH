@@ -213,6 +213,64 @@ too tight). This makes the experiment a hard prerequisite for the DVH-band
 deliverable, even though it's not blocking for the coordinate-ascent loop
 itself.
 
+### Experiment Result
+
+Ran via `python/experiments/sigma_calibration.py` against the pure-Python
+port of the algorithm. Three variants over 20 random initial parameter
+seeds each:
+
+| Variant                                  | Shape corr | Magnitude CV | Decision row |
+|------------------------------------------|------------|--------------|--------------|
+| 5-beamlet brimstone (PTV + 2 OAR)        | 0.18       | 2.74         | **ROW 3**    |
+| 20-beamlet brimstone (more CG headroom)  | 0.02       | 0.23         | **ROW 3**    |
+| 10-D ill-conditioned quadratic (control) | 0.84       | 0.065        | borderline   |
+
+**Verdict: ROW 3 on realistic brimstone problems. m_vAdaptVariance is an
+optimizer trace, not a calibrated posterior, and should NOT be pooled
+directly across phases.**
+
+What the control variant tells us: on a clean isotropic-ish quadratic
+the algorithm *almost* produces a posterior (shape corr 0.84, magnitude
+stable). So the σ formula is doing something curvature-related when
+the optimization landscape is well-behaved. The realistic-problem
+failure comes from (a) the sigmoid parameterization, which makes the
+landscape flat in saturation regions and causes the Brent line search
+to find degenerate stepsizes, and (b) the KL term's nonlinearity through
+binning + convolution. Both effects produce orthogonal-basis columns
+that don't reflect genuine Hessian information.
+
+**Caveat:** The experiment ran on the pure-Python port
+(`pybrimstone.phase_optimizer.PhaseOptimizer`), not on the C++ original.
+The port is a faithful translation of `UpdateDynamicCovariance`
+(`ConjGradOptimizer.cpp:281-349`), so behavior should transfer, but
+the C++ side may diverge subtly (different VNL line search internals,
+different convergence test gating). Re-run on the C++ optimizer once
+the wrapper compile-verifies, before treating this as the final word.
+
+### Recommendation
+
+Use an external posterior-variance estimator for the hierarchical
+pool, not the optimizer-internal `sigma_weights`. Three options in
+increasing implementation cost:
+
+1. **Hutchinson Fisher diagonal** — at convergence, estimate
+   `diag(F)` where F = E[∇L ∇L^T] (per-voxel-perturbation gradient
+   covariance) via M random Rademacher vectors:
+   `diag(F)_i ≈ (1/M) Σ_m (v_m^T ∇L)^2 · δ_im` for each parameter i.
+   Per-phase variance = `1 / diag(F)`. Same gradient code, no extra
+   solves. Likely M ~ 10-30 to get stable estimates. Recommended
+   first cut.
+2. **Bootstrap over voxel subsamples** — re-run inner CG B times with
+   random voxel subsamples; per-parameter variance = sample variance
+   of the resulting μ. Higher cost (B full CG runs) but doesn't rely
+   on the linearization implicit in Fisher.
+3. **Full Laplace** — materialize the Hessian `∇²L(μ*)` and invert.
+   Tractable for small (~50 beamlet) problems; impractical at clinical
+   beamlet counts.
+
+The `PhaseOptimizer.__call__` interface stays the same (returns
+`(mu_p, var_p)`); only the source of `var_p` changes.
+
 ## Pyramid Level Strategy
 
 The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply
@@ -380,8 +438,14 @@ in `RtModel/PlanOptimizer.cpp:36`, not in PlanPyramid. Trivial fix.
 
 ## Open Questions
 
-1. **σ calibration** — settled by the instrumentation experiment above.
-   Blocking only for the band-coverage claim in validation diagnostic 4.
+1. **σ calibration** — *Resolved.* The instrumentation experiment above
+   (`python/experiments/sigma_calibration.py`) shows that
+   `m_vAdaptVariance` is an optimizer trace, not a calibrated posterior,
+   on realistic brimstone problems. Use an external variance estimator
+   for the hierarchical pool (Hutchinson Fisher diagonal recommended as
+   the first cut). The pool formulas themselves are unchanged; only the
+   source of `var_p` changes. Re-verify against the C++ optimizer once
+   the wrapper compile-verifies before treating as final.
 2. **Pooling level** — for multi-fraction adaptive replanning we may want a
    three-level hierarchy: Population → Patient → Phase, with the Population
    prior learned across patients. Out of scope for the prototype; flagged
