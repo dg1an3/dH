@@ -401,6 +401,82 @@ def make_summary_plot(results: List[dict], out_path: str) -> None:
     plt.close(fig)
 
 
+def run_bootstrap_variant(
+    n_seeds: int = 20,
+    n_bootstrap: int = 15,
+    subsample_fraction: float = 0.5,
+) -> dict:
+    """
+    Calibration sweep using BootstrapPhaseOptimizer instead of the
+    optimizer-internal sigma_weights. If the bootstrap variance is a
+    genuine posterior estimate, multiple random initializations of the
+    *outer* CG should produce nearly identical bootstrap variance
+    (since it's a property of the data, not the optimizer init).
+
+    Returns the same dict shape as the other run_* functions so it
+    plugs into make_summary_plot.
+    """
+    from pybrimstone import KLDivTerm, Prescription, gaussian_bump_dose_operator
+    from pybrimstone.bootstrap import BootstrapPhaseOptimizer, subsample_mask
+
+    grid = GRID
+    nx, ny, nz = grid
+    n_voxels = nx * ny * nz
+    n_beamlets = N_BEAMLETS
+    centers = np.array([[3.0, 3.0, 3.5 + i * 0.5] for i in range(n_beamlets)])
+    D = gaussian_bump_dose_operator(grid, centers, sigma=1.5)
+    structures = {
+        "PTV":           _make_mask(lambda i, j, k: 2 <= i <= 4 and 2 <= j <= 4 and 3 <= k <= 5),
+        "OAR_anterior":  _make_mask(lambda i, j, k: i == 1 and 2 <= j <= 4 and 3 <= k <= 5),
+        "OAR_posterior": _make_mask(lambda i, j, k: i == 5 and 2 <= j <= 4 and 3 <= k <= 5),
+    }
+
+    def factory(rng):
+        masks = {
+            name: m if rng is None else subsample_mask(m, subsample_fraction, rng)
+            for name, m in structures.items()
+        }
+        p = Prescription(D, use_transform=True)
+        p.add_dose_term(KLDivTerm.from_interval(
+            masks["PTV"], dose_min=0.55, dose_max=0.75, weight=2.0,
+            bin_width=0.05, var_min=0.01, var_max=0.01,
+        ))
+        for oar in ("OAR_anterior", "OAR_posterior"):
+            p.add_dose_term(KLDivTerm.from_interval(
+                masks[oar], dose_min=0.0, dose_max=0.3, weight=1.0,
+                bin_width=0.05, var_min=0.01, var_max=0.01,
+            ))
+        return p
+
+    vars_ = []
+    for s in range(n_seeds):
+        rng = np.random.default_rng(s)
+        opt = BootstrapPhaseOptimizer(
+            factory, n_params=n_beamlets,
+            n_bootstrap=n_bootstrap,
+            initial_params=rng.normal(size=n_beamlets) * 0.5,
+            max_iter=30, tol=1e-3,
+            adaptive_variance=(0.01, 0.1),
+            bootstrap_seed=10_000 + s,
+        )
+        _, var_p = opt(prior=None)
+        vars_.append(var_p)
+    vars_ = np.stack(vars_)
+
+    shape_corr = shape_stability(vars_)
+    mean_, std_, cv = magnitude_stability(vars_)
+    return {
+        "label": f"Bootstrap variance (B={n_bootstrap}, frac={subsample_fraction})",
+        "n_beamlets": n_beamlets,
+        "shape_corr": shape_corr,
+        "magnitude_cv": cv,
+        "magnitude_mean": mean_,
+        "magnitude_std": std_,
+        "vars": vars_,
+        "verdict": verdict(shape_corr, cv),
+    }
+
+
 def run_full_sweep(out_path: str = "/tmp/sigma_calibration_full.png") -> List[dict]:
     """Run all three variants and produce a side-by-side comparison plot."""
     print("\n" + "=" * 64)
@@ -455,14 +531,55 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--n-seeds", type=int, default=20)
     parser.add_argument("--mode", type=str, default="full",
-                       choices=["main", "full"],
-                       help="'main' = just the 5-beamlet experiment; "
-                            "'full' = all three variants with comparison plot")
+                       choices=["main", "full", "bootstrap", "compare"],
+                       help="'main' = just the 5-beamlet sigma_weights experiment; "
+                            "'full' = three sigma_weights variants; "
+                            "'bootstrap' = bootstrap-variance variant only; "
+                            "'compare' = sigma_weights vs bootstrap side-by-side")
     parser.add_argument("--out", type=str,
                        default="/tmp/sigma_calibration.png")
     args = parser.parse_args()
 
     if args.mode == "main":
         main(n_seeds=args.n_seeds, out_path=args.out)
-    else:
+    elif args.mode == "full":
         run_full_sweep(out_path=args.out)
+    elif args.mode == "bootstrap":
+        print("Bootstrap-variance calibration sweep")
+        print("=" * 64)
+        res = run_bootstrap_variant(n_seeds=args.n_seeds)
+        print(f"  shape_stability    {res['shape_corr']:.4f}")
+        print(f"  magnitude CV       {res['magnitude_cv']:.4f}")
+        print(f"  magnitude mean     {res['magnitude_mean']:.6f}")
+        print(f"  VERDICT: {res['verdict']}")
+        make_summary_plot([res], args.out)
+        print(f"Plot saved to {args.out}")
+    elif args.mode == "compare":
+        print("Variant A: sigma_weights (5-beamlet brimstone, n_seeds=20)")
+        print("-" * 64)
+        sigma_main = main(n_seeds=20, out_path="/tmp/sigma_calibration_sigma.png")
+        sigma_main["label"] = "sigma_weights (m_vAdaptVariance)"
+        sigma_main["n_beamlets"] = N_BEAMLETS
+
+        print("\nVariant B: bootstrap variance (5-beamlet brimstone, B=15)")
+        print("-" * 64)
+        boot = run_bootstrap_variant(n_seeds=args.n_seeds, n_bootstrap=15)
+        print(f"  shape_stability    {boot['shape_corr']:.4f}")
+        print(f"  magnitude CV       {boot['magnitude_cv']:.4f}")
+        print(f"  magnitude mean     {boot['magnitude_mean']:.6f}")
+        print(f"  VERDICT: {boot['verdict']}")
+
+        make_summary_plot([sigma_main, boot], args.out)
+        print(f"\nComparison plot saved to {args.out}")
+
+        print("\n" + "=" * 64)
+        print("COMPARISON SUMMARY")
+        print("=" * 64)
+        print(f"  {'variant':<40}{'shape':>8}{'CV':>8}  verdict")
+        print(f"  {'sigma_weights (m_vAdaptVariance)':<40}"
+              f"{sigma_main['shape_corr']:>8.3f}{sigma_main['magnitude_cv']:>8.3f}"
+              f"  {sigma_main['verdict'].split(':')[0]}")
+        print(f"  {'bootstrap (voxel subsample, B=15)':<40}"
+              f"{boot['shape_corr']:>8.3f}{boot['magnitude_cv']:>8.3f}"
+              f"  {boot['verdict'].split(':')[0]}")
+        print("=" * 64)

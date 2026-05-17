@@ -271,6 +271,57 @@ increasing implementation cost:
 The `PhaseOptimizer.__call__` interface stays the same (returns
 `(mu_p, var_p)`); only the source of `var_p` changes.
 
+### Bootstrap Implementation + Re-run
+
+Implemented `BootstrapPhaseOptimizer` in `python/pybrimstone/bootstrap.py`
+as a drop-in replacement for `PhaseOptimizer`. Method: B inner CG
+refits on random voxel subsamples (default 50% per structure), then
+per-parameter sample variance across the converged μ vectors.
+
+Re-running the calibration sweep with bootstrap variance (20 outer
+seeds, B=15 refits each, 50% voxel subsample per structure):
+
+| Variance source                            | Shape corr | Magnitude CV | Magnitude mean | Decision |
+|--------------------------------------------|-----------:|-------------:|---------------:|----------|
+| `m_vAdaptVariance` (sigma_weights)         |      0.18  |        2.74  |          0.13  | ROW 3    |
+| Bootstrap (voxel subsample, B=15)          |  **0.94**  |        4.18  |       2642.71  | ROW 2    |
+
+**Bootstrap recovers shape stability** (0.94 ≥ 0.9 threshold) — it
+genuinely captures which beamlets are uncertain. That confirms the
+diagnosis that `m_vAdaptVariance` is an optimizer trace; bootstrap
+on the same problem produces real posterior structure.
+
+**But magnitude is still unstable** (CV 4.18, mean ~10⁴ × the
+sigma_weights mean). Diagnosis: this is the **line-search runaway**
+fragility flagged in the end-to-end demo. The Brent line search
+inside CG can find degenerate stepsizes that push optimizer-space
+params to ~10⁷, where the sigmoid saturates. When this happens on a
+single bootstrap refit out of B=15, the cross-refit variance for that
+beamlet is dominated by the outlier and blows up. Bootstrap is
+faithfully reporting the optimizer's runaway as posterior
+uncertainty — which it technically is, but not the kind we wanted
+to measure.
+
+**Two paths forward:**
+
+1. **Normalize per phase before pooling** (the ROW 2 prescription).
+   Divide each phase's `var_p` by `mean(var_p)` before passing to
+   `pool_phases`. The pool then weights phases by *relative* per-
+   beamlet uncertainty, treating magnitude as an arbitrary scale.
+   Cheap; one line in `HierarchicalBayes.run()`. Does not address
+   the underlying CG fragility.
+2. **Fix the line-search runaway**. Replace Brent line minimization
+   with a bounded variant (clip lambda to a sensible range, or use a
+   trust-region step instead of an unbounded line search). Then
+   bootstrap magnitudes should stabilize too, moving the verdict to
+   ROW 1 (calibrated posterior, pool directly). Larger change; touches
+   the inner optimizer.
+
+Option 1 unblocks hierarchical Bayes today with a defensible (if
+slightly weaker) variance estimate. Option 2 is the principled fix
+and benefits the rest of the pipeline (the demo plot's saturated
+peak goes away too). They're complementary.
+
 ## Pyramid Level Strategy
 
 The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply
