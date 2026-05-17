@@ -60,6 +60,12 @@ public:
 		m_pCallbackParam = pParam;
 	}
 
+	// per-parameter adaptive variance (1.0 / column-sum of orthogonalized
+	// covariance, ConjGradOptimizer.cpp:348). Exposed for callbacks that
+	// need to surface sigma to Python; required by the hierarchical-Bayes
+	// outer loop (see HIERARCHICAL_BAYES_DESIGN.md, Step 1).
+	const CVectorN<>& GetAdaptiveVariance() const { return m_vAdaptVariance; }
+
 protected:
 	void InitializeDynamicCovariance(int nDim);
 	void UpdateDynamicCovariance();

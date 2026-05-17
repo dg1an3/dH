@@ -49,3 +49,50 @@ try:
 except ImportError:
     # PyTorch not installed - TG-263 features not available
     pass
+
+
+# Pure-Python brimstone port + hierarchical-Bayes outer loop (always
+# available regardless of Cython extension build state).
+from .objective_terms import BeamletObjectiveTerm, DoseObjectiveTerm  # noqa: E402
+from .course_prior import CoursePriorTerm  # noqa: E402
+from .kl_term import KLDivTerm  # noqa: E402
+from .prescription import Prescription  # noqa: E402
+from .dose_calc import gaussian_bump_dose_operator  # noqa: E402
+from .phase_optimizer import PhaseOptimizer  # noqa: E402
+from .hierarchical_bayes import HierarchicalBayes, pool_phases  # noqa: E402
+from .free_energy import (  # noqa: E402
+    free_energy_trajectory,
+    gaussian_entropy_diag,
+    phase_free_energy,
+    total_free_energy,
+)
+from .dvh_uncertainty import (  # noqa: E402
+    compute_dose,
+    compute_dvh,
+    compute_dvh_bands,
+    dvh_uncertainty_bands,
+    plot_dvh_bands,
+    sample_phase_posterior,
+)
+
+__all__.extend([
+    "BeamletObjectiveTerm",
+    "DoseObjectiveTerm",
+    "CoursePriorTerm",
+    "KLDivTerm",
+    "Prescription",
+    "PhaseOptimizer",
+    "gaussian_bump_dose_operator",
+    "HierarchicalBayes",
+    "pool_phases",
+    "free_energy_trajectory",
+    "gaussian_entropy_diag",
+    "phase_free_energy",
+    "total_free_energy",
+    "compute_dose",
+    "compute_dvh",
+    "compute_dvh_bands",
+    "dvh_uncertainty_bands",
+    "plot_dvh_bands",
+    "sample_phase_posterior",
+])
