@@ -364,6 +364,58 @@ normalize-before-pool turned on. The hierarchical pool now operates
 on shape-stable, magnitude-normalized variances — the ROW 2
 prescription, implemented cleanly.
 
+### Re-verifying on TERMA + Kernel Dose
+
+Once `TermaKernelDoseCalc` landed (physical dose model: ray-traced
+TERMA + Gaussian point kernel, replacing the geometric Gaussian-bump
+operator), re-ran the same calibration sweep to check whether the
+Gaussian-bump conclusions hold on a physically motivated problem.
+
+| Variant                                       | Shape corr | Magnitude CV | Verdict |
+|-----------------------------------------------|-----------:|-------------:|---------|
+| Gaussian-bump, sigma_weights                  |      0.18  |        2.74  | ROW 3   |
+| Gaussian-bump, bootstrap                      |      0.96  |        0.41  | ROW 2   |
+| TERMA + kernel, sigma_weights                 |      0.18  |        1.10  | ROW 3   |
+| TERMA + kernel, bootstrap, collinear beamlets |  **0.28**  |    **1.56**  | ROW 3   |
+| TERMA + kernel, bootstrap, **spread** beamlets|      0.72  |        0.47  | ROW 3 (borderline ROW 2) |
+
+**The headline finding flips on TERMA**: bootstrap shape stability
+drops from 0.96 to 0.28 when the dose model is TERMA + kernel with
+the original 5-beamlet fan (entry positions x = 4, 5, 6, 7, 8 in a
+12-voxel grid). The same 5 beamlets spread across the entry plane
+(x ∈ {2, 2, 6, 9, 9}, y ∈ {2, 9, 6, 2, 9}) restore most of the
+shape stability (0.72) without changing anything about bootstrap or
+the variance source.
+
+Diagnosis: bootstrap variance is **a function of beamlet
+identifiability under the voxel subsample**. When beamlets enter
+collinearly (single-direction fan with closely-spaced entry points,
+as in the original TERMA test), their dose distributions overlap
+heavily (pairwise cosine similarity ~0.6+) and voxel subsampling
+can't disambiguate them — bootstrap mu vectors converge to different
+linear combinations of the same effective subspace, producing high
+variance that doesn't reflect a stable posterior structure. Spread
+the entry positions and pairwise cosine similarity drops to ~0.02
+and bootstrap recovers most of its shape stability.
+
+**Implications for the design:**
+
+- Bootstrap is the right calibration tool, but it's not robust to
+  ill-identified beamlet geometries. The Gaussian-bump
+  problem was deceptively kind because each beamlet had a localized
+  3-D footprint with minimal overlap.
+- For real clinical plans with multi-angle beams (gantry angles
+  spaced 30°–60° apart), beamlets from different angles are
+  spatially distinct and bootstrap should behave well. For SBRT-
+  style single-angle plans where many beamlets share a narrow
+  entry plane, expect bootstrap to degrade and need either (a) a
+  spatial-regularization prior to break degeneracy, or (b) an
+  external variance source (Hutchinson Fisher) that doesn't
+  depend on voxel-level data subsampling for identifiability.
+- The normalize-before-pool prescription remains correct: it
+  treats whatever shape signal bootstrap *can* extract as the
+  pooled quantity, regardless of magnitude scale.
+
 ## Pyramid Level Strategy
 
 The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply

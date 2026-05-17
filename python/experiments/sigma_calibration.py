@@ -477,6 +477,173 @@ def run_bootstrap_variant(
     }
 
 
+# ---------------------------------------------------------------------------
+# TERMA + kernel dose calc variants
+# ---------------------------------------------------------------------------
+
+TERMA_GRID = (12, 12, 18)
+TERMA_N_BEAMLETS = 5
+
+
+def _build_terma_calc():
+    """Heterogeneous (water + bone-slab) volume with 5 beamlets entering at z=0."""
+    from pybrimstone import TermaKernelDoseCalc
+    nx, ny, nz = TERMA_GRID
+    density = np.ones((nx, ny, nz))
+    # Cortical-bone slab between superficial and deep tissue
+    density[4:8, 4:8, 6:10] = 1.85
+    beamlet_centers = np.array([
+        [4.0 + i * 1.0, 6.0] for i in range(TERMA_N_BEAMLETS)
+    ])
+    return TermaKernelDoseCalc(
+        density,
+        beamlet_centers_2d=beamlet_centers,
+        beamlet_width_mm=3.0,
+        mu=0.05,
+        kernel_sigma_mm=2.5,
+        voxel_spacing_mm=2.0,
+    ), density
+
+
+def _build_terma_structures(grid_shape):
+    nx, ny, nz = grid_shape
+
+    def flat_idx(i, j, k):
+        return i * ny * nz + j * nz + k
+
+    n_voxels = nx * ny * nz
+    structures = {
+        "PTV":           np.zeros(n_voxels),
+        "OAR_anterior":  np.zeros(n_voxels),
+        "OAR_posterior": np.zeros(n_voxels),
+    }
+    # PTV: deep, central
+    for i in range(4, 8):
+        for j in range(4, 8):
+            for k in range(12, 16):
+                structures["PTV"][flat_idx(i, j, k)] = 1.0
+    # OAR_anterior: superficial, central (beam path)
+    for i in range(4, 8):
+        for j in range(4, 8):
+            for k in range(1, 4):
+                structures["OAR_anterior"][flat_idx(i, j, k)] = 1.0
+    # OAR_posterior: lateral, deep (out of beam)
+    for i in range(4, 8):
+        for j in range(0, 2):
+            for k in range(12, 16):
+                structures["OAR_posterior"][flat_idx(i, j, k)] = 1.0
+    return structures
+
+
+def run_terma_sigma_variant(n_seeds: int = 20) -> dict:
+    """sigma_weights (m_vAdaptVariance) calibration sweep on TERMA + kernel dose."""
+    from pybrimstone import KLDivTerm, Prescription
+    from pybrimstone.phase_optimizer import PhaseOptimizer
+
+    calc, _ = _build_terma_calc()
+    D = calc.build_dose_operator()
+    structures = _build_terma_structures(TERMA_GRID)
+
+    def build_prescription():
+        p = Prescription(D, use_transform=True)
+        p.add_dose_term(KLDivTerm.from_interval(
+            structures["PTV"], dose_min=0.005, dose_max=0.010, weight=2.0,
+            bin_width=0.001, var_min=1e-6, var_max=1e-6,
+        ))
+        for oar in ("OAR_anterior", "OAR_posterior"):
+            p.add_dose_term(KLDivTerm.from_interval(
+                structures[oar], dose_min=0.0, dose_max=0.003, weight=1.0,
+                bin_width=0.001, var_min=1e-6, var_max=1e-6,
+            ))
+        return p
+
+    vars_ = []
+    for s in range(n_seeds):
+        rng = np.random.default_rng(s)
+        p = build_prescription()
+        opt = PhaseOptimizer(
+            p, n_params=TERMA_N_BEAMLETS,
+            initial_params=rng.normal(size=TERMA_N_BEAMLETS) * 0.5,
+            max_iter=40, tol=1e-3,
+            adaptive_variance=(0.01, 0.1),
+        )
+        _, var_p = opt(prior=None)
+        vars_.append(var_p)
+    vars_ = np.stack(vars_)
+
+    shape_corr = shape_stability(vars_)
+    mean_, std_, cv = magnitude_stability(vars_)
+    return {
+        "label": "TERMA + kernel, sigma_weights",
+        "n_beamlets": TERMA_N_BEAMLETS,
+        "shape_corr": shape_corr,
+        "magnitude_cv": cv,
+        "magnitude_mean": mean_,
+        "magnitude_std": std_,
+        "vars": vars_,
+        "verdict": verdict(shape_corr, cv),
+    }
+
+
+def run_terma_bootstrap_variant(
+    n_seeds: int = 20,
+    n_bootstrap: int = 15,
+    subsample_fraction: float = 0.5,
+) -> dict:
+    """Bootstrap variance calibration sweep on TERMA + kernel dose."""
+    from pybrimstone import KLDivTerm, Prescription
+    from pybrimstone.bootstrap import BootstrapPhaseOptimizer, subsample_mask
+
+    calc, _ = _build_terma_calc()
+    D = calc.build_dose_operator()
+    structures = _build_terma_structures(TERMA_GRID)
+
+    def factory(rng):
+        masks = {
+            name: m if rng is None else subsample_mask(m, subsample_fraction, rng)
+            for name, m in structures.items()
+        }
+        p = Prescription(D, use_transform=True)
+        p.add_dose_term(KLDivTerm.from_interval(
+            masks["PTV"], dose_min=0.005, dose_max=0.010, weight=2.0,
+            bin_width=0.001, var_min=1e-6, var_max=1e-6,
+        ))
+        for oar in ("OAR_anterior", "OAR_posterior"):
+            p.add_dose_term(KLDivTerm.from_interval(
+                masks[oar], dose_min=0.0, dose_max=0.003, weight=1.0,
+                bin_width=0.001, var_min=1e-6, var_max=1e-6,
+            ))
+        return p
+
+    vars_ = []
+    for s in range(n_seeds):
+        rng = np.random.default_rng(s)
+        opt = BootstrapPhaseOptimizer(
+            factory, n_params=TERMA_N_BEAMLETS,
+            n_bootstrap=n_bootstrap,
+            initial_params=rng.normal(size=TERMA_N_BEAMLETS) * 0.5,
+            max_iter=40, tol=1e-3,
+            adaptive_variance=(0.01, 0.1),
+            bootstrap_seed=20_000 + s,
+        )
+        _, var_p = opt(prior=None)
+        vars_.append(var_p)
+    vars_ = np.stack(vars_)
+
+    shape_corr = shape_stability(vars_)
+    mean_, std_, cv = magnitude_stability(vars_)
+    return {
+        "label": f"TERMA + kernel, bootstrap (B={n_bootstrap})",
+        "n_beamlets": TERMA_N_BEAMLETS,
+        "shape_corr": shape_corr,
+        "magnitude_cv": cv,
+        "magnitude_mean": mean_,
+        "magnitude_std": std_,
+        "vars": vars_,
+        "verdict": verdict(shape_corr, cv),
+    }
+
+
 def run_full_sweep(out_path: str = "/tmp/sigma_calibration_full.png") -> List[dict]:
     """Run all three variants and produce a side-by-side comparison plot."""
     print("\n" + "=" * 64)
@@ -531,11 +698,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--n-seeds", type=int, default=20)
     parser.add_argument("--mode", type=str, default="full",
-                       choices=["main", "full", "bootstrap", "compare"],
+                       choices=["main", "full", "bootstrap", "compare", "terma"],
                        help="'main' = just the 5-beamlet sigma_weights experiment; "
                             "'full' = three sigma_weights variants; "
                             "'bootstrap' = bootstrap-variance variant only; "
-                            "'compare' = sigma_weights vs bootstrap side-by-side")
+                            "'compare' = sigma_weights vs bootstrap side-by-side; "
+                            "'terma' = full 4-way: sigma vs bootstrap x gaussian-bump vs TERMA")
     parser.add_argument("--out", type=str,
                        default="/tmp/sigma_calibration.png")
     args = parser.parse_args()
@@ -554,6 +722,55 @@ if __name__ == "__main__":
         print(f"  VERDICT: {res['verdict']}")
         make_summary_plot([res], args.out)
         print(f"Plot saved to {args.out}")
+    elif args.mode == "terma":
+        print("=" * 64)
+        print("Variant A1: Gaussian-bump, sigma_weights")
+        print("-" * 64)
+        bump_sigma = main(n_seeds=args.n_seeds, out_path="/tmp/_sig_bump.png")
+        bump_sigma["label"] = "Gaussian-bump, sigma_weights"
+        bump_sigma["n_beamlets"] = N_BEAMLETS
+
+        print("\nVariant A2: Gaussian-bump, bootstrap")
+        print("-" * 64)
+        bump_boot = run_bootstrap_variant(n_seeds=args.n_seeds, n_bootstrap=15)
+        bump_boot["label"] = "Gaussian-bump, bootstrap"
+        print(f"  shape_stability    {bump_boot['shape_corr']:.4f}")
+        print(f"  magnitude CV       {bump_boot['magnitude_cv']:.4f}")
+        print(f"  magnitude mean     {bump_boot['magnitude_mean']:.6f}")
+        print(f"  VERDICT: {bump_boot['verdict']}")
+
+        print("\nVariant B1: TERMA + kernel, sigma_weights")
+        print("-" * 64)
+        terma_sigma = run_terma_sigma_variant(n_seeds=args.n_seeds)
+        print(f"  shape_stability    {terma_sigma['shape_corr']:.4f}")
+        print(f"  magnitude CV       {terma_sigma['magnitude_cv']:.4f}")
+        print(f"  magnitude mean     {terma_sigma['magnitude_mean']:.6f}")
+        print(f"  VERDICT: {terma_sigma['verdict']}")
+
+        print("\nVariant B2: TERMA + kernel, bootstrap")
+        print("-" * 64)
+        terma_boot = run_terma_bootstrap_variant(n_seeds=args.n_seeds, n_bootstrap=15)
+        print(f"  shape_stability    {terma_boot['shape_corr']:.4f}")
+        print(f"  magnitude CV       {terma_boot['magnitude_cv']:.4f}")
+        print(f"  magnitude mean     {terma_boot['magnitude_mean']:.6f}")
+        print(f"  VERDICT: {terma_boot['verdict']}")
+
+        make_summary_plot(
+            [bump_sigma, bump_boot, terma_sigma, terma_boot],
+            args.out,
+        )
+        print(f"\n4-way plot saved to {args.out}")
+
+        print("\n" + "=" * 64)
+        print("4-WAY SUMMARY: variance source x dose operator")
+        print("=" * 64)
+        print(f"  {'variant':<42}{'shape':>8}{'CV':>8}  verdict")
+        for res in [bump_sigma, bump_boot, terma_sigma, terma_boot]:
+            v = res["verdict"].split(":")[0] if res["verdict"].startswith("ROW") else res["verdict"][:14]
+            print(f"  {res['label']:<42}"
+                  f"{res['shape_corr']:>8.3f}{res['magnitude_cv']:>8.3f}"
+                  f"  {v}")
+        print("=" * 64)
     elif args.mode == "compare":
         print("Variant A: sigma_weights (5-beamlet brimstone, n_seeds=20)")
         print("-" * 64)
