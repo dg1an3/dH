@@ -33,7 +33,7 @@ from pybrimstone.amortized import (
 )
 from pybrimstone.amortized.data import generate_dummy_samples
 from pybrimstone.amortized.infer import predict_delta
-from pybrimstone.amortized.train import train
+from pybrimstone.amortized.train import TrainResult, train, train_check
 
 
 PHASE_DIM = 64
@@ -100,19 +100,24 @@ def test_dummy_data_generation():
         assert np.all(s.delta_x == 0.0)
 
 
-def test_train_stub_returns_zero_init_network():
-    cfg = PrototypeConfig(phase_dim=PHASE_DIM, course_dim=COURSE_DIM)
+def test_train_returns_trainresult_with_model_and_history():
+    cfg = PrototypeConfig(
+        phase_dim=PHASE_DIM, course_dim=COURSE_DIM,
+        epochs=2, batch_size=8, val_fraction=0.25,
+    )
     rng = np.random.default_rng(0)
-    samples = generate_dummy_samples(n_samples=4, phase_dim=PHASE_DIM, rng=rng)
-    net = train(samples, cfg)
-    assert isinstance(net, AmortizedCoursePrior)
-    # Phase 0 contract: train() does no actual training yet.
-    delta = predict_delta(net, samples[0].x_init, samples[0].course_state)
+    samples = generate_dummy_samples(n_samples=32, phase_dim=PHASE_DIM, rng=rng)
+    result = train(samples, cfg)
+    assert isinstance(result, TrainResult)
+    assert isinstance(result.model, AmortizedCoursePrior)
+    assert len(result.train_loss) == cfg.epochs
+    assert len(result.val_loss) == cfg.epochs
+    # Forward pass on a held-out-shaped sample still produces correct shape.
+    delta = predict_delta(result.model, samples[0].x_init, samples[0].course_state)
     assert delta.shape == (PHASE_DIM,)
-    assert np.allclose(delta, 0.0)
 
 
-def test_train_rejects_shape_mismatch():
+def test_train_check_rejects_shape_mismatch():
     cfg = PrototypeConfig(phase_dim=PHASE_DIM, course_dim=COURSE_DIM)
     bad_sample = Sample(
         x_init=np.zeros(PHASE_DIM + 1),                     # wrong size
@@ -122,7 +127,7 @@ def test_train_rejects_shape_mismatch():
         delta_x=np.zeros(PHASE_DIM),
     )
     with pytest.raises(ValueError, match="x_init shape"):
-        train([bad_sample], cfg)
+        train_check([bad_sample], cfg)
 
 
 def test_infer_predict_delta_numpy_roundtrip():

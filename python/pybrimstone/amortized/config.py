@@ -31,6 +31,12 @@ class PrototypeConfig:
     epochs: int = 20
     batch_size: int = 64
     val_fraction: float = 0.1
+    weight_decay: float = 1e-4
+    # Early-stopping: keep the snapshot with lowest val MSE. Each sample's
+    # latent (A, b) in the toy is not part of the input, so the MLP can
+    # memorize per-sample mappings if left to overfit. Always-on keep-best
+    # is the cheapest defense.
+    keep_best: bool = True
 
     # Inference
     n_outer: int = 5            # outer course-state updates
