@@ -11,18 +11,20 @@ the same shape. `sigma_inv` is the precision vector (1 / variance),
 matching what CoursePriorTerm.precision holds and what HierarchicalBayes
 sets after pool_phases returns var_eta.
 
-Open question deferred to Phase 1b: does `PhaseState.x` live in
-beamlet-weight space (what the prior speaks) or in optimizer-parameter
-space (what PhaseOptimizer.__call__ returns from polak_ribiere_cg)?
-For Phase 0 / Phase 1a we use the same flat vector either way; the
-toy data generator works entirely in one space. See
-notes/coursepriorterm_audit.md for the discussion that needs Derek's
-sign-off before Phase 1b.
+Phase 1b decision (Derek): per-sample x_init and trajectory are
+recorded in beamlet-weight space (post-sigmoid). The toy generator
+in data.py operates in an unbounded vector space because the toy
+has no sigmoid in its physics; that mismatch is documented in the
+toy's docstring. The real generator applies `transform` to the
+CG-trajectory optimizer params before storage so everything in
+Sample lives in the same beamlet-weight space the CoursePriorTerm
+itself speaks.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 import numpy as np
 
@@ -77,8 +79,24 @@ class Sample:
     real solver applied: x_star - x_init. Predicting the delta rather
     than the absolute x_star keeps the target mean-zero and well-scaled
     (see §6.3 of the prototype guide).
+
+    Attributes:
+        x_init: starting parameters, shape (n_beamlets,).
+        course_state: prior (mu, sigma_inv).
+        delta_x: target delta = x_star - x_init, shape (n_beamlets,).
+        trajectory: optional list of intermediate parameter vectors from
+            the CG solve, length T+1 starting with x_init and ending with
+            x_star. Populated by the real generator when record_trajectory
+            is True; left None for the toy / dummy generators which have
+            no notion of "intermediate". Used by curriculum / imitation
+            training; see expand_trajectory_to_samples in data.py.
+        meta: free-form per-sample metadata (plan name, phase id, seed,
+            iteration count). Not used by training, but kept around for
+            eval stratification and debugging.
     """
 
     x_init: np.ndarray
     course_state: CourseState
     delta_x: np.ndarray
+    trajectory: Optional[List[np.ndarray]] = None
+    meta: dict = field(default_factory=dict)

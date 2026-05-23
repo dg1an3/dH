@@ -7,3 +7,7 @@ __pycache__/
 *.pdb
 venv/
 _codeql_detected_source_root
+
+# Amortized course-prior prototype: regenerable sample corpora.
+# Built by python/examples/generate_amortized_data.py.
+data/amortized_samples/

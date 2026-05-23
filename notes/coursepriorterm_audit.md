@@ -69,16 +69,28 @@ beamlet-weight space. `CoursePriorTerm`, however, lives in beamlet-weight
 space. The `Prescription` bridges the two via `numerics.transform`
 (sigmoid).
 
-This is a subtle point worth flagging to Derek before training:
+**Resolved: predict in beamlet-weight space (post-sigmoid).** Derek's
+Phase 0 decision. The Phase 1b real-data generator applies `transform`
+to the CG-trajectory optimizer params before storage; `Sample.x_init`,
+`Sample.delta_x`, and `Sample.trajectory[t]` are all in
+beamlet-weight space, matching the natural language of `CoursePriorTerm`
+itself. Beamlet-weight space is bounded `(0, INPUT_SCALE=0.5)` so the
+network output is also implicitly bounded; we do not currently constrain
+this via the network head (a softplus/sigmoid head is a later concern
+if predictions drift outside the bounds).
 
-  - **The amortized net could predict in optimizer-param space**
-    (matches the CG return), OR
-  - **in beamlet-weight space** (matches the prior's language).
+## Trajectory recording
 
-For the toy phase (5a) this is moot — the toy is a closed-form quadratic
-without the sigmoid wrapper. For the real-data phase (5b) we have to pick.
-Leaning toward optimizer-param space because that's what the downstream
-CG-polish step expects, but documenting the choice explicitly.
+**Resolved: record the full CG trajectory.** Derek's Phase 1b decision.
+Each `Sample` from `generate_real_samples` carries
+`trajectory: List[np.ndarray]` of length `n_iter + 1`, starting with
+`x_init` and ending with `x_star`, each entry in beamlet-weight space.
+`expand_trajectory_to_samples` is the canonical way to turn this into
+per-step training tuples for curriculum / imitation training.
+
+No Cython hooks were needed for this — `polak_ribiere_cg` already
+surfaces `x` per iteration through its existing `callback` argument
+(see `python/pybrimstone/numerics/conjugate_gradient.py:188`).
 
 ## Files referenced
 
