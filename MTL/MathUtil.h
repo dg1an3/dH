@@ -257,18 +257,30 @@ inline TYPE InvSigmoid(TYPE y, TYPE scale /* = 1.0 */)
 //////////////////////////////////////////////////////////////////////
 inline REAL GetProfileReal(const char *pszSection, const char *pszName, double default_value)
 {
-	CString strValue;
-	strValue.Format("%lf", default_value);
-	
+	char strValue[256];
+	sprintf_s(strValue, sizeof(strValue), "%lf", default_value);
+
+	// Convert char* to TCHAR* for MFC functions
+	CString strSection(pszSection);
+	CString strName(pszName);
+	CString strDefault(strValue);
+
 	// get profile string, or default value
-	strValue = ::AfxGetApp()->GetProfileString(pszSection, pszName, strValue);
+	CString strValueW = ::AfxGetApp()->GetProfileString(strSection, strName, strDefault);
 
 	// turn to REAL
 	REAL value;
-	sscanf_s(strValue.GetBuffer(), REAL_FMT, &value);
+#ifdef UNICODE
+	char narrowBuffer[256];
+	WideCharToMultiByte(CP_ACP, 0, strValueW.GetBuffer(), -1, narrowBuffer, sizeof(narrowBuffer), NULL, NULL);
+	sscanf_s(narrowBuffer, REAL_FMT, &value);
+#else
+	sscanf_s(strValueW.GetBuffer(), REAL_FMT, &value);
+#endif
 
 	// make sure parameter is written, so it can be modified through RegEdit
-	::AfxGetApp()->WriteProfileString(pszSection, pszName, strValue);
+	CString strValueToWrite(strValue);
+	::AfxGetApp()->WriteProfileString(strSection, strName, strValueToWrite);
 
 	return value;
 

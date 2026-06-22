@@ -18,7 +18,9 @@
 #include <MatrixD.h>
 #include <MatrixNxM.h>
 
+#ifdef USE_IPP
 #include <ippi.h>
+#endif
 
 #include "ModelObject.h"
 
@@ -1115,11 +1117,13 @@ inline void ClipRaster(int nDim,
 
 ///////////////////////////////////////////////////////////////////////////////
 // Resample
-// 
+//
 // <description>
 ///////////////////////////////////////////////////////////////////////////////
+// DGL: ippiWarpAffineBack API changed in newer IPP versions - using generic implementation
+#if 0
 #if defined(USE_IPP)
-inline void Resample(const CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew, 
+inline void Resample(const CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew,
 					 BOOL bBilinear = FALSE)
 {
 	// form translation basis
@@ -1138,7 +1142,7 @@ inline void Resample(const CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew
 	IppiSize sz = { pOrig->GetWidth(), pOrig->GetHeight() };
 	IppiRect rectOrig = {0, 0, pOrig->GetWidth(), pOrig->GetHeight() };
 	IppiRect rectNew = {0, 0, pNew->GetWidth(), pNew->GetHeight() };
-	IppStatus stat = ippiWarpAffineBack_32f_C1R(&pOrig->GetVoxels()[0][0][0], sz, 
+	IppStatus stat = ippiWarpAffineBack_32f_C1R(&pOrig->GetVoxels()[0][0][0], sz,
 		pOrig->GetWidth() * sizeof(VOXEL_REAL), rectOrig,
 		&pNew->GetVoxels()[0][0][0], pNew->GetWidth() * sizeof(VOXEL_REAL), rectNew,
 		coeffs, IPPI_INTER_LINEAR);
@@ -1148,6 +1152,7 @@ inline void Resample(const CVolume<VOXEL_REAL> *pOrig, CVolume<VOXEL_REAL> *pNew
 
 }	// Resample
 
+#endif
 #endif
 
 template<class VOXEL_TYPE>

@@ -3,7 +3,7 @@
 
 #ifdef USE_IPP
 #include <ipps.h>
-#include <ippm.h>
+#include <ippvm.h>  // ippm.h replaced with ippvm.h in newer IPP versions
 #endif
 
 
