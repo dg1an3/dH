@@ -210,8 +210,8 @@ void CreateRegionForPolygonSpatialObject(const CArray<PolygonType *, PolygonType
 			//vVert[0] = (vVert[0] - vOrigin[0]) / vSpacing[0];
 			//vVert[1] = (vVert[1] - vOrigin[1]) / vSpacing[1];
 
-			arrPoints[nAt].x = (vVert.GetPosition()[0] - vOrigin[0]) / vSpacing[0];
-			arrPoints[nAt].y = (vVert.GetPosition()[1] - vOrigin[1]) / vSpacing[1];
+			arrPoints[nAt].x = (vVert.GetPositionInObjectSpace()[0] - vOrigin[0]) / vSpacing[0];
+			arrPoints[nAt].y = (vVert.GetPositionInObjectSpace()[1] - vOrigin[1]) / vSpacing[1];
 		}
 		dc.Polygon(arrPoints.GetData(), arrPolygons[nAtPoly]->GetNumberOfPoints/*GetVertexCount*/());
 	}

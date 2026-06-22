@@ -5,7 +5,7 @@
 
 #ifdef USE_IPP
 #include <ipps.h>
-#include <ippm.h>
+#include <ippvm.h>  // ippm.h replaced with ippvm.h in newer IPP versions
 #endif
 
 // subst for forcing inline of function expansions
@@ -360,32 +360,34 @@ ELEM_TYPE
 }	// VectorLength
 
 
-#ifdef USE_IPP
+// NOTE: IPP specializations commented out - ippmL2Norm_v functions removed in newer IPP
+// Generic template implementation above will be used instead
+#if 0 // def USE_IPP
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<> INLINE
-float 
-	VectorLength(const float *pV, int nLength) 
-{													
-	float length;									
+float
+	VectorLength(const float *pV, int nLength)
+{
+	float length;
 	CK_IPP(ippmL2Norm_v_32f(pV, sizeof(float), &length, nLength));
 
-	return length;								
+	return length;
 
-}	// VectorLength(const float *pV, int nLength) 
+}	// VectorLength(const float *pV, int nLength)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<> INLINE
-double 
-	VectorLength(const double *pV, int nLength) 
-{													
-	double length;									
+double
+	VectorLength(const double *pV, int nLength)
+{
+	double length;
 	CK_IPP(ippmL2Norm_v_64f(pV, sizeof(double), &length, nLength));
 
-	return length;								
+	return length;
 
-}	// VectorLength(const double *pV, int nLength) 
+}	// VectorLength(const double *pV, int nLength)
 
 #endif
 
@@ -412,37 +414,39 @@ ELEM_TYPE
 }	// DotProduct
 
 
-#ifdef USE_IPP
+// NOTE: IPP specializations commented out - ippmDotProduct_vv functions removed in newer IPP
+// Generic template implementation above will be used instead
+#if 0 // def USE_IPP
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-template<> INLINE								
-float 
-	DotProduct(const float *vLeft,					
+template<> INLINE
+float
+	DotProduct(const float *vLeft,
 			const float *vRight, int nLength)
-{															
+{
 	float prod;
 	CK_IPP(ippmDotProduct_vv_32f(vLeft, sizeof(float), vRight, sizeof(float),
 		&prod, nLength));
 
-	return prod;											
+	return prod;
 
-}	// DotProduct(const float *vLeft,					
+}	// DotProduct(const float *vLeft,
 	//		const float *vRight, int nLength)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-template<> INLINE								
-double 
-	DotProduct(const double *vLeft,					
+template<> INLINE
+double
+	DotProduct(const double *vLeft,
 			const double *vRight, int nLength)
-{															
+{
 	double prod;
-	CK_IPP(ippmDotProduct_vv_64f(vLeft, sizeof(double), vRight, sizeof(double), 
+	CK_IPP(ippmDotProduct_vv_64f(vLeft, sizeof(double), vRight, sizeof(double),
 		&prod, nLength));
 
-	return prod;											
+	return prod;
 
-}	// DotProduct(const double *vLeft,					
+}	// DotProduct(const double *vLeft,
 	//		const double *vRight, int nLength)
 
 #endif

@@ -217,7 +217,13 @@ if (!(expr))				\
 #define EndLogSection() \
 	OutputDebugString(_T("</log_section>\n")); }
 
-#define Log OutputDebugString
+// Variadic macro for Log to support printf-style formatting
+#define Log(fmt, ...) \
+	do { \
+		CString __logMsg; \
+		__logMsg.Format(fmt, __VA_ARGS__); \
+		OutputDebugString(__logMsg); \
+	} while(0)
 
 #endif
 
