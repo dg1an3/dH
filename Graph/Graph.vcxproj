@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -91,29 +91,11 @@
       <AdditionalIncludeDirectories>
         .\include;
         ..\RtModel\include;
-        $(ITK_DIR)\Modules\Core\SpatialObjects\include;
-        $(ITK_DIR)\Modules\Numerics\Statistics\include;
-        $(ITK_DIR)\Modules\Core\Transform\include;
-        $(ITK_DIR)\Modules\Registration\Common\include;
-        $(ITK_DIR)\Modules\Filtering\Path\include;
-        $(ITK_DIR)\Modules\Filtering\ImageCompose\include;
-        $(ITK_DIR)\Modules\Filtering\ImageGrid\include;
-        $(ITK_DIR)\Modules\Filtering\Smoothing\include;
-        $(ITK_DIR)\Modules\Filtering\ImageFilterBase\include;
-        $(ITK_DIR)\Modules\Core\ImageFunction\include;
-        $(ITK_DIR)\Modules\Core\Common\include;
-        $(ITK_DIR)\Modules\IO\ImageBase\include;
-        $(ITK_BUILD_DIR)\Modules\IO\ImageBase;
-        $(ITK_DIR)\Modules\IO\XML\include;
-        $(ITK_DIR)\Modules\ThirdParty\Expat\src\expat;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\Expat\src\expat;
-        $(ITK_BUILD_DIR)\Modules\Core\Common;
-        $(ITK_DIR)\Modules\ThirdParty\VNL\src\vxl\vcl;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\VNL\src\vxl\vcl;
-        $(ITK_DIR)\Modules\ThirdParty\VNL\src\vxl\core;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\VNL\src\vxl\core;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\KWSys\src;
-        C:\Program Files (x86)\Intel\IPP\5.0\ia32\include;
+        C:\vcpkg\installed\x64-windows\include\ITK-5.4;
+        C:\vcpkg\installed\x64-windows\include;
+        C:\vcpkg\installed\x64-windows\include\vxl\core;
+        C:\vcpkg\installed\x64-windows\include\vxl\vcl;
+        $(SolutionDir)packages\intelipp.devel.win-x64.2022.3.0.387\build\native\include\ipp;
         %(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;USE_IPP;USE_RTOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
@@ -122,6 +104,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -133,29 +116,12 @@
       <AdditionalIncludeDirectories>
         .\include;
         ..\RtModel\include;
-        $(ITK_DIR)\Modules\Core\SpatialObjects\include;
-        $(ITK_DIR)\Modules\Numerics\Statistics\include;
-        $(ITK_DIR)\Modules\Core\Transform\include;
-        $(ITK_DIR)\Modules\Registration\Common\include;
-        $(ITK_DIR)\Modules\Filtering\Path\include;
-        $(ITK_DIR)\Modules\Filtering\ImageCompose\include;
-        $(ITK_DIR)\Modules\Filtering\ImageGrid\include;
-        $(ITK_DIR)\Modules\Filtering\Smoothing\include;
-        $(ITK_DIR)\Modules\Filtering\ImageFilterBase\include;
-        $(ITK_DIR)\Modules\Core\ImageFunction\include;
-        $(ITK_DIR)\Modules\Core\Common\include;
-        $(ITK_DIR)\Modules\IO\ImageBase\include;
-        $(ITK_BUILD_DIR)\Modules\IO\ImageBase;
-        $(ITK_DIR)\Modules\IO\XML\include;
-        $(ITK_DIR)\Modules\ThirdParty\Expat\src\expat;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\Expat\src\expat;
-        $(ITK_BUILD_DIR)\Modules\Core\Common;
-        $(ITK_DIR)\Modules\ThirdParty\VNL\src\vxl\vcl;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\VNL\src\vxl\vcl;
-        $(ITK_DIR)\Modules\ThirdParty\VNL\src\vxl\core;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\VNL\src\vxl\core;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\KWSys\src;
-        C:\Program Files (x86)\Intel\IPP\5.0\ia32\include;
+        ..\GEOM_MODEL\include;
+        C:\vcpkg\installed\x64-windows\include\ITK-5.4;
+        C:\vcpkg\installed\x64-windows\include;
+        C:\vcpkg\installed\x64-windows\include\vxl\core;
+        C:\vcpkg\installed\x64-windows\include\vxl\vcl;
+        $(SolutionDir)packages\intelipp.devel.win-x64.2022.3.0.387\build\native\include\ipp;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;USE_IPP;USE_RTOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -165,6 +131,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -172,35 +139,18 @@
       <AdditionalIncludeDirectories>
         .\include;
         ..\RtModel\include;
-        $(ITK_DIR)\Modules\Core\SpatialObjects\include;
-        $(ITK_DIR)\Modules\Numerics\Statistics\include;
-        $(ITK_DIR)\Modules\Core\Transform\include;
-        $(ITK_DIR)\Modules\Registration\Common\include;
-        $(ITK_DIR)\Modules\Filtering\Path\include;
-        $(ITK_DIR)\Modules\Filtering\ImageCompose\include;
-        $(ITK_DIR)\Modules\Filtering\ImageGrid\include;
-        $(ITK_DIR)\Modules\Filtering\Smoothing\include;
-        $(ITK_DIR)\Modules\Filtering\ImageFilterBase\include;
-        $(ITK_DIR)\Modules\Core\ImageFunction\include;
-        $(ITK_DIR)\Modules\Core\Common\include;
-        $(ITK_DIR)\Modules\IO\ImageBase\include;
-        $(ITK_BUILD_DIR)\Modules\IO\ImageBase;
-        $(ITK_DIR)\Modules\IO\XML\include;
-        $(ITK_DIR)\Modules\ThirdParty\Expat\src\expat;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\Expat\src\expat;
-        $(ITK_BUILD_DIR)\Modules\Core\Common;
-        $(ITK_DIR)\Modules\ThirdParty\VNL\src\vxl\vcl;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\VNL\src\vxl\vcl;
-        $(ITK_DIR)\Modules\ThirdParty\VNL\src\vxl\core;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\VNL\src\vxl\core;
-        $(ITK_BUILD_DIR)\Modules\ThirdParty\KWSys\src;
-        C:\Program Files (x86)\Intel\IPP\5.0\ia32\include;
+        C:\vcpkg\installed\x64-windows\include\ITK-5.4;
+        C:\vcpkg\installed\x64-windows\include;
+        C:\vcpkg\installed\x64-windows\include\vxl\core;
+        C:\vcpkg\installed\x64-windows\include\vxl\vcl;
+        $(SolutionDir)packages\intelipp.devel.win-x64.2022.3.0.387\build\native\include\ipp;
         %(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;USE_IPP;USE_RTOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -208,12 +158,13 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>.\include;..\GenImaging\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;$(ITK_DIR)\Code\Common;$(ITK_BUILD_DIR);$(ITK_DIR)\Utilities\vxl\vcl;$(ITK_BUILD_DIR)\Utilities\vxl\vcl;$(ITK_DIR)\Utilities\vxl\core;$(ITK_BUILD_DIR)\Utilities\vxl\core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\include;..\RtModel\include;..\GEOM_MODEL\include;C:\vcpkg\installed\x64-windows\include\ITK-5.4;C:\vcpkg\installed\x64-windows\include\vxl\core;C:\vcpkg\installed\x64-windows\include\vxl\vcl;$(SolutionDir)packages\intelipp.devel.win-x64.2022.3.0.387\build\native\include\ipp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;USE_IPP;USE_RTOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -243,3 +194,4 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
+
