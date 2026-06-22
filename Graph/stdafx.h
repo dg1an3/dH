@@ -5,6 +5,13 @@
 
 #pragma once
 
+// Disable VNL SSE2 support to avoid template syntax errors with modern MSVC
+#ifndef VNL_CONFIG_ENABLE_SSE2
+#define VNL_CONFIG_ENABLE_SSE2 0
+#endif
+#ifndef VNL_CONFIG_ENABLE_SSE2_ROUNDING
+#define VNL_CONFIG_ENABLE_SSE2_ROUNDING 0
+#endif
 
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
