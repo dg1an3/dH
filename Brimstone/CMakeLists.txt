@@ -11,7 +11,7 @@ set(BRIMSTONE_SOURCES
     OptThread.cpp
     PlanSetupDlg.cpp
     PlanarView.cpp
-    PrescriptionBar.cpp
+    # PrescriptionBar.cpp  # Excluded: contains C++/CLI code incompatible with native MFC
     PrescriptionToolbar.cpp
     SeriesDicomImporter.cpp
     stdafx.cpp
@@ -26,7 +26,7 @@ set(BRIMSTONE_HEADERS
     OptThread.h
     PlanSetupDlg.h
     PlanarView.h
-    PrescriptionBar.h
+    # PrescriptionBar.h  # Excluded: contains C++/CLI code incompatible with native MFC
     PrescriptionToolbar.h
     SeriesDicomImporter.h
     Resource.h
@@ -52,6 +52,9 @@ target_include_directories(Brimstone
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/RtModel/include
         ${CMAKE_SOURCE_DIR}/Graph/include
+        ${CMAKE_SOURCE_DIR}/GEOM_MODEL/include
+        ${CMAKE_SOURCE_DIR}/MTL
+        ${CMAKE_SOURCE_DIR}/XMLLogging
 )
 
 # Link dependencies
@@ -59,6 +62,7 @@ target_link_libraries(Brimstone
     PRIVATE
         RtModel
         Graph
+        XMLLogging
 )
 
 # Link Intel IPP libraries if available (via RtModel, but also directly for PlanarView.cpp)
@@ -82,8 +86,12 @@ if(MSVC)
         _WIN32_WINNT=0x0501
     )
 
-    # Workaround for VNL SSE inline issues with modern MSVC
-    target_compile_options(Brimstone PRIVATE /DVNL_SSE_FORCE_INLINE=inline)
+    # Disable VNL SSE optimizations and prevent Windows min/max macros
+    target_compile_definitions(Brimstone PRIVATE
+        VNL_CONFIG_ENABLE_SSE2=0
+        VNL_CONFIG_ENABLE_SSE2_ROUNDING=0
+        NOMINMAX
+    )
 
     # Use precompiled headers
     # Temporarily disabled due to VNL SSE inline issues
