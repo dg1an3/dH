@@ -10,6 +10,7 @@
 
 #include "BrimstoneDoc.h"
 #include "BrimstoneView.h"
+#include "RenderControlDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,6 +41,7 @@ BEGIN_MESSAGE_MAP(CBrimstoneView, CView)
 	ON_UPDATE_COMMAND_UI(IDC_BTNOPTIMIZE, &CBrimstoneView::OnUpdateOptimize)
 	ON_WM_DESTROY()
 	ON_COMMAND(ID_VIEW_SCANBEAMLETS, &CBrimstoneView::OnViewScanbeamlets)
+	ON_COMMAND(ID_VIEW_RENDERCONTROL, &CBrimstoneView::OnViewRenderControl)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -49,6 +51,7 @@ END_MESSAGE_MAP()
 CBrimstoneView::CBrimstoneView()
 	: m_pOptThread(NULL)
 	, m_bOptimizerRun(false)
+	, m_pRenderCtrlDlg(NULL)
 	// , m_pIterDS(NULL)
 {
 	m_pOptThread = static_cast<COptThread*>(
@@ -242,6 +245,14 @@ int
 void 
 	CBrimstoneView::OnDestroy()
 {
+	if (m_pRenderCtrlDlg != NULL)
+	{
+		if (::IsWindow(m_pRenderCtrlDlg->GetSafeHwnd()))
+			m_pRenderCtrlDlg->DestroyWindow();
+		delete m_pRenderCtrlDlg;
+		m_pRenderCtrlDlg = NULL;
+	}
+
 	m_pOptThread->PostThreadMessage(WM_QUIT, NULL, NULL);
 	CView::OnDestroy();
 }
@@ -451,9 +462,33 @@ void
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void 
+void
 	CBrimstoneView::OnViewScanbeamlets()
 {
 	ScanBeamlets(0);
 
+}
+
+////////////////////////////////////////////////////////////////////////////
+void
+	CBrimstoneView::OnViewRenderControl()
+	// toggles the modeless render-control dialog used for UIAutomation testing
+{
+	if (m_pRenderCtrlDlg == NULL)
+	{
+		m_pRenderCtrlDlg = new CRenderControlDlg(this);
+		m_pRenderCtrlDlg->Create(CRenderControlDlg::IDD, this);
+	}
+
+	if (m_pRenderCtrlDlg->IsWindowVisible())
+	{
+		m_pRenderCtrlDlg->ShowWindow(SW_HIDE);
+	}
+	else
+	{
+		// re-seed the controls with the current render state before showing
+		m_pRenderCtrlDlg->RefreshFromView();
+		m_pRenderCtrlDlg->ShowWindow(SW_SHOW);
+		m_pRenderCtrlDlg->SetForegroundWindow();
+	}
 }

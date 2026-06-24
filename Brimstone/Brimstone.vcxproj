@@ -310,6 +310,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="PrescriptionToolbar.cpp" />
+    <ClCompile Include="RenderControlDlg.cpp" />
     <ClCompile Include="SeriesDicomImporter.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -330,6 +331,7 @@
       <FileType>CppControl</FileType>
     </ClInclude>
     <ClInclude Include="PrescriptionToolbar.h" />
+    <ClInclude Include="RenderControlDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SeriesDicomImporter.h" />
     <ClInclude Include="stdafx.h" />
