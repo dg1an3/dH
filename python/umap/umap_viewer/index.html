@@ -118,19 +118,72 @@ const sphereGeo = new THREE.SphereGeometry(1, 18, 14);
 const meshes = [], labels = [], targetPos = [], baseColor = [];
 const group = new THREE.Group(); scene.add(group);
 
-function makeLabel(text) {
-  const pad = 6, font = 26;
-  const c = document.createElement('canvas'), g = c.getContext('2d');
-  g.font = `${font}px ui-monospace, monospace`;
-  const w = g.measureText(text).width;
-  c.width = w + pad * 2; c.height = font + pad * 2;
-  g.font = `${font}px ui-monospace, monospace`;
-  g.fillStyle = 'rgba(8,10,16,.72)'; g.fillRect(0, 0, c.width, c.height);
-  g.fillStyle = '#e8edf5'; g.textBaseline = 'middle';
-  g.fillText(text, pad, c.height / 2);
+const CURVE = 10;    // outward bow of elliptangle sides (canvas px)
+const MAX_W = 180;   // wrap width in canvas px
+const FONT = 26, LINE_H = 32, LABEL_SCALE = 0.13;  // world units per canvas px
+
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+  return `rgb(${Math.round((t-r)*p+r)},${Math.round((t-g)*p+g)},${Math.round((t-b)*p+b)})`;
+}
+function elliptanglePath(ctx, x, y, w, h, cv) {
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.quadraticCurveTo(x+w/2, y-cv, x+w, y);
+  ctx.quadraticCurveTo(x+w+cv, y+h/2, x+w, y+h);
+  ctx.quadraticCurveTo(x+w/2, y+h+cv, x, y+h);
+  ctx.quadraticCurveTo(x-cv, y+h/2, x, y);
+  ctx.closePath();
+}
+function wrapText(ctx, text, maxW) {
+  const words = text.split(' '), lines = [];
+  let cur = words[0] || '';
+  for (let i = 1; i < words.length; i++) {
+    const test = cur + ' ' + words[i];
+    if (ctx.measureText(test).width > maxW) { lines.push(cur); cur = words[i]; } else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function camelToWords(name) {
+  return name
+    .replace(/^C([A-Z])/, '$1')              // strip MFC 'C' prefix (CBeam -> Beam)
+    .replace(/[._/]+/g, ' ')                // dot / underscore / slash -> break
+    .replace(/([a-z])([A-Z])/g, '$1 $2')    // camelCase split
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); // ACRONYMWord -> ACRONYM Word
+}
+function makeLabel(name, hex, isClass) {
+  const pad = 8, sw = 3, cv = CURVE;
+  const c = document.createElement('canvas'), ctx = c.getContext('2d');
+  ctx.font = `${FONT}px ui-monospace, monospace`;
+  const text = isClass ? camelToWords(name) : name;
+  const lines = wrapText(ctx, text, MAX_W);
+  const rw = Math.min(MAX_W, Math.max(...lines.map(l => ctx.measureText(l).width))) + pad * 2;
+  const rh = lines.length * LINE_H + pad * 2;
+  const m = cv + sw;
+  c.width = rw + 2*m; c.height = rh + 2*m;
+  const ox = m, oy = m;
+  ctx.font = `${FONT}px ui-monospace, monospace`;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = sw;
+  // dark fill
+  elliptanglePath(ctx, ox, oy, rw, rh, cv);
+  ctx.fillStyle = 'rgba(8,10,16,0.78)'; ctx.fill();
+  // bevel strokes: light top/left, dark bottom/right
+  const light = shade(hex, 0.35), dark = shade(hex, -0.35);
+  ctx.strokeStyle = light;
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.quadraticCurveTo(ox+rw/2, oy-cv, ox+rw, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, oy+rh); ctx.quadraticCurveTo(ox-cv, oy+rh/2, ox, oy); ctx.stroke();
+  ctx.strokeStyle = dark;
+  ctx.beginPath(); ctx.moveTo(ox+rw, oy); ctx.quadraticCurveTo(ox+rw+cv, oy+rh/2, ox+rw, oy+rh); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox+rw, oy+rh); ctx.quadraticCurveTo(ox+rw/2, oy+rh+cv, ox, oy+rh); ctx.stroke();
+  // text
+  ctx.fillStyle = '#eef2f8'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => ctx.fillText(l, ox+pad, oy+pad + LINE_H*i + LINE_H/2));
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 4;
   const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  spr.scale.set(c.width / c.height * 5.5, 5.5, 1);
+  spr.scale.set(c.width * LABEL_SCALE, c.height * LABEL_SCALE, 1);
   return spr;
 }
 
@@ -142,8 +195,9 @@ NODES.forEach((d, i) => {
   m.scale.setScalar(1.6 + 3.2 * d.salience);
   m.userData.idx = i;
   group.add(m); meshes.push(m);
-  const short = d.name.length > 26 ? d.name.slice(0, 25) + '…' : d.name;
-  const lab = makeLabel(short); lab.userData.idx = i; group.add(lab); labels.push(lab);
+  const hex = KIND_COLORS[d.kind] || '#888888';
+  const lab = makeLabel(d.name, hex, true);
+  lab.userData.idx = i; group.add(lab); labels.push(lab);
   targetPos[i] = new THREE.Vector3();
 });
 
