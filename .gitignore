@@ -22,3 +22,8 @@ install_manifest.txt
 CTestTestfile.cmake
 _deps/
 packages/
+
+x64/
+
+# Local Claude Code settings (machine-specific permissions)
+.claude/settings.local.json
