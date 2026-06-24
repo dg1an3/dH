@@ -1,0 +1,27 @@
+@startuml stm_primary
+title <<stm>> CLight Primary State Machine
+skinparam state {
+    BackgroundColor<<browse>> #e3f2fd
+    BorderColor<<browse>> #1565c0
+    FontColor<<browse>> #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>> #2e7d32
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_construct" as Pre <<browse>>
+state "active" as Active <<browse>>
+state "destroyed" as Dead <<terminal>>
+
+Pre -down-> Active : construct\n[ZeroMemory D3DLIGHT8; Type = D3DLIGHT_DIRECTIONAL]
+Active --> Active : set_position(V) [-> Direction.xyz]\nset_diffuse_color(C) [-> Diffuse.rgb]\nget_position(_) / get_diffuse_color(_)
+Active -down-> Dead : destruct
+
+note right of Active
+    Multi-inheritance from D3DLIGHT8.
+    NOT observable (no GetChangeEvent).
+    "position" maps to D3DLIGHT8::Direction
+    -- misleading naming preserved.
+end note
+@enduml

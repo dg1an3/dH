@@ -1,0 +1,45 @@
+@startuml bdd_state_dict
+title <<bdd>> CTexture state{} dict schema
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>> #e65100
+    BackgroundColor<<observable>> #f3e5f5
+    BorderColor<<observable>> #7b1fa2
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>> #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : TextureMode
+    pview : CSceneView* | none
+    width : int
+    height : int
+    wrap : bool
+    handle : int (-1 = unallocated)
+    .. GDI DC ..
+    pdc : CDC* | none
+    pbitmap : CBitmap* | none
+    pold_bitmap : CBitmap* | none
+    pixels : list
+    .. projection ..
+    projection : CMatrixD<4>
+}
+class TextureMode <<enumeration>> {
+    pre_construct
+    ready
+    dc_held
+    bound
+    destroyed
+}
+class change_event <<observable>> {
+    fired ONLY by set_projection.
+    Bitmap content changes are silent.
+}
+state "1" -- "1" TextureMode : win
+state --> change_event : GetChangeEvent()
+@enduml
