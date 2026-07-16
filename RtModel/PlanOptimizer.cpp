@@ -37,7 +37,11 @@ const REAL DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25}; // { 8.0, 4.0, 2.0
 
 const CString CGTOL_KEY			= _T("CGTolerance%i");
 const CString LINETOL_KEY		= _T("Tolerance%i");
-const REAL DEFAULT_TOLERANCE	= 1e-3;
+
+// tolerances tighten from the coarsest to the finest pyramid level, so the
+//	optimizer doesn't declare convergence before resolving the fine-level detail
+const REAL DEFAULT_CG_TOLERANCE[]	= {1e-3, 1e-4, 1e-5, 1e-6, 1e-6};
+const REAL DEFAULT_LINE_TOLERANCE[] = {1e-3, 1e-4, 1e-5, 1e-6, 1e-6};
 
 
 
@@ -294,7 +298,10 @@ void
 		const REAL sigma = GetProfileRealAt(LEVELSIGMA_KEY, nLevel, DEFAULT_LEVELSIGMA[nLevel]);
 		const REAL binVar = pow(GBinSigma / sigma, 2);
 		const REAL varMin = binVar * 0.25;
-		const REAL varMax = binVar;
+		// widened to cover the true peak of varSlope^2*varWeight^2 (~1.405x at S=2/3,
+		//	see Prescription::CalcSumSigmoid), so the actVar clamp isn't discarding
+		//	routine excursions above binVar
+		const REAL varMax = binVar * 1.5;
 
 		// set the variance range in the objective function
 		// NOTE: this has to be done after the Optimizer->SetAdaptiveVariance, because
@@ -311,11 +318,11 @@ void
 		//pOptimizer->SetLineToleranceEqual(false);
 
 		// set the line tolerance
-		const REAL cgTolerance = GetProfileRealAt(CGTOL_KEY, nLevel, DEFAULT_TOLERANCE);
-		pOptimizer->set_x_tolerance/*SetTolerance*/(cgTolerance); 
+		const REAL cgTolerance = GetProfileRealAt(CGTOL_KEY, nLevel, DEFAULT_CG_TOLERANCE[nLevel]);
+		pOptimizer->set_x_tolerance/*SetTolerance*/(cgTolerance);
 
 		// set the CG tolerance
-		const REAL lineTolerance = GetProfileRealAt(LINETOL_KEY, nLevel, DEFAULT_TOLERANCE);
+		const REAL lineTolerance = GetProfileRealAt(LINETOL_KEY, nLevel, DEFAULT_LINE_TOLERANCE[nLevel]);
 		// pOptimizer->GetBrentOptimizer().set_x_tolerance(lineTolerance);
 		pOptimizer->SetLineOptimizerTolerance(lineTolerance);
 

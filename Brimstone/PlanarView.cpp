@@ -194,7 +194,8 @@ void CPlanarView::DrawImages(CDC *pDC)
 	VOXEL_REAL *pVoxels0 = NULL;
 	if (m_pVolume[0] && m_pVolume[0]->GetBufferedRegion().GetSize()[0] != 0)
 	{
-		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width())
+		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width()
+			|| m_volumeResamp[0]->GetBufferedRegion().GetSize()[1] != rect.Height())
 		{
 			m_volumeResamp[0]->SetRegions(MakeSize(rect.Width(), rect.Height(), 1));
 			m_volumeResamp[0]->Allocate();

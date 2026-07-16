@@ -172,9 +172,17 @@ const CVectorN<>&
 				//for (int nAtVoxel = /*0*/GetSlice() * nCount; 
 				//	nAtVoxel < /*nCount*/((GetSlice()+1) * nCount); nAtVoxel++)
 				{
-					int nBin = pBinVolume->GetBufferPointer()[nAtVoxel]; 
-					arr_dBins[nBin] -= m_groupVolBinFracLo_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel]; 
-					arr_dBins[nBin+1] += m_groupVolBinFracHi_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel]; 
+					int nBin = pBinVolume->GetBufferPointer()[nAtVoxel];
+
+					// guard against an out-of-range bin index -- see the
+					//	matching guard in CHistogram::GetBins
+					if (nBin < 0 || nBin + 1 >= nBins)
+					{
+						continue;
+					}
+
+					arr_dBins[nBin] -= m_groupVolBinFracLo_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel];
+					arr_dBins[nBin+1] += m_groupVolBinFracHi_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel];
 				}
 			}
 		}

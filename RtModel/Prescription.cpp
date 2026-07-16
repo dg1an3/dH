@@ -333,8 +333,12 @@ REAL
 	// good to catch an NANs
 	ASSERT(_finite(totalSum));
 
-	// DGL: adding 0.1 to hold it up off 0.0 
-	totalSum += 0.1;
+	// NOTE: previously added a fixed +0.1 offset here ("to hold it up off 0.0"),
+	//	but that constant leaked into the CG optimizer's relative convergence test
+	//	(ConjGradOptimizer.cpp, comparing fabs(m_FinalValue)+fabs(new_fv)) and into
+	//	the free-energy display, both of which should reflect the true KL divergence
+	//	sum. totalSum is already a sum of non-negative KL divergence terms, so it
+	//	doesn't need padding away from 0.0.
 
 	EndLogSection();
 
@@ -401,7 +405,6 @@ void
 					}
 
 					// check adaptive variance value
-					// TODO why is this not true?
 					ASSERT((*m_pAV)[nAt_dVolume] <= (m_varMax + 1e-6));
 					ASSERT((*m_pAV)[nAt_dVolume] >= (m_varMin - 1e-6));
 
@@ -424,10 +427,10 @@ void
 						// normalize so that beamlet weight at scale / 2 is 1.0
 						varWeight /= SIGMOID_SCALE / 2.0;
 					}
-					REAL actVar = m_ActualAV[nAt_dVolume] = 
-						(*m_pAV)[nAt_dVolume] * varSlope * varSlope * varWeight * varWeight;
+					REAL actVar = (*m_pAV)[nAt_dVolume] * varSlope * varSlope * varWeight * varWeight;
 					actVar = __max(actVar, m_varMin);
 					actVar = __min(actVar, m_varMax);
+					m_ActualAV[nAt_dVolume] = actVar;
 
 					// calculate fractional parts
 					const REAL fracMax = // ((*m_pAV)[nAt_dVolume] - m_varMin) / (m_varMax - m_varMin);

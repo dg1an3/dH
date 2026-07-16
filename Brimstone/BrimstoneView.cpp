@@ -365,9 +365,9 @@ LRESULT
 		COptThread::COptIterData *pOID = (COptThread::COptIterData *) lParam;
 		ASSERT(pOID != NULL);
 
-		if (pOID->m_ofvalue > 0.1)
+		if (pOID->m_ofvalue > 0.0)
 		{
-			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, -log10(pOID->m_ofvalue - 0.1)));
+			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, -log10(pOID->m_ofvalue)));
 		}
 
 		const int nUpdateEvery = 1;

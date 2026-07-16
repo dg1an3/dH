@@ -222,8 +222,19 @@ PlanPyramid::InvFiltIntensityMap(int nLevel, const CBeam::IntensityMap * vWeight
 #define MANUAL_INTERP
 #ifdef MANUAL_INTERP
 	{
-	ASSERT(vWeights->GetBufferedRegion().GetSize()[0] == GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount());
-	ASSERT(vFiltWeights->GetBufferedRegion().GetSize()[0] == GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount());
+	const int nWeightsSize = (int) vWeights->GetBufferedRegion().GetSize()[0];
+	const int nFiltWeightsSize = (int) vFiltWeights->GetBufferedRegion().GetSize()[0];
+
+	ASSERT(nWeightsSize == GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount());
+	ASSERT(nFiltWeightsSize == GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount());
+
+	// the ASSERTs above are compiled out in release, where a size mismatch
+	//	silently overruns the buffers indexed below (the write extent comes
+	//	from GetBeamletCount, not from the buffer itself), corrupting the
+	//	heap. Bail out rather than write out of bounds.
+	if (nWeightsSize != GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount()
+		|| nFiltWeightsSize != GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount())
+		return;
 
 	int nBeamletCountPrev = GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount() / 2;
 	int nBeamletCountNext = GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount() / 2;
