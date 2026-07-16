@@ -10,6 +10,12 @@ x64/
 venv/
 _codeql_detected_source_root
 
+# Visual Studio per-user project settings (local-only)
+*.vcxproj.user
+
+# reproduction / debug logs from the python UI-automation harness
+python/*.log
+
 # Amortized course-prior prototype: regenerable sample corpora.
 # Built by python/examples/generate_amortized_data.py.
 data/amortized_samples/
