@@ -203,8 +203,10 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Message>copy the kernel data</Message>
-      <Command>copy *kernel.dat $(OutDir)</Command>
+      <Message>copy the kernel data and IPP runtime DLLs</Message>
+      <Command>copy *kernel.dat $(OutDir)
+copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ipps*.dll" $(OutDir)
+copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -254,13 +256,26 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\GenImaging\include;..\Graph\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;$(DCMTK_DIR)\dcmimgle\include;$(DCMTK_DIR)\dcmdata\include;$(DCMTK_DIR)\ofstd\include;$(DCMTK_DIR)\config\include;$(ITK_DIR)\Code\Algorithms;$(ITK_DIR)\Code\BasicFilters;$(ITK_DIR)\Code\Common;$(ITK_BUILD_DIR);$(ITK_DIR)\Utilities\vxl\vcl;$(ITK_BUILD_DIR)\Utilities\vxl\vcl;$(ITK_DIR)\Utilities\vxl\core;$(ITK_BUILD_DIR)\Utilities\vxl\core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;USE_IPP;SBYTE_DEFINED;USE_RTOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+        ..\Graph\include;
+        ..\RtModel\include;
+        ..\XMLLogging;
+        C:\vcpkg\installed\x64-windows\include\ITK-5.4;
+        C:\vcpkg\installed\x64-windows\include\vxl\core;
+        C:\vcpkg\installed\x64-windows\include\vxl\vcl;
+        C:\vcpkg\installed\x64-windows\include;
+        C:\Program Files (x86)\Intel\oneAPI\ipp\latest\include;
+        C:\Program Files (x86)\Intel\oneAPI\ipp\latest\include\ipp;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;USE_IPP;SBYTE_DEFINED;USE_RTOPT;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -268,8 +283,8 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(DCMTK_BUILD_DIR)\dcmimgle\libsrc\release\dcmimgle.lib;$(DCMTK_BUILD_DIR)\dcmdata\libsrc\release\dcmdata.lib;$(DCMTK_BUILD_DIR)\ofstd\libsrc\release\ofstd.lib;ITKAlgorithms.lib;ITKBasicFilters.lib;ITKCommon.lib;itkvnl_inst.lib;itkvnl_algo.lib;itkv3p_netlib.lib;itkvnl.lib;itkvcl.lib;itksys.lib;ippi.lib;ipps.lib;ippm.lib;ippcore.lib;ws2_32.lib;netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ITK_BUILD_DIR_32)\bin\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ipps.lib;ippcore.lib;ws2_32.lib;netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\Intel\oneAPI\ipp\latest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -279,8 +294,10 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Message>copy the kernel data</Message>
-      <Command>copy *kernel.dat $(OutDir)</Command>
+      <Message>copy the kernel data and IPP runtime DLLs</Message>
+      <Command>copy *kernel.dat $(OutDir)
+copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ipps*.dll" $(OutDir)
+copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

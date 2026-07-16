@@ -192,12 +192,23 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>.\include;..\GenImaging\include;..\RtOptimizer\include;..\RtModel\include;..\OptimizeN\include;$(ITK_DIR)\Code\Common;$(ITK_BUILD_DIR);$(ITK_DIR)\Utilities\vxl\vcl;$(ITK_BUILD_DIR)\Utilities\vxl\vcl;$(ITK_DIR)\Utilities\vxl\core;$(ITK_BUILD_DIR)\Utilities\vxl\core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;USE_IPP;USE_RTOPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+        .\include;
+        ..\RtModel\include;
+        C:\vcpkg\installed\x64-windows\include\ITK-5.4;
+        C:\vcpkg\installed\x64-windows\include\vxl\core;
+        C:\vcpkg\installed\x64-windows\include\vxl\vcl;
+        C:\vcpkg\installed\x64-windows\include;
+        C:\Program Files (x86)\Intel\oneAPI\ipp\latest\include;
+        C:\Program Files (x86)\Intel\oneAPI\ipp\latest\include\ipp;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;USE_IPP;USE_RTOPT;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

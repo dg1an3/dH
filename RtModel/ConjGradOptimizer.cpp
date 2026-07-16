@@ -92,7 +92,11 @@ vnl_nonlinear_minimizer::ReturnCodes
 	if (m_vGrad.magnitude() < 1e-8)
 	{
 		Log(_T("Gradient too small -- adding length"));
-		RandomVector(get_x_tolerance(), &m_vGrad[0], m_vGrad.size());
+		// NOTE: must be a step large enough for the line minimizer's initial
+		//	bracket to produce a distinguishable function value -- get_x_tolerance()
+		//	is a convergence tolerance, not a usable step scale, and using it here
+		//	made the bracket's two initial probes tie, tripping vxl's fb < fa assert.
+		RandomVector(R(1.0), &m_vGrad[0], m_vGrad.size());
 	}
 
 	// set the initial (steepest descent) direction
@@ -107,18 +111,44 @@ vnl_nonlinear_minimizer::ReturnCodes
 
 		// set up the direction for the line minimization
 		m_lineFunction.SetPoint(m_FinalParameter);
-		m_lineFunction.SetDirection(m_vDir);
+
+		// vnl_brent_minimizer::minimize(x) always brackets with a FIXED unit
+		//	step (x-1, x+1) regardless of the direction vector's magnitude, so
+		//	the direction handed to it must itself be normalized to a
+		//	consistent O(1) scale -- m_vDir's raw magnitude (steepest descent
+		//	initially, Polak-Ribiere updated thereafter) can be arbitrarily
+		//	small at any iteration, not just the first, which otherwise
+		//	produces an imperceptible step and ties fa/fb/fc, tripping vxl's
+		//	fb < fa / fb < fc bracket assertions. m_vDir itself must stay
+		//	unnormalized -- the CG recurrence below depends on its true scale.
+		vnl_vector<REAL> vLineDir = m_vDir;
+		vLineDir.normalize();
+		m_lineFunction.SetDirection(vLineDir);
 
 		// now launch a line optimization
 		REAL lambda = m_optimizeBrent.minimize(0);
+		REAL new_fv = m_optimizeBrent.f_at_last_minimum();
+
+		// guard against a degenerate/tied bracket -- vnl_bracket_minimum can
+		//	return a flat bracket when the objective doesn't change over a
+		//	unit step (most likely near convergence, where the gradient is
+		//	small in every direction), which violates vnl_brent_minimizer's
+		//	internal fb<fa/fb<fc preconditions (an assert in debug builds,
+		//	silently skipped in release) and can produce a non-finite lambda
+		//	from its parabolic interpolation. Applying a non-finite lambda
+		//	corrupts m_FinalParameter and cascades into heap corruption
+		//	downstream (e.g. a NaN dose value producing a garbage histogram
+		//	bin index), so treat this iteration as no improvement instead.
+		if (!_finite(lambda) || !_finite(new_fv))
+		{
+			lambda = 0.0;
+			new_fv = m_FinalValue;
+		}
 
 		// update the final parameter value
 		m_vLambdaScaled = m_lineFunction.GetDirection();
 		m_vLambdaScaled *= lambda;
 		m_FinalParameter += m_vLambdaScaled;
-
-		// store the final value from the line optimizer
-		REAL new_fv = m_optimizeBrent.f_at_last_minimum();
 
 		// test for convergence on line minimalization
 		bConvergence = (2.0 * fabs(m_FinalValue - new_fv) 
@@ -342,10 +372,7 @@ void
 	covar *= m_mOrthoBasis;
 	for (int nDim = 0; nDim < m_vDir.size(); nDim++)
 	{
-		double sum = 0.0;
-		for (int nRow = 0; nRow < covar.rows(); nRow++)
-			sum += covar(nRow, nDim);
-		m_vAdaptVariance[nDim] = 1.0 / sum;
+		m_vAdaptVariance[nDim] = 1.0 / covar(nDim, nDim);
 	}
 
 	// compute explicit free energy if enabled

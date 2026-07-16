@@ -2,7 +2,9 @@
 *.*~
 __pycache__/
 .vscode/
-*/x64/*
+# build output: exe/lib and the DLLs + *.dat kernels the post-build step
+#	copies in (matches x64 at the repo root and nested under each project)
+x64/
 *.idb
 *.pdb
 venv/
