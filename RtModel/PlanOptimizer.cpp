@@ -38,10 +38,17 @@ const REAL DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25}; // { 8.0, 4.0, 2.0
 const CString CGTOL_KEY			= _T("CGTolerance%i");
 const CString LINETOL_KEY		= _T("Tolerance%i");
 
-// tolerances tighten from the coarsest to the finest pyramid level, so the
-//	optimizer doesn't declare convergence before resolving the fine-level detail
-const REAL DEFAULT_CG_TOLERANCE[]	= {1e-3, 1e-4, 1e-5, 1e-6, 1e-6};
-const REAL DEFAULT_LINE_TOLERANCE[] = {1e-3, 1e-4, 1e-5, 1e-6, 1e-6};
+// Per-level convergence tolerances, indexed by nLevel. IMPORTANT: level 0 is
+//	the FINEST resolution (0.5mm) and level MAX_SCALES-1 is the COARSEST (8mm)
+//	-- see PlanPyramid, where m_arrPlans[0] is the base plan and each higher
+//	index doubles the dose resolution. So index 0 must hold the tightest
+//	tolerance: the finest level is optimized last and determines final plan
+//	quality, so it must be the most thoroughly converged, while the coarse
+//	levels only warm-start and can stop early. (A previous version had these
+//	reversed -- {1e-3,...,1e-6} -- which gave the finest level the LOOSEST
+//	tolerance and made it converge prematurely, the opposite of the intent.)
+const REAL DEFAULT_CG_TOLERANCE[]	= {1e-6, 1e-5, 1e-4, 1e-3, 1e-3};
+const REAL DEFAULT_LINE_TOLERANCE[] = {1e-6, 1e-5, 1e-4, 1e-3, 1e-3};
 
 
 
