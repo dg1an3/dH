@@ -45,11 +45,57 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 // maximum iterations
-const int ITER_MAX = 500;		
+const int ITER_MAX = 500;
 
-// z-epsilon -- small number to protect against fractional accuracy for 
+// z-epsilon -- small number to protect against fractional accuracy for
 //		a minimum that happens to be exactly zero.
-const REAL ZEPS = (REAL) 1.0e-10;	
+const REAL ZEPS = (REAL) 1.0e-10;
+
+///////////////////////////////////////////////////////////////////////////////
+static REAL
+	GetGradConvergenceTol()
+	// Gradient-norm convergence threshold from BRIMSTONE_GRAD_TOL. When > 0, the
+	//	optimizer converges on |grad F| <= this value instead of the relative
+	//	change in F. This is scale-invariant to an additive offset in the
+	//	objective -- e.g. the -w*entropy term in F = KL - w*H, which holds |F|
+	//	away from 0 and makes the default relative test declare convergence early
+	//	-- so it stops only when the gradient (the KL vs entropy force balance)
+	//	is actually small. Read once, cached. 0/unset => original relative test.
+{
+	static bool s_init = false;
+	static REAL s_tol = 0.0;
+	if (!s_init)
+	{
+		s_init = true;
+		const char *pEnv = getenv("BRIMSTONE_GRAD_TOL");
+		if (pEnv != NULL)
+			s_tol = (REAL) atof(pEnv);
+	}
+	return s_tol;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+static int
+	GetCGRestartInterval()
+	// Conjugate-gradient restart interval from BRIMSTONE_CG_RESTART. When > 0,
+	//	the direction update uses PR+ (beta clamped to >= 0) AND restarts to
+	//	steepest descent every N iterations. Plain Polak-Ribiere (the historical
+	//	behavior, N=0/unset) loses conjugacy and zig-zags on the non-quadratic,
+	//	ill-conditioned objective produced by the softmax-entropy regularizer,
+	//	stalling with a gradient that creeps but never converges. Read once,
+	//	cached. 0/unset => original plain-PR behavior.
+{
+	static bool s_init = false;
+	static int s_interval = 0;
+	if (!s_init)
+	{
+		s_init = true;
+		const char *pEnv = getenv("BRIMSTONE_CG_RESTART");
+		if (pEnv != NULL)
+			s_interval = atoi(pEnv);
+	}
+	return s_interval;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 DynamicCovarianceOptimizer::DynamicCovarianceOptimizer(DynamicCovarianceCostFunction *pFunc)
@@ -150,8 +196,8 @@ vnl_nonlinear_minimizer::ReturnCodes
 		m_vLambdaScaled *= lambda;
 		m_FinalParameter += m_vLambdaScaled;
 
-		// test for convergence on line minimalization
-		bConvergence = (2.0 * fabs(m_FinalValue - new_fv) 
+		// relative-change convergence test (the historical default)
+		bool bRelConverged = (2.0 * fabs(m_FinalValue - new_fv)
 			<= get_x_tolerance() * (fabs(m_FinalValue) + fabs(new_fv) + ZEPS));
 
 		// store the previous lambda value
@@ -160,7 +206,7 @@ vnl_nonlinear_minimizer::ReturnCodes
 		// need to call-back?
 		if (m_pCallbackFunc)
 		{
-			if (!(*m_pCallbackFunc)(this, m_pCallbackParam)) 
+			if (!(*m_pCallbackFunc)(this, m_pCallbackParam))
 			{
 				// request to terminate
 				// num_iterations_ = -1;
@@ -176,26 +222,55 @@ vnl_nonlinear_minimizer::ReturnCodes
 
 		///////////////////////////////////////////////////////////////////////////////
 		// Update Direction
-		
-		// compute denominator for gamma
-		REAL gg = dot_product(m_vGrad, m_vGrad);
-		bConvergence = bConvergence || (gg == 0.0);
+
+		// Compute the gradient at the new point up front: it is needed both for
+		//	the Polak-Ribiere direction update below AND for the optional
+		//	gradient-norm convergence test. m_vGradPrev holds the previous
+		//	gradient g_k (its squared norm gg is the PR denominator).
+		m_vGradPrev = m_vGrad;
+		REAL gg = dot_product(m_vGradPrev, m_vGradPrev);
+		m_pCostFunction->gradf(m_FinalParameter, m_vGrad);
+		m_vGrad *= -1.0;								// g_{k+1} = -grad F(x_{k+1})
+
+		const REAL gradNorm = m_vGrad.magnitude();		// |grad F| at the new point
+		{
+			CString __logMsg;
+			__logMsg.Format(_T("iter %d: F=%.6g |gradF|=%.6g"),
+				num_iterations_, (double) m_FinalValue, (double) gradNorm);
+			Log(__logMsg);
+		}
+
+		// choose the convergence criterion: gradient-norm if BRIMSTONE_GRAD_TOL
+		//	is set (scale-invariant to the objective's additive offset), else the
+		//	historical relative-change test. gg==0 always converges.
+		const REAL gradTol = GetGradConvergenceTol();
+		if (gradTol > 0.0)
+			bConvergence = (gradNorm <= gradTol) || (gg == 0.0);
+		else
+			bConvergence = bRelConverged || (gg == 0.0);
 
 		// must have performed at least one full iteration
 		if (!bConvergence)
 		{
-			// store gradient for 
-			m_vGradPrev = m_vGrad;
-
-			// compute the gradient at the current parameter value
-			m_pCostFunction->gradf(m_FinalParameter, m_vGrad);
-			m_vGrad *= -1.0;
-
 			// compute numerator for gamma (Polak-Ribiera formula)
 			REAL dgg = dot_product(m_vGrad, m_vGrad) - dot_product(m_vGradPrev, m_vGrad);
+			REAL beta = dgg / gg;
 
-			// otherwise, update the direction
-			m_vDir *= dgg / gg;
+			// optional CG robustness (BRIMSTONE_CG_RESTART = N > 0): PR+ clamps
+			//	beta >= 0 (auto-restart on loss of descent), and every N
+			//	iterations force a steepest-descent restart (beta = 0). Restores
+			//	conjugacy on the ill-conditioned entropy-regularized objective.
+			const int nRestart = GetCGRestartInterval();
+			if (nRestart > 0)
+			{
+				if (beta < 0.0)
+					beta = 0.0;
+				if ((num_iterations_ % nRestart) == (nRestart - 1))
+					beta = 0.0;
+			}
+
+			// otherwise, update the direction: d = g + beta*d
+			m_vDir *= beta;
 			m_vDir += m_vGrad;
 		}
 		else
