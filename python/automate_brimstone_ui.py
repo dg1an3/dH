@@ -48,6 +48,8 @@ ISOCENTER_XYZ = (218.0, 218.0, -172.0)  # mm offsets -> IDC_EDIT_ISO_OFS_X/Y/Z (
 STRUCTURE_PRESCRIPTIONS = [
     {"name": "PTV", "type": "Target", "dose_min": 60.0, "dose_max": 70.0, "weight": 2.5},
     {"name": "Spinal Cord", "type": "OAR", "dose_min": 0.0, "dose_max": 30.0, "weight": 2.5},
+    {"name": "Parotid(L)", "type": "OAR", "dose_min": 0.0, "dose_max": 30.0, "weight": 0.15},
+    {"name": "Parotid(R)", "type": "OAR", "dose_min": 0.0, "dose_max": 30.0, "weight": 0.15},
 ]
 
 # timeouts, in seconds
