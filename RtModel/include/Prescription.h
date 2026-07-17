@@ -78,6 +78,15 @@ public:
 	// helper to set up element include flags
 	void SetElementInclude();
 
+	// breakdown of the most recent operator() evaluation into its KL and
+	//	softmax-entropy parts, when the entropy regularizer is active
+	//	(F = KL - w*entropy). Used by the sweep instrumentation to report the
+	//	terms separately.
+	REAL GetLastKL() const { return m_dLastKL; }
+	REAL GetLastEntropy() const { return m_dLastEntropy; }
+	REAL GetEntropyWeight() const;
+	bool GetEntropySeparable() const;
+
 public:
 	// sigmoid for parameter transform
 	REAL m_inputScale;
@@ -117,6 +126,10 @@ public:
 	// array of flags for element inclusion
 	/// TODO: change this to std::vector
 	CArray<BOOL, BOOL> m_arrIncludeElement;
+
+	// last-evaluated split of the objective F = KL - w*entropy (for reporting)
+	mutable REAL m_dLastKL;
+	mutable REAL m_dLastEntropy;
 
 };	// class Prescription
 

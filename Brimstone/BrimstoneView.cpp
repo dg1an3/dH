@@ -397,6 +397,34 @@ LRESULT
 	}
 
 	m_bOptimizerRun = false;
+
+	// Sweep instrumentation: when BRIMSTONE_OBJECTIVE_FILE is set (e.g. by the
+	//	isocenter-sweep driver), write the final level-0 objective value to that
+	//	file. The file's appearance also serves as the optimizer-done signal, so
+	//	the driver can wait on a result instead of sleeping a fixed interval.
+	//	Inert for normal interactive runs where the env var is unset.
+	char szObjFile[MAX_PATH] = {0};
+	if (GetEnvironmentVariableA("BRIMSTONE_OBJECTIVE_FILE", szObjFile, MAX_PATH) > 0)
+	{
+		dH::PlanOptimizer *pOpt = GetDocument()->m_pOptimizer.get();
+		if (pOpt != NULL)
+		{
+			// level-0 (finest) values. The optimizer minimizes F = KL - w*H
+			//	(softmax entropy), so GetFinalValue() is F; the prescription
+			//	caches the KL and entropy split from its last evaluation.
+			const REAL freeEnergy = pOpt->GetOptimizer(0)->GetFinalValue();
+			dH::Prescription *pPresc0 = pOpt->GetPrescription(0);
+			const REAL kl = pPresc0->GetLastKL();
+			const REAL entropy = pPresc0->GetLastEntropy();
+			FILE *fp = NULL;
+			if (fopen_s(&fp, szObjFile, "w") == 0 && fp != NULL)
+			{
+				fprintf(fp, "free_energy=%.10g kl=%.10g entropy=%.10g\n",
+					(double) freeEnergy, (double) kl, (double) entropy);
+				fclose(fp);
+			}
+		}
+	}
 #endif
 
 	return 0;
