@@ -724,6 +724,18 @@ void
 		+ m_pVolume[0]->GetSpacing()[1] * 0.5 * (REAL) m_pVolume[0]->GetBufferedRegion().GetSize()[1];
 	m_vCenter[2] = m_pVolume[0]->GetOrigin()[2];
 
+	// automation hook: BRIMSTONE_ZOOM overrides the default 1.0 zoom so the
+	//	sweep's screenshots magnify the anatomy in the planar view. Inert for
+	//	normal interactive runs where the env var is unset (right-drag still
+	//	zooms as before).
+	char szZoom[64] = {0};
+	if (GetEnvironmentVariableA("BRIMSTONE_ZOOM", szZoom, sizeof(szZoom)) > 0)
+	{
+		const double z = atof(szZoom);
+		if (z > 0.0)
+			m_zoom = (REAL) z;
+	}
+
 	// set the zoom (to set the basis)
 	SetZoom(m_zoom);
 }
