@@ -6,6 +6,7 @@
 #include <Graph.h>
 #include "PlanarView.h"	// Added by ClassView
 #include "OptThread.h"
+#include "WebView2Host.h"
 
 #if _MSC_VER > 1000
 #pragma once
@@ -43,6 +44,9 @@ public:
 	// graph to display iterations
 	CGraph m_graphIterations;
 	CDataSeries::Pointer m_dsIter;
+
+	// WebView2-hosted replacement for the iteration/convergence graph
+	CWebView2Host m_webChart;
 
 	// stores data series for iteration graph
 	CDataSeries::Pointer m_pIterDS[dH::Structure::MAX_SCALES];

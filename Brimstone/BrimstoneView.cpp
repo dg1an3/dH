@@ -10,6 +10,7 @@
 
 #include "BrimstoneDoc.h"
 #include "BrimstoneView.h"
+#include "OptGraphHtml.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -234,6 +235,20 @@ int
 	m_pIterDS[3]->SetColor(RGB(255, 0, 255));
 	m_graphIterations.AddDataSeries(m_pIterDS[3]);
 
+	// WebView2 iteration/convergence chart. Placeholder geometry here; the real
+	//	rectangle (bottom-right quadrant) is set in OnSize. Phase 1: load a
+	//	self-contained test page to verify the WebView2 integration renders inside
+	//	the view. It sits over m_graphIterations, which still receives data so the
+	//	existing GDI flow is left untouched until the chart takes over.
+	m_webChart.Create(NULL, NULL, WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+		CRect(0, 400, 200, 600), this, /* nID */ 115);
+	m_webChart.NavigateToString(g_optGraphHtml);
+
+	// hide the legacy GDI iteration graph -- the WebView2 chart takes its place.
+	//	The data series remain attached to m_graphIterations so the existing
+	//	OnOptimizerThreadUpdate flow keeps working (it just paints into a hidden
+	//	window) until the chart is wired to receive the data directly.
+	m_graphIterations.ShowWindow(SW_HIDE);
 
 	return 0;
 }
@@ -307,7 +322,11 @@ void
 	m_graphDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);	
 
 	// reposition the iterations window
-	m_graphIterations.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);	
+	m_graphIterations.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);
+
+	// WebView2 chart occupies the same bottom-right quadrant, over the GDI graph
+	if (m_webChart.GetSafeHwnd() != NULL)
+		m_webChart.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);
 }
 
 
@@ -326,6 +345,9 @@ void
 		CMatrixNxM<> mEmpty;
 		for (int nL = 0; nL < dH::Structure::MAX_SCALES; nL++)
 			m_pIterDS[nL]->SetDataMatrix(mEmpty);
+
+		// clear the WebView2 convergence chart
+		m_webChart.ExecScript(_T("resetChart()"));
 
 		m_pOptThread->PostThreadMessage(WM_OPTIMIZER_START, 0, 0);
 		m_bOptimizerRun = true;
@@ -367,7 +389,13 @@ LRESULT
 
 		if (pOID->m_ofvalue > 0.0)
 		{
-			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, -log10(pOID->m_ofvalue)));
+			const double yVal = -log10(pOID->m_ofvalue);
+			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, yVal));
+
+			// feed the same point to the WebView2 convergence chart
+			CString strJs;
+			strJs.Format(_T("addPoint(%d,%d,%.6g)"), pOID->m_nLevel, m_nTotalIter, yVal);
+			m_webChart.ExecScript(strJs);
 		}
 
 		const int nUpdateEvery = 1;
