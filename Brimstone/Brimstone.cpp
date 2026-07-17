@@ -49,6 +49,15 @@ CBrimstoneApp theApp;
 
 BOOL CBrimstoneApp::InitInstance()
 {
+	// Initialize OLE/COM (apartment-threaded) for the UI thread. Required by the
+	//	WebView2 control hosted in CBrimstoneView -- CreateCoreWebView2Environment
+	//	silently never completes without an STA-initialized COM thread.
+	if (!AfxOleInit())
+	{
+		AfxMessageBox(_T("OLE initialization failed."));
+		return FALSE;
+	}
+
 	AfxEnableControlContainer();
 
 	// Standard initialization
