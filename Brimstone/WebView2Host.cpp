@@ -18,6 +18,7 @@ CWebView2Host::CWebView2Host()
 	: m_ready(false)
 	, m_navigated(false)
 	, m_navCompletedToken()
+	, m_webMessageToken()
 {
 }
 
@@ -80,7 +81,7 @@ void CWebView2Host::OnControllerReady(ICoreWebView2Controller* controller)
 	m_controller->get_CoreWebView2(&m_webview);
 	m_controller->put_IsVisible(TRUE);
 
-	// track navigation completion so queued scripts only run against a live page
+	// track navigation completion so queued scripts/messages only reach a live page
 	if (m_webview)
 	{
 		m_webview->add_NavigationCompleted(
@@ -89,9 +90,36 @@ void CWebView2Host::OnControllerReady(ICoreWebView2Controller* controller)
 				{
 					m_navigated = true;
 					FlushScripts();
+					FlushPosts();
 					return S_OK;
 				}).Get(),
 			&m_navCompletedToken);
+
+		// page -> host messages (window.chrome.webview.postMessage). Fired on the
+		//	UI thread; forwarded to the registered handler as a JSON string.
+		m_webview->add_WebMessageReceived(
+			Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+				[this](ICoreWebView2* /*sender*/, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+				{
+					if (m_onMessage && args)
+					{
+						// the page posts plain strings (postMessage("cmd|a|b"));
+						//	fall back to the JSON form for non-string messages.
+						LPWSTR msg = nullptr;
+						if (SUCCEEDED(args->TryGetWebMessageAsString(&msg)) && msg)
+						{
+							m_onMessage(std::wstring(msg));
+							CoTaskMemFree(msg);
+						}
+						else if (SUCCEEDED(args->get_WebMessageAsJson(&msg)) && msg)
+						{
+							m_onMessage(std::wstring(msg));
+							CoTaskMemFree(msg);
+						}
+					}
+					return S_OK;
+				}).Get(),
+			&m_webMessageToken);
 	}
 
 	m_ready = true;
@@ -146,6 +174,14 @@ void CWebView2Host::ExecScript(LPCWSTR js)
 		m_pendingScripts.push_back(js);
 }
 
+void CWebView2Host::PostJson(LPCWSTR json)
+{
+	if (m_ready && m_navigated && m_webview)
+		m_webview->PostWebMessageAsJson(json);
+	else
+		m_pendingPosts.push_back(json);
+}
+
 void CWebView2Host::FlushNavigate()
 {
 	if (!m_webview)
@@ -171,4 +207,14 @@ void CWebView2Host::FlushScripts()
 	for (const std::wstring& s : m_pendingScripts)
 		m_webview->ExecuteScript(s.c_str(), nullptr);
 	m_pendingScripts.clear();
+}
+
+void CWebView2Host::FlushPosts()
+{
+	if (!m_webview)
+		return;
+
+	for (const std::wstring& s : m_pendingPosts)
+		m_webview->PostWebMessageAsJson(s.c_str());
+	m_pendingPosts.clear();
 }
