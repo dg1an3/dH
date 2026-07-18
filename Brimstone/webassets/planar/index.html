@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+  WebView2 + vtk.js replacement for the GDI CPlanarView.
+
+  Served from a virtual host (see CWebView2Host::SetVirtualHostMapping) so the
+  ~2.3 MB vtk.js UMD bundle loads as a normal script instead of an inline
+  string. Renders an axial CT slice with vtk.js; window/level, zoom and pan are
+  handled entirely in-page for interactivity, and the mouse wheel steps the
+  slice by posting back to the host.
+
+  host -> page:
+    setSliceF32(w, h, sx, sy, window, level, base64)   axial CT scalars (float32 LE)
+    setDose(...)     (TODO) dose overlay
+    setContours(...) (TODO) structure contours
+  page -> host (window.chrome.webview.postMessage):
+    "slice|<+1|-1>"    wheel-scrolled one source slice up/down
+    "wl|<window>|<level>"  window/level changed by drag
+-->
+<html><head><meta charset="utf-8"><style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;
+    font:11px 'Segoe UI',Tahoma,sans-serif;color:#cfcfd6}
+  #vtk{position:absolute;inset:0}
+  #hud{position:absolute;left:8px;top:6px;pointer-events:none;
+    text-shadow:0 1px 2px #000;white-space:pre;line-height:1.4}
+  #err{position:absolute;left:8px;bottom:6px;color:#ff8080;pointer-events:none;
+    text-shadow:0 1px 2px #000}
+</style></head><body>
+<div id="vtk"></div>
+<div id="hud"></div>
+<div id="err"></div>
+<script src="vtk.js"></script>
+<script>
+(function(){
+  function post(s){ if(window.chrome&&window.chrome.webview) window.chrome.webview.postMessage(s); }
+  var hud=document.getElementById('hud'), errEl=document.getElementById('err');
+  function showErr(m){ errEl.textContent=m||''; }
+
+  if(!window.vtk){ showErr('vtk.js failed to load'); return; }
+  var V=window.vtk;
+
+  // --- vtk.js scene: generic render window + a single image slice actor ---
+  var grw = V.Rendering.Misc.vtkGenericRenderWindow.newInstance({background:[0,0,0]});
+  grw.setContainer(document.getElementById('vtk'));
+  var renderer = grw.getRenderer();
+  var renderWindow = grw.getRenderWindow();
+  renderer.getActiveCamera().setParallelProjection(true);
+
+  var imageData = V.Common.DataModel.vtkImageData.newInstance();
+  var mapper = V.Rendering.Core.vtkImageMapper.newInstance();
+  mapper.setInputData(imageData);
+  if (mapper.setSlicingMode && V.Rendering.Core.vtkImageMapper.SlicingMode)
+    mapper.setSlicingMode(V.Rendering.Core.vtkImageMapper.SlicingMode.K);
+  var actor = V.Rendering.Core.vtkImageSlice.newInstance();
+  actor.setMapper(mapper);
+  var haveActor=false;
+
+  var win=400, lev=30;
+  function applyWL(){ var p=actor.getProperty(); p.setColorWindow(win); p.setColorLevel(lev); }
+
+  function b64ToFloat32(b64){
+    var bin=atob(b64), n=bin.length, buf=new ArrayBuffer(n), u8=new Uint8Array(buf);
+    for(var i=0;i<n;i++) u8[i]=bin.charCodeAt(i);
+    return new Float32Array(buf);
+  }
+
+  window.setSliceF32=function(w,h,sx,sy,window_,level_,b64){
+    try{
+      win=window_; lev=level_;
+      var vals=b64ToFloat32(b64);
+      var scalars=V.Common.Core.vtkDataArray.newInstance(
+        {name:'ct', numberOfComponents:1, values:vals});
+      imageData.setDimensions(w,h,1);
+      imageData.setSpacing(sx,sy,1);
+      imageData.setOrigin(0,0,0);
+      imageData.getPointData().setScalars(scalars);
+      imageData.modified();
+      applyWL();
+      if(!haveActor){ renderer.addActor(actor); haveActor=true; }
+      renderer.resetCamera();
+      renderWindow.render();
+      hud.textContent='CT '+w+'x'+h;
+      showErr('');
+    }catch(e){ showErr('setSlice: '+e.message); }
+  };
+
+  // --- interaction: left-drag = window/level, wheel = slice step ---
+  var el=document.getElementById('vtk'), drag=false, lx=0, ly=0;
+  el.addEventListener('pointerdown',function(e){ if(e.button===0){ drag=true; lx=e.clientX; ly=e.clientY; el.setPointerCapture(e.pointerId);} });
+  el.addEventListener('pointerup',function(e){ drag=false; });
+  el.addEventListener('pointermove',function(e){
+    if(!drag) return;
+    win=Math.max(1, win + (e.clientX-lx)*2);
+    lev=lev + (e.clientY-ly)*2;
+    lx=e.clientX; ly=e.clientY;
+    applyWL(); renderWindow.render();
+    hud.textContent='W '+Math.round(win)+'  L '+Math.round(lev);
+    post('wl|'+win+'|'+lev);
+  });
+  el.addEventListener('wheel',function(e){ e.preventDefault(); post('slice|'+(e.deltaY>0?1:-1)); },{passive:false});
+
+  window.addEventListener('resize',function(){ grw.resize(); renderWindow.render(); });
+  hud.textContent='waiting for CT...';
+})();
+</script></body></html>
