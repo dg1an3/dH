@@ -309,6 +309,7 @@ copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)
     <ClCompile Include="PlanarView.cpp" />
     <ClCompile Include="WebView2Host.cpp" />
     <ClCompile Include="OptGraphHtml.cpp" />
+    <ClCompile Include="DvhViewHtml.cpp" />
     <ClCompile Include="PlanSetupDlg.cpp" />
     <ClCompile Include="PrescriptionBar.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsManaged>
@@ -346,6 +347,7 @@ copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)
     <ClInclude Include="PlanarView.h" />
     <ClInclude Include="WebView2Host.h" />
     <ClInclude Include="OptGraphHtml.h" />
+    <ClInclude Include="DvhViewHtml.h" />
     <ClInclude Include="PlanSetupDlg.h" />
     <ClInclude Include="PrescriptionBar.h">
       <FileType>CppControl</FileType>

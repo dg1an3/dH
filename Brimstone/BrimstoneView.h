@@ -48,6 +48,9 @@ public:
 	// WebView2-hosted replacement for the iteration/convergence graph
 	CWebView2Host m_webChart;
 
+	// WebView2-hosted DVH view: DVH chart + the Target/OAR/None structure editor
+	CWebView2Host m_webDVH;
+
 	// stores data series for iteration graph
 	CDataSeries::Pointer m_pIterDS[dH::Structure::MAX_SCALES];
 
@@ -57,6 +60,12 @@ public:
 
 	// add new structure term
 	void AddStructTerm(dH::VOITerm * pVOIT);
+
+	// WebView2 DVH view: push structure list + DVH curves to the page, and
+	//	handle edits (type/interval/weight/color/order) posted back from it
+	void SendStructuresToDvh();
+	void SendDvhCurvesToDvh();
+	void OnDvhMessage(const std::wstring & msg);
 
 // Operations
 public:
