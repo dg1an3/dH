@@ -1,6 +1,24 @@
 // Copyright (C) 2nd Messenger Systems
 // pybind11 bindings for RtModel
+//
+// Windows-only. RtModel is built against MFC (Dynamic), Intel IPP, ITK and
+// VNL, so this extension can only be compiled with MSVC. See BUILD_NATIVE.md.
+//
+// Include ORDER matters: MFC's <afx.h> refuses to compile if <windows.h> was
+// already pulled in (Python.h includes it). So the MFC headers MUST come
+// before <pybind11/pybind11.h> (which includes Python.h). The RtModel public
+// headers (Prescription.h, Plan.h, VectorN.h ...) reference CString, CArray
+// and CTypedPtrMap without including MFC themselves -- they rely on the
+// translation unit having already included these, exactly as stdafx.h does.
 
+// --- MFC first (mirrors RtModel/stdafx.h) -----------------------------------
+#include <afx.h>
+#include <afxwin.h>
+#include <afxdisp.h>
+#include <afxtempl.h>
+#include <atlcoll.h>
+
+// --- then pybind11 / Python -------------------------------------------------
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -130,6 +148,14 @@ PYBIND11_MODULE(rtmodel_core, m) {
         })
         .def("to_numpy", &vector_to_numpy)
         .def_static("from_numpy", &numpy_to_vector);
+
+    // Register the abstract base BEFORE any derived class names it. pybind11
+    // requires every declared base to be a registered type, and registering it
+    // also teaches pybind11 the Prescription -> DynamicCovarianceCostFunction
+    // relationship, so a Prescription can be passed where the optimizer
+    // constructor expects a DynamicCovarianceCostFunction*. No constructor is
+    // exposed because the class is abstract (pure-virtual operator()).
+    py::class_<DynamicCovarianceCostFunction>(m, "DynamicCovarianceCostFunction");
 
     // Expose Prescription (base objective function)
     py::class_<Prescription, DynamicCovarianceCostFunction>(m, "Prescription")
