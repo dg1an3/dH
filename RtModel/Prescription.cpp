@@ -26,7 +26,11 @@ const REAL SIGMOID_SCALE = GetSigmoidScale();
 Prescription::Prescription(CPlan *pPlan/*, int nLevel*/)
 	: /*CObjectiveFunction(FALSE)
 		, */m_pPlan(pPlan)
-		, m_inputScale(GetProfileReal("Prescription", "InputScale", 0.5))
+		// BRIMSTONE_INPUT_SCALE overrides the registry value, so a sweep can set
+		//	the steepness without touching HKCU -- and, unlike the registry path,
+		//	the override also reaches HistogramGradient's variance correction.
+		//	See SigmoidParams.h.
+		, m_inputScale(GetInputScale(GetProfileReal("Prescription", "InputScale", 0.5)))
 		, m_Slice(0)
 		, m_TransformSlopeVariance(true)
 {

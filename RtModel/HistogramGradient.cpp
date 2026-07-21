@@ -219,7 +219,12 @@ const CVectorN<>&
 			// determine variance using dSigmoid
 			REAL varSlope = 1.0;
 			REAL varWeight = 1.0;
-			REAL m_inputScale = 0.5;	// should get this from the registry
+			// was a bare 0.5 annotated "should get this from the registry".
+			//	BRIMSTONE_INPUT_SCALE now reaches here too, so a swept steepness
+			//	moves this variance correction in step with the transform in
+			//	Prescription. With the env unset this still falls back to 0.5
+			//	independently of the registry -- see the caveat in SigmoidParams.h.
+			const REAL m_inputScale = dH::GetInputScale(0.5);
 			// was a local copy of the literal 0.2, annotated "should get this
 			//	from Prescription" -- now actually shared with it, so the two
 			//	cannot drift apart. See SigmoidParams.h.

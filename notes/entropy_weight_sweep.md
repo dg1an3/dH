@@ -92,10 +92,20 @@ skipped (`Prescription.cpp:406`) and `H` reads 0.
 | 1e-3 | 0.015058 | +169% | 92.70 | 68.6% | +114% | -- | 0.7 |
 | 3e-3 | 0.039080 | +598% | 109.41 | 80.9% | +152% | -- | 0.3 |
 
-**The knee is at W = 3e-4.** Below it the regularizer is inert: `H` stays flat at
-~43 across a 100x range of W (non-monotone, dipping *below* baseline at 1e-5 --
-that band is noise, not response) while KL slowly degrades. Above it the
-exchange rate collapses toward the q=0.5 collapse.
+**The knee is at W = 3e-4.** Below it the regularizer is inert in the sense that
+matters: `H` stays near ~43 across a 100x range of W, non-monotone, dipping
+*below* baseline at 1e-5, while KL slowly degrades. Above it the exchange rate
+collapses toward the q=0.5 collapse.
+
+That sub-3e-4 band was originally described here as "noise". That is not
+supported: the only same-binary repeat measured (7 beams, W=3e-4) reproduced to
+0.014% on KL and 0.025% on H, whereas the band spans ~7% in H -- two to three
+orders of magnitude larger. So small W does perturb the solution; it just does
+not perturb it in the direction of raising entropy. Caveat on the caveat: that
+repeat is at W=3e-4, and scatter could well be larger in the dead zone where the
+entropy gradient is weak and CG has less to anchor it. A repeat at W=1e-5 would
+settle it. Either way the knee conclusion is untouched -- +21.7% KL and +54.9% H
+at 3e-4 dwarf both readings.
 
 The knee is not pinned precisely; 1e-4 to 3e-4 is unexplored and the true
 optimum may be nearer 2e-4.
@@ -138,12 +148,20 @@ Two side observations:
 
 ## Open questions
 
-1. **Is raising H desirable at all?** Not established. The separable regularizer
-   exists to unstick saturated beamlets, but the corrected-dose baseline sits at
-   ~28-32% of max entropy, i.e. not saturated. Every W that does anything makes
-   KL worse. Whether the entropy bought is worth it is a DVH question, not an
-   objective-value one -- compare the 7-beam 3e-4 plan against its baseline in
-   the viewer before adopting 3e-4.
+1. **Is raising H desirable at all?** Not established, and every W that does
+   anything makes KL worse. Whether the entropy bought is worth it is a DVH
+   question, not an objective-value one -- compare the 7-beam 3e-4 plan against
+   its baseline in the viewer before adopting 3e-4. (Superseded in practice by
+   the height sweep below, which shows H maximized at the KL optimum.)
+
+   NOTE: an earlier version of this section read "~28-32% of max entropy, i.e.
+   not saturated". That inference was wrong. Binary entropy is flat near q=0.5
+   and steep near the rails, so 28% of max corresponds to a typical `q ~ 0.048`
+   -- strongly bimodal, sitting near a rail. The plans *are* saturated in that
+   sense. Sparse beamlet solutions are expected and fine in IMRT; the concern is
+   gradient suppression, and at q~0.048 with s=0.5, `dSigmoid = s*q*(1-q) ~
+   0.023` against a peak of `s/4 = 0.125` -- about 18% of peak. Suppressed, not
+   frozen.
 2. **Saturation diagnosis is unresolved.** Under the 100x doses the *softmax* H
    read 1.35e-09 (near-total collapse). Post-fix the *separable* H reads healthy.
    Those are different functions of the parameters, so the improvement cannot be
