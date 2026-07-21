@@ -176,9 +176,13 @@ def set_structure_prescription(main_win, struct_cfg):
         dose2_edit = main_win.child_window(control_id=IDC_DOSE2_EDIT2, class_name="Edit")
 
         set_interval_btn.check()  # OnBnClickedBtnSetinterval: enables the dose edit boxes
-        # dose edits hold integer Gy*100 text (see KLDivTerm::GetMinDose()*100 formatting)
-        dose1_edit.set_edit_text(str(int(round(dose_min * 100))))
-        dose2_edit.set_edit_text(str(int(round(dose_max * 100))))
+        # The dose edits hold Gy as a plain integer: OnBnClickedBtnSetinterval reads
+        # the box and divides by 100 to get the internal value (Gy/100), which is why
+        # the display path at PrescriptionToolbar.cpp:150 multiplies GetMinDose() by
+        # 100 to get back to Gy. That *100 is the round-trip, NOT an extra scaling --
+        # writing Gy*100 here prescribes 100x the intended dose.
+        dose1_edit.set_edit_text(str(int(round(dose_min))))
+        dose2_edit.set_edit_text(str(int(round(dose_max))))
         set_interval_btn.uncheck()  # commits SetInterval() on un-check
 
     weight = struct_cfg.get("weight")
