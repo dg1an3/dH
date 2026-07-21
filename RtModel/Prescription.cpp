@@ -7,11 +7,16 @@
 
 #include <ConjGradOptimizer.h>
 #include <HistogramGradient.h>
+#include <SigmoidParams.h>
 
 namespace dH
 {
 
-const REAL SIGMOID_SCALE = 0.2; // 0.1; // 0.3; // 0.1; // 1.0;
+// was a bare literal 0.2, duplicated in HistogramGradient.cpp. Now sourced from
+//	the shared getter so the transform and its variance correction cannot drift
+//	apart, and so a sweep can set it via BRIMSTONE_SIGMOID_SCALE. See
+//	SigmoidParams.h.
+const REAL SIGMOID_SCALE = GetSigmoidScale();
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

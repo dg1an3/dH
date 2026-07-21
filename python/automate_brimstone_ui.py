@@ -94,7 +94,17 @@ IDC_BTNOPTIMIZE = 1029
 
 
 def launch_app():
-    app = Application(backend="win32").start(EXE_PATH)
+    # BRIMSTONE_ATTACH_PID attaches to an already-running instance instead of
+    # starting one. Needed when the plan should outlive this script: an instance
+    # started here is a child of this process and dies with it, so a detached
+    # launch (Start-Process) + attach is the only way to leave a viewer open for
+    # inspection afterwards. Plans are never written to disk, so the live window
+    # is the only artifact.
+    attach_pid = os.environ.get("BRIMSTONE_ATTACH_PID")
+    if attach_pid:
+        app = Application(backend="win32").connect(process=int(attach_pid))
+    else:
+        app = Application(backend="win32").start(EXE_PATH)
     main_win = app.window(title_re=".* - Brimstone$")
     main_win.wait("exists ready", timeout=LAUNCH_TIMEOUT)
     return app, main_win

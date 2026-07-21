@@ -2,6 +2,7 @@
 // $Id: HistogramGradient.cpp 619 2009-03-01 17:43:35Z dglane001 $
 #include "StdAfx.h"
 #include "HistogramGradient.h"
+#include <SigmoidParams.h>
 #include <itkResampleImageFilter.h>
 #include <itkAffineTransform.h>
 
@@ -219,8 +220,10 @@ const CVectorN<>&
 			REAL varSlope = 1.0;
 			REAL varWeight = 1.0;
 			REAL m_inputScale = 0.5;	// should get this from the registry
-			const REAL SIGMOID_SCALE = 0.2; // 0.1; // 0.3; // 0.1; // 1.0;
-				// should get this from Prescription
+			// was a local copy of the literal 0.2, annotated "should get this
+			//	from Prescription" -- now actually shared with it, so the two
+			//	cannot drift apart. See SigmoidParams.h.
+			const REAL SIGMOID_SCALE = dH::GetSigmoidScale();
 			// calculate variance adjustment due to sigmoid transform
 			varSlope = 
 				SIGMOID_SCALE * dSigmoid<REAL>((*vInput)[nAt_dBin], m_inputScale);

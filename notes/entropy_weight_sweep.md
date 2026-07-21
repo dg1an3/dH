@@ -157,6 +157,62 @@ Two side observations:
    (`varSlope = dSigmoid(x,s)/dSigmoid(0,s)`), so sweeping it confounds the
    parameterization with the variance normalization.
 
+## Sigmoid height sweep (supersedes the W thread)
+
+7 beams, W=1e-12 (regularizer off), separable, **new binary** (see caveat below).
+Height is `BRIMSTONE_SIGMOID_SCALE`, the transform amplitude
+`weight = height * Sigmoid(x, s)` -- i.e. the per-beamlet weight ceiling.
+
+Typical `q` is recovered by inverting the mean per-beamlet binary entropy
+`H/nDim`. **Binary entropy is symmetric under `q <-> 1-q`, so it cannot
+distinguish the top rail from the bottom rail.** Both branches are listed; the
+choice between them below is physical reasoning, not measurement.
+
+| height | KL | x vs 0.2 | H | H/nDim | typical q |
+|---|---|---|---|---|---|
+| 0.05 | 0.048597 | 9.8x | 3.57 | 0.013 | ~0.998 or 0.002 |
+| 0.1 | 0.017802 | 3.6x | 14.04 | 0.051 | ~0.991 or 0.009 |
+| **0.2** | **0.004967** | **1.00** | **52.87** | **0.194** | ~0.049 or 0.951 |
+| 0.4 | 0.023231 | 4.7x | 16.29 | 0.060 | ~0.012 or 0.988 |
+
+**0.2 is a sharp optimum; the existing value is validated.** A factor of two in
+either direction costs 3.6-4.7x in KL. The two ends fail for opposite reasons:
+
+- **ceiling too low** (0.05, 0.1): beamlets cannot deliver 60-70 Gy at any
+  weight, so they max out. KL blows up from unreachability, not conditioning.
+- **ceiling too high** (0.4): beamlets need less weight, `q` falls to ~0.012,
+  deep into the sigmoid's flat region. `dSigmoid = s*q*(1-q) ~ 0.0057`, **4.5%
+  of peak**, versus 18% at height 0.2. Gradient suppression.
+
+So 0.2 sits between an unreachability wall and a vanishing-gradient wall.
+
+### This closes out the entropy-regularizer thread
+
+`H` is *maximized* at exactly the height that minimizes KL. At the
+parameterization's natural optimum the plan is already as de-saturated as this
+axis permits, so the separable regularizer has nothing to add -- and what it
+does add costs KL while pushing toward a uniform half-max fluence field.
+
+That is worth stating plainly: the separable term's fixed point is `q = 0.5` for
+*every* beamlet (`dH/dx_i = ln((1-q)/q) * dSigmoid`), i.e. a flat fluence across
+all beamlets. For IMRT, where most beamlets should be off, that is close to the
+opposite of what is wanted. The monotone KL degradation once the term engages is
+the term making progress toward a target we do not want, not overshooting a good
+one. Use the parameterization, not the prior.
+
+### Binary caveat
+
+Everything above the height sweep was measured on the Jul-17 build; the height
+sweep and after are on the build that added `SigmoidParams.h`. Cross-binary
+regression at 7 beams / W=3e-4: KL +0.096%, H +0.068%. The likely cause is loss
+of constant folding -- `SIGMOID_SCALE` was a compile-time literal and is now
+runtime-initialized, changing FP association at every site, which CG amplifies.
+Plausible, not verified: the same-binary repeat sample is n=1, which is no basis
+for a noise estimate. **Do not compare numbers across the two builds.**
+
+New-binary 7-beam W=1e-12 baseline: `kl=0.004966579  entropy=52.86549`
+(Jul-17 equivalent: `0.004960316 / 52.49837`).
+
 ## Raw data
 
 `free_energy`/`kl`/`entropy` as written by the `BRIMSTONE_OBJECTIVE_FILE` hook
@@ -185,4 +241,17 @@ entropy forms):
 ```
 softmax    W=0.005  kl=0.004715949201  entropy=1.354871251e-09   (w*H ~ 1e-9 of KL: inert)
 separable  W=0.005  kl=0.05348999864   entropy=120.0335158       (w*H ~ 11x KL: dominant)
+```
+
+```
+# sigmoid height sweep, 7 beams, W=1e-12, separable, new binary
+0.05  free_energy=0.04859692301  kl=0.04859692302  entropy=3.574994619
+0.1   free_energy=0.0178015622   kl=0.01780156222  entropy=14.04449446
+0.2   free_energy=0.004966578774 kl=0.004966578827 entropy=52.86548505
+0.4   free_energy=0.02323116425  kl=0.02323116426  entropy=16.28754371
+
+# cross-binary regression, 7 beams W=3e-4
+Jul-17 build   kl=0.005558337481  entropy=80.6592207
+Jul-17 repeat  kl=0.00555910284   entropy=80.63928308
+new build      kl=0.005563666058  entropy=80.71388731
 ```
