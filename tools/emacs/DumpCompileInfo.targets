@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DumpCompileInfo.targets
+
+  Injected into each .vcxproj via /p:CustomAfterMicrosoftCommonTargets=<this file>
+  and invoked with /t:DumpCompileInfo.  It never runs the compiler; it only dumps
+  the *evaluated* ClCompile metadata to a flat text file for gen-compile-commands.ps1
+  to turn into compile_commands.json.
+
+  Line format (first char is a record tag, '|' separates fields):
+    D|<project directory>
+    N|<project name>
+    S|<one system include dir>            (from the evaluated $(IncludePath))
+    I|<one additional include dir>        (from ClCompile/AdditionalIncludeDirectories)
+    P|<one preprocessor define>           (from ClCompile/PreprocessorDefinitions)
+    Q|<one forced include file>           (from ClCompile/ForcedIncludeFiles)
+    F|<full path>|<PrecompiledHeader>|<PrecompiledHeaderFile>|<LanguageStandard>|<ExcludedFromBuild>|<CompileAs>|<RuntimeLibrary>|<ExceptionHandling>|<RuntimeTypeInfo>
+
+  ForcedIncludeFiles is emitted as its own record rather than as a field of F because it
+  is itself a semicolon list, which would be re-split when the F line is re-included.
+
+  Why the property round-trip: AdditionalIncludeDirectories and PreprocessorDefinitions
+  are semicolon-delimited *and* in these projects are written across multiple lines with
+  leading whitespace.  Including an item transform directly into a new item does NOT
+  re-split on ';': each transformed value stays one item.  Flattening the transform into
+  a *property* first (which joins with ';') and then including that property does split,
+  and MSBuild trims each element's surrounding whitespace/newlines for us.  That is exactly
+  the normalization we want.  ->Distinct() then collapses the per-source duplication.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Target Name="DumpCompileInfo">
+
+    <!-- Flatten the per-source metadata into semicolon-joined property strings. -->
+    <PropertyGroup>
+      <_DciIncStr>@(ClCompile->'%(AdditionalIncludeDirectories)')</_DciIncStr>
+      <_DciDefStr>@(ClCompile->'%(PreprocessorDefinitions)')</_DciDefStr>
+      <_DciFIStr>@(ClCompile->'%(ForcedIncludeFiles)')</_DciFIStr>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <!-- System include dirs: MSBuild has already resolved the toolset (VCToolsVersion
+           pin included) and the Windows SDK into $(IncludePath). -->
+      <_DciSysInc Include="$(IncludePath)" />
+
+      <!-- Including a property splits on ';' and trims each element. -->
+      <_DciInc Include="$(_DciIncStr)" />
+      <_DciDef Include="$(_DciDefStr)" />
+      <_DciFI Include="$(_DciFIStr)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_DciOut Include="D|$(MSBuildProjectDirectory)" />
+      <_DciOut Include="N|$(MSBuildProjectName)" />
+      <_DciOut Include="@(_DciSysInc->Distinct()->'S|%(Identity)')" />
+      <_DciOut Include="@(_DciInc->Distinct()->'I|%(Identity)')" />
+      <_DciOut Include="@(_DciDef->Distinct()->'P|%(Identity)')" />
+      <_DciOut Include="@(_DciFI->Distinct()->'Q|%(Identity)')" />
+      <_DciOut Include="@(ClCompile->'F|%(FullPath)|%(PrecompiledHeader)|%(PrecompiledHeaderFile)|%(LanguageStandard)|%(ExcludedFromBuild)|%(CompileAs)|%(RuntimeLibrary)|%(ExceptionHandling)|%(RuntimeTypeInfo)')" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(DciOutFile)"
+                      Lines="@(_DciOut)"
+                      Overwrite="true"
+                      Encoding="UTF-8"
+                      WriteOnlyWhenDifferent="false" />
+
+    <Message Importance="high" Text="DumpCompileInfo: wrote $(DciOutFile)" />
+  </Target>
+
+</Project>
