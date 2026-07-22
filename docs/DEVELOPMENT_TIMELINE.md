@@ -245,6 +245,19 @@ The Win32 configurations were not migrated — vcpkg only has the `x64-windows` 
 
 With the Brimstone application running again, the next direction is **bringing it under the same formal-verification lens that the algorithm itself was originally evaluated through**. This is not a new technique for this codebase — it is the same methodology returning home.
 
+> **Status (2026-07).** Of the three directions below, **Direction C is already
+> substantially executed** — a cohort of 24 `cpp-state-model` LTS models for the
+> historical visualization/testbed stack lives under
+> [docs/legacy-operational-semantics/cpp-state-model/](legacy-operational-semantics/cpp-state-model/),
+> each with a `*_state_model.md`, `ui_state_dcg.pl` + operation modules, and
+> rendered PlantUML/SVG diagrams anchored to the original C++. **Directions A
+> and B remain prospective**: there are no models yet for the *modern* Brimstone
+> GUI threads (`CBrimstoneDoc`/`CBrimstoneView`/`CMainFrame`/`OptThread`), and no
+> kernel-verification predicates (`*_verification.pl` / `*_invariants.pl`) for the
+> RtModel dose-calc and optimizer kernels. The section below is kept as the
+> design rationale; treat Direction C's tables as a *record of what was built*,
+> not a to-do list.
+
 ### Lineage: from CRUTPr (2003) to ALGT (2026)
 
 The original Siemens COHERENCE Dosimetrist Workspace 2.0 (2003) was verified using a Prolog-based procedure called **CRUTPr** — *executable requirements* expressed as predicates over inputs and outputs, run in SWI-Prolog. Derek's recollection of that work is preserved in [docs/wiki/VerificationExpertSystem.md](docs/wiki/VerificationExpertSystem.md): rather than re-implementing each algorithm in MATLAB to compare against, you describe declaratively *what relationships must hold* between inputs and outputs, and check those.
@@ -293,6 +306,20 @@ The Build Resurrection smoke test ([RtModelSmokeTest/smoke_test.cpp](RtModelSmok
 ### Direction C: Historical LTSs for the visualization lineage
 
 The same modeling technique applied to *current* Brimstone (Direction A) is equally valuable applied retrospectively to the **older** sister projects that this repository still carries — `VSIM_OGL`, `VSIM_MODEL`, `PenBeamEdit`, `RT_VIEW`, `GEOM_VIEW`, `OGL_BASE`. These are the visualization stack and the bridging beamlet-editing testbed documented in **Parts 2–3** above and in the standalone [RT_VIEW_HISTORY.md](RT_VIEW_HISTORY.md). Their code is frozen; their algorithms (ray-traced DRR generation, marching-squares contour extraction, slice+dose LUT blending, observable-pattern model/view binding) are exactly the kind of stable, well-bounded targets that ALGT models well. Building LTSs for them turns the prose lineage in this document into something *executable* — and lets the bisimilarity argument span the full chain *2001 VSim → 2004 PenBeamEdit → 2008+ RtModel/Brimstone → 2026 modernized build*, not just "old Brimstone vs. modernized Brimstone."
+
+> **This work has largely been done.** The 24-model cohort under
+> [docs/legacy-operational-semantics/cpp-state-model/](legacy-operational-semantics/cpp-state-model/)
+> covers every project named above: VSIM_OGL (`c_vsim_ogl_app`,
+> `c_main_frame_vsim_ogl`, `sim_view`, `drr_renderer`), VSIM_MODEL (`c_beam`,
+> `c_plan`, `c_series`, `c_treatment_machine`), PenBeamEdit (`c_pen_beam_edit_app`,
+> `c_main_frame_pen_beam_edit`, `c_pen_beam_edit_view`), RT_VIEW
+> (`c_beam_renderable`, `c_machine_renderable`, `c_lightfield_texture`,
+> `c_beam_param_pos_ctrl`, `c_beam_param_collim_ctrl`), and the GEOM_VIEW/OGL_BASE
+> base classes (`c_renderable`, `c_render_context`, `c_texture`, `c_camera`,
+> `c_light`, `c_tracker`, `c_rotate_tracker`, `c_zoom_tracker`). The tables in the
+> rest of this Direction record the *planned* module names; consult the cohort for
+> the as-built models, whose module names follow the `c_*` / `*_dcg.pl` convention
+> actually adopted.
 
 **VSIM_OGL (~2001, Siemens VSim CT-sim prototype):**
 
@@ -344,7 +371,7 @@ The `algt_tests/` corpus already covers some of these — `ALGT_BEAM_CAX_ISOCENT
 Three reasons make this more than a curiosity:
 
 1. **Provenance for the modernization claim.** The bisimilarity criterion in `d:/MUSIQ/ALGT/docs/compositional-semantics.md` becomes much stronger when you can demonstrate it across the *historical* commit-graph as well as the modern one — i.e. show that the 2026-era kernels are bisimilar to the 2008 RtModel kernels, which are themselves bisimilar (modulo recorded differences) to the 2001 VSIM_OGL prototype kernels. The lineage in **Parts 1–5** of this document becomes a chain of formal-equivalence claims, not just a story.
-2. **The `cpp-state-model` skill is already shaped for this.** That skill's deliverable list — `ui_state_dcg.pl` + `browse_ops.pl` + `edit_ops.pl` + `<data>_list.pl` + `<display>_list.pl` + scan/op pipeline modules + `<control>_state_model.md` + diagrams + rendered SVGs, with original C++ preserved as anchor comments — is designed for exactly this kind of MFC/ATL legacy code. Each of the historical projects above is a single skill-invocation away from a first-pass model.
+2. **The `cpp-state-model` skill is already shaped for this.** That skill's deliverable list — `ui_state_dcg.pl` + `browse_ops.pl` + `edit_ops.pl` + `<data>_list.pl` + `<display>_list.pl` + scan/op pipeline modules + `<control>_state_model.md` + diagrams + rendered SVGs, with original C++ preserved as anchor comments — is designed for exactly this kind of MFC/ATL legacy code. This is borne out in practice: the 24 historical projects above have **each been run through the skill**, producing the cohort under [docs/legacy-operational-semantics/cpp-state-model/](legacy-operational-semantics/cpp-state-model/). What remains skill-invocation-away is the *modern* Brimstone GUI thread (Direction A).
 3. **Diff-able diagrams.** The PlantUML/SVG diagrams emitted by the cpp-state-model skill are themselves comparable across versions — visual diffs of the LTS for `VSIM_OGL/CSimView` vs. modern `Brimstone/CBrimstoneView` make architectural drift legible at a glance, the way commit logs do not.
 
 The historical projects do not need to *build* under modern toolchains for this to work — they just need to *parse*. Their source is preserved in this repository precisely so the lineage in Parts 1–5 stays groundable.
