@@ -1,5 +1,6 @@
 // Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
 // $Id: VOITerm.h 640 2009-06-13 05:06:50Z dglane001 $
+#include <Attributes.h>
 #include <HistogramGradient.h>
 
 #pragma once

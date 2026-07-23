@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dH Inventory — UMAP (768d → mid → 3d/2d)</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0c12;
+    font: 13px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; color: #aeb6c4; }
+  canvas { user-select: none; touch-action: none; }
+  #info { position: absolute; top: 12px; left: 14px; z-index: 10;
+    pointer-events: none; text-shadow: 0 1px 3px #000; max-width: 42vw; }
+  #info b { color: #e8edf5; }
+  #metrics { color: #7fd4a0; }
+  #hint { opacity: .55; font-size: 11px; }
+  #panel { position: absolute; top: 12px; right: 14px; z-index: 10;
+    display: flex; flex-direction: column; gap: 9px; align-items: stretch;
+    background: rgba(14,17,24,.78); padding: 11px 12px; border-radius: 8px;
+    border: 1px solid #232a38; width: 210px; }
+  .row { display: flex; flex-direction: column; gap: 3px; }
+  .row > label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; opacity: .6; }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  .seg button, #panel select, #search {
+    background: #1b2030; border: 1px solid #333c4f; color: #d7dde8;
+    font: 12px ui-monospace, monospace; padding: 5px 8px; border-radius: 5px; cursor: pointer; }
+  .seg button.on { background: #2f6df0; border-color: #4c87ff; color: #fff; }
+  .seg button:hover, #panel select:hover { border-color: #5570a0; }
+  #search { width: 100%; box-sizing: border-box; cursor: text; }
+  #legend { position: absolute; bottom: 14px; left: 14px; z-index: 10;
+    background: rgba(12,14,20,.62); padding: 9px 11px; border-radius: 7px; color: #c8d0dc;
+    display: grid; grid-auto-flow: row; grid-template-columns: repeat(2, auto); gap: 3px 16px;
+    max-height: 42vh; overflow: auto; }
+  .lg { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .lg.off { opacity: .3; }
+  .sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  #tip { position: absolute; z-index: 20; pointer-events: none; display: none;
+    background: rgba(10,13,20,.95); border: 1px solid #2c3342; border-radius: 6px;
+    padding: 8px 10px; max-width: 340px; color: #dde3ec; box-shadow: 0 4px 18px #000a; }
+  #tip b { color: #fff; } #tip .cat { color: #8fb7ff; } #tip .desc { opacity: .8; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="info">
+  <b>dH inventory UMAP</b> &nbsp;·&nbsp; 768d → <span id="midlbl">5</span>d → <span id="modelbl">3</span>d
+  &nbsp;·&nbsp; <span id="count"></span> nodes<br>
+  <span id="metrics"></span><br>
+  <span id="hint">drag orbit · scroll zoom · click a node to highlight its high-D neighbors</span>
+</div>
+
+<div id="panel">
+  <div class="row"><label>intermediate dim</label><div class="seg" id="segMid"></div></div>
+  <div class="row"><label>n_neighbors</label><div class="seg" id="segNN"></div></div>
+  <div class="row"><label>projection</label><div class="seg" id="segMode">
+    <button data-v="3d" class="on">3D</button><button data-v="2d">2D</button></div></div>
+  <div class="row"><label>color by</label><div class="seg" id="segColor">
+    <button data-v="tier" class="on">tier</button><button data-v="category">library</button>
+    <button data-v="kind">kind</button></div></div>
+  <div class="row"><label>proximity space (on click)</label>
+    <select id="selProx"></select></div>
+  <div class="row"><input id="search" placeholder="filter labels…" autocomplete="off"></div>
+</div>
+
+<div id="legend"></div>
+<div id="tip"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const DB = await fetch('./data.json').then(r => r.json());
+const NODES = DB.nodes, LAYOUTS = DB.layouts, META = DB.meta;
+document.getElementById('count').textContent = NODES.length;
+
+// ---- state ----
+let midDim = META.default_mid, nneigh = META.default_nn, mode = '3d', colorBy = 'tier';
+let proxSpace = 'v768', selected = -1;
+
+// ---- color schemes ----
+const TIER_COLORS = { 'production': '#e6194B', 'foundation': '#4363d8',
+  'component': '#3cb44b', 'legacy-rt': '#f58231', 'utility': '#911eb4' };
+const KIND_COLORS = { 'component': '#e6194B', 'algorithm': '#f58231',
+  'class': '#4363d8', 'function': '#3cb44b' };
+// 26 libraries -> evenly spaced hues
+const CAT_COLORS = {};
+DB.categories.forEach((c, i) => {
+  const h = (i * 360 / DB.categories.length) % 360;
+  CAT_COLORS[c] = `hsl(${h}, 62%, 60%)`;
+});
+function schemeMap() {
+  return colorBy === 'tier' ? TIER_COLORS : colorBy === 'kind' ? KIND_COLORS : CAT_COLORS;
+}
+function keyOf(d) { return colorBy === 'tier' ? d.tier : colorBy === 'kind' ? d.kind : d.category; }
+function colorOf(d) { return new THREE.Color(schemeMap()[keyOf(d)] || '#888888'); }
+
+// ---- scene ----
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0c12, 0.0016);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 6000);
+camera.position.set(150, 110, 210);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+scene.add(new THREE.AmbientLight(0xffffff, 1.05));
+const key = new THREE.PointLight(0xffffff, 0.5); key.position.set(200, 300, 200); scene.add(key);
+
+// ---- nodes (one mesh each; 87 is trivial) + labels ----
+const sphereGeo = new THREE.SphereGeometry(1, 18, 14);
+const meshes = [], labels = [], targetPos = [], baseColor = [];
+const group = new THREE.Group(); scene.add(group);
+
+function makeLabel(text) {
+  const pad = 6, font = 26;
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  g.font = `${font}px ui-monospace, monospace`;
+  const w = g.measureText(text).width;
+  c.width = w + pad * 2; c.height = font + pad * 2;
+  g.font = `${font}px ui-monospace, monospace`;
+  g.fillStyle = 'rgba(8,10,16,.72)'; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = '#e8edf5'; g.textBaseline = 'middle';
+  g.fillText(text, pad, c.height / 2);
+  const tex = new THREE.CanvasTexture(c); tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  spr.scale.set(c.width / c.height * 5.5, 5.5, 1);
+  return spr;
+}
+
+NODES.forEach((d, i) => {
+  const col = colorOf(d);
+  baseColor[i] = col.clone();
+  const m = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial({
+    color: col, roughness: 0.45, metalness: 0.0, transparent: true, opacity: 0.92 }));
+  m.scale.setScalar(1.6 + 3.2 * d.salience);
+  m.userData.idx = i;
+  group.add(m); meshes.push(m);
+  const short = d.name.length > 26 ? d.name.slice(0, 25) + '…' : d.name;
+  const lab = makeLabel(short); lab.userData.idx = i; group.add(lab); labels.push(lab);
+  targetPos[i] = new THREE.Vector3();
+});
+
+function currentCell() { return LAYOUTS[`mid${midDim}_nn${nneigh}`]; }
+function applyLayout(animate = true) {
+  const cell = currentCell();
+  const arr = cell[mode];
+  NODES.forEach((d, i) => {
+    const p = arr[i];
+    targetPos[i].set(p[0], p[1], mode === '3d' ? p[2] : 0);
+    if (!animate) meshes[i].position.copy(targetPos[i]);
+  });
+  const mk = cell[`metrics_${mode}`];
+  document.getElementById('metrics').textContent =
+    `mid=${midDim}d  nn=${nneigh}  ·  trustworthiness ${mk.trustworthiness.toFixed(3)} · ` +
+    `knn@${META.knn_k} overlap ${mk['knn_overlap@' + META.knn_k].toFixed(3)}`;
+  document.getElementById('midlbl').textContent = midDim;
+  document.getElementById('modelbl').textContent = mode === '3d' ? 3 : 2;
+}
+
+function recolor() {
+  NODES.forEach((d, i) => { baseColor[i] = colorOf(d); });
+  buildLegend();
+  applyProximity();  // re-applies dim/highlight on top of fresh base colors
+}
+
+// ---- proximity highlight: cosine nearest neighbors in the chosen v-space ----
+function cosNN(idx, space, k = 10) {
+  const A = NODES[idx][space];
+  const dot = (a, b) => { let s = 0, na = 0, nb = 0;
+    for (let j = 0; j < a.length; j++) { s += a[j] * b[j]; na += a[j] * a[j]; nb += b[j] * b[j]; }
+    return s / (Math.sqrt(na) * Math.sqrt(nb) + 1e-9); };
+  return NODES.map((d, i) => [i, i === idx ? -2 : dot(A, d[space])])
+    .sort((a, b) => b[1] - a[1]).slice(0, k).map(x => x[0]);
+}
+let neighborSet = null;
+function applyProximity() {
+  const filt = document.getElementById('search').value.trim().toLowerCase();
+  NODES.forEach((d, i) => {
+    const enabled = legendOn.has(keyOf(d));
+    const matchFilter = !filt || d.name.toLowerCase().includes(filt);
+    let dim = !enabled || !matchFilter;
+    let hot = false;
+    if (selected >= 0) { hot = (i === selected) || (neighborSet && neighborSet.has(i)); dim = dim || !hot; }
+    const c = baseColor[i].clone();
+    if (dim) c.multiplyScalar(0.18);
+    meshes[i].material.color.copy(c);
+    meshes[i].material.opacity = dim ? 0.18 : 0.95;
+    const base = 1.6 + 3.2 * d.salience;
+    meshes[i].scale.setScalar(i === selected ? base * 1.7 : base);
+    labels[i].material.opacity = dim ? 0.05 : (hot || d.kind === 'component' || filt ? 1 : 0.5);
+    labels[i].visible = labels[i].material.opacity > 0.06;
+  });
+}
+
+// ---- legend ----
+const legendOn = new Set();
+function buildLegend() {
+  const el = document.getElementById('legend'); el.innerHTML = '';
+  const map = schemeMap();
+  const keys = colorBy === 'category'
+    ? DB.categories.slice().sort((a, b) =>
+        NODES.filter(d => d.category === b).length - NODES.filter(d => d.category === a).length)
+    : Object.keys(map);
+  legendOn.clear(); keys.forEach(k => legendOn.add(k));
+  keys.forEach(k => {
+    const row = document.createElement('div'); row.className = 'lg';
+    row.innerHTML = `<span class="sw" style="background:${map[k]}"></span>${k}`;
+    row.onclick = () => { row.classList.toggle('off');
+      if (legendOn.has(k)) legendOn.delete(k); else legendOn.add(k); applyProximity(); };
+    el.appendChild(row);
+  });
+}
+
+// ---- segmented controls ----
+function seg(id, values, init, onPick, label = v => v) {
+  const el = document.getElementById(id); el.innerHTML = '';
+  values.forEach(v => { const b = document.createElement('button');
+    b.textContent = label(v); b.dataset.v = v; if (v === init) b.classList.add('on');
+    b.onclick = () => { [...el.children].forEach(c => c.classList.remove('on'));
+      b.classList.add('on'); onPick(v); }; el.appendChild(b); });
+}
+seg('segMid', META.mid_dims, midDim, v => { midDim = +v; applyLayout(); }, v => v + 'd');
+seg('segNN', META.n_neighbors, nneigh, v => { nneigh = +v; applyLayout(); });
+document.querySelectorAll('#segMode button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#segMode button').forEach(c => c.classList.remove('on'));
+  b.classList.add('on'); mode = b.dataset.v; applyLayout(); });
+document.querySelectorAll('#segColor button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#segColor button').forEach(c => c.classList.remove('on'));
+  b.classList.add('on'); colorBy = b.dataset.v; recolor(); });
+const selProx = document.getElementById('selProx');
+['v768', ...META.mid_dims.map(d => 'v' + d)].forEach(s => {
+  const o = document.createElement('option'); o.value = s;
+  o.textContent = s === 'v768' ? 'v768 (raw)' : s + ' (mid)'; selProx.appendChild(o); });
+selProx.value = proxSpace;
+selProx.onchange = () => { proxSpace = selProx.value; if (selected >= 0) {
+  neighborSet = new Set(cosNN(selected, proxSpace)); applyProximity(); } };
+document.getElementById('search').oninput = applyProximity;
+
+// ---- picking ----
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+function pick(ev) {
+  mouse.x = (ev.clientX / innerWidth) * 2 - 1; mouse.y = -(ev.clientY / innerHeight) * 2 + 1;
+  ray.setFromCamera(mouse, camera);
+  return ray.intersectObjects(meshes, false)[0];
+}
+renderer.domElement.addEventListener('pointermove', ev => {
+  const hit = pick(ev);
+  if (hit) { const d = NODES[hit.object.userData.idx];
+    tip.style.display = 'block'; tip.style.left = (ev.clientX + 14) + 'px';
+    tip.style.top = (ev.clientY + 14) + 'px';
+    tip.innerHTML = `<b>${d.name}</b> <span class="cat">[${d.category} · ${d.tier} · ${d.kind}]</span>` +
+      `<div class="desc">${d.description.slice(0, 240)}${d.description.length > 240 ? '…' : ''}</div>`;
+  } else tip.style.display = 'none';
+});
+renderer.domElement.addEventListener('click', ev => {
+  const hit = pick(ev);
+  if (hit) { selected = hit.object.userData.idx; neighborSet = new Set(cosNN(selected, proxSpace)); }
+  else { selected = -1; neighborSet = null; }
+  applyProximity();
+});
+
+// ---- init + animate ----
+buildLegend(); applyLayout(false); applyProximity();
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+function tick() {
+  requestAnimationFrame(tick);
+  for (let i = 0; i < meshes.length; i++) {
+    meshes[i].position.lerp(targetPos[i], 0.16);
+    labels[i].position.copy(meshes[i].position).y += (1.6 + 3.2 * NODES[i].salience) + 3;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+tick();
+</script>
+</body>
+</html>

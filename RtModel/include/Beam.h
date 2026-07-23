@@ -5,6 +5,7 @@
 #include <vector>
 using namespace std;
 
+#include <Attributes.h>
 #include <ItkUtils.h>
 using namespace itk;
 

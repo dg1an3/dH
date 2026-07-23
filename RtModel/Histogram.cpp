@@ -714,28 +714,17 @@ void
 	buffer_out.SetDim(buffer_in.GetDim() + kernel_in.GetDim() - 1);
 	buffer_out.SetZero();
 
-	// make sure REAL is double
-	ASSERT(sizeof(REAL) == 8);
-
-#ifdef USE_IPP
-	IppStatus stat = ippsConv_64f(
-		&buffer_in[0], buffer_in.GetDim(),
-		&kernel_in[0], kernel_in.GetDim(),
-		&buffer_out[0]);
-	ASSERT(stat == ippStsNoErr);
-#else
-	// Manual convolution fallback when IPP is not available
-	for (int i = 0; i < buffer_out.GetDim(); i++)
-	{
-		buffer_out[i] = 0.0;
-		for (int j = 0; j < kernel_in.GetDim(); j++)
-		{
-			int idx = i - j;
-			if (idx >= 0 && idx < buffer_in.GetDim())
-				buffer_out[i] += buffer_in[idx] * kernel_in[j];
+	// Generic convolution implementation (ippsConv_64f removed in newer IPP)
+	int srcLen = buffer_in.GetDim();
+	int kernelLen = kernel_in.GetDim();
+	for (int n = 0; n < buffer_out.GetDim(); n++) {
+		for (int k = 0; k < kernelLen; k++) {
+			int idx = n - k;
+			if (idx >= 0 && idx < srcLen) {
+				buffer_out[n] += buffer_in[idx] * kernel_in[k];
+			}
 		}
 	}
-#endif
 
 	TraceVector(_T("buffer_out"), buffer_out);
 

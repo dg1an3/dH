@@ -81,6 +81,7 @@ int
 		// Just add a NULL for region rotate, because the logic below will initialize it when
 		//		a dVolume is available
 		m_groupVolRegion.push_back(nullptr);
+		m_groupVolRegion.push_back(nullptr);
 	} 
 
 	// see if the region rotate is in need of initialization
@@ -539,33 +540,17 @@ void CHistogramWithGradient::Conv_dGauss(const CVectorN<>& buffer_in,
 	buffer_out.SetDim(buffer_in.GetDim() + kernel_in.GetDim() - 1);
 	buffer_out.SetZero();
 
-#ifdef USE_IPP
-#ifdef REAL_FLOAT
-#error REAL_FLOAT not supported!
-	IppStatus stat = ippsConv_32f(
-		&buffer_in[0], buffer_in.GetDim(),
-		&m_bin_dKernel[0], m_bin_dKernel.GetDim(),
-		&buffer_out_temp[0]);
-#else
-	IppStatus stat = ippsConv_64f(
-		&buffer_in[0], buffer_in.GetDim(),
-		&kernel_in[0], kernel_in.GetDim(),
-		&buffer_out[0]);
-	ASSERT(stat == ippStsNoErr);
-#endif
-#else
-	// Manual convolution fallback when IPP is not available
-	for (int i = 0; i < buffer_out.GetDim(); i++)
-	{
-		buffer_out[i] = 0.0;
-		for (int j = 0; j < kernel_in.GetDim(); j++)
-		{
-			int idx = i - j;
-			if (idx >= 0 && idx < buffer_in.GetDim())
-				buffer_out[i] += buffer_in[idx] * kernel_in[j];
+	// Generic convolution implementation (ippsConv_64f removed in newer IPP)
+	int srcLen = buffer_in.GetDim();
+	int kernelLen = kernel_in.GetDim();
+	for (int n = 0; n < buffer_out.GetDim(); n++) {
+		for (int k = 0; k < kernelLen; k++) {
+			int idx = n - k;
+			if (idx >= 0 && idx < srcLen) {
+				buffer_out[n] += buffer_in[idx] * kernel_in[k];
+			}
 		}
 	}
-#endif
 
 }	// CHistogramWithGradient::Conv_dGauss
 

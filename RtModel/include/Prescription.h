@@ -11,6 +11,8 @@
 #include <Structure.h>
 #include <Plan.h>
 
+#include <Attributes.h>
+
 #pragma once
 
 namespace dH

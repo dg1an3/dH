@@ -560,6 +560,8 @@ BOOL CMatrixNxM<TYPE>::Pseudoinvert()
 }	// CMatrixNxM<TYPE>::Pseudoinvert
 */
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 //////////////////////////////////////////////////////////////////////
 // CMatrixNxM<TYPE>::Transpose
@@ -583,7 +585,10 @@ void CMatrixNxM<TYPE>::Transpose()							\
 DECLARE_MATRIXN_TRANSPOSE(float, 32f);
 DECLARE_MATRIXN_TRANSPOSE(double, 64f);
 
-#else
+#endif
+#endif
+
+#if 1
 //////////////////////////////////////////////////////////////////////
 // CMatrixD<TYPE>::Transpose
 //
@@ -615,6 +620,8 @@ void CMatrixNxM<TYPE>::Transpose()
 #endif
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 //////////////////////////////////////////////////////////////////////
 // CMatrixNxM<TYPE>::Invert
@@ -652,6 +659,7 @@ void CMatrixNxM<TYPE>::Transpose()
 // declare specific class functions
 DECLARE_MATRIXN_INVERT(float, 32f);
 DECLARE_MATRIXN_INVERT(double, 64f);
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////
@@ -845,6 +853,8 @@ CVectorN<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
 
 
 // TODO: move this to MultMatrixVector
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_MATRIXN_VECPRODUCT(TYPE, TYPE_IPP) \
 	template<> __forceinline	\
@@ -861,6 +871,7 @@ CVectorN<TYPE> operator*(const CMatrixNxM<TYPE>& mat,
 
 DECLARE_MATRIXN_VECPRODUCT(float, 32f);
 DECLARE_MATRIXN_VECPRODUCT(double, 64f);
+#endif
 #endif
 
 

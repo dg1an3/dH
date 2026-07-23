@@ -33,6 +33,7 @@ target_include_directories(Graph
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/RtModel/include
+        ${CMAKE_SOURCE_DIR}/GEOM_MODEL/include
 )
 
 # Link dependencies
@@ -41,8 +42,20 @@ target_link_libraries(Graph
         RtModel
 )
 
+# Link Intel IPP libraries if available (needed for VectorOps.h in RtModel headers)
+if(IPP_FOUND)
+    target_link_libraries(Graph
+        PUBLIC
+            IPP::IPP
+    )
+    message(STATUS "Graph: Intel IPP optimizations enabled")
+endif()
+
 # Compile definitions for Windows
 if(MSVC)
+    target_compile_definitions(Graph PUBLIC
+        USE_RTOPT
+    )
     target_compile_definitions(Graph PRIVATE
         UNICODE
         _UNICODE
@@ -52,8 +65,12 @@ if(MSVC)
         _WIN32_WINNT=0x0501
     )
 
-    # Workaround for VNL SSE inline issues with modern MSVC
-    target_compile_options(Graph PRIVATE /DVNL_SSE_FORCE_INLINE=inline)
+    # Disable VNL SSE optimizations and prevent Windows min/max macros
+    target_compile_definitions(Graph PRIVATE
+        VNL_CONFIG_ENABLE_SSE2=0
+        VNL_CONFIG_ENABLE_SSE2_ROUNDING=0
+        NOMINMAX
+    )
 
     # Use precompiled headers
     # Temporarily disabled due to VNL SSE inline issues

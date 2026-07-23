@@ -331,6 +331,8 @@ TYPE CVectorD<DIM, TYPE>::GetLength() const
 }	// CVectorD<DIM, TYPE>::GetLength
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_VECTORD_GETLENGTH(TYPE, TYPE_IPP, DIM) \
 	template<> __forceinline							\
@@ -351,6 +353,7 @@ DECLARE_VECTORD_GETLENGTH(double, 64f, 3);
 DECLARE_VECTORD_GETLENGTH(double, 64f, 4);
 DECLARE_VECTORD_GETLENGTH(double, 64f, 5);
 DECLARE_VECTORD_GETLENGTH(double, 64f, 6);
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////
@@ -526,6 +529,8 @@ TYPE operator*(const CVectorD<DIM, TYPE>& vLeft,
 }	// operator*(const CVectorD, const CVectorD)
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_VECTORD_DOTPRODUCT(TYPE, TYPE_IPP, DIM) \
 	template<> __forceinline									\
@@ -546,6 +551,7 @@ DECLARE_VECTORD_DOTPRODUCT(double, 64f, 3);
 DECLARE_VECTORD_DOTPRODUCT(double, 64f, 4);
 DECLARE_VECTORD_DOTPRODUCT(double, 64f, 5);
 DECLARE_VECTORD_DOTPRODUCT(double, 64f, 6);
+#endif
 #endif
 
 

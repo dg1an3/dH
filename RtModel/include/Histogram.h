@@ -2,6 +2,7 @@
 // $Id: Histogram.h 603 2008-09-14 16:58:43Z dglane001 $
 #pragma once
 
+#include <Attributes.h>
 #include <VectorN.h>
 #include <ItkUtils.h>
 // #include <ModelObject.h>

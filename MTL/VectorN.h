@@ -9,7 +9,7 @@
 #if !defined(VECTORN_H)
 #define VECTORN_H
 
-#include <ippm.h>
+// #include <ippvm.h>  // IPPM functions removed in newer IPP versions
 
 #include <VectorOps.h>
 
@@ -322,6 +322,8 @@ TYPE CVectorN<TYPE>::GetLength() const
 }	// CVectorN<TYPE>::GetLength
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_VECTORN_GETLENGTH(TYPE, TYPE_IPP) \
 	template<> __forceinline							\
@@ -334,6 +336,7 @@ TYPE CVectorN<TYPE>::GetLength() const
 
 DECLARE_VECTORN_GETLENGTH(float, 32f);
 DECLARE_VECTORN_GETLENGTH(double, 64f);
+#endif
 #endif
 
 
@@ -556,6 +559,8 @@ TYPE operator*(const CVectorN<TYPE>& vLeft,
 }	// operator*(const CVectorN, const CVectorN)
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_VECTORN_DOTPRODUCT(TYPE, TYPE_IPP) \
 	template<> __forceinline									\
@@ -570,6 +575,7 @@ TYPE operator*(const CVectorN<TYPE>& vLeft,
 
 DECLARE_VECTORN_DOTPRODUCT(float, 32f);
 DECLARE_VECTORN_DOTPRODUCT(double, 64f);
+#endif
 #endif
 
 

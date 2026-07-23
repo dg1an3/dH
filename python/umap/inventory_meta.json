@@ -1,0 +1,698 @@
+[
+ {
+  "name": "RtModel",
+  "description": "Core radiotherapy algorithm library. Data model (Plan, Beam, Series, Structure, Prescription), pencil-beam TERMA dose calculation, energy-kernel spherical convolution, dose-volume histograms with gradients, multi-scale conjugate-gradient inverse optimizer minimizing KL divergence between calculated and target DVHs. Depends on ITK, VNL/VXL, Intel IPP, MFC, GEOM_MODEL, MTL, GenImaging, OptimizeN, XMLLogging. Reads/writes XML plans and energy kernel .dat files; serializes ITK volumes.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "Brimstone",
+  "description": "MFC SDI radiotherapy treatment-planning GUI application. Imports DICOM CT and structure sets, sets up prescriptions and beams, runs optimizer on background thread, renders CT slices, contours, dose overlays, DVH graphs, optimization progress. Depends on RtModel, Graph, XMLLogging, GEOM_MODEL, MTL, MFC, ATL. Reads DICOM and Brimstone documents and kernel.dat; writes documents, XML plans, XML logs.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "Graph",
+  "description": "MFC plotting library rendering dose-volume histograms and optimization iteration curves. CGraph plot window, CDataSeries, CHistogramDataSeries, CTargetDVHSeries, CDib. Depends on MFC, ITK, GEOM_MODEL, RtModel. In-memory rendering to Windows CDC, no persistence.",
+  "category": "Graph",
+  "tier": "production",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "MTL",
+  "description": "Math Template Library. Templated vector and matrix classes CVectorD CMatrixD CMatrixNxM, least-squares solvers, matrix operations. Header-only, depends on STL. Pure in-memory numeric foundation used by GEOM_MODEL, RtModel, OptimizeN.",
+  "category": "MTL",
+  "tier": "foundation",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "VecMat",
+  "description": "Vector and matrix library, refactored iteration of MTL. VectorBase VectorD VectorN MatrixBase MatrixD MatrixNxM with inline implementations. Header-only, STL only, no I/O. Used by legacy tools DivFluence and PenBeamEdit.",
+  "category": "VecMat",
+  "tier": "foundation",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "FTL",
+  "description": "Foundation Template Library. Multi-dimensional container abstractions BufferND MeshND Field BufferIndex for spatial grid and buffer data. Depends on MFC CString and MTL. In-memory, no serialization. Used by GEOM_MODEL and GEOM_VIEW.",
+  "category": "FTL",
+  "tier": "foundation",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "GEOM_BASE",
+  "description": "Geometry base primitives. Polygon, LookupFunction, ScalarFunction, Volumep CVolume 3D voxel grid, MFC serialization. Depends on MTL, MODEL_BASE, MFC. CArchive serialization. Used by GEOM_MODEL, GEOM_VIEW, DivFluence, PenBeamEdit.",
+  "category": "GEOM_BASE",
+  "tier": "foundation",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "MODEL_BASE",
+  "description": "Observable serializable model framework. CModelObject observable serializable hierarchical, Observer pattern, collections, metadata value properties. Depends on MFC DECLARE_SERIAL. Provides serialization infrastructure to domain objects.",
+  "category": "MODEL_BASE",
+  "tier": "foundation",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "GEOM_MODEL",
+  "description": "Geometric modeling library. Mesh, Cluster k-means, AffineTransform, thin-plate spline TPS, GradientCalculator, Dib, Volumep and UtilMacros headers. Depends on MTL, GEOM_BASE, XMLLogging, Intel IPP. Dib raster I/O, XML logging, CArchive serialization. Used by RtModel, Graph, GEOM_VIEW, VSIM_MODEL, Brimstone.",
+  "category": "GEOM_MODEL",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "GEOM_VIEW",
+  "description": "Geometry visualization framework. MFC plus Direct3D 8 rendering: Camera, Light, Renderable, SceneView, ObjectExplorer tree UI, rotate zoom trackers. Depends on Direct3D 8, MTL, GEOM_MODEL, XMLLogging, MFC. Rendering only, no file I/O.",
+  "category": "GEOM_VIEW",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "OPTIMIZER_BASE",
+  "description": "Base optimization framework. One-dimensional line-search optimizers Brent Powell conjugate gradient as generic templates. Depends on MFC. No I/O. Used by OptimizeN, RT_MODEL.",
+  "category": "OPTIMIZER_BASE",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "OptimizeN",
+  "description": "N-dimensional optimization library. Multi-dimensional optimizers Brent Powell ConjGrad DFP gradient descent cubic interpolation, extending OPTIMIZER_BASE. Depends on XMLLogging, MTL. Emits XML logs. Used by RtModel, RT_MODEL, Brimstone.",
+  "category": "OptimizeN",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "OGL_BASE",
+  "description": "OpenGL base classes. COpenGLRenderer, COpenGLView, camera light texture classes, rotate zoom trackers, matrix vector GL helpers. Depends on MFC and Windows OpenGL. Rendering only. Used by VSIM_OGL.",
+  "category": "OGL_BASE",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "GUI_BASE",
+  "description": "Base MFC GUI widgets. DrawTool, Graph plot, Dib, ObjectExplorer ObjectTreeItem tree, TabControlBar. Depends on MFC common controls. DIB bitmap load and render. Used by GUI applications and PenBeamEdit.",
+  "category": "GUI_BASE",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "GenImaging",
+  "description": "ITK imaging filters for radiotherapy. InPlaneResampleImageFilter, IntensityMapAccumulateImageFilter dose accumulation, ContoursToRegionFilter, ScalarImageToWeightedHistogramGenerator, MultiMaskNegatedImageFilter. Depends on ITK and Intel IPP. Operates on in-memory ITK volumes. Used by RtModel, RT_MODEL, Brimstone.",
+  "category": "GenImaging",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "XMLLogging",
+  "description": "XML diagnostic logging framework. CXMLLogFile thread-safe singleton writing to FILE, CXMLElement scoped tags, CXMLLoggableObject, LOG macros and timing. Depends on MFC, STL. Writes nested XML log files. Used by RtModel, Brimstone, OptimizeN, GEOM_MODEL, RT_MODEL.",
+  "category": "XMLLogging",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "FieldCOM",
+  "description": "COM ATL geometry interop library. Exposes Mesh IMesh, MeshSet, BufferField, Polygon3D, PolygonSet3D, AffineTransform, TPSTransform, FileStorage as COM objects. Depends on ATL and Windows COM. FileStorage IPersistStorage save load to pathname. Used by VSIM_OGL.",
+  "category": "FieldCOM",
+  "tier": "component",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "RT_MODEL",
+  "description": "Older radiotherapy model library, precursor to RtModel. Plan Series Beam Structure Histogram Prescription, optimizers ConjGradOptimizer TCP_NTCP_Optimizer VOITerm KLDivTerm, DICOM import, XML plan serialization. Console tools GenBeamlets GenDens DicomImEx TestHisto. Depends on ITK, MFC, OptimizeN, GEOM_MODEL, GenImaging, MTL, XMLLogging, IPP. Reads DICOM, reads writes XML plans and ITK volumes.",
+  "category": "RT_MODEL",
+  "tier": "legacy-rt",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "RT_VIEW",
+  "description": "Radiotherapy visualization library. Direct3D MFC renderables and control panels BeamRenderable MachineRenderable BeamParamCollimCtrl BeamParamPosCtrl LightfieldTexture. Depends on MFC, Direct3D 8, RT_MODEL. Rendering only.",
+  "category": "RT_VIEW",
+  "tier": "legacy-rt",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "VSIM_MODEL",
+  "description": "Virtual-simulation data model. Plan Series Beam TreatmentMachine, older simulation system mirroring RT_MODEL. Depends on MFC, GEOM_MODEL. MFC CDocument DECLARE_SERIAL serialization. Used by VSIM_OGL.",
+  "category": "VSIM_MODEL",
+  "tier": "legacy-rt",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "VSIM_OGL",
+  "description": "Virtual-simulation OpenGL viewer application. MFC SDI integrating OGL_BASE and VSIM_MODEL, exports to FieldCOM. Depends on MFC, OGL_BASE, VSIM_MODEL, FieldCOM. Reads VSIM_MODEL documents, exports geometry to FieldCOM.",
+  "category": "VSIM_OGL",
+  "tier": "legacy-rt",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "DivFluence",
+  "description": "Console divergent-fluence calculator for dose calculation. Exponential attenuation, inverse-square falloff, heterogeneous density, field divergence. Depends on Intel IPP, VecMat, GEOM_BASE CVolume, MODEL_BASE. Reads density volumes, beam params, energy kernel .dat tables; writes binary fluence and energy volumes.",
+  "category": "DivFluence",
+  "tier": "utility",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "PenBeamEdit",
+  "description": "MFC SDI pencil-beam editor GUI for beam parameters. Depends on MFC, GEOM_BASE Volumep, MODEL_BASE, GUI_BASE Dib, VecMat. Reads writes serialized beam-parameter documents of CVolume images.",
+  "category": "PenBeamEdit",
+  "tier": "utility",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "PenBeam_indens",
+  "description": "Legacy Fortran pencil-beam in-density convolution reference. Ray-trace through heterogeneous phantom with spherical convolve kernels. Reads phantom density grids, ray geometry penbeam_input.txt, energy tables; writes dose to cono directory dat files. Mathematical spec for DivFluence.",
+  "category": "PenBeam_indens",
+  "tier": "utility",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "python",
+  "description": "Python ITK CT-density preprocessing scripts. read_process_series.py HU to mass density conversion ct_to_md_values, beam-angle density rotation rotate_density_for_beam, TERMA ray-tracing terma_from_density. Depends on ITK Python bindings, NumPy. Reads CT volumes via itk.imread nrrd; produces density and TERMA volumes.",
+  "category": "python",
+  "tier": "utility",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "notebook_zoo",
+  "description": "Research Jupyter notebooks on entropy maximization and ML autoencoders VAEs. entropy_calc, entropy_max, entropy_max_histo, mnist_autoencoder variants, mnist_vae_shift, pinwheel_shifter. Depends on NumPy, TensorFlow 2, Matplotlib, MNIST. In-memory arrays, outputs plots and model snapshots.",
+  "category": "notebook_zoo",
+  "tier": "utility",
+  "kind": "component",
+  "salience": 0.95
+ },
+ {
+  "name": "RtModel.DynamicCovarianceOptimizer",
+  "description": "Conjugate gradient optimizer with Polak-Ribiere direction updates and Brent line search. Maintains orthogonal basis of past search directions via Gram-Schmidt. Derives adaptive variance from a power-law schedule. Optional explicit free energy F = KL divergence minus differential entropy H = 0.5 (n log 2 pi e + log det Sigma) from the search-direction covariance. minimize() in ConjGradOptimizer.cpp.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.DynamicCovarianceCostFunction",
+  "description": "VNL vnl_cost_function base class bridging the conjugate gradient optimizer to the objective function. Prescription derives from it.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.VOITerm",
+  "description": "Abstract base class for per-structure objective function terms. Pure virtual Eval computing value and gradient, and Clone for pyramid copies. Owns a Structure region of interest and a histogram with gradient.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.KLDivTerm",
+  "description": "Kullback-Leibler divergence objective term minimizing KL between calculated and target dose-volume histograms, sum over bins of calcGPDF log calcGPDF over targetGPDF. Convolves dose-volume points with dual Gaussian kernels at varMin and varMax. Gradient via product rule chain. Log-ratio and cross-entropy modes. Eval in KLDivTerm.cpp.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.Prescription",
+  "description": "Objective function aggregator computing weighted sum of VOITerm evaluations. CalcSumSigmoid accumulates weighted beamlet volumes with adaptive variance fractions. Sigmoid parameterization mapping unbounded optimizer variables to bounded beamlet weights via Transform dTransform InvTransform with SIGMOID_SCALE 0.2 and transform-slope variance correction variance times dSigmoid squared.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.CBeamDoseCalc",
+  "description": "TERMA total energy released in medium ray tracer. Resamples CT density, traces pencil-beam rays from source through beamlet aperture, trilinear density interpolation, accumulates energy to voxel neighborhoods UpdateTermaNeighborhood, then invokes kernel sphere convolution. CalcTerma in BeamDoseCalc.cpp.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.CEnergyDepKernel",
+  "description": "Energy deposition kernel with cumulative energy lookup table indexed by phi angle and radial distance. CalcSphereConvolve iterates slice voxels and calls CalcSphereTrace for radial ray integration via LUT interpolation, normalized by mass density and azimuthal sum 1 over NUM_THETA. Loaded from kernel.dat files.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.SphereConvolve",
+  "description": "Spherical kernel convolution manager building direction and offset lookup tables from kernel geometry ComputeSphereLUT, driving per-voxel CalcSphereTrace and InterpCumEnergy. Computes dose equals TERMA convolved with energy kernel.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.CHistogram",
+  "description": "Dose-volume histogram with Gaussian smoothing. Bins dose into fixed-width array, applies dual Gaussian kernels varMin varMax to form smoothed GBins, keeps fractional volume weights for linear interpolation between bin levels. ConvGauss GetBinForValue SetBinning.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.CHistogramWithGradient",
+  "description": "Extends CHistogram with per-beamlet derivative volumes grouped by beam. Computes bin derivatives by product rule with binning fractions and Gaussian-smooths them via Conv_dGauss. The dose to histogram partial derivative store driving the optimization gradient chain. Get_dBins Get_dGBins.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.PlanPyramid",
+  "description": "Coarse-to-fine multi-scale hierarchy of four plans, each doubling dose resolution and beamlet spacing. InvFiltIntensityMap transfers intensity maps between levels using a binomial filter 0.25 0.50 0.25. Generates coarse pencil sub-beamlets.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.PlanOptimizer",
+  "description": "Multi-level optimization orchestrator managing per-level Prescription and DynamicCovarianceOptimizer pairs from coarse to fine, inverse-filtering the state vector into the next finer level. GetStateVectorFromPlan SetStateVectorToPlan move beamlet weights. Optimize in PlanOptimizer.cpp.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RtModel.Plan",
+  "description": "Treatment plan container holding beams, dose volume, resampled mass density, and energy kernel defaulting to 6 MeV. GetTotalBeamletCount sums across beams.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.Beam",
+  "description": "Single radiation beam with gantry angle, isocenter, one-dimensional intensity map, and computed dose volume. OnIntensityMapChanged regenerates beamlets from weights. GetBeamlet.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.Series",
+  "description": "Imaging dataset grouping a CT density volume and an array of Structure regions of interest.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.Structure",
+  "description": "Region of interest as polygon spatial-object contours. ContoursToRegion rasterizes to multi-scale binary volumes. Type target eTARGET or organ at risk eOAR.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RtModel.PlanXmlReader/PlanXmlWriter",
+  "description": "ITK XML serialization reading and writing the whole treatment plan: beams, intensity maps, prescriptions, dose-volume histograms, dose calculation parameters.",
+  "category": "RtModel",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Brimstone.CBrimstoneApp",
+  "description": "MFC application entry point and initialization.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Brimstone.CBrimstoneDoc",
+  "description": "MFC document owning the Series and Plan objects and handling document serialization.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Brimstone.CBrimstoneView/CPlanarView",
+  "description": "MFC views rendering 2D CT image slices, contours, and dose overlays.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Brimstone.CSeriesDicomImporter",
+  "description": "Imports DICOM CT image series and RT structure sets into the Series data model.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Brimstone.OptThread",
+  "description": "Background worker thread running the optimization by driving the RtModel PlanOptimizer.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Brimstone.OptimizerDashboard",
+  "description": "Real-time visualization of optimization progress and metrics.",
+  "category": "Brimstone",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Graph.CGraph",
+  "description": "Interactive MFC 2D plot window with axes, legend, and draggable data points for DVH and iteration curves.",
+  "category": "Graph",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Graph.CDataSeries",
+  "description": "Abstract curve data container with color and line style.",
+  "category": "Graph",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Graph.CHistogramDataSeries",
+  "description": "Binned dose-volume histogram data series.",
+  "category": "Graph",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "Graph.CTargetDVHSeries",
+  "description": "Target or prescription DVH overlay series.",
+  "category": "Graph",
+  "tier": "production",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "MTL.CVectorD/CMatrixD/CMatrixNxM",
+  "description": "Templated vector and matrix classes with least-squares solvers and matrix operations.",
+  "category": "MTL",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "VecMat.VectorD/MatrixD/MatrixNxM",
+  "description": "Refactored templated vector and matrix base classes with inline implementations.",
+  "category": "VecMat",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "FTL.BufferND/MeshND/Field/BufferIndex",
+  "description": "N-dimensional grid and buffer container abstractions for spatially organized data.",
+  "category": "FTL",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GEOM_BASE.Polygon",
+  "description": "Serializable observable 2D polygon geometry primitive with MFC CArchive support.",
+  "category": "GEOM_BASE",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GEOM_BASE.CVolume",
+  "description": "Volumep three-dimensional voxel grid template for density and dose volumes.",
+  "category": "GEOM_BASE",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "MODEL_BASE.CModelObject",
+  "description": "Observable serializable hierarchical base model object underpinning all domain objects.",
+  "category": "MODEL_BASE",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "MODEL_BASE.Observer pattern",
+  "description": "CObservableObject and CObservableEvent implementing the observer notification pattern.",
+  "category": "MODEL_BASE",
+  "tier": "foundation",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GEOM_MODEL.Cluster",
+  "description": "K-means clustering over geometric point data.",
+  "category": "GEOM_MODEL",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "GEOM_MODEL.AffineTransform",
+  "description": "Affine geometric transform for points and meshes.",
+  "category": "GEOM_MODEL",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GEOM_MODEL.TPS",
+  "description": "Thin-plate spline non-rigid geometric transformation.",
+  "category": "GEOM_MODEL",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "GEOM_MODEL.Mesh",
+  "description": "Three-dimensional mesh geometry object.",
+  "category": "GEOM_MODEL",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GEOM_MODEL.GradientCalculator",
+  "description": "Computes spatial gradients over geometric scalar fields.",
+  "category": "GEOM_MODEL",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "GEOM_VIEW.SceneView/Camera/Renderable",
+  "description": "Direct3D 8 scene rendering framework with camera, lights, renderables, and object explorer tree, plus rotate and zoom interaction trackers.",
+  "category": "GEOM_VIEW",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "OPTIMIZER_BASE.line-search optimizers",
+  "description": "One-dimensional line-search optimizers Brent Powell and conjugate gradient as generic templates.",
+  "category": "OPTIMIZER_BASE",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "OptimizeN.ND optimizers",
+  "description": "N-dimensional optimizers Brent Powell conjugate gradient DFP gradient descent and cubic interpolation.",
+  "category": "OptimizeN",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "OGL_BASE.COpenGLRenderer/COpenGLView",
+  "description": "OpenGL rendering base classes with camera, light, texture, and interaction trackers.",
+  "category": "OGL_BASE",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GUI_BASE.ObjectExplorer/Graph/Dib/DrawTool",
+  "description": "Reusable MFC GUI widgets: object tree explorer, plot, device-independent bitmap, draw tool, tab control bar.",
+  "category": "GUI_BASE",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "GenImaging.InPlaneResampleImageFilter",
+  "description": "ITK ImageToImageFilter resampling 3D volumes in-plane with linear or nearest-neighbor interpolation.",
+  "category": "GenImaging",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "GenImaging.IntensityMapAccumulateImageFilter",
+  "description": "ITK filter accumulating dose by weighted pixel-wise multiply and add of beamlet intensity maps, IPP accelerated.",
+  "category": "GenImaging",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "GenImaging.ContoursToRegionFilter",
+  "description": "ITK filter rasterizing polygon contours into a binary region mask volume.",
+  "category": "GenImaging",
+  "tier": "component",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "XMLLogging.CXMLLogFile",
+  "description": "Thread-safe singleton writing structured nested XML diagnostic logs to a FILE pointer.",
+  "category": "XMLLogging",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "XMLLogging.CXMLElement",
+  "description": "Scoped RAII XML tag element managing nesting of attributes and text.",
+  "category": "XMLLogging",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "FieldCOM.Mesh",
+  "description": "COM ATL mesh object exposing IMesh with FileStorage IPersistStorage save and load.",
+  "category": "FieldCOM",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "FieldCOM.FileStorage",
+  "description": "COM persistence interface saving and loading geometry to a pathname or stream.",
+  "category": "FieldCOM",
+  "tier": "component",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RT_MODEL.TCP_NTCP_Optimizer",
+  "description": "Tumor control probability and normal tissue complication probability based dose optimizer in the legacy RT model.",
+  "category": "RT_MODEL",
+  "tier": "legacy-rt",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "RT_MODEL.DicomImporter",
+  "description": "Legacy DICOM series and structure set importer.",
+  "category": "RT_MODEL",
+  "tier": "legacy-rt",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "RT_VIEW.BeamRenderable/MachineRenderable",
+  "description": "Direct3D renderables drawing treatment beams and the treatment machine, with beam parameter control panels.",
+  "category": "RT_VIEW",
+  "tier": "legacy-rt",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "VSIM_MODEL.TreatmentMachine",
+  "description": "Virtual-simulation treatment machine model alongside Plan Series Beam.",
+  "category": "VSIM_MODEL",
+  "tier": "legacy-rt",
+  "kind": "class",
+  "salience": 0.5
+ },
+ {
+  "name": "DivFluence.fluence integration",
+  "description": "Divergent fluence calculation integrating exponential attenuation, inverse-square falloff, heterogeneous density, and field divergence over a CVolume.",
+  "category": "DivFluence",
+  "tier": "utility",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "PenBeam_indens.pencil beam convolution",
+  "description": "Fortran pencil-beam in-density convolution: ray-trace through heterogeneous phantom with spherical convolve kernels and energy lookup interpolation.",
+  "category": "PenBeam_indens",
+  "tier": "utility",
+  "kind": "algorithm",
+  "salience": 0.7
+ },
+ {
+  "name": "python.ct_to_md_values",
+  "description": "Converts CT Hounsfield unit values to mass density via piecewise calibration, ITK based.",
+  "category": "python",
+  "tier": "utility",
+  "kind": "function",
+  "salience": 0.4
+ },
+ {
+  "name": "python.rotate_density_for_beam",
+  "description": "Rotates a density volume to a beam gantry angle for ray-traced dose calculation.",
+  "category": "python",
+  "tier": "utility",
+  "kind": "function",
+  "salience": 0.4
+ },
+ {
+  "name": "python.terma_from_density",
+  "description": "Computes TERMA total energy released in medium by ray-tracing through a density volume.",
+  "category": "python",
+  "tier": "utility",
+  "kind": "function",
+  "salience": 0.4
+ },
+ {
+  "name": "notebook_zoo.entropy maximization",
+  "description": "Gradient-descent entropy maximization over image and histogram distributions, with MNIST autoencoder and variational autoencoder experiments.",
+  "category": "notebook_zoo",
+  "tier": "utility",
+  "kind": "algorithm",
+  "salience": 0.7
+ }
+]

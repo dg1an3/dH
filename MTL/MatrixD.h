@@ -358,6 +358,8 @@ BOOL CMatrixD<DIM, TYPE>::Invert(BOOL bFlag)
 
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 // TODO: fix this memory leak
 #define DECLARE_MATRIXD_INVERT(TYPE, TYPE_IPP, DIM) \
@@ -393,11 +395,12 @@ DECLARE_MATRIXD_INVERT(double, 64f, 2);
 DECLARE_MATRIXD_INVERT(double, 64f, 3);
 DECLARE_MATRIXD_INVERT(double, 64f, 4);
 DECLARE_MATRIXD_INVERT(double, 64f, 5);
-DECLARE_MATRIXD_INVERT(double, 64f, 6); 
-DECLARE_MATRIXD_INVERT(double, 64f, 7); 
-DECLARE_MATRIXD_INVERT(double, 64f, 8); 
-DECLARE_MATRIXD_INVERT(double, 64f, 9); 
+DECLARE_MATRIXD_INVERT(double, 64f, 6);
+DECLARE_MATRIXD_INVERT(double, 64f, 7);
+DECLARE_MATRIXD_INVERT(double, 64f, 8);
+DECLARE_MATRIXD_INVERT(double, 64f, 9);
 
+#endif
 #endif
 
 
@@ -498,6 +501,8 @@ CVectorD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mat,
 }	// operator*(const CMatrixD<DIM, TYPE>&, const CVectorD<DIM, TYPE>&)
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_MATRIXD_VECPRODUCT(TYPE, TYPE_IPP, DIM) \
 	template<> __forceinline	\
@@ -517,6 +522,7 @@ DECLARE_MATRIXD_VECPRODUCT(float, 32f, 4);
 // DECLARE_MATRIXD_VECPRODUCT(double, 64f, 2);
 DECLARE_MATRIXD_VECPRODUCT(double, 64f, 3);
 DECLARE_MATRIXD_VECPRODUCT(double, 64f, 4);
+#endif
 #endif
 
 
@@ -545,6 +551,8 @@ CMatrixD<DIM, TYPE> operator*(const CMatrixD<DIM, TYPE>& mLeft,
 //
 // matrix multiplication
 //////////////////////////////////////////////////////////////////////
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 #define DECLARE_MATRIXD_PRODUCT(TYPE, TYPE_IPP, DIM) \
 	template<> __forceinline	\
@@ -565,6 +573,7 @@ DECLARE_MATRIXD_PRODUCT(float, 32f, 4);
 // DECLARE_MATRIXD_PRODUCT(double, 64f, 2);
 DECLARE_MATRIXD_PRODUCT(double, 64f, 3);
 DECLARE_MATRIXD_PRODUCT(double, 64f, 4);
+#endif
 #endif
 
 
@@ -1051,7 +1060,7 @@ double Determinant(const CMatrixD<1, double>& mMat)
 // order is either 1 or 2, depending on whether the principle or
 //		remaining eigenvector is wanted
 //////////////////////////////////////////////////////////////////////
-inline REAL Eigen(CMatrixD<2> m, int nOrder = 1, 
+inline REAL ComputeEigenvalue(CMatrixD<2> m, int nOrder = 1,
 				  CVectorD<2> *pVector = NULL)
 {
 	// compute factors of the characteristic quadratic equation

@@ -7,6 +7,7 @@
 //#include "Optimizer.h"
 #include <vnl/vnl_nonlinear_minimizer.h>
 #include "ObjectiveFunction.h"
+#include "utilmacros.h"
 
 // subordinate brent optimizer
 // #include "BrentOptimizer.h"

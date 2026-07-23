@@ -6,6 +6,7 @@
 // #include <ModelObject.h>
 
 // #include <Polygon.h>
+#include <Attributes.h>
 #include <ItkUtils.h>
 using namespace itk;
 

@@ -7,6 +7,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <Attributes.h>
+
 // series upon which plan is based
 #include <Series.h>
 

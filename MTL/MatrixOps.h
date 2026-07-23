@@ -50,6 +50,8 @@ void MultMatrixVectorN(TYPE *vProd,
 }
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 
 #define DECLARE_MULTMATRIXVECTORN(TYPE, TYPE_IPP) \
@@ -71,6 +73,7 @@ DECLARE_MULTMATRIXVECTORN(float, 32f);
 DECLARE_MULTMATRIXVECTORN(double, 64f);
 
 #endif
+#endif
 
 
 template<class TYPE> INLINE
@@ -89,6 +92,8 @@ void OuterProdN(TYPE *mProd,
 }
 
 
+// DGL: IPPM functions removed in newer IPP versions - using generic implementation
+#if 0
 #ifdef USE_IPP
 
 #define DECLARE_OUTERPRODN(TYPE, TYPE_IPP) \
@@ -111,6 +116,7 @@ void OuterProdN(TYPE *mProd,								\
 DECLARE_OUTERPRODN(float, 32f);
 DECLARE_OUTERPRODN(double, 64f);
 
+#endif
 #endif
 
 

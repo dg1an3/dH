@@ -62,6 +62,7 @@ target_include_directories(RtModel
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../GEOM_MODEL/include
 )
 
 # Link ITK libraries
@@ -74,7 +75,7 @@ endif()
 # Link Intel IPP libraries if available
 if(IPP_FOUND)
     target_link_libraries(RtModel
-        PUBLIC
+        PRIVATE
             IPP::IPP
     )
     target_compile_definitions(RtModel PUBLIC USE_IPP)
@@ -85,20 +86,23 @@ endif()
 
 # Compile definitions for Windows
 if(MSVC)
-    target_compile_definitions(RtModel
-        PUBLIC
-            USE_RTOPT
-            NOMINMAX
-        PRIVATE
-            UNICODE
-            _UNICODE
-            _AFXDLL
-            WINVER=0x0501
-            _WIN32_WINNT=0x0501
+    target_compile_definitions(RtModel PUBLIC
+        USE_RTOPT
+    )
+    target_compile_definitions(RtModel PRIVATE
+        UNICODE
+        _UNICODE
+        _AFXDLL
+        WINVER=0x0501
+        _WIN32_WINNT=0x0501
     )
 
-    # Workaround for VNL SSE inline issues with modern MSVC
-    target_compile_options(RtModel PRIVATE /DVNL_SSE_FORCE_INLINE=inline)
+    # Disable VNL SSE optimizations and prevent Windows min/max macros
+    target_compile_definitions(RtModel PRIVATE
+        VNL_CONFIG_ENABLE_SSE2=0
+        VNL_CONFIG_ENABLE_SSE2_ROUNDING=0
+        NOMINMAX
+    )
 
     # Use precompiled headers
     # Temporarily disabled due to VNL SSE inline issues
