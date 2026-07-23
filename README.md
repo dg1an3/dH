@@ -1,6 +1,25 @@
 # brimstone 🜏
 
-brimstone is a variational inverse planning algorithm for [radiotherapy treatment planning](https://en.wikipedia.org/wiki/Radiation_treatment_planning).  It is related to variational bayes methods, though free energy is implicitly represented.
+**Brimstone**: A variational inverse planning algorithm for [radiotherapy treatment planning](https://en.wikipedia.org/wiki/Radiation_treatment_planning).
+
+It is related to variational Bayes methods, though free energy is implicitly represented.
+
+## Overview
+
+The Brimstone algorithm optimizes radiation beam intensities (beamlet weights) to deliver prescribed doses to tumor targets while minimizing exposure to healthy tissue. It employs:
+
+- **Multi-scale pyramid optimization** for robust convergence
+- **KL-divergence minimization** for dose-volume histogram (DVH) matching
+- **Adaptive covariance optimization** with conjugate gradient methods
+- **Implicit free energy representation** related to variational Bayes methods
+
+## Key Features
+
+- **Mathematically principled**: Information-theoretic cost functions (KL-divergence)
+- **Robust optimization**: Multi-scale approach avoids local minima
+- **Flexible prescriptions**: Arbitrary target DVH shapes supported
+- **Python wrapper**: Modern interface via `pybrimstone` package
+- **C++ core**: High-performance ITK-based implementation
 
 ## Variational Bayes Connection
 
@@ -31,14 +50,6 @@ The dH algorithm implements a simplistic variational Bayes approach for treatmen
    - Multi-scale pyramid (4 levels) provides coarse-to-fine optimization
    - Similar to hierarchical variational models without full hierarchical Bayes
 
-### Simplifications
-
-The algorithm is "simplistic" in that it:
-- Does not explicitly model posterior distributions
-- Uses sigmoid-transformed parameters rather than full probabilistic representation
-- By default computes implicit rather than explicit free energy (though explicit calculation is available as an option)
-- Focuses on point estimates rather than full posterior inference
-
 ### Explicit Free Energy Calculation (Optional)
 
 An optional explicit free energy calculation has been implemented (`RtModel/ConjGradOptimizer.cpp:220-254`):
@@ -50,22 +61,12 @@ An optional explicit free energy calculation has been implemented (`RtModel/Conj
    ```
    H = 0.5 * (n * log(2πe) + log(det(Σ)))
    ```
-   - Uses eigenvalue decomposition for numerical stability
-   - No Hessian approximation required - uses existing search-direction-based covariance
-
 2. **Free Energy**: Combines KL divergence objective with entropy
    ```
    F = KL_divergence - Entropy
    ```
-   - KL divergence represents expected log likelihood term
-   - Entropy term accounts for posterior uncertainty
-   - Both terms logged during optimization iterations
-
-This implementation leverages the existing `DynamicCovarianceOptimizer` covariance approximation (built from orthogonalized conjugate gradient search directions) rather than requiring expensive Hessian computation.
 
 ### Mathematical Formulation
-
-The optimization problem solved is:
 
 ```
 minimize: Σ_structures [ w_i * KL(P_calc_i || P_target_i) ]
@@ -170,18 +171,13 @@ For comprehensive build instructions, see [BUILDING.md](BUILDING.md).
 
 U. S. Patent 7,369,645
 
-Copyright (c) 2007-2021, Derek G. Lane All rights reserved.
+Copyright (c) 2007-2021, Derek G. Lane
+All rights reserved.
 
+This software is proprietary. See [LICENSE](LICENSE) file for terms.
 
-* documents
-  - see zebrastack
-  - frame notes
-  - autoencoder, mdl, free energy
-  - em free energy
-  - free energy and the brain
-  - variational bayes inverse planning
-* notebook_zoo
-  - entropy_max
-* diy_ml
-  - pytorch tutorial
-  - CMatrixNxM
+## References
+
+- [Radiation Treatment Planning (Wikipedia)](https://en.wikipedia.org/wiki/Radiation_treatment_planning)
+- [Variational Bayes Methods](https://en.wikipedia.org/wiki/Variational_Bayesian_methods)
+- [ITK - Insight Toolkit](https://itk.org/)

@@ -1,0 +1,107 @@
+version: '3.8'
+
+# Master docker-compose for dH radiotherapy planning system
+# Coordinates multiple containerized services
+
+services:
+  #############################################################################
+  # PenBeam_indens - Fortran dose convolution code
+  #############################################################################
+  penbeam:
+    build:
+      context: ./PenBeam_indens
+      dockerfile: Dockerfile
+    image: penbeam_indens:latest
+    container_name: penbeam_indens
+    volumes:
+      - ./PenBeam_indens/code/coni:/app/code/coni
+      - ./PenBeam_indens/code/cono:/app/code/cono
+      - ./PenBeam_indens/code/penbeam_input.txt:/app/code/penbeam_input.txt:ro
+    working_dir: /app
+    command: sh -c "./convolve_main < code/penbeam_input.txt"
+
+  penbeam-dev:
+    build:
+      context: ./PenBeam_indens
+      dockerfile: Dockerfile
+      target: builder
+    image: penbeam_indens:dev
+    container_name: penbeam_indens_dev
+    volumes:
+      - ./PenBeam_indens:/build
+    working_dir: /build
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  #############################################################################
+  # EGSnrc - Monte Carlo for energy deposition kernel generation
+  #############################################################################
+  egsnrc:
+    build:
+      context: ./EGSnrc
+      dockerfile: Dockerfile
+    image: egsnrc:latest
+    container_name: egsnrc
+    volumes:
+      - ./EGSnrc/input:/work/input:ro
+      - ./EGSnrc/output:/work/output
+      - ./EGSnrc/pegs4:/work/pegs4
+      - ./Brimstone:/brimstone_kernels
+    working_dir: /work
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  egsnrc-dev:
+    build:
+      context: ./EGSnrc
+      dockerfile: Dockerfile
+      target: builder
+    image: egsnrc:dev
+    container_name: egsnrc_dev
+    volumes:
+      - ./EGSnrc:/work
+      - ./Brimstone:/brimstone_kernels
+    working_dir: /work
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  #############################################################################
+  # Utility services
+  #############################################################################
+
+  # Kernel conversion service
+  kernel-convert:
+    build:
+      context: ./EGSnrc
+      dockerfile: Dockerfile
+    image: egsnrc:latest
+    container_name: kernel_converter
+    volumes:
+      - ./EGSnrc/output:/work/output:ro
+      - ./Brimstone:/brimstone_kernels
+      - ./EGSnrc/scripts:/opt/scripts
+    working_dir: /work
+    entrypoint: ["/opt/scripts/convert_kernel.sh"]
+
+#############################################################################
+# Shared volumes for cross-service data
+#############################################################################
+volumes:
+  # Shared kernel storage
+  kernels:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./Brimstone
+
+#############################################################################
+# Networks (optional, for service isolation)
+#############################################################################
+networks:
+  default:
+    name: dh_network
+    driver: bridge

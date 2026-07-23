@@ -1,0 +1,151 @@
+###############################################################################
+#
+# EGSnrc input file template for generating 6 MV energy deposition kernel
+#
+# This is a template for DOSRZnrc simulation to calculate
+# energy deposition kernel in water phantom
+#
+# Cylindrical geometry (R-Z) is used for efficient kernel generation
+#
+###############################################################################
+
+###############################################################################
+# Title
+###############################################################################
+6 MV photon energy deposition kernel in water
+
+###############################################################################
+# Monte Carlo parameters
+###############################################################################
+:start MC transport parameter:
+
+    # Global ECUT (total energy of electrons below which transport stops)
+    Global ECUT = 0.521  # MeV (0.521 = 0.011 kinetic + 0.511 rest mass)
+
+    # Global PCUT (photon energy below which transport stops)
+    Global PCUT = 0.010  # MeV
+
+    # Rayleigh scattering
+    Rayleigh scattering = On
+
+    # Atomic relaxations
+    Atomic relaxations = On
+
+    # Photoelectron angular sampling
+    Photoelectron angular sampling = On
+
+    # Bound Compton scattering
+    Bound Compton scattering = On
+
+    # Electron impact ionization
+    Electron impact ionization = Off
+
+:stop MC transport parameter:
+
+###############################################################################
+# Geometry definition (cylindrical)
+###############################################################################
+:start geometrical inputs:
+
+    # Medium in phantom
+    Medium = H2O700ICRU
+
+    # Number of radial bins
+    NRCYL = 64
+
+    # Radial bin boundaries (cm)
+    # Define 64 bins from 0 to 32 cm (0.5 cm spacing)
+    :start radii:
+        0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
+        5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0,
+        10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0,
+        15.5, 16.0, 16.5, 17.0, 17.5, 18.0, 18.5, 19.0, 19.5, 20.0,
+        20.5, 21.0, 21.5, 22.0, 22.5, 23.0, 23.5, 24.0, 24.5, 25.0,
+        25.5, 26.0, 26.5, 27.0, 27.5, 28.0, 28.5, 29.0, 29.5, 30.0,
+        30.5, 31.0, 31.5, 32.0
+    :stop radii:
+
+    # Number of axial planes
+    NPLANE = 129
+
+    # Axial plane positions (cm)
+    # Define planes from 0 to 64 cm (0.5 cm spacing)
+    :start planes:
+        0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
+        # ... (continue pattern to 64.0)
+        # For brevity, showing structure - full implementation needs all 129 values
+    :stop planes:
+
+:stop geometrical inputs:
+
+###############################################################################
+# Source definition
+###############################################################################
+:start source definition:
+
+    # Source type - monoenergetic point source
+    Source number = 0  # Point source
+
+    # Incident particle type
+    Incident particle = photon
+
+    # Source position
+    Source position = 0.0, 0.0, -100.0  # 100 cm SSD
+
+    # Energy spectrum
+    :start spectrum:
+        Spectrum type = monoenergetic
+        Energy = 6.0  # MeV
+    :stop spectrum:
+
+    # Source geometry
+    Beam type = parallel  # or pencil beam
+
+:stop source definition:
+
+###############################################################################
+# Scoring options
+###############################################################################
+:start scoring options:
+
+    # Dose calculation
+    CALCTASK = dose
+
+    # Score in all regions
+    IKERMA = 0
+
+:stop scoring options:
+
+###############################################################################
+# Simulation parameters
+###############################################################################
+:start run control:
+
+    # Number of histories
+    ncase = 1000000
+
+    # Number of batches for uncertainty analysis
+    nbatch = 10
+
+    # Random number seeds
+    initial random seed 1 = 97
+    initial random seed 2 = 33
+
+:stop run control:
+
+###############################################################################
+# Output options
+###############################################################################
+:start output options:
+
+    # Output file format
+    Output format = ascii
+
+    # Store data in 3D array format
+    Store data arrays = yes
+
+:stop output options:
+
+###############################################################################
+# End of input file
+###############################################################################

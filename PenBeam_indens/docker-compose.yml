@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  penbeam:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: penbeam_indens:latest
+    container_name: penbeam_indens
+    volumes:
+      # Mount input/output directories for easy access
+      - ./code/coni:/app/code/coni
+      - ./code/cono:/app/code/cono
+      # Optionally mount custom input file
+      - ./code/penbeam_input.txt:/app/code/penbeam_input.txt:ro
+    # Override default command if needed
+    # command: sh -c "./convolve_main < code/penbeam_input.txt"
+
+  # Development container with interactive shell
+  penbeam-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: penbeam_indens:dev
+    container_name: penbeam_indens_dev
+    volumes:
+      - .:/build
+    working_dir: /build
+    command: /bin/bash
+    stdin_open: true
+    tty: true
