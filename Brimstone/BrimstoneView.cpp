@@ -6,10 +6,14 @@
 #include <HistogramDataSeries.h>
 #ifdef USE_RTOPT
 #include <TargetDVHSeries.h>
+#include <KLDivTerm.h>
+#include <PlanPyramid.h>
 #endif
 
 #include "BrimstoneDoc.h"
 #include "BrimstoneView.h"
+#include "OptGraphHtml.h"
+#include "DvhViewHtml.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -145,6 +149,198 @@ void
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// WebView2 DVH view: data feed (C++ -> page) and edit handling (page -> C++)
+
+static CString ColorToHex(COLORREF c)
+{
+	CString s;
+	s.Format(_T("#%02x%02x%02x"), GetRValue(c), GetGValue(c), GetBValue(c));
+	return s;
+}
+
+void CBrimstoneView::SendStructuresToDvh()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries)
+		return;
+	dH::PlanOptimizer *pOpt = pDoc->m_pOptimizer.get();
+	dH::Prescription *pPresc0 = (pOpt != NULL) ? pOpt->GetPrescription(0) : NULL;
+
+	CString js = _T("setStructures([");
+	const int n = pDoc->m_pSeries->GetStructureCount();
+	for (int i = 0; i < n; i++)
+	{
+		dH::Structure *pStruct = pDoc->m_pSeries->GetStructureAt(i);
+		double mn = 0.0, mx = 0.0, wt = 0.0;
+		dH::VOITerm *pVOIT = (pPresc0 != NULL) ? pPresc0->GetStructureTerm(pStruct) : NULL;
+		if (pVOIT != NULL)
+		{
+			wt = pVOIT->GetWeight();
+			dH::KLDivTerm *pKL = dynamic_cast<dH::KLDivTerm*>(pVOIT);
+			if (pKL != NULL) { mn = pKL->GetMinDose() * 100.0; mx = pKL->GetMaxDose() * 100.0; }
+		}
+
+		CString name(pStruct->GetName().c_str());
+		name.Replace(_T("\\"), _T("\\\\"));
+		name.Replace(_T("\""), _T("\\\""));
+
+		CString item;
+		item.Format(_T("%s{\"id\":%d,\"name\":\"%s\",\"color\":\"%s\",\"type\":%d,\"min\":%.4g,\"max\":%.4g,\"weight\":%.4g,\"priority\":%d}"),
+			(i ? _T(",") : _T("")), i, (LPCTSTR)name, (LPCTSTR)ColorToHex(pStruct->GetColor()),
+			(int)pStruct->GetType(), mn, mx, wt, pStruct->GetPriority());
+		js += item;
+	}
+	js += _T("])");
+	m_webDVH.ExecScript(js);
+#endif
+}
+
+void CBrimstoneView::SendDvhCurvesToDvh()
+{
+#ifdef USE_RTOPT
+	CString js = _T("setDvh([");
+	const int cnt = m_graphDVH.GetDataSeriesCount();
+	bool first = true;
+	for (int i = 0; i < cnt; i++)
+	{
+		CDataSeries *pS = m_graphDVH.GetDataSeriesAt(i);
+		if (pS == NULL)
+			continue;
+		const bool bTarget = (dynamic_cast<CTargetDVHSeries*>(pS) != NULL);
+		const CMatrixNxM<>& m = pS->GetDataMatrix();
+		const int nPts = m.GetCols();
+
+		CString pts;
+		int emitted = 0;
+		for (int c = 0; c < nPts; c++)
+		{
+			const double x = m[c][0];	// 100 * dose
+			const double y = m[c][1];	// volume %
+			if (x < 0.0)
+				continue;				// the GDI graph clips X<0 too
+			CString p;
+			p.Format(_T("%s[%.3g,%.3g]"), (emitted ? _T(",") : _T("")), x, y);
+			pts += p;
+			emitted++;
+		}
+
+		CString item;
+		item.Format(_T("%s{\"id\":%d,\"color\":\"%s\",\"target\":%s,\"pts\":[%s]}"),
+			(first ? _T("") : _T(",")), i, (LPCTSTR)ColorToHex(pS->GetColor()),
+			(bTarget ? _T("true") : _T("false")), (LPCTSTR)pts);
+		js += item;
+		first = false;
+	}
+	js += _T("])");
+	m_webDVH.ExecScript(js);
+#endif
+}
+
+void CBrimstoneView::OnDvhMessage(const std::wstring & msg)
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries)
+		return;
+	dH::PlanOptimizer *pOpt = pDoc->m_pOptimizer.get();
+
+	// split "cmd|arg|arg..."
+	CString s(msg.c_str());
+	CStringArray tok;
+	int pos = 0;
+	for (CString t = s.Tokenize(_T("|"), pos); !t.IsEmpty(); t = s.Tokenize(_T("|"), pos))
+		tok.Add(t);
+	if (tok.GetSize() < 1)
+		return;
+	const CString cmd = tok[0];
+
+	dH::Series *pSeries = pDoc->m_pSeries;
+	const int nStructs = pSeries->GetStructureCount();
+
+	if (cmd == _T("weight") && tok.GetSize() >= 3 && pOpt != NULL)
+	{
+		const int id = _wtoi(tok[1]);
+		if (id >= 0 && id < nStructs)
+		{
+			dH::VOITerm *pV = pOpt->GetPrescription(0)->GetStructureTerm(pSeries->GetStructureAt(id));
+			if (pV != NULL)
+				pV->SetWeight(_wtof(tok[2]));
+		}
+	}
+	else if (cmd == _T("interval") && tok.GetSize() >= 4 && pOpt != NULL)
+	{
+		const int id = _wtoi(tok[1]);
+		const double mn = _wtof(tok[2]), mx = _wtof(tok[3]);
+		if (id >= 0 && id < nStructs && mn < mx)
+		{
+			dH::VOITerm *pV = pOpt->GetPrescription(0)->GetStructureTerm(pSeries->GetStructureAt(id));
+			dH::KLDivTerm *pK = dynamic_cast<dH::KLDivTerm*>(pV);
+			if (pK != NULL)
+				pK->SetInterval((REAL)(mn / 100.0), (REAL)(mx / 100.0), 1.0, TRUE);
+		}
+	}
+	else if (cmd == _T("color") && tok.GetSize() >= 3)
+	{
+		const int id = _wtoi(tok[1]);
+		const unsigned int rgb = wcstoul(tok[2], NULL, 16);
+		if (id >= 0 && id < nStructs)
+			pSeries->GetStructureAt(id)->SetColor(RGB((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff));
+	}
+	else if (cmd == _T("type") && tok.GetSize() >= 3 && pOpt != NULL)
+	{
+		const int id = _wtoi(tok[1]);
+		const int newType = _wtoi(tok[2]);
+		if (id >= 0 && id < nStructs)
+		{
+			dH::Structure *pStruct = pSeries->GetStructureAt(id);
+			dH::Prescription *pP0 = pOpt->GetPrescription(0);
+			dH::VOITerm *pV = pP0->GetStructureTerm(pStruct);
+			pStruct->SetType((dH::Structure::StructType) newType);
+
+			if (newType == dH::Structure::eNONE)
+			{
+				if (pV != NULL)
+					for (int lvl = 0; lvl < dH::PlanPyramid::MAX_SCALES; lvl++)
+						pOpt->GetPrescription(lvl)->RemoveStructureTerm(pStruct);
+				RemoveHistogram(pStruct);
+			}
+			else if (pV == NULL)
+			{
+				// set weight + interval BEFORE AddStructTerm: it clones the term
+				// per pyramid level at call time, so later edits wouldn't propagate
+				dH::KLDivTerm::Pointer pKL = dH::KLDivTerm::New();
+				pKL->SetVOI(pStruct);
+				pKL->SetWeight((REAL)2.5);
+				const double d1 = (newType == dH::Structure::eTARGET) ? 0.60 : 0.0;
+				const double d2 = (newType == dH::Structure::eTARGET) ? 0.70 : 0.30;
+				pKL->SetInterval((REAL)d1, (REAL)d2, 1.0, TRUE);
+				AddStructTerm(pKL);		// clones across levels + adds the target curve
+				AddHistogram(pStruct);
+			}
+			pP0->SetElementInclude();
+		}
+	}
+	else if (cmd == _T("order") && tok.GetSize() >= 2)
+	{
+		int p2 = 0, prio = 0;
+		for (CString idt = tok[1].Tokenize(_T(","), p2); !idt.IsEmpty(); idt = tok[1].Tokenize(_T(","), p2))
+		{
+			const int id = _wtoi(idt);
+			if (id >= 0 && id < nStructs)
+				pSeries->GetStructureAt(id)->SetPriority(prio);
+			prio++;
+		}
+	}
+
+	// reflect the change back to the page and repaint the image view (colors/regions)
+	SendStructuresToDvh();
+	SendDvhCurvesToDvh();
+	RedrawWindow(NULL, NULL, RDW_INVALIDATE);
+#endif
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CBrimstoneView drawing
 
 /////////////////////////////////////////////////////////////////////////////
@@ -216,11 +412,21 @@ int
 	m_graphDVH.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
 		CRect(0, 200, 200, 400), this, /* nID */ 113);
 
-	m_graphDVH.SetLegendLUT(m_arrColormap, 
+	m_graphDVH.SetLegendLUT(m_arrColormap,
 		m_wndPlanarView.m_window[1], m_wndPlanarView.m_level[1]);
 
+	// WebView2 DVH view (chart + Target/OAR/None structure editor) in the same
+	//	top-right quadrant. Placeholder geometry; real rect set in OnSize. The
+	//	legacy GDI m_graphDVH is hidden -- its CHistogramDataSeries stay attached
+	//	so GetDataMatrix() still yields the DVH curves we forward to the page.
+	m_webDVH.Create(NULL, NULL, WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+		CRect(0, 200, 200, 400), this, /* nID */ 116);
+	m_webDVH.SetMessageHandler([this](const std::wstring& msg) { OnDvhMessage(msg); });
+	m_webDVH.NavigateToString(g_dvhViewHtml);
+	m_graphDVH.ShowWindow(SW_HIDE);
+
 	// create the graph window
-	m_graphIterations.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+	m_graphIterations.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
 		CRect(0, 200, 200, 400), this, /* nID */ 114);
 
 	for (int nD = 0; nD < dH::Structure::MAX_SCALES; nD++)
@@ -234,6 +440,20 @@ int
 	m_pIterDS[3]->SetColor(RGB(255, 0, 255));
 	m_graphIterations.AddDataSeries(m_pIterDS[3]);
 
+	// WebView2 iteration/convergence chart. Placeholder geometry here; the real
+	//	rectangle (bottom-right quadrant) is set in OnSize. Phase 1: load a
+	//	self-contained test page to verify the WebView2 integration renders inside
+	//	the view. It sits over m_graphIterations, which still receives data so the
+	//	existing GDI flow is left untouched until the chart takes over.
+	m_webChart.Create(NULL, NULL, WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+		CRect(0, 400, 200, 600), this, /* nID */ 115);
+	m_webChart.NavigateToString(g_optGraphHtml);
+
+	// hide the legacy GDI iteration graph -- the WebView2 chart takes its place.
+	//	The data series remain attached to m_graphIterations so the existing
+	//	OnOptimizerThreadUpdate flow keeps working (it just paints into a hidden
+	//	window) until the chart is wired to receive the data directly.
+	m_graphIterations.ShowWindow(SW_HIDE);
 
 	return 0;
 }
@@ -293,10 +513,14 @@ void
 	}
 
 	m_graphDVH.Invalidate(TRUE);
+
+	// seed the WebView2 DVH view with the current structures + curves
+	SendStructuresToDvh();
+	SendDvhCurvesToDvh();
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void 
+void
 	CBrimstoneView::OnSize(UINT nType, int cx, int cy) 
 {
 	CView::OnSize(nType, cx, cy);
@@ -304,10 +528,18 @@ void
 	m_wndPlanarView.MoveWindow(0, 0, 5 * cx / 8, cy);
 
 	// reposition the graph window
-	m_graphDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);	
+	m_graphDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);
+
+	// WebView2 DVH view occupies the same top-right quadrant, over the GDI graph
+	if (m_webDVH.GetSafeHwnd() != NULL)
+		m_webDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);
 
 	// reposition the iterations window
-	m_graphIterations.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);	
+	m_graphIterations.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);
+
+	// WebView2 chart occupies the same bottom-right quadrant, over the GDI graph
+	if (m_webChart.GetSafeHwnd() != NULL)
+		m_webChart.MoveWindow(5 * cx / 8, cy / 2, 3 * cx / 8, cy / 2);
 }
 
 
@@ -326,6 +558,9 @@ void
 		CMatrixNxM<> mEmpty;
 		for (int nL = 0; nL < dH::Structure::MAX_SCALES; nL++)
 			m_pIterDS[nL]->SetDataMatrix(mEmpty);
+
+		// clear the WebView2 convergence chart
+		m_webChart.ExecScript(_T("resetChart()"));
 
 		m_pOptThread->PostThreadMessage(WM_OPTIMIZER_START, 0, 0);
 		m_bOptimizerRun = true;
@@ -365,15 +600,22 @@ LRESULT
 		COptThread::COptIterData *pOID = (COptThread::COptIterData *) lParam;
 		ASSERT(pOID != NULL);
 
-		if (pOID->m_ofvalue > 0.1)
+		if (pOID->m_ofvalue > 0.0)
 		{
-			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, -log10(pOID->m_ofvalue - 0.1)));
+			const double yVal = -log10(pOID->m_ofvalue);
+			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, yVal));
+
+			// feed the same point to the WebView2 convergence chart
+			CString strJs;
+			strJs.Format(_T("addPoint(%d,%d,%.6g)"), pOID->m_nLevel, m_nTotalIter, yVal);
+			m_webChart.ExecScript(strJs);
 		}
 
 		const int nUpdateEvery = 1;
 		if (m_nTotalIter % nUpdateEvery == 0)
 		{
 			GetDocument()->m_pOptimizer->SetStateVectorToPlan(pOID->m_vParam);
+			SendDvhCurvesToDvh();
 		}
 		m_nTotalIter++;
 
@@ -393,10 +635,39 @@ LRESULT
 	if (pOID != NULL)
 	{
 		GetDocument()->m_pOptimizer->SetStateVectorToPlan(pOID->m_vParam);
+		SendDvhCurvesToDvh();
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 
 	m_bOptimizerRun = false;
+
+	// Sweep instrumentation: when BRIMSTONE_OBJECTIVE_FILE is set (e.g. by the
+	//	isocenter-sweep driver), write the final level-0 objective value to that
+	//	file. The file's appearance also serves as the optimizer-done signal, so
+	//	the driver can wait on a result instead of sleeping a fixed interval.
+	//	Inert for normal interactive runs where the env var is unset.
+	char szObjFile[MAX_PATH] = {0};
+	if (GetEnvironmentVariableA("BRIMSTONE_OBJECTIVE_FILE", szObjFile, MAX_PATH) > 0)
+	{
+		dH::PlanOptimizer *pOpt = GetDocument()->m_pOptimizer.get();
+		if (pOpt != NULL)
+		{
+			// level-0 (finest) values. The optimizer minimizes F = KL - w*H
+			//	(softmax entropy), so GetFinalValue() is F; the prescription
+			//	caches the KL and entropy split from its last evaluation.
+			const REAL freeEnergy = pOpt->GetOptimizer(0)->GetFinalValue();
+			dH::Prescription *pPresc0 = pOpt->GetPrescription(0);
+			const REAL kl = pPresc0->GetLastKL();
+			const REAL entropy = pPresc0->GetLastEntropy();
+			FILE *fp = NULL;
+			if (fopen_s(&fp, szObjFile, "w") == 0 && fp != NULL)
+			{
+				fprintf(fp, "free_energy=%.10g kl=%.10g entropy=%.10g\n",
+					(double) freeEnergy, (double) kl, (double) entropy);
+				fclose(fp);
+			}
+		}
+	}
 #endif
 
 	return 0;

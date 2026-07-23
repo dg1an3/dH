@@ -1,0 +1,33 @@
+@startuml stm_primary
+title <<stm>> CRenderable Primary State Machine
+skinparam state {
+    BackgroundColor<<browse>> #e3f2fd
+    BorderColor<<browse>> #1565c0
+    FontColor<<browse>> #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>> #2e7d32
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_construct" as Pre <<browse>>
+state "detached" as Detached <<browse>>
+state "attached" as Attached <<browse>>
+state "destroyed" as Dead <<terminal>>
+
+Pre -down-> Detached : construct
+Detached -down-> Attached : (CSceneView::AddRenderable via friend)
+Attached --> Attached : set_color/set_alpha [invalidate]\nset_modelview / set_enabled [m_pView->Invalidate]\nset_centroid [no invalidate]\nset_object\ninvalidate [delete display lists]\ndraw_opaque/draw_transparent [empty base]\ndraw_*_list [lazy compile display list]
+Detached --> Detached : set_color/alpha [Invalidate early-return]\nset_modelview/enabled [skip due to null m_pView]
+Attached -down-> Dead : destruct
+Detached -down-> Dead : destruct
+
+note right of Attached
+    Asymmetric invalidation:
+    SetColor/Alpha -> full Invalidate
+    (deletes display lists)
+    SetModelview/Enabled -> only
+    m_pView->Invalidate (display
+    lists survive). Quirk.
+end note
+@enduml
