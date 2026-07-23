@@ -1,0 +1,36 @@
+@startuml bdd_state_dict
+title <<bdd>> CRenderContext state{} dict schema
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>> #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>> #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : RcMode
+    pd3d_device : LPDIRECT3DDEVICE8 | none
+    color : COLORREF
+    alpha : double
+    bound_texture : CTexture* | none
+    primitive_open : Kind | none
+    psceneview : none (commented-out field)
+}
+class RcMode <<enumeration>> {
+    pre_construct
+    active
+    destroyed
+}
+state "1" -- "1" RcMode : win
+note bottom of state
+    Half-migrated wrapper.
+    D3D device held but only
+    CreateVertexBuffer uses it.
+    All rendering is OpenGL.
+end note
+@enduml

@@ -1,0 +1,23 @@
+@startuml stm_primary
+title <<stm>> CZoomTracker Primary State Machine
+skinparam state {
+    BackgroundColor<<browse>> #e3f2fd
+    BorderColor<<browse>> #1565c0
+    FontColor<<browse>> #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>> #2e7d32
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_construct" as Pre <<browse>>
+state "ready" as Ready <<browse>>
+state "dragging" as Drag <<browse>>
+state "destroyed" as Dead <<terminal>>
+
+Pre -down-> Ready : construct(View)
+Ready -down-> Drag : on_button_down(_, _)
+Drag --> Drag : on_mouse_drag(_, _)\n[m_initZoom * prefix commented out]
+Drag -down-> Dead : destruct
+Ready -down-> Dead : destruct
+@enduml

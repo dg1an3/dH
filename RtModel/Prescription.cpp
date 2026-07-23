@@ -38,7 +38,48 @@ Prescription::Prescription(CPlan *pPlan/*, int nLevel*/)
 
 	m_volTemp = VolumeReal::New();
 
+	m_dLastKL = 0.0;
+	m_dLastEntropy = 0.0;
+
 }	// Prescription::Prescription
+
+///////////////////////////////////////////////////////////////////////////////
+REAL
+	Prescription::GetEntropyWeight() const
+	// weight w of the softmax-entropy regularizer in F = KL - w*entropy.
+	//	Read once from BRIMSTONE_ENTROPY_WEIGHT (0 => plain KL objective, the
+	//	default). Process-global; each sweep point is a fresh process, so the
+	//	driver can vary w per run via the environment without a rebuild.
+{
+	static bool s_init = false;
+	static REAL s_w = 0.0;
+	if (!s_init)
+	{
+		s_init = true;
+		const char *pEnv = getenv("BRIMSTONE_ENTROPY_WEIGHT");
+		if (pEnv != NULL)
+			s_w = (REAL) atof(pEnv);
+	}
+	return s_w;
+}	// Prescription::GetEntropyWeight
+
+///////////////////////////////////////////////////////////////////////////////
+bool
+	Prescription::GetEntropySeparable() const
+	// selects the separable per-beamlet binary entropy (BRIMSTONE_ENTROPY_SEPARABLE
+	//	!= 0) over the default global softmax entropy. Read once, cached.
+{
+	static bool s_init = false;
+	static bool s_separable = false;
+	if (!s_init)
+	{
+		s_init = true;
+		const char *pEnv = getenv("BRIMSTONE_ENTROPY_SEPARABLE");
+		if (pEnv != NULL)
+			s_separable = (atoi(pEnv) != 0);
+	}
+	return s_separable;
+}	// Prescription::GetEntropySeparable
 
 ///////////////////////////////////////////////////////////////////////////////
 Prescription::~Prescription()
@@ -333,8 +374,97 @@ REAL
 	// good to catch an NANs
 	ASSERT(_finite(totalSum));
 
-	// DGL: adding 0.1 to hold it up off 0.0 
-	totalSum += 0.1;
+	// NOTE: previously added a fixed +0.1 offset here ("to hold it up off 0.0"),
+	//	but that constant leaked into the CG optimizer's relative convergence test
+	//	(ConjGradOptimizer.cpp, comparing fabs(m_FinalValue)+fabs(new_fv)) and into
+	//	the free-energy display, both of which should reflect the true KL divergence
+	//	sum. totalSum is already a sum of non-negative KL divergence terms, so it
+	//	doesn't need padding away from 0.0.
+
+	// record the raw KL sum before the entropy regularizer is applied
+	m_dLastKL = totalSum;
+	m_dLastEntropy = 0.0;
+
+	// -------------------------------------------------------------------------
+	// Entropy regularizer:  F = KL - w * H. H is a true function of the
+	// optimizer parameters, so -w*grad(H) genuinely steers the CG search. Two
+	// forms (BRIMSTONE_ENTROPY_SEPARABLE selects), w=0 recovers plain KL:
+	//
+	//  softmax (default):  p = softmax(vInput),  H = -sum_i p_i log p_i,
+	//		dH/dx_k = -p_k (log p_k + H).  GLOBAL coupling (all beamlets compete
+	//		in one simplex) -> dense, ill-conditioned Hessian; CG stalls at w=0.01.
+	//
+	//  separable:  q_i = Sigmoid(x_i) in [0,1] (the beamlet's fraction of max
+	//		weight),  H = sum_i [ -q_i ln q_i - (1-q_i) ln(1-q_i) ] (per-beamlet
+	//		binary entropy),  dH/dx_i = ln((1-q_i)/q_i) * dSigmoid(x_i).  DIAGONAL
+	//		Hessian -> well-conditioned; no artificial cross-beamlet coupling.
+	//		Pushes each beamlet toward q=0.5 (half of max). Both gradients are
+	//		finite-difference validated (scratchpad/test_entropy_grad.py + the
+	//		in-app BRIMSTONE_GRADCHECK path).
+	// -------------------------------------------------------------------------
+	const REAL w = GetEntropyWeight();
+	if (w != 0.0)
+	{
+		const int nDim = vInput.GetDim();
+		REAL entropy = 0.0;
+
+		if (GetEntropySeparable())
+		{
+			for (int i = 0; i < nDim; i++)
+			{
+				const REAL q = Sigmoid(vInput[i], m_inputScale);
+				const REAL qc = (REAL) 1.0 - q;
+				if (q > 1e-12 && qc > 1e-12)
+					entropy -= q * (REAL) log(q) + qc * (REAL) log(qc);
+
+				if (pGrad)
+				{
+					const REAL ql = __max(q, (REAL) 1e-12);
+					const REAL qcl = __max(qc, (REAL) 1e-12);
+					const REAL dH = (REAL) log(qcl / ql) * dSigmoid(vInput[i], m_inputScale);
+					(*pGrad)[i] -= w * dH;
+				}
+			}
+		}
+		else
+		{
+			// softmax with max-subtraction for numerical stability
+			REAL vMax = vInput[0];
+			for (int i = 1; i < nDim; i++)
+				vMax = __max(vMax, vInput[i]);
+
+			CVectorN<> p;
+			p.SetDim(nDim);
+			REAL Z = 0.0;
+			for (int i = 0; i < nDim; i++)
+			{
+				p[i] = (REAL) exp(vInput[i] - vMax);
+				Z += p[i];
+			}
+			for (int i = 0; i < nDim; i++)
+			{
+				p[i] /= Z;
+				if (p[i] > 1e-300)
+					entropy -= p[i] * (REAL) log(p[i]);
+			}
+
+			if (pGrad)
+			{
+				for (int k = 0; k < nDim; k++)
+				{
+					const REAL logpk = (REAL) log(__max(p[k], (REAL) 1e-300));
+					const REAL dH = -p[k] * (logpk + entropy);
+					(*pGrad)[k] -= w * dH;
+				}
+			}
+		}
+
+		// F = KL - w*H
+		totalSum -= w * entropy;
+		m_dLastEntropy = entropy;
+
+		ASSERT(_finite(totalSum));
+	}
 
 	EndLogSection();
 
@@ -401,7 +531,6 @@ void
 					}
 
 					// check adaptive variance value
-					// TODO why is this not true?
 					ASSERT((*m_pAV)[nAt_dVolume] <= (m_varMax + 1e-6));
 					ASSERT((*m_pAV)[nAt_dVolume] >= (m_varMin - 1e-6));
 
@@ -424,10 +553,10 @@ void
 						// normalize so that beamlet weight at scale / 2 is 1.0
 						varWeight /= SIGMOID_SCALE / 2.0;
 					}
-					REAL actVar = m_ActualAV[nAt_dVolume] = 
-						(*m_pAV)[nAt_dVolume] * varSlope * varSlope * varWeight * varWeight;
+					REAL actVar = (*m_pAV)[nAt_dVolume] * varSlope * varSlope * varWeight * varWeight;
 					actVar = __max(actVar, m_varMin);
 					actVar = __min(actVar, m_varMax);
+					m_ActualAV[nAt_dVolume] = actVar;
 
 					// calculate fractional parts
 					const REAL fracMax = // ((*m_pAV)[nAt_dVolume] - m_varMin) / (m_varMax - m_varMin);

@@ -582,6 +582,18 @@ const CVectorN<>&
 			{
 				const int nLowBin = m_volBinLoInt->GetBufferPointer()[nAt];
 
+				// guard against an out-of-range bin index -- nBins is sized
+				//	from this volume's current max value, while nLowBin comes
+				//	from a separately precomputed binning volume; these can
+				//	go out of sync if this histogram is rendered before its
+				//	dose volume has valid data (e.g. before optimization has
+				//	run), which otherwise corrupts memory via an
+				//	out-of-bounds array write
+				if (nLowBin < 0 || nLowBin + 1 >= nBins)
+				{
+					continue;
+				}
+
 				// check that region is positive definite
 				ASSERT(GetRegion()->GetBufferPointer()[nAt] >= 0.0);
 

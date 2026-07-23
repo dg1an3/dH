@@ -194,7 +194,8 @@ void CPlanarView::DrawImages(CDC *pDC)
 	VOXEL_REAL *pVoxels0 = NULL;
 	if (m_pVolume[0] && m_pVolume[0]->GetBufferedRegion().GetSize()[0] != 0)
 	{
-		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width())
+		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width()
+			|| m_volumeResamp[0]->GetBufferedRegion().GetSize()[1] != rect.Height())
 		{
 			m_volumeResamp[0]->SetRegions(MakeSize(rect.Width(), rect.Height(), 1));
 			m_volumeResamp[0]->Allocate();
@@ -722,6 +723,18 @@ void
 	m_vCenter[1] = m_pVolume[0]->GetOrigin()[1] 
 		+ m_pVolume[0]->GetSpacing()[1] * 0.5 * (REAL) m_pVolume[0]->GetBufferedRegion().GetSize()[1];
 	m_vCenter[2] = m_pVolume[0]->GetOrigin()[2];
+
+	// automation hook: BRIMSTONE_ZOOM overrides the default 1.0 zoom so the
+	//	sweep's screenshots magnify the anatomy in the planar view. Inert for
+	//	normal interactive runs where the env var is unset (right-drag still
+	//	zooms as before).
+	char szZoom[64] = {0};
+	if (GetEnvironmentVariableA("BRIMSTONE_ZOOM", szZoom, sizeof(szZoom)) > 0)
+	{
+		const double z = atof(szZoom);
+		if (z > 0.0)
+			m_zoom = (REAL) z;
+	}
 
 	// set the zoom (to set the basis)
 	SetZoom(m_zoom);

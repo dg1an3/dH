@@ -1,0 +1,49 @@
+@startuml bdd_state_dict
+title <<bdd>> CRenderable state{} dict schema
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>> #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>> #f9a825
+    BackgroundColor<<deadcode>> #ffcccc
+    BorderColor<<deadcode>> #c62828
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : RenderableMode
+    pobject : CObject* | none
+    pview : CSceneView* | none
+    color : COLORREF
+    alpha : double
+    centroid : CVectorD<3>
+    modelview : CMatrixD<4>
+    enabled : bool
+    .. OpenGL display lists (pre-D3D8) ..
+    draw_list_opaque : int (-1 = invalid)
+    draw_list_transparent : int (-1 = invalid)
+    .. D3D8 ..
+    vertex_buffer : LPD3D... | none
+    .. public temp for sort ..
+    temp_distance : double
+}
+class RenderableMode <<enumeration>> {
+    pre_construct
+    detached
+    attached
+    destroyed
+}
+class missing_methods <<deadcode>> {
+    IsHighlighted / SetHighlighted
+    are declared in .h but NEVER
+    defined in the .cpp. No
+    m_bHighlighted field exists.
+    Linker error if called.
+}
+state "1" -- "1" RenderableMode : win
+state ..> missing_methods : preserved verbatim
+@enduml

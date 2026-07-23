@@ -5,6 +5,11 @@
 Cython implementation of Python wrappers for Brimstone C++ classes
 
 This file implements the Python-facing classes that wrap the C++ implementation.
+
+SUPERSEDED -- the native binding path is now pybind11 (../rtmodel_bindings.cpp,
+built by ../setup.py into the `rtmodel_core` module). This .pyx/.pxd pair is no
+longer part of the build and its declarations do not match the current RtModel
+headers. Kept only for reference; see ../BUILD_NATIVE.md.
 """
 
 import numpy as np
