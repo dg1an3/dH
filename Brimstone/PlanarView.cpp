@@ -8,6 +8,9 @@
 #include <ippi.h>
 #endif
 
+#include <itkLinearInterpolateImageFunction.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
+
 #include <Series.h>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -125,19 +128,21 @@ inline void Resample(const VolumeReal *pOrig,
 	// calculate plane
 	REAL planeZ = (pNew->GetOrigin()[2] - pOrig->GetOrigin()[2]) / pOrig->GetSpacing()[2];
 
-	// calculate original voxel starting position
-	const VOXEL_REAL *pOrigVoxel = pOrig->GetBufferPointer();
+	// Bounds-check the source slice index. mXform translates pNew indices to
+	// pOrig indices, so a valid in-range source slice is the precondition for
+	// any output pixel having data.
 	VolumeReal::IndexType idx;
 	idx[0] = 0;
 	idx[1] = 0;
-	idx[2] = // nSlice; // 
-		::Round<int>(planeZ);
+	idx[2] = ::Round<int>(planeZ);
 	if (!pOrig->GetBufferedRegion().IsInside(idx))
 	{
 		return;
 	}
-	pOrigVoxel += pOrig->ComputeOffset(idx);
 
+	// 2-D affine back-warp: for each output pixel (x, y) in slice 0 of pNew,
+	// look up (xs, ys, planeZ) in pOrig. Replaces the deprecated
+	// ippiWarpAffineBack_32f_C1R short-form (removed in modern IPP).
 	double coeffs[2][3];
 	coeffs[0][0] = mXform(0, 0);
 	coeffs[0][1] = mXform(0, 1);
@@ -146,36 +151,34 @@ inline void Resample(const VolumeReal *pOrig,
 	coeffs[1][1] = mXform(1, 1);
 	coeffs[1][2] = mXform(1, 3);
 
-#ifdef USE_IPP
-	IppStatus stat = ippiWarpAffineBack_32f_C1R(
-		pOrigVoxel,
-		MakeIppiSize(pOrig->GetBufferedRegion()),
-		pOrig->GetBufferedRegion().GetSize()[0] * sizeof(VOXEL_REAL),
-		MakeIppiRect(pOrig->GetBufferedRegion()),
-		pNew->GetBufferPointer(),
-		pNew->GetBufferedRegion().GetSize()[0] * sizeof(VOXEL_REAL),
-		MakeIppiRect(pNew->GetBufferedRegion()),
-		coeffs, IPPI_INTER_LINEAR);
-#else
-	// Non-IPP fallback: nearest-neighbor resampling using affine transform
-	auto origSize = pOrig->GetBufferedRegion().GetSize();
-	auto newSize = pNew->GetBufferedRegion().GetSize();
-	VOXEL_REAL *pNewBuf = pNew->GetBufferPointer();
-	for (unsigned int y = 0; y < newSize[1]; y++)
+	using LinearInterp = itk::LinearInterpolateImageFunction<VolumeReal, double>;
+	using NNInterp     = itk::NearestNeighborInterpolateImageFunction<VolumeReal, double>;
+	itk::InterpolateImageFunction<VolumeReal, double>::Pointer interpolator;
+	if (bBilinear)
+		interpolator = LinearInterp::New();
+	else
+		interpolator = NNInterp::New();
+	interpolator->SetInputImage(pOrig);
+
+	const auto& newSize = pNew->GetBufferedRegion().GetSize();
+	const int newW = static_cast<int>(newSize[0]);
+	const int newH = static_cast<int>(newSize[1]);
+	VOXEL_REAL* pNewVoxel = pNew->GetBufferPointer();
+
+	itk::ContinuousIndex<double, 3> cidx;
+	cidx[2] = static_cast<double>(idx[2]);
+	for (int y = 0; y < newH; ++y)
 	{
-		for (unsigned int x = 0; x < newSize[0]; x++)
+		for (int x = 0; x < newW; ++x)
 		{
-			double srcX = coeffs[0][0] * x + coeffs[0][1] * y + coeffs[0][2];
-			double srcY = coeffs[1][0] * x + coeffs[1][1] * y + coeffs[1][2];
-			int sx = (int)(srcX + 0.5);
-			int sy = (int)(srcY + 0.5);
-			if (sx >= 0 && sx < (int)origSize[0] && sy >= 0 && sy < (int)origSize[1])
-				pNewBuf[y * newSize[0] + x] = pOrigVoxel[sy * origSize[0] + sx];
-			else
-				pNewBuf[y * newSize[0] + x] = 0;
+			cidx[0] = coeffs[0][0] * x + coeffs[0][1] * y + coeffs[0][2];
+			cidx[1] = coeffs[1][0] * x + coeffs[1][1] * y + coeffs[1][2];
+			VOXEL_REAL value = 0;
+			if (interpolator->IsInsideBuffer(cidx))
+				value = static_cast<VOXEL_REAL>(interpolator->EvaluateAtContinuousIndex(cidx));
+			pNewVoxel[y * newW + x] = value;
 		}
 	}
-#endif
 
 }	// Resample
 
@@ -191,7 +194,8 @@ void CPlanarView::DrawImages(CDC *pDC)
 	VOXEL_REAL *pVoxels0 = NULL;
 	if (m_pVolume[0] && m_pVolume[0]->GetBufferedRegion().GetSize()[0] != 0)
 	{
-		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width())
+		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width()
+			|| m_volumeResamp[0]->GetBufferedRegion().GetSize()[1] != rect.Height())
 		{
 			m_volumeResamp[0]->SetRegions(MakeSize(rect.Width(), rect.Height(), 1));
 			m_volumeResamp[0]->Allocate();
@@ -720,6 +724,18 @@ void
 		+ m_pVolume[0]->GetSpacing()[1] * 0.5 * (REAL) m_pVolume[0]->GetBufferedRegion().GetSize()[1];
 	m_vCenter[2] = m_pVolume[0]->GetOrigin()[2];
 
+	// automation hook: BRIMSTONE_ZOOM overrides the default 1.0 zoom so the
+	//	sweep's screenshots magnify the anatomy in the planar view. Inert for
+	//	normal interactive runs where the env var is unset (right-drag still
+	//	zooms as before).
+	char szZoom[64] = {0};
+	if (GetEnvironmentVariableA("BRIMSTONE_ZOOM", szZoom, sizeof(szZoom)) > 0)
+	{
+		const double z = atof(szZoom);
+		if (z > 0.0)
+			m_zoom = (REAL) z;
+	}
+
 	// set the zoom (to set the basis)
 	SetZoom(m_zoom);
 }
@@ -895,9 +911,10 @@ void CPlanarView::OnLButtonDown(UINT nFlags, CPoint point)
 		dH::Structure::PolygonType::PointType vVert;
 		vVert[0] = point.x * sliceSpacing[0] + sliceOrigin[0];
 		vVert[1] = point.y * sliceSpacing[1] + sliceOrigin[1];
-		itk::SpatialObjectPoint<2> soPt;
-		soPt.SetPositionInObjectSpace(vVert);
-		GetSelectedContour()->AddPoint(soPt);
+		// ITK 5.x: AddPoint takes SpatialObjectPoint, not Point.
+		itk::SpatialObjectPoint<2> sopVert;
+		sopVert.SetPositionInObjectSpace(vVert);
+		GetSelectedContour()->AddPoint(sopVert);
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 		return;
 	}
@@ -906,7 +923,7 @@ void CPlanarView::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		dH::Structure *pStruct = GetSelectedStructure();
 		SetSelectedContour(nullptr);
-		SetSelectedVertex(-1);
+		SetSelectedVertex(NULL);
 
 		// see if we hit one of the selected structures contours
 		for (int nAtContour = 0; nAtContour < pStruct->GetContourCount(); nAtContour++)
@@ -1101,10 +1118,11 @@ void
 		vShift[0] = spacing[0] * ptDelta.x; // + origin[0];
 		vShift[1] = spacing[1] * ptDelta.y; // + origin[1];
 
-		// Modify the point in-place (ITK 5 API)
-		auto& points = GetSelectedContour()->GetPoints();
-		if (GetSelectedVertex() >= 0 && GetSelectedVertex() < (int)points.size())
-			points[GetSelectedVertex()].SetPositionInObjectSpace(vShift);
+		// ITK 5.x: PolygonSpatialObject::ReplacePoint was removed. Mutate the
+		// existing point in-place via SetPositionInObjectSpace.
+		auto* pSop = const_cast<itk::SpatialObjectPoint<2>*>(
+			GetSelectedContour()->GetPoint(GetSelectedVertex()));
+		pSop->SetPositionInObjectSpace(vShift);
 
 		// update display
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);

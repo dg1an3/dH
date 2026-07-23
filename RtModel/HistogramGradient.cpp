@@ -81,7 +81,6 @@ int
 		// Just add a NULL for region rotate, because the logic below will initialize it when
 		//		a dVolume is available
 		m_groupVolRegion.push_back(nullptr);
-		m_groupVolRegion.push_back(nullptr);
 	} 
 
 	// see if the region rotate is in need of initialization
@@ -173,9 +172,17 @@ const CVectorN<>&
 				//for (int nAtVoxel = /*0*/GetSlice() * nCount; 
 				//	nAtVoxel < /*nCount*/((GetSlice()+1) * nCount); nAtVoxel++)
 				{
-					int nBin = pBinVolume->GetBufferPointer()[nAtVoxel]; 
-					arr_dBins[nBin] -= m_groupVolBinFracLo_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel]; 
-					arr_dBins[nBin+1] += m_groupVolBinFracHi_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel]; 
+					int nBin = pBinVolume->GetBufferPointer()[nAtVoxel];
+
+					// guard against an out-of-range bin index -- see the
+					//	matching guard in CHistogram::GetBins
+					if (nBin < 0 || nBin + 1 >= nBins)
+					{
+						continue;
+					}
+
+					arr_dBins[nBin] -= m_groupVolBinFracLo_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel];
+					arr_dBins[nBin+1] += m_groupVolBinFracHi_x_dVolume[nGroup]->GetBufferPointer()[nAtVoxel];
 				}
 			}
 		}
@@ -540,17 +547,26 @@ void CHistogramWithGradient::Conv_dGauss(const CVectorN<>& buffer_in,
 	buffer_out.SetDim(buffer_in.GetDim() + kernel_in.GetDim() - 1);
 	buffer_out.SetZero();
 
-	// Generic convolution implementation (ippsConv_64f removed in newer IPP)
-	int srcLen = buffer_in.GetDim();
-	int kernelLen = kernel_in.GetDim();
-	for (int n = 0; n < buffer_out.GetDim(); n++) {
-		for (int k = 0; k < kernelLen; k++) {
-			int idx = n - k;
-			if (idx >= 0 && idx < srcLen) {
-				buffer_out[n] += buffer_in[idx] * kernel_in[k];
-			}
+#ifdef REAL_FLOAT
+#error REAL_FLOAT not supported!
+#else
+	{
+		// Manual 1-D linear convolution (see Histogram.cpp::ConvGauss).
+		const int srcLen = buffer_in.GetDim();
+		const int kerLen = kernel_in.GetDim();
+		const int dstLen = srcLen + kerLen - 1;
+		ASSERT(buffer_out.GetDim() == dstLen);
+		for (int n = 0; n < dstLen; ++n)
+		{
+			double acc = 0.0;
+			const int kMin = (n - srcLen + 1 > 0) ? n - srcLen + 1 : 0;
+			const int kMax = (n < kerLen - 1) ? n : kerLen - 1;
+			for (int k = kMin; k <= kMax; ++k)
+				acc += kernel_in[k] * buffer_in[n - k];
+			buffer_out[n] = acc;
 		}
 	}
+#endif
 
 }	// CHistogramWithGradient::Conv_dGauss
 

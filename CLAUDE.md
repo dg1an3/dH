@@ -241,7 +241,7 @@ MFC Single Document Interface (SDI) pattern:
 3. Register with `Prescription::AddTerm()`
 
 **Modifying optimization parameters:**
-- Pyramid level sigmas: `DEFAULT_LEVELSIGMA[]` in PlanPyramid
+- Pyramid level sigmas: `DEFAULT_LEVELSIGMA[]` in `RtModel/PlanOptimizer.cpp:36` (5-entry array, 4 active — `PlanPyramid::MAX_SCALES = 4`)
 - Convergence tolerances: `CG_TOLERANCE[]` per pyramid level
 - Histogram kernel width: `GBINS_KERNEL_WIDTH` in Histogram
 - Adaptive variance: Controlled by `DynamicCovarianceOptimizer::m_vAdaptVariance`

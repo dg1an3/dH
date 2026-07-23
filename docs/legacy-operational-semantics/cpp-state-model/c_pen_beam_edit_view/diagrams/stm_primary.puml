@@ -1,0 +1,44 @@
+@startuml stm_primary
+title <<stm>> CPenBeamEditView Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_create" as PreCreate <<browse>>
+state "Browse" as Browse <<browse>> {
+    state "created" as Created <<browse>>
+    state "plan_bound" as Bound <<browse>>
+
+    Created -down-> Bound : on_update(_)
+    Bound -up-> Bound : on_update(_)
+    Created -right-> Created : on_size(_, _)\non_draw\non_prepare_printing\non_file_print[_direct|_preview]\non_lbutton_down(_) [orphan]
+    Bound -right-> Bound : on_size(_, _)\non_draw\non_prepare_printing\non_file_print[_direct|_preview]\non_lbutton_down(_) [orphan]
+}
+state "closed" as Closed <<terminal>>
+
+PreCreate --> PreCreate : pre_create_window
+PreCreate -down-> Created : on_create
+Browse -down-> Closed : destruct
+
+note right of Bound
+    histogram bound to plan dose
+    matrix + structure[0] region;
+    graph has 1 data series.
+end note
+
+note right of Created
+    OnLButtonDown is DECLARED but
+    NOT defined and NOT in the
+    message map. Orphan declaration
+    preserved verbatim.
+end note
+
+@enduml

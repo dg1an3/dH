@@ -1,0 +1,38 @@
+@startuml bdd_record
+' SysML Block Definition Diagram
+' Schema for the CSeries record (model-summary form, glue-light target).
+
+title <<bdd>> CSeries record schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+left to right direction
+
+class c_series <<root>> {
+    volume_transform : CMatrix<4>
+    volume : CVolume<short>
+    structures : list of CSurface
+    --
+    inherits CDocument
+    NOT observable (no GetChangeEvent)
+    serializable (CDocument::Serialize)
+}
+
+note bottom of c_series
+    Glue-light: pure record, no state-machine.
+    Mutator alphabet: on_new_document,
+    serialize_load / save, add_structure(S),
+    remove_all_structures,
+    set_volume_transform / set_volume.
+end note
+
+@enduml

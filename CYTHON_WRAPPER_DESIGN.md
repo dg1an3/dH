@@ -123,6 +123,7 @@ class OptimizationCallback:
         cost: float,
         gradient_norm: float,
         beamlet_weights: np.ndarray,
+        sigma_weights: np.ndarray,   # m_vAdaptVariance; see HIERARCHICAL_BAYES_DESIGN.md Step 1
         dose: np.ndarray
     ) -> bool:  # Return False to terminate
         pass

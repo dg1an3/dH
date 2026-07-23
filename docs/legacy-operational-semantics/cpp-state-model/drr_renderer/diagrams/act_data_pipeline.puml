@@ -1,0 +1,67 @@
+@startuml act_data_pipeline
+' SysML Activity Diagram
+' Compute pathway: forVolume + camera matrices -> RGBA pixel grid.
+' This is the *load* of CDRRRenderer (it loads CT voxels into a 2-D image).
+
+title <<act>> CDRRRenderer Compute Pipeline (ComputeDRR)
+
+skinparam activityBackgroundColor #e3f2fd
+skinparam activityBorderColor     #1565c0
+skinparam activityFontColor       #0d47a1
+skinparam activityDiamondBackgroundColor #fff3e0
+skinparam activityDiamondBorderColor     #e65100
+skinparam shadowing false
+
+|Phase 1: edit_ops.compute_drr|
+start
+:read state.for_volume;
+if (for_volume == none ?) then (yes)
+    :no-op;
+    stop
+endif
+
+|Phase 2: project corners (cpp:266-294)|
+:gluProject 8 volume corners (W,H,D combinations);
+:**z_min = min over all 8 z-values
+   z_max = max over all 8 z-values**;
+
+|Phase 3: unproject anchors (cpp:298-349)|
+:gluUnProject (start, start, z_min) -> vStart;
+:gluUnProject (step,  start, z_min) -> vStartNextX;
+:gluUnProject (start, step,  z_min) -> vStartNextY;
+:vStartStepX = vStartNextX - vStart
+   vStartStepY = vStartNextY - vStart;
+:gluUnProject (... z_max ...) -> vEnd, vEndStepX, vEndStepY;
+:**CREATE_INT_VECTOR (16.16 fixed-point + 32768 sub-pixel offset)**;
+
+|Phase 4: ray march (cpp:367-430)|
+repeat
+    :for each (nY, nX):
+       viStep = (viEnd - viStart) >> n_shift
+       call **clip_raster_pipeline.clip_all_axes**
+         to clip ray to volume box (3 axes);
+    if (clip_all_axes ok ?) then (yes)
+        :accumulate voxel values along the ray
+           (n_steps integer additions);
+        :write m_arrPixels[nPixelAt] = accum;
+    else (no)
+        :leave pixel at default;
+    endif
+    :update n_max / n_min (#ifdef COMPUTE_MINMAX);
+    :advance viStart += vStartStepX
+       advance viEnd  += vEndStepX;
+repeat while (more pixels in row?)
+:advance viStart += vStartStepY
+   advance viEnd  += vEndStepY;
+
+|Phase 5: post-process (cpp:432-455, #ifdef POST_PROCESS)|
+:nWindow = n_max - n_min;
+:for each pixel, window/level into 0..255
+   pack to RGBA tuple V V V 0;
+
+|Output|
+:state.win := computed
+   state.recompute := false
+   m_arrPixels ready for glDrawPixels;
+stop
+@enduml

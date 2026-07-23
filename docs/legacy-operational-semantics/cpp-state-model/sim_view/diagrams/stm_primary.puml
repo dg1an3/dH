@@ -1,0 +1,55 @@
+@startuml stm_primary
+' SysML State Machine Diagram
+' Primary LTS for CSimView (VSIM_OGL/simview.cpp).
+
+title <<stm>> CSimView Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+
+skinparam shadowing false
+top to bottom direction
+
+' ==========================================================================
+' Browse tier (the only tier; no scan/modal/confirm tiers for this control)
+' ==========================================================================
+
+state "Browse" as Browse <<browse>> {
+    state "view_unloaded" as Unloaded <<browse>>
+    state "view_active" as Active <<browse>>
+
+    Unloaded --> Unloaded : init
+    Unloaded -down-> Active : initial_update(doc) [doc != none]
+    Unloaded --> Unloaded : initial_update(none)
+
+    note right of Active
+        Plan loaded; renderables populated.
+        ON_COMMAND view-toggles fire here.
+        ON_WM_TIMER fires every 10ms (handler is a no-op).
+    end note
+
+    Active --> Active : view_beam\nview_lightfield\nview_wireframe\nview_colorwash
+    Active --> Active : set_current_beam(B)\nbeam_changed [current_beam != none]
+    Active --> Active : on_size(Cx,Cy)\nerase_bkgnd\ntimer(_)\nexport_fieldcom\nexport_nuages
+}
+
+' ==========================================================================
+' Implicit terminal (WM_DESTROY inherited from CView; not in this msg map)
+' ==========================================================================
+
+state "Closed" as Closed <<terminal>>
+note right of Closed
+    Inherited via CView; not in
+    BEGIN_MESSAGE_MAP. Modeled here
+    for completeness only.
+end note
+
+Browse -down-> Closed : (WM_DESTROY)
+
+@enduml

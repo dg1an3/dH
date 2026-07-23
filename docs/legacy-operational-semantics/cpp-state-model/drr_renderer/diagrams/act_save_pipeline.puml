@@ -1,0 +1,84 @@
+@startuml act_save_pipeline
+' SysML Activity Diagram
+' "Save" pathway for CDRRRenderer: glDrawPixels (the durable side-effect
+' is the rendered framebuffer). There is no persistent file/DB store.
+
+title <<act>> CDRRRenderer DrawScene Pipeline
+
+skinparam activityBackgroundColor #e3f2fd
+skinparam activityBorderColor     #1565c0
+skinparam activityFontColor       #0d47a1
+skinparam activityDiamondBackgroundColor #fff3e0
+skinparam activityDiamondBorderColor     #e65100
+skinparam shadowing false
+
+|Phase 1: edit_ops.draw_scene|
+start
+if (isEnabled.Get() ?) then (yes)
+    if (for_volume != none ?) then (yes)
+        :continue;
+    else (no)
+        :no-op;
+        stop
+    endif
+else (no)
+    :no-op;
+    stop
+endif
+
+|Phase 2: thread management (cpp:468-473)|
+if (m_pThread != NULL ?) then (yes)
+    :SuspendThread + delete + clear (boundary);
+    note right
+      Win32 thread mgmt -- not translated.
+      kind: CWinThread methods
+    end note
+else (no)
+endif
+
+|Phase 3: low-res recompute (cpp:478-495)|
+if (m_bRecomputeDRR ?) then (yes)
+    :reset n_steps = RAY_TRACE_RESOLUTION,
+     n_shift = RAY_TRACE_RES_LOG2,
+     n_res_div = 4;
+    :derive image_width = rect.Width / n_res_div
+     derive image_height = rect.Height / n_res_div;
+    :glGetIntegerv(GL_VIEWPORT, m_viewport) (boundary);
+    :**ComputeDRR()** (see act_data_pipeline);
+    if (bOverMax ?) then (yes)
+        :AfxMessageBox warning (boundary);
+    else (no)
+    endif
+else (no)
+endif
+
+|Phase 4: GL boundary (cpp:498-525)|
+:glMatrixMode(GL_PROJECTION) + glPushMatrix;
+:gluOrtho2D, glLoadIdentity, glRasterPos3f;
+:**glDrawPixels(m_arrPixels)** -- the durable side-effect;
+note right
+  glDrawPixels writes to the framebuffer.
+  This is the "save" boundary; not translated.
+end note
+:glPopMatrix + glMatrixMode(GL_MODELVIEW);
+
+|Phase 5: optional hi-res spawn (cpp:528-540)|
+if (m_nResDiv > 1 ?) then (yes)
+    :reset n_steps = RAY_TRACE_RESOLUTION * 2,
+     n_shift = RAY_TRACE_RES_LOG2 + 1,
+     n_res_div = 1;
+    :recompute image dims, refetch viewport;
+    :**(commented out)** AfxBeginThread(BackgroundComputeDRR, ...);
+    note right
+      Source has the spawn line commented
+      out at cpp:539. State.thread_running
+      stays false. Preserved verbatim.
+    end note
+else (no)
+endif
+
+|Output|
+:framebuffer updated
+   m_bRecomputeDRR cleared if recomputed;
+stop
+@enduml

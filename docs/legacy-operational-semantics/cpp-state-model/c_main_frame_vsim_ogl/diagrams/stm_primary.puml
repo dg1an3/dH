@@ -1,0 +1,34 @@
+@startuml stm_primary
+title <<stm>> CMainFrame (VSIM_OGL) Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_create" as PreCreate <<browse>>
+state "created" as Created <<browse>>
+state "closing" as Closing <<browse>>
+state "closed" as Closed <<terminal>>
+
+PreCreate --> PreCreate : pre_create_window
+PreCreate -down-> Created : on_create
+Created --> Created : on_bar_check(toolbar)\non_bar_check(beam_param_bar)\non_bar_check(explorer_bar)\non_bar_check(status_bar)\non_update_control_bar_menu(_)
+Created -down-> Closing : on_close
+Closing -down-> Closed  : destruct
+
+note right of Created
+    Four docking control bars created.
+    OnBarCheck/OnUpdateControlBarMenu
+    handle their visibility toggles
+    via the framework defaults; no
+    overrides in this class.
+end note
+
+@enduml

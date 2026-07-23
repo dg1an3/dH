@@ -1,0 +1,96 @@
+@startuml par_invariants
+' SysML Parametric Diagram
+' Cross-field invariants and constraints for CDRRRenderer.
+
+title <<par>> CDRRRenderer Constraints and Invariants
+
+skinparam class {
+    BackgroundColor<<constraint>> #ffffcc
+    BorderColor<<constraint>>     #999900
+    BackgroundColor<<invariant>>  #f3e5f5
+    BorderColor<<invariant>>      #7b1fa2
+}
+hide circle
+hide empty methods
+skinparam shadowing false
+top to bottom direction
+
+class compute_drr_gate <<constraint>> {
+    parameters: state.for_volume
+    --
+    Validation-time:
+    state.for_volume != none
+    --
+    Enforced by: ui_state_dcg.step//2 [compute_drr],
+    edit_ops:compute_drr/2 first goal
+    Rationale: ComputeDRR (cpp:247) reads
+    forVolume->width.Get() unconditionally;
+    NULL deref otherwise.
+}
+
+class draw_scene_gate <<constraint>> {
+    parameters: state.for_volume
+    --
+    Validation-time:
+    DrawScene short-circuits when for_volume == none
+    (cpp:466)
+    --
+    Enforced by: edit_ops:draw_scene/2 first branch
+    Rationale: harmless no-op rather than crash.
+}
+
+class clip_raster_correctness <<invariant>> {
+    parameters: clip_raster output post-conditions
+    --
+    State-time (per ClipRaster cpp:231-234):
+    on Ok==true:
+       Start[axis] >> 16 in [SrcMin, SrcMax-1]
+       (Start + DestLen*Step)[axis] >> 16 in [SrcMin, SrcMax-1]
+    --
+    Preserved by: clip_raster_pipeline:clip_raster/7
+    Documents the four ASSERTs at cpp:231-234.
+}
+
+class thread_lifecycle <<invariant>> {
+    parameters: state.thread_running, state.thread
+    --
+    State-time:
+    thread_running == true
+       <==> thread != none AND CWinThread is suspended-or-running
+    --
+    Preserved by: edit_ops:abort_thread_if_running/2,
+    bg_thread_started, bg_thread_complete, bg_thread_aborted
+    Maintainers: every code path that sets m_pThread = NULL
+    must be reflected here. Three duplicates in source
+    at cpp:75-77, 470-472, 553-556.
+}
+
+class recompute_dirty_discipline <<invariant>> {
+    parameters: state.recompute, state.win
+    --
+    State-time:
+    win == dirty <==> recompute == true
+    win == computed ==> recompute == false
+    win == bg_computing ==> recompute is irrelevant (thread owns)
+    --
+    Set by: ctor (true), set_volume, set_volume_transform,
+            on_camera_projection_change
+    Cleared by: compute_drr (false), bg_thread_complete
+}
+
+class historical_marker <<invariant>> {
+    parameters: source file
+    --
+    State-time:
+    The whole file is preserved verbatim despite the
+    "HISTORICAL FILE - Restored from commit 40e1350a
+    (June 7, 2002) - This file is NOT built" header.
+    --
+    Rationale: per DEVELOPMENT_TIMELINE.md Part 7
+    Direction C, frozen historical sources are
+    legitimate LTS targets -- the bisimilarity claim
+    against modern Brimstone/CPlanarView depends on
+    having a parsable, modeled antecedent.
+}
+
+@enduml

@@ -1,0 +1,60 @@
+@startuml bdd_record
+' SysML Block Definition Diagram
+' Schema for the CPlan record (model-summary form, glue-light target).
+
+title <<bdd>> CPlan record schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<recordType>>  #e3f2fd
+    BorderColor<<recordType>>      #1565c0
+    BackgroundColor<<staticField>> #fce4ec
+    BorderColor<<staticField>>     #c62828
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+left to right direction
+
+class c_plan <<root>> {
+    series_ref : CSeries* | none
+    beams : list of CBeam*
+    dose_valid : BOOL
+    dose_matrix : CVolume<double>
+    series_filename : CString
+    --
+    inherits CDocument
+    NOT observable; AddBeam calls
+    UpdateAllViews(NULL) explicitly
+    serializable
+}
+
+class c_plan_static <<staticField>> {
+    series_doc_template : CDocTemplate*
+    --
+    static class member
+    used by OnOpenDocument
+    to hydrate series_ref
+}
+
+c_plan ..> c_plan_static : reads on open
+
+class c_series <<recordType>>
+class c_beam <<recordType>>
+
+c_plan "1" o-- "0..1" c_series : series_ref
+c_plan "1" *-- "*"    c_beam   : beams
+
+note bottom of c_plan
+    Glue-light: pure record + side-effects.
+    Mutator alphabet: set_series, add_beam,
+    set_dose_valid, on_new_document,
+    on_open_document(Path), serialize_load,
+    serialize_save (clears dose if invalid),
+    set_series_doc_template (static).
+end note
+
+@enduml

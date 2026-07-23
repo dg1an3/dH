@@ -3,9 +3,9 @@
 #include "stdafx.h"
 #include "Histogram.h"
 
-#ifdef USE_IPP
-#include <ipps.h>
-#endif
+//#ifdef USE_IPP
+//#include <ippi.h>
+//#endif
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -582,6 +582,18 @@ const CVectorN<>&
 			{
 				const int nLowBin = m_volBinLoInt->GetBufferPointer()[nAt];
 
+				// guard against an out-of-range bin index -- nBins is sized
+				//	from this volume's current max value, while nLowBin comes
+				//	from a separately precomputed binning volume; these can
+				//	go out of sync if this histogram is rendered before its
+				//	dose volume has valid data (e.g. before optimization has
+				//	run), which otherwise corrupts memory via an
+				//	out-of-bounds array write
+				if (nLowBin < 0 || nLowBin + 1 >= nBins)
+				{
+					continue;
+				}
+
 				// check that region is positive definite
 				ASSERT(GetRegion()->GetBufferPointer()[nAt] >= 0.0);
 
@@ -714,15 +726,24 @@ void
 	buffer_out.SetDim(buffer_in.GetDim() + kernel_in.GetDim() - 1);
 	buffer_out.SetZero();
 
-	// Generic convolution implementation (ippsConv_64f removed in newer IPP)
-	int srcLen = buffer_in.GetDim();
-	int kernelLen = kernel_in.GetDim();
-	for (int n = 0; n < buffer_out.GetDim(); n++) {
-		for (int k = 0; k < kernelLen; k++) {
-			int idx = n - k;
-			if (idx >= 0 && idx < srcLen) {
-				buffer_out[n] += buffer_in[idx] * kernel_in[k];
-			}
+	// make sure REAL is double
+	ASSERT(sizeof(REAL) == 8);
+
+	{
+		// Manual 1-D linear convolution. ippsConv_64f short-form was removed in
+		// modern IPP; the kernel here is small so we just inline the loop.
+		const int srcLen = buffer_in.GetDim();
+		const int kerLen = kernel_in.GetDim();
+		const int dstLen = srcLen + kerLen - 1;
+		ASSERT(buffer_out.GetDim() == dstLen);
+		for (int n = 0; n < dstLen; ++n)
+		{
+			double acc = 0.0;
+			const int kMin = (n - srcLen + 1 > 0) ? n - srcLen + 1 : 0;
+			const int kMax = (n < kerLen - 1) ? n : kerLen - 1;
+			for (int k = kMin; k <= kMax; ++k)
+				acc += kernel_in[k] * buffer_in[n - k];
+			buffer_out[n] = acc;
 		}
 	}
 

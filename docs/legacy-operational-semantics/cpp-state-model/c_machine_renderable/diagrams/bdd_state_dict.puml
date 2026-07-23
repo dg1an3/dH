@@ -1,0 +1,62 @@
+@startuml bdd_state_dict
+title <<bdd>> CMachineRenderable state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>>        #ffe0b2
+    BorderColor<<root>>            #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+    BackgroundColor<<deadcode>>    #ffcccc
+    BorderColor<<deadcode>>        #c62828
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : MachineMode
+    pbeam : CBeam* | none
+    .. observer ..
+    observer_attached : bool
+    .. dead code marker ..
+    wireframe_mode : bool (always FALSE)
+    .. drawn flags ..
+    table_drawn : bool
+    gantry_drawn : bool
+    collimator_drawn : bool
+    .. derived rendering parameters (per-frame) ..
+    sad_cached : double | none
+    scd_cached : double | none
+    axis_to_collim_cached : double | none
+    gantry_angle_cached : double | none
+}
+
+class MachineMode <<enumeration>> {
+    unbound
+    bound
+    destroyed
+}
+
+class wireframe_quirk <<deadcode>> {
+    m_bWireFrame is initialized FALSE
+    in the ctor and NEVER written.
+    DrawOpaque body's `if(m_bWireFrame)`
+    is dead code. The advertised
+    "wireframe rendering mode" is
+    non-functional in this build.
+}
+
+state "1" -- "1" MachineMode : win
+state ..> wireframe_quirk : wireframe_mode
+
+note bottom of state
+    Smaller than BeamRenderable (3
+    Draw* helpers vs 6+). Observer
+    callback is `Invalidate` (not
+    a custom OnBeamChanged) per
+    cpp:91-92.
+end note
+
+@enduml

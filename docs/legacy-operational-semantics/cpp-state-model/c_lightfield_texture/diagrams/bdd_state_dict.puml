@@ -1,0 +1,50 @@
+@startuml bdd_state_dict
+title <<bdd>> CLightfieldTexture state{} dict schema
+
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>>     #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>>     #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : TextureMode
+    pbeam : CBeam* | none
+    .. surface ..
+    texture_width : int
+    texture_height : int
+    texture_rendered : bool
+    .. rendered elements ..
+    field_rect_drawn : bool
+    blocks_drawn_count : int (always 0; loop body commented out)
+    central_axis_drawn : bool
+    border_drawn : bool
+    .. computed projection ..
+    projection_set : bool
+    .. observer ..
+    observer_attached : bool
+}
+
+class TextureMode <<enumeration>> {
+    unbound
+    bound
+}
+
+state "1" -- "1" TextureMode : win
+
+note bottom of state
+    Smallest renderable in RT_VIEW.
+    Inherits CTexture; observes
+    CBeam GetChangeEvent for
+    automatic re-render on any
+    CBeam mutation (the 9 setters
+    in c_beam fires_change_event).
+end note
+
+@enduml

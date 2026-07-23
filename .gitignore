@@ -2,7 +2,9 @@
 *.*~
 __pycache__/
 .vscode/
-*/x64/*
+# build output: exe/lib and the DLLs + *.dat kernels the post-build step
+#	copies in (matches x64 at the repo root and nested under each project)
+x64/
 *.idb
 *.pdb
 venv/
@@ -22,3 +24,15 @@ install_manifest.txt
 CTestTestfile.cmake
 _deps/
 packages/
+
+_codeql_detected_source_root
+
+# Visual Studio per-user project settings (local-only)
+*.vcxproj.user
+
+# reproduction / debug logs from the python UI-automation harness
+python/*.log
+
+# Amortized course-prior prototype: regenerable sample corpora.
+# Built by python/examples/generate_amortized_data.py.
+data/amortized_samples/

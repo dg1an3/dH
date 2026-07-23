@@ -1,0 +1,54 @@
+@startuml act_data_pipeline
+' SysML Activity Diagram
+' Load pathway: CDocument's Series + Beams -> populated state{} renderable lists.
+
+title <<act>> CSimView Load Pipeline (initial_update)
+
+skinparam activityBackgroundColor #e3f2fd
+skinparam activityBorderColor     #1565c0
+skinparam activityFontColor       #0d47a1
+skinparam activityDiamondBackgroundColor #fff3e0
+skinparam activityDiamondBorderColor     #e65100
+skinparam shadowing false
+
+|Phase 1: edit_ops.initial_update|
+start
+:read GetDocument();
+if (Document == none ?) then (yes)
+    :no-op (state unchanged);
+    stop
+else (no)
+    :win := view_active;
+endif
+
+|Phase 2: surface_renderable_list.pl|
+:read pSeries->GetStructureCount() (cpp:339);
+:**load_surface_renderable_list(Series, List)**
+   - one record per CMesh
+   - color = arrColors[i mod 13]
+   - icon  = arrIconResourceIDs[i mod 13];
+:write state.surface_renderables := List;
+:**patient_surface(List, Patient)**
+   - element 0;
+:write state.patient_surface_renderable := Patient;
+
+|Phase 3: edit_ops (beam wiring)|
+:iterate GetBeamCount() (cpp:385);
+:create CBeamRenderable per beam (boundary);
+:**set_current_beam(Beam[0])**
+   - attaches OnBeamChanged observer;
+
+|Phase 4: edit_ops (machine renderable)|
+if (GetBeamCount() > 0 ?) then (yes)
+    :create CMachineRenderable, color RGB(255,255,128) (cpp:417);
+    :write state.machine_renderable := MachineId;
+else (no)
+    :leave machine_renderable = none;
+endif
+
+|Output|
+:state{} ready for view_active dispatch
+   - ui_cascade derived
+   - modelview_dirty = true (until first beam_changed);
+stop
+@enduml

@@ -39,6 +39,12 @@ public:
 	// used to set up the variance min / max calculation
 	void SetAdaptiveVariance(bool bCalcVar, REAL varMin, REAL varMax);
 
+	// initialize the adaptive-variance state without running the optimization,
+	//	so the cost function has a valid AV vector for a standalone evaluation
+	//	(used by the gradient-check path; minimize() does this internally). Safe
+	//	to call again -- minimize() re-initializes at its start.
+	void PrepareAdaptiveVariance(int nDim) { InitializeDynamicCovariance(nDim); }
+
 	// used to enable explicit free energy calculation
 	void SetComputeFreeEnergy(bool bComputeFreeEnergy);
 
@@ -60,6 +66,12 @@ public:
 		m_pCallbackFunc = pCallback;
 		m_pCallbackParam = pParam;
 	}
+
+	// per-parameter adaptive variance (1.0 / column-sum of orthogonalized
+	// covariance, ConjGradOptimizer.cpp:348). Exposed for callbacks that
+	// need to surface sigma to Python; required by the hierarchical-Bayes
+	// outer loop (see HIERARCHICAL_BAYES_DESIGN.md, Step 1).
+	const CVectorN<>& GetAdaptiveVariance() const { return m_vAdaptVariance; }
 
 protected:
 	void InitializeDynamicCovariance(int nDim);

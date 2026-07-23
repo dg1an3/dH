@@ -1,0 +1,30 @@
+@startuml stm_primary
+title <<stm>> CMainFrame (PenBeamEdit) Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+    FontColor<<terminal>>       #1b5e20
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_create" as PreCreate <<browse>>
+state "created" as Created <<browse>>
+state "closed" as Closed <<terminal>>
+
+PreCreate --> PreCreate : pre_create_window
+PreCreate -down-> Created : on_create
+Created -down-> Closed : destruct
+
+note right of Created
+    Tiny state machine.
+    Just toolbar + status bar.
+    No ON_WM_CLOSE handler --
+    bar state is NOT persisted.
+end note
+
+@enduml
