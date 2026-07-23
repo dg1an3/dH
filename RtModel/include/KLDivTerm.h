@@ -48,7 +48,7 @@ private:
 	const CVectorN<>& GetTargetGBins() const;
 public:
 	// evaluates the term
-	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude);
+	virtual REAL Eval(CVectorN<> *pvGrad, const std::vector<BOOL>& arrInclude);
 
 	// over-ride to create subcopy
 	virtual VOITerm *Clone();

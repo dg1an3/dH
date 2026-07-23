@@ -8,6 +8,9 @@
 #endif // _MSC_VER > 1000
 
 // series upon which plan is based
+#include <map>
+#include <string>
+
 #include <Series.h>
 
 // beams belonging to the plan
@@ -94,7 +97,7 @@ public:
 
 private:
 	/** the histograms */
-	CTypedPtrMap<CMapStringToOb, CString, CHistogram*> m_mapHistograms;
+	std::map<std::string, CHistogram *> m_mapHistograms;
 
 };	// class Plan
 

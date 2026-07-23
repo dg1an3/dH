@@ -24,13 +24,11 @@ KLDivTerm::KLDivTerm(Structure *pStructure, REAL weight)
 	SetInterval(0.0, 0.01, 1.0, FALSE);
 
 	// initialize flag
-	int nTargetCrossEntropy = 
-		::AfxGetApp()->GetProfileInt(_T("KLDivTerm"), _T("TargetCrossEntropy"), 0);
+	int nTargetCrossEntropy =
+		GetProfileInt("KLDivTerm", "TargetCrossEntropy", 0);
 	m_bTargetCrossEntropy = (nTargetCrossEntropy != 0);
 
-	// store value back to registry
-	::AfxGetApp()->WriteProfileInt(_T("KLDivTerm"), _T("TargetCrossEntropy"), nTargetCrossEntropy);
-		
+
 	// set up to receive binning change events
 	//GetHistogram()->GetBinningChangeEvent().AddObserver(this, 
 	//	(ListenerFunction) &KLDivTerm::OnHistogramBinningChange);
@@ -48,7 +46,7 @@ void
 	KLDivTerm::UpdateFrom(const VOITerm *otherTerm)
 {
 	VOITerm::UpdateFrom(otherTerm);
-	ASSERT(otherTerm->GetVOI() == this->GetVOI());
+	assert(otherTerm->GetVOI() == this->GetVOI());
 
 	const KLDivTerm * otherKLDT = static_cast<const KLDivTerm *>(otherTerm);
 	SetDVPs(otherKLDT->GetDVPs());
@@ -77,8 +75,8 @@ void
 	m_mDVPs = mDVPs;
 
 	// check that cumulative DVPs start at 100%
-	ASSERT(IsApproxEqual(m_mDVPs[0][1], R(1.0)));
-	ASSERT(IsApproxEqual(m_mDVPs[mDVPs.GetCols()-1][1], R(0.0)));
+	assert(IsApproxEqual(m_mDVPs[0][1], R(1.0)));
+	assert(IsApproxEqual(m_mDVPs[mDVPs.GetCols()-1][1], R(0.0)));
 
 	// trigger recomp of target bins
 	m_bRecompTarget = true;
@@ -216,7 +214,7 @@ const CVectorN<>&
 
 ///////////////////////////////////////////////////////////////////////////////
 REAL 
-	KLDivTerm::Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude)
+	KLDivTerm::Eval(CVectorN<> *pvGrad, const std::vector<BOOL>& arrInclude)
 	// evaluates the term (and optionally gradient)
 {
 	// trigger update of targets
@@ -236,13 +234,13 @@ REAL
 		{
 			if (nAtBin < targetGPDF.GetDim())
 			{
-				// ASSERT(targetGPDF[nAtBin] >= 0.0);
+				// assert(targetGPDF[nAtBin] >= 0.0);
 				sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] / (targetGPDF[nAtBin] + EPS) + EPS);
 			}
 			else
 			{
 				sum += calcGPDF[nAtBin] * log(calcGPDF[nAtBin] / (EPS) + EPS);	
-				ASSERT(_finite(sum));
+				assert(_finite(sum));
 			}
 		}
 	}
@@ -358,7 +356,7 @@ REAL
 			// get the dGPDF distribution
 			const CVectorN<>& arrCalc_dGPDF = GetHistogram()->Get_dGBins(nAt_dVol);
 
-			ASSERT(arrCalc_dGPDF.GetDim() >= calcGPDF.GetDim());
+			assert(arrCalc_dGPDF.GetDim() >= calcGPDF.GetDim());
 			if (!m_bTargetCrossEntropy)
 			{
 				for (int nAtBin = 0; nAtBin < __max(targetGPDF.GetDim(), arrCalc_dGPDF.GetDim()); nAtBin++)
