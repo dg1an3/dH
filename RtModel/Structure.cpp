@@ -2,6 +2,8 @@
 // $Id: Structure.cpp 640 2009-06-13 05:06:50Z dglane001 $
 #include "stdafx.h"
 
+#include <vector>
+
 #include <itkImageRegionConstIterator.h>
 #include <itkImageRegionIterator.h>
 #include <itkResampleImageFilter.h>
@@ -183,7 +185,7 @@ typedef itk::PolygonSpatialObject<2> PolygonType;
 // Creates a region (bit mask) from a polygon
 ///////////////////////////////////////////////////////////////////////////////
 template<class VOXEL_TYPE>
-void CreateRegionForPolygonSpatialObject(const CArray<PolygonType *, PolygonType *>& arrPolygons,
+void CreateRegionForPolygonSpatialObject(const std::vector<PolygonType *>& arrPolygons,
 				  itk::Image<VOXEL_TYPE,3> *pRegion, int nSlice)
 {
 	CDC dc;
@@ -199,11 +201,11 @@ void CreateRegionForPolygonSpatialObject(const CArray<PolygonType *, PolygonType
 
 	itk::Point<REAL,3> vOrigin = pRegion->GetOrigin();
 	itk::Vector<REAL,3> vSpacing = pRegion->GetSpacing();
-	for (int nAtPoly = 0; nAtPoly < arrPolygons.GetSize(); nAtPoly++)
+	for (int nAtPoly = 0; nAtPoly < (int) arrPolygons.size(); nAtPoly++)
 	{
 		// static 
-			CArray<CPoint, CPoint&> arrPoints;
-		arrPoints.SetSize(arrPolygons[nAtPoly]->GetNumberOfPoints/*GetVertexCount*/());
+			std::vector<CPoint> arrPoints;
+		arrPoints.resize(arrPolygons[nAtPoly]->GetNumberOfPoints/*GetVertexCount*/());
 		for (int nAt = 0; nAt < arrPolygons[nAtPoly]->GetNumberOfPoints/*GetVertexCount*/(); nAt++)
 		{
 			itk::SpatialObjectPoint<2> vVert = *(arrPolygons[nAtPoly]->GetPoint/*GetVertexAt*/(nAt));
@@ -213,7 +215,7 @@ void CreateRegionForPolygonSpatialObject(const CArray<PolygonType *, PolygonType
 			arrPoints[nAt].x = (vVert.GetPositionInObjectSpace()[0] - vOrigin[0]) / vSpacing[0];
 			arrPoints[nAt].y = (vVert.GetPositionInObjectSpace()[1] - vOrigin[1]) / vSpacing[1];
 		}
-		dc.Polygon(arrPoints.GetData(), arrPolygons[nAtPoly]->GetNumberOfPoints/*GetVertexCount*/());
+		dc.Polygon(arrPoints.data(), arrPolygons[nAtPoly]->GetNumberOfPoints/*GetVertexCount*/());
 	}
 
 	// finished with DC
@@ -226,9 +228,9 @@ void CreateRegionForPolygonSpatialObject(const CArray<PolygonType *, PolygonType
 
 	// resize the buffer
 	// static 
-		CArray<BYTE, BYTE> arrBuffer;
-	arrBuffer.SetSize(pRegion->GetBufferedRegion().GetSize()[1] * bm.bmWidthBytes);
-	int nByteCount = bitmap.GetBitmapBits((DWORD) arrBuffer.GetSize(), arrBuffer.GetData());
+		std::vector<BYTE> arrBuffer;
+	arrBuffer.resize(pRegion->GetBufferedRegion().GetSize()[1] * bm.bmWidthBytes);
+	int nByteCount = bitmap.GetBitmapBits((DWORD) arrBuffer.size(), arrBuffer.data());
 
 	// now populate region
 	// DON'T CLEAR REGION HERE -- this is called multiple times
@@ -266,13 +268,13 @@ void
 	for (int nSlice = 0; nSlice < pRegion->GetBufferedRegion().GetSize()[2]; nSlice++)
 	{
 		REAL slicePos = pRegion->GetOrigin()[2] + pRegion->GetSpacing()[2] * nSlice;
-		CArray<PolygonType *, PolygonType *> arrContours;
+		std::vector<PolygonType *> arrContours;
 		for (int nAt = 0; nAt < GetContourCount(); nAt++)
 		{
 			REAL zPos = GetContourRefDist(nAt);
 			if (IsApproxEqual(zPos, slicePos, pRegion->GetSpacing()[2] / 2.0))
 			{
-				arrContours.Add(GetContour(nAt));
+				arrContours.push_back(GetContour(nAt));
 			}
 		}
 		CreateRegionForPolygonSpatialObject(arrContours, pRegion, nSlice);

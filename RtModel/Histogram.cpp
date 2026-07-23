@@ -125,7 +125,7 @@ void
 	// sets up the binning parameters
 {
 	// only tested with this condition
-	ASSERT(sigma_mult == GBINS_BUFFER);
+	assert(sigma_mult == GBINS_BUFFER);
 
 	m_minValue = min_value - sigma_mult * sqrt(m_varMax); // m_binKernelSigma;
 	m_binWidth = width;
@@ -195,7 +195,7 @@ void
 #ifdef _DEBUG
 	double sum = 0.0;
 	ITERATE_VECTOR(m_binKernelVarMax, nAt, sum += m_binKernelVarMax[nAt]);
-	ASSERT(IsApproxEqual(sum, 1.0));
+	assert(IsApproxEqual(sum, 1.0));
 #endif
 
 	m_bin_dKernelVarMax.SetDim(nNeighborhood * 2 + 1);
@@ -595,7 +595,7 @@ const CVectorN<>&
 				}
 
 				// check that region is positive definite
-				ASSERT(GetRegion()->GetBufferPointer()[nAt] >= 0.0);
+				assert(GetRegion()->GetBufferPointer()[nAt] >= 0.0);
 
 				m_arrBinsVarMax[nLowBin] += m_volBinFracLo_x_VarFracHi->GetBufferPointer()[nAt];
 				m_arrBinsVarMin[nLowBin] += m_volBinFracLo_x_VarFracLo->GetBufferPointer()[nAt];
@@ -616,7 +616,7 @@ const CVectorN<>&
 		{
 			ConvGauss(m_arrBinsVarMax, m_binKernelVarMax, m_arrGBinsVarMax);
 			ConvGauss(m_arrBinsVarMin, m_binKernelVarMin, m_arrGBinsVarMin);
-			ASSERT(m_arrGBinsVarMax.GetDim() == m_arrGBinsVarMin.GetDim());
+			assert(m_arrGBinsVarMax.GetDim() == m_arrGBinsVarMin.GetDim());
 
 			m_arrGBins.SetDim(m_arrGBinsVarMax.GetDim());
 			m_arrGBins = m_arrGBinsVarMax;
@@ -690,7 +690,7 @@ const CVectorN<>&
 	GetBins();
 	if (m_varMax == 0.0)
 	{
-		ASSERT(FALSE);
+		assert(false);
 		return m_arrBins;
 	}
 
@@ -718,16 +718,16 @@ void
 	CHistogram::ConvGauss(const CVectorN<>& buffer_in, const CVectorN<>& kernel_in,
 						   CVectorN<>& buffer_out) const
 {
-	BeginLogSection(_T("CHistogram::ConvGauss"));
+	BeginLogSection("CHistogram::ConvGauss");
 
-	TraceVector(_T("kernel_in"), kernel_in);
-	TraceVector(_T("buffer_in"), buffer_in);
+	TraceVector("kernel_in", kernel_in);
+	TraceVector("buffer_in", buffer_in);
 
 	buffer_out.SetDim(buffer_in.GetDim() + kernel_in.GetDim() - 1);
 	buffer_out.SetZero();
 
 	// make sure REAL is double
-	ASSERT(sizeof(REAL) == 8);
+	assert(sizeof(REAL) == 8);
 
 	{
 		// Manual 1-D linear convolution. ippsConv_64f short-form was removed in
@@ -735,7 +735,7 @@ void
 		const int srcLen = buffer_in.GetDim();
 		const int kerLen = kernel_in.GetDim();
 		const int dstLen = srcLen + kerLen - 1;
-		ASSERT(buffer_out.GetDim() == dstLen);
+		assert(buffer_out.GetDim() == dstLen);
 		for (int n = 0; n < dstLen; ++n)
 		{
 			double acc = 0.0;
@@ -747,7 +747,7 @@ void
 		}
 	}
 
-	TraceVector(_T("buffer_out"), buffer_out);
+	TraceVector("buffer_out", buffer_out);
 
 	EndLogSection();
 
@@ -778,15 +778,15 @@ void
 	m_bRecomputeBinScaledVolume = TRUE;
 
 	//int nGroups = GetGroupCount();
-	for (int nAt = 0; nAt < m_arr_bRecomputeBinVolume.GetSize(); nAt++)
+	for (int nAt = 0; nAt < (int) m_arr_bRecomputeBinVolume.size(); nAt++)
 	{
-		m_arr_bRecomputeBinVolume[nAt] = TRUE;
+		m_arr_bRecomputeBinVolume[nAt] = true;
 	}
 
 	// set recalc flag for dBins
-	for (int nAt = 0; nAt < m_arr_bRecompute_dBins.GetSize(); nAt++)
+	for (int nAt = 0; nAt < (int) m_arr_bRecompute_dBins.size(); nAt++)
 	{
-		m_arr_bRecompute_dBins[nAt] = TRUE;
+		m_arr_bRecompute_dBins[nAt] = true;
 	}
 
 	// TODO: flag recompute dVolume_x_Region
@@ -802,9 +802,9 @@ void
 	CHistogram::OnRegionChanged() // CObservableEvent * pEvt, void * pParam)
 	// called when region updated
 {
-	for (int nAt = 0; nAt < m_arr_bRecompute_dVolumes_x_Region.GetSize(); nAt++)
+	for (int nAt = 0; nAt < (int) m_arr_bRecompute_dVolumes_x_Region.size(); nAt++)
 	{
-		m_arr_bRecompute_dVolumes_x_Region[nAt] = TRUE;
+		m_arr_bRecompute_dVolumes_x_Region[nAt] = true;
 	}
 
 	m_bRecomputeBins = TRUE;

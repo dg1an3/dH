@@ -81,7 +81,7 @@ void
 			pNextBeam->SetIsocenter(pPrevBeam->GetIsocenter());
 
 		}
-		ASSERT(pPrevPlan->GetBeamCount() == pNextPlan->GetBeamCount());
+		assert(pPrevPlan->GetBeamCount() == pNextPlan->GetBeamCount());
 
 		pPrevPlan = pNextPlan;
 	}
@@ -204,7 +204,7 @@ void
 				CopyImage<VOXEL_REAL,3>(pPyramid->GetOutput(0), pBeamSub->GetBeamlet(nAtShift));
 
 				// check that resolution is correct
-				ASSERT(pBeamSub->GetBeamlet(nAtShift)->GetSpacing()[0] == pBeamSub->GetPlan()->GetDoseResolution());
+				assert(pBeamSub->GetBeamlet(nAtShift)->GetSpacing()[0] == pBeamSub->GetPlan()->GetDoseResolution());
 			}
 		}
 
@@ -225,8 +225,8 @@ PlanPyramid::InvFiltIntensityMap(int nLevel, const CBeam::IntensityMap * vWeight
 	const int nWeightsSize = (int) vWeights->GetBufferedRegion().GetSize()[0];
 	const int nFiltWeightsSize = (int) vFiltWeights->GetBufferedRegion().GetSize()[0];
 
-	ASSERT(nWeightsSize == GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount());
-	ASSERT(nFiltWeightsSize == GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount());
+	assert(nWeightsSize == GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount());
+	assert(nFiltWeightsSize == GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount());
 
 	// the ASSERTs above are compiled out in release, where a size mismatch
 	//	silently overruns the buffers indexed below (the write extent comes

@@ -37,7 +37,7 @@ int CHistogramWithGradient::GetGroupCount() const
 	// returns the count of groups of dVolumes
 {
 	int nMaxGroup = -1;
-	for (int nAt = 0; nAt < m_arrVolumeGroups.GetSize(); nAt++)
+	for (int nAt = 0; nAt < (int) m_arrVolumeGroups.size(); nAt++)
 	{
 		nMaxGroup = __max(nMaxGroup, m_arrVolumeGroups[nAt]);
 	}
@@ -67,11 +67,11 @@ int
 {
 	m_arr_dVolumes.push_back(p_dVolume); 
 	int nNewVolumeIndex = (int) m_arr_dVolumes.size()-1; 
-	m_arrVolumeGroups.Add(nGroup);
+	m_arrVolumeGroups.push_back(nGroup);
 	while (m_groupVolBinLoInt.size() <= (size_t) nGroup)
 	{
 		m_groupVolBinLoInt.push_back(VolumeShort::New());
-		m_arr_bRecomputeBinVolume.Add(TRUE);
+		m_arr_bRecomputeBinVolume.push_back(true);
 
 		m_groupVolBinFracHi.push_back(VolumeReal::New());
 		m_groupVolBinFracLo.push_back(VolumeReal::New());
@@ -111,7 +111,7 @@ int
 	}
 
 	// set flag for computing bins for new dVolume
-	m_arr_bRecompute_dBins.Add(TRUE);
+	m_arr_bRecompute_dBins.push_back(true);
 
 	// add new product volume
 	VolumeReal::Pointer p_dVolume_x_Region = VolumeReal::New();
@@ -119,11 +119,11 @@ int
 	m_arr_dVolumes_x_Region.push_back(p_dVolume_x_Region); 
 
 	// add the derivative bins
-	m_arr_dBins.SetSize(Get_dVolumeCount());
-	m_arr_dGBins.SetSize(Get_dVolumeCount());
+	m_arr_dBins.resize(Get_dVolumeCount());
+	m_arr_dGBins.resize(Get_dVolumeCount());
 
 	// flag to recompute 
-	m_arr_bRecompute_dVolumes_x_Region.Add(TRUE);
+	m_arr_bRecompute_dVolumes_x_Region.push_back(true);
 
 	return nNewVolumeIndex;
 
@@ -212,7 +212,7 @@ const CVectorN<>&
 
 			Conv_dGauss(arr_dBins, m_bin_dKernelVarMax, arr_dGBinsVarMax);
 			Conv_dGauss(arr_dBins, m_bin_dKernelVarMin, arr_dGBinsVarMin);
-			ASSERT(arr_dGBinsVarMax.GetDim() == arr_dGBinsVarMin.GetDim());
+			assert(arr_dGBinsVarMax.GetDim() == arr_dGBinsVarMin.GetDim());
 
 
 			// determine variance using dSigmoid
@@ -273,7 +273,7 @@ const CVectorN<>&
 				m_arr_dGBins[nAt_dBin] *= R(1.0 / ((double) calcSum));
 			}
 		}
-		m_arr_bRecompute_dBins[nAt_dBin] = FALSE;
+		m_arr_bRecompute_dBins[nAt_dBin] = false;
 	}
 
 	return m_arr_dBins[nAt_dBin];
@@ -288,7 +288,7 @@ const CVectorN<>&
 {
 	if (m_varMax == 0.0)
 	{
-		ASSERT(FALSE);	// not OK, because we need to normalize
+		assert(false);	// not OK, because we need to normalize
 		return Get_dBins(nAt);
 	}
 
@@ -332,7 +332,7 @@ const VolumeReal *
 		//		MakeIppiSize<3>(m_arr_dVolumes_x_Region[nAt]->GetBufferedRegion())) ); 
 		//}
 
-		m_arr_bRecompute_dVolumes_x_Region[nAt] = FALSE;
+		m_arr_bRecompute_dVolumes_x_Region[nAt] = false;
 	}
 
 	return m_arr_dVolumes_x_Region[nAt];
@@ -531,7 +531,7 @@ const VolumeShort *
 		//}
 
 		// flag change
-		m_arr_bRecomputeBinVolume[nGroup] = TRUE;
+		m_arr_bRecomputeBinVolume[nGroup] = true;
 	}
 
 	return m_groupVolBinLoInt[nGroup];
@@ -555,7 +555,7 @@ void CHistogramWithGradient::Conv_dGauss(const CVectorN<>& buffer_in,
 		const int srcLen = buffer_in.GetDim();
 		const int kerLen = kernel_in.GetDim();
 		const int dstLen = srcLen + kerLen - 1;
-		ASSERT(buffer_out.GetDim() == dstLen);
+		assert(buffer_out.GetDim() == dstLen);
 		for (int n = 0; n < dstLen; ++n)
 		{
 			double acc = 0.0;

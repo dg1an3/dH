@@ -152,8 +152,8 @@ CMatrixNxM<TYPE>&
 	// assignment operator
 {
 	// checks the dimensions
-	ASSERT(GetCols() == fromMatrix.GetCols());
-	ASSERT(GetRows() == fromMatrix.GetRows());
+	assert(GetCols() == fromMatrix.GetCols());
+	assert(GetRows() == fromMatrix.GetRows());
 
 	if (GetCols() > 0)
 	{
@@ -259,7 +259,7 @@ CVectorN<TYPE>&
 	// retrieves a reference to a column vector
 {
 	// bounds check on the index
-	ASSERT(nAtCol >= 0 && nAtCol < GetCols());
+	assert(nAtCol >= 0 && nAtCol < GetCols());
 
 	// return a reference to the column vector
 	return m_pColumns[nAtCol];
@@ -274,7 +274,7 @@ const CVectorN<TYPE>&
 	// retrieves a reference to a column vector
 {
 	// bounds check on the index
-	ASSERT(nAtCol >= 0 && nAtCol < GetCols());
+	assert(nAtCol >= 0 && nAtCol < GetCols());
 
 	// return a reference to the column vector
 	return m_pColumns[nAtCol];
@@ -338,7 +338,7 @@ bool
 	CMatrixNxM<TYPE>::IsApproxEqual(const CMatrixNxM& m, TYPE epsilon) const
 	// tests for approximate equality using the EPS 
 {
-	ASSERT(GetCols() == m.GetCols());
+	assert(GetCols() == m.GetCols());
 
 	for (int nAtCol = 0; nAtCol < GetCols(); nAtCol++)
 	{
@@ -359,8 +359,8 @@ CMatrixNxM<TYPE>&
 	CMatrixNxM<TYPE>::operator+=(const CMatrixNxM<TYPE>& mRight)
 	// in-place matrix addition; returns a reference to this
 {
-	ASSERT(GetCols() == mRight.GetCols());
-	ASSERT(GetRows() == mRight.GetRows());
+	assert(GetCols() == mRight.GetCols());
+	assert(GetRows() == mRight.GetRows());
 
 	SumValues(&(*this)[0][0], &mRight[0][0], GetCols() * GetRows());
 
@@ -376,8 +376,8 @@ CMatrixNxM<TYPE>&
 	CMatrixNxM<TYPE>::operator-=(const CMatrixNxM<TYPE>& mRight)
 	// in-place matrix subtraction; returns a reference to 	this
 {
-	ASSERT(GetCols() == mRight.GetCols());
-	ASSERT(GetRows() == mRight.GetRows());
+	assert(GetCols() == mRight.GetCols());
+	assert(GetRows() == mRight.GetRows());
 
 	DiffValues(&(*this)[0][0], &mRight[0][0], GetCols() * GetRows());
 
@@ -629,46 +629,5 @@ CMatrixNxM<TYPE> operator*(const CMatrixNxM<TYPE>& mLeft,
 
 }	// operator*(const CMatrixNxM<TYPE>&, const CMatrixNxM<TYPE>&)
 
-// operator overloads for serialization
-#ifdef __AFX_H__
-
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-CArchive& 
-	operator<<(CArchive &ar, CMatrixNxM<TYPE> m)
-	// matrix serialization in
-{
-	// serialize the dimension
-	ar << m.GetCols();
-	ar << m.GetRows();
-
-	// serialize the individual elements
-	ar.Write((TYPE *) m, m.GetCols() * m.GetRows() * sizeof(TYPE));
-
-	// return the archive object
-	return ar;
-
-}	// operator<<(CArchive &ar, CMatrixNxM<TYPE> m)
-
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-CArchive& 
-	operator>>(CArchive &ar, CMatrixNxM<TYPE>& m)
-	// matrix serialization out
-{
-	// serialize the dimension
-	int nCols, nRows;
-	ar >> nCols >> nRows;
-	m.Reshape(nCols, nRows);
-
-	// serialize the individual elements
-	ar.Read((TYPE *) m, nCols * nRows * sizeof(TYPE));
-
-	// return the archive object
-	return ar;
-
-}	// operator>>(CArchive &ar, CMatrixNxM<TYPE>& m)
-
-#endif	// __AFX_H__
 
 #endif	// MATRIXNXM_H

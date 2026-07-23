@@ -84,13 +84,9 @@ bool
 ///////////////////////////////////////////////////////////////////////////////
 Prescription::~Prescription()
 {
-	dH::Structure *pStruct = NULL;
-	VOITerm *pVOIT = NULL;
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : m_mapVOITs)
 	{
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-		delete pVOIT;
+		delete entry.second;
 	}
 
 }	// Prescription::~Prescription
@@ -99,10 +95,9 @@ Prescription::~Prescription()
 VOITerm *
 	Prescription::GetStructureTerm(Structure *pStruct)
 {
-	VOITerm *pVOIT = NULL;
-	m_mapVOITs.Lookup(pStruct, pVOIT);
+	auto iter = m_mapVOITs.find(pStruct);
 
-	return pVOIT;
+	return (iter != m_mapVOITs.end()) ? iter->second : NULL;
 
 }	// Prescription::GetStructureTerm
 
@@ -171,7 +166,7 @@ void
 			nOtherSlice++)
 		{
 			sliceMax = GetSliceMax(pResampRegion, nOtherSlice);
-			TRACE("sliceMax on slice %i = %lf\n", nOtherSlice, sliceMax);
+			RTM_TRACE("sliceMax on slice %i = %lf\n", nOtherSlice, sliceMax);
 		}
 	}
 
@@ -203,11 +198,11 @@ void
 void 
 	Prescription::RemoveStructureTerm(Structure *pStruct)
 {
-	VOITerm *pVOIT = NULL;
-	if (m_mapVOITs.Lookup(pStruct, pVOIT))
+	auto iter = m_mapVOITs.find(pStruct);
+	if (iter != m_mapVOITs.end())
 	{
-		m_mapVOITs.RemoveKey(pStruct);
-		delete pVOIT;
+		delete iter->second;
+		m_mapVOITs.erase(iter);
 	}
 
 }	// Prescription::RemoveStructureTerm
@@ -218,19 +213,13 @@ void
 	// updates terms from another prescription object
 {
 	// now for the terms
-	POSITION pos = pPresc->m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : pPresc->m_mapVOITs)
 	{
-		Structure * pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		pPresc->m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-
-		VOITerm *pMyVOIT = NULL;
-		BOOL bFound = m_mapVOITs.Lookup(pStruct, pMyVOIT);
-		ASSERT(bFound);
+		auto iterMine = m_mapVOITs.find(entry.first);
+		assert(iterMine != m_mapVOITs.end());
 
 		// assignment operator -- copies all relevent fields
-		pMyVOIT->UpdateFrom(pVOIT);
+		iterMine->second->UpdateFrom(entry.second);
 	}
 
 }	// Prescription::UpdateTerms
@@ -245,7 +234,7 @@ void
 
 	// varMax *= 1.5; // 2.0;
 	// if (!IsApproxEqual(m_varMax, varMax))
-	//	::AfxMessageBox(_T("Problem!!!"));
+	//	::AfxMessageBox("Problem!!!");
 	m_varMax = varMax;
 	if (GetTransformSlopeVariance())
 	{
@@ -261,14 +250,9 @@ void
 	}
 
 	// now set up the histogram variances
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-
-		pVOIT->GetHistogram()->SetGBinVar(&m_ActualAV/*m_pAV*/, m_varMin, m_varMax);
+		entry.second->GetHistogram()->SetGBinVar(&m_ActualAV/*m_pAV*/, m_varMin, m_varMax);
 	}
 
 }	// Prescription::SetGBinVar
@@ -278,19 +262,18 @@ REAL
 	Prescription::operator()(const CVectorN<>& vInput, CVectorN<> *pGrad ) const
 	// objective function evaluator
 {
-	USES_CONVERSION;
 
 	// initialize total sum of objective function
 	REAL totalSum = 0.0;
 
-	BeginLogSection(_T("Prescription::operator()"));
+	BeginLogSection("Prescription::operator()");
 
-	TraceVector(_T("vInput"), vInput);
+	TraceVector("vInput", vInput);
 
 	// transform input for calc purposes
 	CVectorN<> vInputTrans = vInput;
 	Transform(&vInputTrans);
-	TraceVector(_T("vInputTrans"), vInputTrans);
+	TraceVector("vInputTrans", vInputTrans);
 
 	// dTransform of the input -- flag is used to only calculate it if needed (if there is a gradient)
 	CVectorN<> v_dInputTrans;
@@ -306,19 +289,16 @@ REAL
 		v_dInputTrans.SetDim(vInput.GetDim());
 		v_dInputTrans = vInput;
 		dTransform(&v_dInputTrans);
-		TraceVector(_T("v_dInputTrans"), v_dInputTrans);
+		TraceVector("v_dInputTrans", v_dInputTrans);
 	}
 
 	// flag to indicate need to call CalcSumSigmoid
 	bool bCalcSum = true;
 
 	// iterate over the VOITerms
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (const auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		VOITerm *pVOIT = entry.second;
 
 		// calculate the summed volume, if this is the first VOIT
 		if (bCalcSum)
@@ -329,10 +309,8 @@ REAL
 
 		if (pVOIT->GetWeight() >= DEFAULT_EPSILON)
 		{
-			CString strMessage;
-			strMessage.Format(_T("VOI = %s\n"), 
-				A2W(pVOIT->GetVOI()->GetName().c_str()));
-			OutputDebugString(strMessage);
+			RTM_TRACE("VOI = %s\n",
+				pVOIT->GetVOI()->GetName().c_str());
 
 			// set fractions to histo
 			pVOIT->GetHistogram()->SetVarFracVolumes(m_volMainMinVar, m_volMainMaxVar);
@@ -359,7 +337,7 @@ REAL
 					m_vPartGrad[nAt] *= v_dInputTrans[nAt]; 
 				}
 
-				TraceVector(_T("m_vPartGrad"), m_vPartGrad);
+				TraceVector("m_vPartGrad", m_vPartGrad);
 
 				// add the partial gradient to the total
 				(*pGrad) += m_vPartGrad;
@@ -372,7 +350,7 @@ REAL
 	}
 
 	// good to catch an NANs
-	ASSERT(_finite(totalSum));
+	assert(_finite(totalSum));
 
 	// NOTE: previously added a fixed +0.1 offset here ("to hold it up off 0.0"),
 	//	but that constant leaked into the CG optimizer's relative convergence test
@@ -463,7 +441,7 @@ REAL
 		totalSum -= w * entropy;
 		m_dLastEntropy = entropy;
 
-		ASSERT(_finite(totalSum));
+		assert(_finite(totalSum));
 	}
 
 	EndLogSection();
@@ -478,10 +456,10 @@ void
 	Prescription::CalcSumSigmoid(CHistogramWithGradient *pHisto, 
 								   const CVectorN<>& vInput,
 								   const CVectorN<>& vInputTrans, 
-								   const CArray<BOOL, BOOL>& arrInclude) const
+								   const std::vector<BOOL>& arrInclude) const
 	// computes the sum of weights from an input vector
 {
-	BeginLogSection(_T("Prescription::CalcSumSigmoid"));
+	BeginLogSection("Prescription::CalcSumSigmoid");
 
 	// get the main volume
 	VolumeReal *pVolume = pHisto->GetVolume();
@@ -494,7 +472,7 @@ void
 	m_volMainMaxVar->FillBuffer(0.0);
 
 	// iterate over the component volumes, accumulating the weighted volumes
-	ASSERT(vInputTrans.GetDim() == pHisto->Get_dVolumeCount());
+	assert(vInputTrans.GetDim() == pHisto->Get_dVolumeCount());
 
 	int nMaxGroup = pHisto->GetGroupCount();
 	for (int nAtGroup = 0; nAtGroup < nMaxGroup; nAtGroup++)
@@ -531,8 +509,8 @@ void
 					}
 
 					// check adaptive variance value
-					ASSERT((*m_pAV)[nAt_dVolume] <= (m_varMax + 1e-6));
-					ASSERT((*m_pAV)[nAt_dVolume] >= (m_varMin - 1e-6));
+					assert((*m_pAV)[nAt_dVolume] <= (m_varMax + 1e-6));
+					assert((*m_pAV)[nAt_dVolume] >= (m_varMin - 1e-6));
 
 					// determine variance using dSigmoid
 					REAL varSlope = 1.0;
@@ -721,11 +699,9 @@ void
 	// helper to update the histogram regions
 {
 	// set up the histogram regions
-	for (POSITION pos = m_mapVOITs.GetStartPosition(); pos != NULL;)
+	for (auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		VOITerm *pVOIT = entry.second;
 
 		// now reset the conform regions for the VOIT
 		VolumeReal *pResampRegion = pVOIT->GetVOI()->GetConformRegion(m_sumVolume);
@@ -746,20 +722,17 @@ void
 	// determines array of flags of beamlets (elements) to include in optimization
 {
 	// iterate over terms to find target term
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		VOITerm *pVOIT = entry.second;
 
 		CHistogramWithGradient *pHisto = pVOIT->GetHistogram();
 
-		if (m_arrIncludeElement.GetSize() < pHisto->Get_dVolumeCount())
+		if ((int) m_arrIncludeElement.size() < pHisto->Get_dVolumeCount())
 		{
-			m_arrIncludeElement.SetSize(pHisto->Get_dVolumeCount());
+			m_arrIncludeElement.resize(pHisto->Get_dVolumeCount());
 
-			for (int nAt = 0; nAt < m_arrIncludeElement.GetSize(); nAt++)
+			for (int nAt = 0; nAt < (int) m_arrIncludeElement.size(); nAt++)
 			{
 				m_arrIncludeElement[nAt] = true;
 			}

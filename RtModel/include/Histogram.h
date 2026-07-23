@@ -2,6 +2,8 @@
 // $Id: Histogram.h 603 2008-09-14 16:58:43Z dglane001 $
 #pragma once
 
+#include <vector>
+
 #include <VectorN.h>
 #include <ItkUtils.h>
 // #include <ModelObject.h>
@@ -152,13 +154,13 @@ protected:
 	// should be moved to CHistogramGradient class
 
 	// flags for recalc
-	mutable CArray<bool, bool> m_arr_bRecomputeBinVolume;	// per group
+	mutable std::vector< bool > m_arr_bRecomputeBinVolume;	// per group
 
 	//// flags for recalc
-	mutable CArray<bool, bool> m_arr_bRecompute_dVolumes_x_Region;
+	mutable std::vector< bool > m_arr_bRecompute_dVolumes_x_Region;
 
 	// flags for recalc
-	mutable CArray<bool, bool> m_arr_bRecompute_dBins;
+	mutable std::vector< bool > m_arr_bRecompute_dBins;
 
 };	// class CHistogram
 
