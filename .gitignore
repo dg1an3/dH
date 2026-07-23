@@ -3,8 +3,9 @@
 __pycache__/
 .vscode/
 # build output: exe/lib and the DLLs + *.dat kernels the post-build step
-#	copies in (matches x64 at the repo root and nested under each project)
+#	copies in (matches x64/ARM64 at the repo root and nested under each project)
 x64/
+ARM64/
 *.idb
 *.pdb
 venv/
@@ -19,3 +20,12 @@ python/*.log
 # Amortized course-prior prototype: regenerable sample corpora.
 # Built by python/examples/generate_amortized_data.py.
 data/amortized_samples/
+
+# Generated clangd compile database (built by tools/emacs/gen-compile-commands.ps1)
+compile_commands.json
+
+# Visual Studio "Upgrade C++ Build Tools" wizard artifacts (generated operation records)
+.github/upgrades/
+
+# Local Claude Code MCP config: machine-specific absolute paths (Emacs, repo root)
+.mcp.json
