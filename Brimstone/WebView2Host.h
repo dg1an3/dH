@@ -21,6 +21,13 @@ public:
 	CWebView2Host();
 	virtual ~CWebView2Host();
 
+	// map a virtual https host name to a local folder so large local assets
+	//	(e.g. the vtk.js bundle) can be served with normal http(s) semantics that
+	//	NavigateToString / file:// cannot provide. Must be set before Navigate;
+	//	applied once the controller is ready. host e.g. L"planar.assets", folder
+	//	an absolute path. Then Navigate(L"https://planar.assets/index.html").
+	void SetVirtualHostMapping(LPCWSTR host, LPCWSTR folder);
+
 	// navigate to a URL (e.g. a file:/// path or virtual host) -- queued if not ready
 	void Navigate(LPCWSTR url);
 
@@ -69,6 +76,10 @@ private:
 
 	// message handler for page -> host messages
 	std::function<void(const std::wstring&)> m_onMessage;
+
+	// virtual-host -> local-folder mapping, applied when the controller is ready
+	std::wstring m_vhHost;
+	std::wstring m_vhFolder;
 
 	// requests queued until ready / navigated
 	std::wstring m_pendingUrl;

@@ -53,6 +53,7 @@ END_MESSAGE_MAP()
 CBrimstoneView::CBrimstoneView()
 	: m_pOptThread(NULL)
 	, m_bOptimizerRun(false)
+	, m_planarSliceK(-1)	// -1 => center on first CT feed
 	// , m_pIterDS(NULL)
 {
 	m_pOptThread = static_cast<COptThread*>(
@@ -341,6 +342,99 @@ void CBrimstoneView::OnDvhMessage(const std::wstring & msg)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// WebView2 + vtk.js planar view: CT slice feed + interaction
+
+// minimal base64 encoder (no CRLF) for the raw float32 slice payload
+static CStringA Base64Encode(const unsigned char *pData, size_t nBytes)
+{
+	static const char tbl[] =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	CStringA out;
+	out.Preallocate((int)((nBytes + 2) / 3 * 4 + 1));
+	size_t i = 0;
+	for (; i + 3 <= nBytes; i += 3)
+	{
+		unsigned int v = (pData[i] << 16) | (pData[i + 1] << 8) | pData[i + 2];
+		out += tbl[(v >> 18) & 63]; out += tbl[(v >> 12) & 63];
+		out += tbl[(v >> 6) & 63];  out += tbl[v & 63];
+	}
+	if (i < nBytes)
+	{
+		unsigned int v = pData[i] << 16;
+		const bool two = (i + 1 < nBytes);
+		if (two) v |= pData[i + 1] << 8;
+		out += tbl[(v >> 18) & 63];
+		out += tbl[(v >> 12) & 63];
+		out += two ? tbl[(v >> 6) & 63] : '=';
+		out += '=';
+	}
+	return out;
+}
+
+void CBrimstoneView::SendCtSliceToPlanar()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries)
+		return;
+	VolumeReal *pVol = pDoc->m_pSeries->GetDensity();
+	if (pVol == NULL)
+		return;
+
+	const VolumeReal::SizeType size = pVol->GetBufferedRegion().GetSize();
+	const int nx = (int)size[0], ny = (int)size[1], nz = (int)size[2];
+	if (nx <= 0 || ny <= 0 || nz <= 0)
+		return;
+
+	if (m_planarSliceK < 0 || m_planarSliceK >= nz)
+		m_planarSliceK = nz / 2;			// default to the middle slice
+
+	const VolumeReal::SpacingType spacing = pVol->GetSpacing();
+	const size_t nPix = (size_t)nx * ny;
+	const VOXEL_REAL *pBuf = pVol->GetBufferPointer() + (size_t)m_planarSliceK * nPix;
+
+	// itk buffer is x-fastest then y then z, so slice k is already contiguous
+	const CStringA b64 =
+		Base64Encode((const unsigned char*)pBuf, nPix * sizeof(VOXEL_REAL));
+
+	const double win = m_wndPlanarView.m_window[0];
+	const double lev = m_wndPlanarView.m_level[0];
+
+	// build the setSliceF32(...) call; the base64 goes in as a wide string
+	CString js;
+	js.Format(_T("setSliceF32(%d,%d,%.4g,%.4g,%.4g,%.4g,\""),
+		nx, ny, spacing[0], spacing[1], win, lev);
+	js += CString(b64);		// ASCII base64 -> wide
+	js += _T("\")");
+	m_webPlanar.ExecScript(js);
+#endif
+}
+
+void CBrimstoneView::OnPlanarMessage(const std::wstring & msg)
+{
+#ifdef USE_RTOPT
+	CString s(msg.c_str());
+	CStringArray tok;
+	int pos = 0;
+	for (CString t = s.Tokenize(_T("|"), pos); !t.IsEmpty(); t = s.Tokenize(_T("|"), pos))
+		tok.Add(t);
+	if (tok.GetSize() < 1)
+		return;
+
+	if (tok[0] == _T("slice") && tok.GetSize() >= 2)
+	{
+		m_planarSliceK += _wtoi(tok[1]);	// clamped inside SendCtSliceToPlanar
+		SendCtSliceToPlanar();
+	}
+	else if (tok[0] == _T("wl") && tok.GetSize() >= 3)
+	{
+		m_wndPlanarView.m_window[0] = (REAL)_wtof(tok[1]);
+		m_wndPlanarView.m_level[0] = (REAL)_wtof(tok[2]);
+	}
+#endif
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CBrimstoneView drawing
 
 /////////////////////////////////////////////////////////////////////////////
@@ -408,8 +502,30 @@ int
 
 	m_wndPlanarView.SetWindowLevel((REAL) 1.0 / 0.8, 0.4, 1);
 
+	// WebView2 + vtk.js replacement for the GDI planar view. The vtk.js bundle is
+	//	too large to inline, so it is served from a webassets folder deployed next
+	//	to the exe and exposed to the page through a virtual host mapping. The GDI
+	//	m_wndPlanarView stays alive (it still receives Series/dose pointers) but is
+	//	hidden beneath the web view; slice pixels are pushed to the page instead.
+	{
+		wchar_t exePath[MAX_PATH] = { 0 };
+		GetModuleFileNameW(NULL, exePath, MAX_PATH);
+		std::wstring dir(exePath);
+		const size_t slash = dir.find_last_of(L"\\/");
+		if (slash != std::wstring::npos)
+			dir.resize(slash);
+		const std::wstring assets = dir + L"\\webassets\\planar";
+
+		m_webPlanar.Create(NULL, NULL, WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+			CRect(0, 0, 200, 200), this, /* nID */ 117);
+		m_webPlanar.SetMessageHandler([this](const std::wstring& m) { OnPlanarMessage(m); });
+		m_webPlanar.SetVirtualHostMapping(L"planar.assets", assets.c_str());
+		m_webPlanar.Navigate(L"https://planar.assets/index.html");
+		m_wndPlanarView.ShowWindow(SW_HIDE);
+	}
+
 	// create the graph window
-	m_graphDVH.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+	m_graphDVH.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
 		CRect(0, 200, 200, 400), this, /* nID */ 113);
 
 	m_graphDVH.SetLegendLUT(m_arrColormap,
@@ -489,6 +605,9 @@ void
 	}
 	m_wndPlanarView.Invalidate(TRUE);
 
+	// push the initial CT slice to the vtk.js planar view
+	SendCtSliceToPlanar();
+
 	// set the initial view center
 	m_wndPlanarView.InitZoomCenter();
 	if (GetDocument()->m_pPlan
@@ -526,6 +645,10 @@ void
 	CView::OnSize(nType, cx, cy);
 
 	m_wndPlanarView.MoveWindow(0, 0, 5 * cx / 8, cy);
+
+	// vtk.js planar view occupies the same left region, over the GDI planar view
+	if (m_webPlanar.GetSafeHwnd() != NULL)
+		m_webPlanar.MoveWindow(0, 0, 5 * cx / 8, cy);
 
 	// reposition the graph window
 	m_graphDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);
