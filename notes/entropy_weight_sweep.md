@@ -110,6 +110,61 @@ at 3e-4 dwarf both readings.
 The knee is not pinned precisely; 1e-4 to 3e-4 is unexplored and the true
 optimum may be nearer 2e-4.
 
+### Filling the 1e-4 -> 3e-4 gap (2026-07-23): knee is at ~2e-4
+
+Fresh `x64/Release/Brimstone.exe` (rebuilt 2026-07-23 17:05 from this branch),
+5 beams, `BRIMSTONE_ENTROPY_SEPARABLE=1`, `BRIMSTONE_DETERMINISTIC=1`. The 1e-4
+and 3e-4 anchors were re-run on this binary and reproduce the table above to
+<0.2% (1e-4: H 43.80 vs 43.74; 3e-4: H 67.12 vs 67.12), so the new interior
+points are directly comparable. Interior points are n=2; `H` mean shown.
+
+| W | KL (mean) | H (mean) | H/H_max | n |
+|---|---|---|---|---|
+| 1e-12 | 0.005728 | 43.54 | 32.2% | 2 |
+| 1e-4 | 0.006098 | 43.80 | 32.4% | 1 |
+| 1.5e-4 | 0.006293 | 45.84 | 33.9% | 2 |
+| **2e-4** | **0.006064** | **64.00** | **47.3%** | **2** |
+| 2.5e-4 | 0.006571 | 59.73 | 44.2% | 2 |
+| 3e-4 | 0.006813 | 67.12 | 49.6% | 1 |
+
+**The entropy term does nothing until ~2e-4, then engages abruptly.** `H` sits
+at the inert baseline (~43-46) through 1.5e-4, then jumps to ~64 at 2e-4 -- a
+step, not a ramp. The 2e-4 jump reproduces to 0.02% on H across the two passes,
+so it is a real feature of the objective, not CG scatter. The note's earlier
+guess ("nearer 2e-4") is confirmed and sharpened: the onset sits between 1.5e-4
+and 2e-4. So the operative "knee" -- where the regularizer starts to bite -- is
+~2e-4, below the 3e-4 identified from the coarse grid (3e-4 is simply the first
+coarse point past the onset).
+
+**KL is not a usable discriminant in this band; only H is.** This settles the
+dead-zone-scatter caveat left open above. Measured *same-binary* run-to-run
+scatter at W=1e-12 (deepest dead zone, entropy gradient ~0):
+
+```
+1e-12  kl=0.00592661  H=43.58
+1e-12  kl=0.00552984  H=43.49
+```
+
+`H` reproduces to 0.2%, but **KL spans 7.2%** -- two deterministic runs of the
+same binary, same inputs, landing in CG basins that differ by 7% in KL. (Runs
+are not bit-identical even under `BRIMSTONE_DETERMINISTIC`; residual thread-order
+FP reduction in the beamlet calc remains.) That is the same ~7% the note called
+out at 3e-4, now pinned to the *dead zone* specifically -- exactly where the note
+predicted scatter would be largest. Consequence: the few-percent KL "degradation"
+across the sub-2e-4 points is within this basin noise and must not be read as
+regularizer effect. In particular the tempting reading that 2e-4 is a low-KL
+sweet spot (its KL, 0.00606, sits below its neighbors) is **not supported** --
+that KL gap is smaller than the 7% baseline scatter. What survives is the `H`
+signal, whose scatter is <1.3% throughout.
+
+**Best W, stated carefully.** If the separable term is used at all, ~2e-4 is the
+operating point: it is the smallest W that fully engages the regularizer
+(`H` 43->64), and everything above it (2.5e-4, 3e-4, and the decade beyond)
+only adds KL cost -- clearly above the noise floor by 2.5e-4 -- while `H` climbs
+toward the q=0.5 collapse. But this does not revise the closing verdict below:
+even at its best operating point the term buys entropy the parameterization does
+not want. Use the parameterization, not the prior.
+
 ### Scaling W by value ratio is wrong
 
 The first bracket for this sweep was chosen so that `w*H / KL` landed in the
@@ -273,3 +328,24 @@ Jul-17 build   kl=0.005558337481  entropy=80.6592207
 Jul-17 repeat  kl=0.00555910284   entropy=80.63928308
 new build      kl=0.005563666058  entropy=80.71388731
 ```
+
+```
+# 1e-4 -> 3e-4 gap fill, 5 beams, separable, deterministic
+# fresh Release|x64 built 2026-07-23 17:05. Interior points n=2.
+1e-4    free_energy=0.001717390482  kl=0.00609759155   entropy=43.80201068
+1.5e-4  free_energy=-0.0006254924138 kl=0.006297439718 entropy=46.15288088
+1.5e-4  free_energy=-0.000542399992  kl=0.006287694143 entropy=45.5339609
+2e-4    free_energy=-0.006741011888  kl=0.006058116058 entropy=63.99563973
+2e-4    free_energy=-0.006732931791  kl=0.006069261618 entropy=64.01096705
+2.5e-4  free_energy=-0.008325029464  kl=0.00655886576  entropy=59.53558089
+2.5e-4  free_energy=-0.008394737065  kl=0.006583913855 entropy=59.91460368
+3e-4    free_energy=-0.01332425812   kl=0.00681311422  entropy=67.12457446
+
+# dead-zone same-binary KL scatter control, 5 beams, W=1e-12
+1e-12   free_energy=0.005926613247  kl=0.00592661329  entropy=43.58245032
+1e-12   free_energy=0.005529839676  kl=0.00552983972  entropy=43.48875725
+```
+
+Sweep driven by an orchestrator (per-W detached launch + `BRIMSTONE_ATTACH_PID`
+attach + wait on `BRIMSTONE_OBJECTIVE_FILE`) wrapping `automate_brimstone_ui.py`;
+the loop itself was run out of tree and is not committed.
