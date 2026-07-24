@@ -18,6 +18,7 @@ Usage:
     python automate_brimstone_ui.py
 """
 
+import os
 import time
 
 from pywinauto import Application, win32defines
@@ -37,7 +38,11 @@ EXE_PATH = r"E:\github_dg1an3\dH\x64\Release\Brimstone.exe"
 # the "Brimstone.exe" entry -- resolved via SHGetPathFromIDListW)
 DICOM_FOLDER = r"C:\Users\Derek\Downloads\hnum_dicom_micro\dicom_micro"
 
-BEAM_COUNT = 5
+# Number of BEAMS (not beamlets -- the per-beam beamlet count is hardcoded at 39,
+# from nBeamletCount=19 in PlanSetupDlg.cpp:71 and again in PlanPyramid.cpp:113).
+# BRIMSTONE_BEAM_COUNT overrides, so a sweep driver can vary it per run the same
+# way it varies BRIMSTONE_ENTROPY_WEIGHT.
+BEAM_COUNT = int(os.environ.get("BRIMSTONE_BEAM_COUNT", 5))
 ISOCENTER_XYZ = (218.0, 218.0, -172.0)  # mm offsets -> IDC_EDIT_ISO_OFS_X/Y/Z (default for hnum_dicom_micro)
 
 # One entry per structure to prescribe. "type" must be "Target" or "OAR"
@@ -45,11 +50,19 @@ ISOCENTER_XYZ = (218.0, 218.0, -172.0)  # mm offsets -> IDC_EDIT_ISO_OFS_X/Y/Z (
 # a KLDivTerm with a default dose interval (Target: 60-70 Gy, OAR: 0-30 Gy) --
 # set dose_min/dose_max to None to keep that default, or give explicit Gy
 # values to override it via the "Edit Interval" checkbox + dose edit boxes.
+#
+# "priority" is the "Precedent" field. Structure::CalcRegion subtracts the region
+# of every LOWER-priority structure from this one, so a structure at priority 2
+# becomes "itself minus everything at the default priority 1" -- which is how you
+# express a background/normal-tissue volume like External. Omit to leave the
+# default of 1 (Structure.cpp:20).
 STRUCTURE_PRESCRIPTIONS = [
     {"name": "PTV", "type": "Target", "dose_min": 60.0, "dose_max": 70.0, "weight": 2.5},
     {"name": "Spinal Cord", "type": "OAR", "dose_min": 0.0, "dose_max": 30.0, "weight": 2.5},
     {"name": "Parotid(L)", "type": "OAR", "dose_min": 0.0, "dose_max": 30.0, "weight": 0.15},
     {"name": "Parotid(R)", "type": "OAR", "dose_min": 0.0, "dose_max": 30.0, "weight": 0.15},
+    {"name": "External", "type": "OAR", "dose_min": 10.0, "dose_max": 50.0, "weight": 0.15,
+     "priority": 2},
 ]
 
 # timeouts, in seconds
@@ -81,7 +94,17 @@ IDC_BTNOPTIMIZE = 1029
 
 
 def launch_app():
-    app = Application(backend="win32").start(EXE_PATH)
+    # BRIMSTONE_ATTACH_PID attaches to an already-running instance instead of
+    # starting one. Needed when the plan should outlive this script: an instance
+    # started here is a child of this process and dies with it, so a detached
+    # launch (Start-Process) + attach is the only way to leave a viewer open for
+    # inspection afterwards. Plans are never written to disk, so the live window
+    # is the only artifact.
+    attach_pid = os.environ.get("BRIMSTONE_ATTACH_PID")
+    if attach_pid:
+        app = Application(backend="win32").connect(process=int(attach_pid))
+    else:
+        app = Application(backend="win32").start(EXE_PATH)
     main_win = app.window(title_re=".* - Brimstone$")
     main_win.wait("exists ready", timeout=LAUNCH_TIMEOUT)
     return app, main_win
@@ -168,6 +191,17 @@ def set_structure_prescription(main_win, struct_cfg):
     struct_type.select(struct_cfg["type"])  # auto-creates the KLDivTerm w/ default interval
     time.sleep(0.3)
 
+    # "Precedent" -- set right after the type selection, so the region exclusion is
+    # in effect before the interval binning and the histogram regions get built.
+    # OnEnChangePrioEdit fires on EN_CHANGE and needs the KLDivTerm to already
+    # exist, which the type selection above guarantees.
+    priority = struct_cfg.get("priority")
+    if priority is not None:
+        prio_edit = main_win.child_window(control_id=IDC_PRIO_EDIT, class_name="Edit")
+        prio_edit.set_edit_text(str(int(priority)))
+        send_keys("{TAB}")
+        time.sleep(0.3)
+
     dose_min = struct_cfg.get("dose_min")
     dose_max = struct_cfg.get("dose_max")
     if dose_min is not None and dose_max is not None:
@@ -176,9 +210,13 @@ def set_structure_prescription(main_win, struct_cfg):
         dose2_edit = main_win.child_window(control_id=IDC_DOSE2_EDIT2, class_name="Edit")
 
         set_interval_btn.check()  # OnBnClickedBtnSetinterval: enables the dose edit boxes
-        # dose edits hold integer Gy*100 text (see KLDivTerm::GetMinDose()*100 formatting)
-        dose1_edit.set_edit_text(str(int(round(dose_min * 100))))
-        dose2_edit.set_edit_text(str(int(round(dose_max * 100))))
+        # The dose edits hold Gy as a plain integer: OnBnClickedBtnSetinterval reads
+        # the box and divides by 100 to get the internal value (Gy/100), which is why
+        # the display path at PrescriptionToolbar.cpp:150 multiplies GetMinDose() by
+        # 100 to get back to Gy. That *100 is the round-trip, NOT an extra scaling --
+        # writing Gy*100 here prescribes 100x the intended dose.
+        dose1_edit.set_edit_text(str(int(round(dose_min))))
+        dose2_edit.set_edit_text(str(int(round(dose_max))))
         set_interval_btn.uncheck()  # commits SetInterval() on un-check
 
     weight = struct_cfg.get("weight")

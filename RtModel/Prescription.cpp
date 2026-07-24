@@ -7,11 +7,16 @@
 
 #include <ConjGradOptimizer.h>
 #include <HistogramGradient.h>
+#include <SigmoidParams.h>
 
 namespace dH
 {
 
-const REAL SIGMOID_SCALE = 0.2; // 0.1; // 0.3; // 0.1; // 1.0;
+// was a bare literal 0.2, duplicated in HistogramGradient.cpp. Now sourced from
+//	the shared getter so the transform and its variance correction cannot drift
+//	apart, and so a sweep can set it via BRIMSTONE_SIGMOID_SCALE. See
+//	SigmoidParams.h.
+const REAL SIGMOID_SCALE = GetSigmoidScale();
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -21,7 +26,11 @@ const REAL SIGMOID_SCALE = 0.2; // 0.1; // 0.3; // 0.1; // 1.0;
 Prescription::Prescription(CPlan *pPlan/*, int nLevel*/)
 	: /*CObjectiveFunction(FALSE)
 		, */m_pPlan(pPlan)
-		, m_inputScale(GetProfileReal("Prescription", "InputScale", 0.5))
+		// BRIMSTONE_INPUT_SCALE overrides the registry value, so a sweep can set
+		//	the steepness without touching HKCU -- and, unlike the registry path,
+		//	the override also reaches HistogramGradient's variance correction.
+		//	See SigmoidParams.h.
+		, m_inputScale(GetInputScale(GetProfileReal("Prescription", "InputScale", 0.5)))
 		, m_Slice(0)
 		, m_TransformSlopeVariance(true)
 {
