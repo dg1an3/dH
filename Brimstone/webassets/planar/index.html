@@ -8,9 +8,15 @@
   handled entirely in-page for interactivity, and the mouse wheel steps the
   slice by posting back to the host.
 
+  Orientation: vtk.js renders image data +y-up, but the ITK/DICOM slice buffer
+  is row-0-at-top (radiologic convention, as the legacy GDI view drew it). The
+  camera is flipped vertically (view-up = -y, viewed from -z) so row 0 lands at
+  the top without mirroring left/right. All geometry (CT, dose isocurves) stays
+  in one true world frame, so the display flip keeps them aligned.
+
   host -> page:
     setSliceF32(w, h, sx, sy, window, level, base64)   axial CT scalars (float32 LE)
-    setDose(...)     (TODO) dose overlay
+    setDose(w, h, sx, sy, offx, offy, levelsCsv, base64)   dose slice -> isodose lines
     setContours(...) (TODO) structure contours
   page -> host (window.chrome.webview.postMessage):
     "slice|<+1|-1>"    wheel-scrolled one source slice up/down
@@ -45,6 +51,13 @@
   var renderWindow = grw.getRenderWindow();
   renderer.getActiveCamera().setParallelProjection(true);
 
+  // setContainer auto-binds a vtkRenderWindowInteractor whose default style also
+  //	handles the wheel (dolly-zoom) and drag (rotate). We implement our own
+  //	interaction below (drag = window/level, wheel = slice step), so unbind vtk's
+  //	handlers to stop them competing on the same events. Rendering is driven by
+  //	explicit renderWindow.render() calls, so the interactor is not needed.
+  try{ var iren=grw.getInteractor && grw.getInteractor(); if(iren&&iren.unbindEvents) iren.unbindEvents(); }catch(e){}
+
   var imageData = V.Common.DataModel.vtkImageData.newInstance();
   var mapper = V.Rendering.Core.vtkImageMapper.newInstance();
   mapper.setInputData(imageData);
@@ -56,6 +69,19 @@
 
   var win=400, lev=30;
   function applyWL(){ var p=actor.getProperty(); p.setColorWindow(win); p.setColorLevel(lev); }
+
+  // fit the slice, then flip vertically: view from -z with view-up = -y puts
+  //	image row 0 at the top (radiologic / GDI orientation) with x still to the
+  //	right (no left/right mirror). Re-applied every setSliceF32.
+  function frameCamera(){
+    renderer.resetCamera();
+    var cam=renderer.getActiveCamera();
+    var f=cam.getFocalPoint(), d=cam.getDistance();
+    cam.setViewUp(0,-1,0);
+    cam.setPosition(f[0], f[1], f[2]-d);
+    cam.setFocalPoint(f[0], f[1], f[2]);
+    renderer.resetCameraClippingRange();
+  }
 
   function b64ToFloat32(b64){
     var bin=atob(b64), n=bin.length, buf=new ArrayBuffer(n), u8=new Uint8Array(buf);
@@ -76,11 +102,86 @@
       imageData.modified();
       applyWL();
       if(!haveActor){ renderer.addActor(actor); haveActor=true; }
-      renderer.resetCamera();
+      frameCamera();
       renderWindow.render();
       hud.textContent='CT '+w+'x'+h;
       showErr('');
     }catch(e){ showErr('setSlice: '+e.message); }
+  };
+
+  // --- isodose curves ---------------------------------------------------------
+  // HSV rainbow: t=0 -> blue, t=1 -> red (approximates the GDI dose LUT ramp)
+  function hsv(h,s,v){
+    var i=Math.floor(h*6), f=h*6-i, p=v*(1-s), q=v*(1-f*s), u=v*(1-(1-f)*s);
+    switch(((i%6)+6)%6){
+      case 0:return[v,u,p]; case 1:return[q,v,p]; case 2:return[p,v,u];
+      case 3:return[p,q,v]; case 4:return[u,p,v]; default:return[v,p,q];
+    }
+  }
+  function rainbow(t){ t=Math.max(0,Math.min(1,t)); return hsv((1-t)*0.6667,1,1); }
+
+  var doseActors=[];
+  // marching squares over the dose slice; one colored line actor per level.
+  window.setDose=function(w,h,sx,sy,offx,offy,levelsCsv,b64){
+    try{
+      var vals=b64ToFloat32(b64);
+      var levels=levelsCsv.split(',').map(parseFloat);
+      var lo=levels[0], hi=levels[levels.length-1];
+
+      doseActors.forEach(function(a){ renderer.removeActor(a); });
+      doseActors=[];
+
+      levels.forEach(function(c){
+        var pts=[], lines=[], np=0;
+        for(var j=0;j<h-1;j++){
+          for(var i=0;i<w-1;i++){
+            var bl=vals[j*w+i], br=vals[j*w+i+1], tl=vals[(j+1)*w+i], tr=vals[(j+1)*w+i+1];
+            var idx=(bl>c?1:0)|(br>c?2:0)|(tr>c?4:0)|(tl>c?8:0);
+            if(idx===0||idx===15) continue;
+            var x0=offx+i*sx, x1=offx+(i+1)*sx, y0=offy+j*sy, y1=offy+(j+1)*sy;
+            function ip(a,b,ax,ay,bx,by){ var t=(c-a)/(b-a); return [ax+(bx-ax)*t, ay+(by-ay)*t]; }
+            function eB(){ return ip(bl,br,x0,y0,x1,y0); }  // bottom edge
+            function eR(){ return ip(br,tr,x1,y0,x1,y1); }  // right edge
+            function eT(){ return ip(tl,tr,x0,y1,x1,y1); }  // top edge
+            function eL(){ return ip(bl,tl,x0,y0,x0,y1); }  // left edge
+            var seg;
+            switch(idx){
+              case 1: case 14: seg=[eL(),eB()]; break;
+              case 2: case 13: seg=[eB(),eR()]; break;
+              case 3: case 12: seg=[eL(),eR()]; break;
+              case 4: case 11: seg=[eR(),eT()]; break;
+              case 6: case 9:  seg=[eB(),eT()]; break;
+              case 7: case 8:  seg=[eL(),eT()]; break;
+              case 5:  seg=[eL(),eT(),eB(),eR()]; break; // saddle -> two segments
+              case 10: seg=[eL(),eB(),eT(),eR()]; break; // saddle -> two segments
+              default: seg=[];
+            }
+            for(var s=0;s+1<seg.length;s+=2){
+              // z slightly toward the camera (which views from -z) so the lines
+              //	render in front of the CT image at z=0, not behind it
+              pts.push(seg[s][0],seg[s][1],-0.01, seg[s+1][0],seg[s+1][1],-0.01);
+              lines.push(2, np, np+1); np+=2;
+            }
+          }
+        }
+        if(np===0) return;
+        var pd=V.Common.DataModel.vtkPolyData.newInstance();
+        pd.getPoints().setData(Float32Array.from(pts),3);
+        pd.getLines().setData(Uint32Array.from(lines));
+        var m=V.Rendering.Core.vtkMapper.newInstance();
+        m.setInputData(pd);
+        var a=V.Rendering.Core.vtkActor.newInstance();
+        a.setMapper(m);
+        var col=rainbow(hi>lo ? (c-lo)/(hi-lo) : 0.5);
+        var pr=a.getProperty();
+        pr.setColor(col[0],col[1],col[2]);
+        pr.setLineWidth(1.5);
+        renderer.addActor(a);
+        doseActors.push(a);
+      });
+      renderWindow.render();
+      showErr('');
+    }catch(e){ showErr('setDose: '+e.message); }
   };
 
   // --- interaction: left-drag = window/level, wheel = slice step ---

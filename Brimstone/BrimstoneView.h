@@ -76,6 +76,11 @@ public:
 	// WebView2 + vtk.js planar view: push the current axial CT slice to the page
 	//	and handle interaction (slice scroll / window-level) posted back from it
 	void SendCtSliceToPlanar();
+	// push the dose slice (at the same world-z as the CT slice) so the page can
+	//	draw isodose curves over the CT
+	void SendDoseSliceToPlanar();
+	// set m_planarSliceK to the CT slice containing the beam isocenter's z-plane
+	void SetPlanarSliceToIsocenter();
 	void OnPlanarMessage(const std::wstring & msg);
 
 // Operations

@@ -410,6 +410,87 @@ void CBrimstoneView::SendCtSliceToPlanar()
 #endif
 }
 
+void CBrimstoneView::SendDoseSliceToPlanar()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries || !pDoc->m_pPlan)
+		return;
+	VolumeReal *pCt = pDoc->m_pSeries->GetDensity();
+	VolumeReal *pDose = pDoc->m_pPlan->GetDoseMatrix();
+	if (pCt == NULL || pDose == NULL)
+		return;
+
+	const VolumeReal::SizeType dsz = pDose->GetBufferedRegion().GetSize();
+	const int nx = (int)dsz[0], ny = (int)dsz[1], nz = (int)dsz[2];
+	if (nx <= 0 || ny <= 0 || nz <= 0)
+		return;
+
+	const VolumeReal::PointType ctOrg = pCt->GetOrigin();
+	const VolumeReal::SpacingType ctSp = pCt->GetSpacing();
+	const VolumeReal::PointType dOrg = pDose->GetOrigin();
+	const VolumeReal::SpacingType dSp = pDose->GetSpacing();
+
+	// the dose slice that shares the world-z of the currently displayed CT slice
+	const double worldZ = ctOrg[2] + (double)m_planarSliceK * ctSp[2];
+	int kd = (int)floor((worldZ - dOrg[2]) / dSp[2] + 0.5);
+	if (kd < 0) kd = 0;
+	if (kd >= nz) kd = nz - 1;
+
+	const size_t nPix = (size_t)nx * ny;
+	const VOXEL_REAL *pBuf = pDose->GetBufferPointer() + (size_t)kd * nPix;
+	const CStringA b64 =
+		Base64Encode((const unsigned char*)pBuf, nPix * sizeof(VOXEL_REAL));
+
+	// the page draws the CT with its origin dropped to (0,0), so the dose grid is
+	//	placed relative to the CT origin to keep the two in the same page frame
+	const double offx = dOrg[0] - ctOrg[0];
+	const double offy = dOrg[1] - ctOrg[1];
+
+	// isodose levels 0.30..0.95 step 0.05, matching the legacy GDI CPlanarView
+	CString levels;
+	for (double c = 0.30; c < 1.0; c += 0.05)
+	{
+		CString t;
+		t.Format(_T("%s%.2f"), levels.IsEmpty() ? _T("") : _T(","), c);
+		levels += t;
+	}
+
+	CString js;
+	js.Format(_T("setDose(%d,%d,%.4g,%.4g,%.4g,%.4g,\"%s\",\""),
+		nx, ny, dSp[0], dSp[1], offx, offy, (LPCTSTR)levels);
+	js += CString(b64);		// ASCII base64 -> wide
+	js += _T("\")");
+	m_webPlanar.ExecScript(js);
+#endif
+}
+
+void CBrimstoneView::SetPlanarSliceToIsocenter()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries || !pDoc->m_pPlan)
+		return;
+	if (pDoc->m_pPlan->GetBeamCount() <= 0)
+		return;
+	VolumeReal *pCt = pDoc->m_pSeries->GetDensity();
+	if (pCt == NULL)
+		return;
+
+	const Vector<REAL> vIso = pDoc->m_pPlan->GetBeamAt(0)->GetIsocenter();
+	const VolumeReal::PointType ctOrg = pCt->GetOrigin();
+	const VolumeReal::SpacingType ctSp = pCt->GetSpacing();
+	const int nz = (int)pCt->GetBufferedRegion().GetSize()[2];
+	if (nz <= 0 || ctSp[2] == 0.0)
+		return;
+
+	int k = (int)floor((vIso[2] - ctOrg[2]) / ctSp[2] + 0.5);
+	if (k < 0) k = 0;
+	if (k >= nz) k = nz - 1;
+	m_planarSliceK = k;
+#endif
+}
+
 void CBrimstoneView::OnPlanarMessage(const std::wstring & msg)
 {
 #ifdef USE_RTOPT
@@ -425,6 +506,7 @@ void CBrimstoneView::OnPlanarMessage(const std::wstring & msg)
 	{
 		m_planarSliceK += _wtoi(tok[1]);	// clamped inside SendCtSliceToPlanar
 		SendCtSliceToPlanar();
+		SendDoseSliceToPlanar();			// keep isodose curves on the new slice
 	}
 	else if (tok[0] == _T("wl") && tok.GetSize() >= 3)
 	{
@@ -605,8 +687,11 @@ void
 	}
 	m_wndPlanarView.Invalidate(TRUE);
 
-	// push the initial CT slice to the vtk.js planar view
+	// open the vtk.js planar view on the isocenter's axial plane (not just the
+	//	middle slice), then push that CT slice and any current dose isocurves
+	SetPlanarSliceToIsocenter();
 	SendCtSliceToPlanar();
+	SendDoseSliceToPlanar();
 
 	// set the initial view center
 	m_wndPlanarView.InitZoomCenter();
@@ -759,6 +844,7 @@ LRESULT
 	{
 		GetDocument()->m_pOptimizer->SetStateVectorToPlan(pOID->m_vParam);
 		SendDvhCurvesToDvh();
+		SendDoseSliceToPlanar();		// refresh isodose curves with the final dose
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 
