@@ -17,6 +17,8 @@ namespace dH
 	class VOITerm;
 }
 
+class CRenderControlDlg;
+
 //////////////////////////////////////////////////////////////////////
 // class CBrimstoneView
 //
@@ -98,6 +100,9 @@ protected:
 	// flag when optimizer should continue running
 	bool m_bOptimizerRun;
 
+	// modeless dialog for UIAutomation-driven rendering control (created lazily)
+	CRenderControlDlg *m_pRenderCtrlDlg;
+
 // Generated message map functions
 public:
 	//{{AFX_MSG(CBrimstoneView)
@@ -112,6 +117,7 @@ public:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnViewScanbeamlets();
+	afx_msg void OnViewRenderControl();
 };
 
 #ifndef _DEBUG  // debug version in BrimstoneView.cpp

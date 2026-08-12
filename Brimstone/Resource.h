@@ -9,6 +9,7 @@
 #define IDD_PRESCDLG                    131
 #define IDB_LEGEND                      134
 #define IDD_PLANSETUPDLG                135
+#define IDD_RENDERCTRL                  138
 #define IDM_DOSEUPDATE                  1002
 #define IDC_LEGEND                      1003
 #define IDC_PRESCTOOLBAR                1004
@@ -60,15 +61,32 @@
 #define ID_PLAN_ADDCONTOUR              32786
 #define ID_PLAN_DELETECONTOURSONSLICE   32787
 #define ID_VIEW_SCANBEAMLETS            32788
+#define ID_VIEW_RENDERCONTROL           32789
+
+// Render Control dialog controls (UIAutomation-friendly, stable AutomationIds)
+#define IDC_RC_WINDOW                   1100
+#define IDC_RC_LEVEL                    1101
+#define IDC_RC_ZOOM                     1102
+#define IDC_RC_CENTERX                  1103
+#define IDC_RC_CENTERY                  1104
+#define IDC_RC_SLICEZ                   1105
+#define IDC_RC_ALPHA                    1106
+#define IDC_RC_APPLY                    1107
+#define IDC_RC_REFRESH                  1108
+#define IDC_RC_SLICE_PREV               1109
+#define IDC_RC_SLICE_NEXT               1110
+#define IDC_RC_CAPTURE_PATH             1111
+#define IDC_RC_CAPTURE                  1112
+#define IDC_RC_STATUS                   1113
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        138
-#define _APS_NEXT_COMMAND_VALUE         32789
-#define _APS_NEXT_CONTROL_VALUE         1032
+#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_COMMAND_VALUE         32790
+#define _APS_NEXT_CONTROL_VALUE         1114
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif
