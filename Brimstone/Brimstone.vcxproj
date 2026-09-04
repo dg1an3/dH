@@ -203,10 +203,11 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Message>copy the kernel data and IPP runtime DLLs</Message>
+      <Message>copy the kernel data, IPP runtime DLLs, and web assets</Message>
       <Command>copy *kernel.dat $(OutDir)
 copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ipps*.dll" $(OutDir)
-copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)</Command>
+copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)
+xcopy /y /i /e "$(ProjectDir)webassets" "$(OutDir)webassets\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -294,10 +295,11 @@ copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Message>copy the kernel data and IPP runtime DLLs</Message>
+      <Message>copy the kernel data, IPP runtime DLLs, and web assets</Message>
       <Command>copy *kernel.dat $(OutDir)
 copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ipps*.dll" $(OutDir)
-copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)</Command>
+copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)
+xcopy /y /i /e "$(ProjectDir)webassets" "$(OutDir)webassets\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -372,6 +374,10 @@ copy "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\bin\ippcore*.dll" $(OutDir)
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="webassets\planar\index.html" />
+    <None Include="webassets\planar\vtk.js" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Graph\Graph.vcxproj">

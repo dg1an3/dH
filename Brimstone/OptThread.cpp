@@ -93,7 +93,20 @@ BOOL
 	}
 	ASSERT(pOID != NULL);
 
-	pThread->GetMsgTarget()->PostMessage(WM_OPTIMIZER_UPDATE, 0, (LPARAM) pOID);
+	// SendMessage, not PostMessage: the UI handler (OnOptimizerThreadUpdate ->
+	//	SetStateVectorToPlan -> OnIntensityMapChanged + UpdateAllHisto, then
+	//	SendDvhCurvesToDvh) rewrites the SAME Plan / dose / histogram buffers this
+	//	worker thread is mid-optimizing. A fire-and-forget PostMessage let both
+	//	threads realloc those ITK image / CVectorN buffers at once -> intermittent
+	//	STATUS_HEAP_CORRUPTION (0xc0000374) during optimization. Sending
+	//	synchronously parks this thread until the UI update completes, so the two
+	//	never touch the shared state concurrently. It also lets us own pOID's
+	//	lifetime here (the UI side never freed it -> per-iteration leak).
+	if (pOID != NULL)
+	{
+		pThread->GetMsgTarget()->SendMessage(WM_OPTIMIZER_UPDATE, 0, (LPARAM) pOID);
+		delete pOID;
+	}
 
 	// get current thread state
 	_AFX_THREAD_STATE* pState = AfxGetThreadState();
@@ -138,7 +151,11 @@ void
 	pOID->m_nLevel = 0;
 	pOID->m_ofvalue = GetPlanOpt()->Optimize(pOID->m_vParam, &COptThread::OnIteration, this);
 
-	GetMsgTarget()->PostMessage(WM_OPTIMIZER_DONE, 0, (LPARAM) pOID);
+	// Optimize() has returned, so the worker is no longer touching the Plan --
+	//	but send synchronously anyway for symmetry with the per-iteration update
+	//	and so we can free pOID here (the UI side never did -> leak).
+	GetMsgTarget()->SendMessage(WM_OPTIMIZER_DONE, 0, (LPARAM) pOID);
+	delete pOID;
 
 	// end the thread
 	// return 0; // ExitInstance();

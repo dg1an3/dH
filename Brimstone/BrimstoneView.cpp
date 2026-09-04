@@ -53,6 +53,7 @@ END_MESSAGE_MAP()
 CBrimstoneView::CBrimstoneView()
 	: m_pOptThread(NULL)
 	, m_bOptimizerRun(false)
+	, m_planarSliceK(-1)	// -1 => center on first CT feed
 	// , m_pIterDS(NULL)
 {
 	m_pOptThread = static_cast<COptThread*>(
@@ -336,7 +337,265 @@ void CBrimstoneView::OnDvhMessage(const std::wstring & msg)
 	// reflect the change back to the page and repaint the image view (colors/regions)
 	SendStructuresToDvh();
 	SendDvhCurvesToDvh();
+	SendContoursToPlanar();		// structure colors may have changed
 	RedrawWindow(NULL, NULL, RDW_INVALIDATE);
+#endif
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// WebView2 + vtk.js planar view: CT slice feed + interaction
+
+// minimal base64 encoder (no CRLF) for the raw float32 slice payload
+static CStringA Base64Encode(const unsigned char *pData, size_t nBytes)
+{
+	static const char tbl[] =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	CStringA out;
+	out.Preallocate((int)((nBytes + 2) / 3 * 4 + 1));
+	size_t i = 0;
+	for (; i + 3 <= nBytes; i += 3)
+	{
+		unsigned int v = (pData[i] << 16) | (pData[i + 1] << 8) | pData[i + 2];
+		out += tbl[(v >> 18) & 63]; out += tbl[(v >> 12) & 63];
+		out += tbl[(v >> 6) & 63];  out += tbl[v & 63];
+	}
+	if (i < nBytes)
+	{
+		unsigned int v = pData[i] << 16;
+		const bool two = (i + 1 < nBytes);
+		if (two) v |= pData[i + 1] << 8;
+		out += tbl[(v >> 18) & 63];
+		out += tbl[(v >> 12) & 63];
+		out += two ? tbl[(v >> 6) & 63] : '=';
+		out += '=';
+	}
+	return out;
+}
+
+void CBrimstoneView::SendCtSliceToPlanar()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries)
+		return;
+	VolumeReal *pVol = pDoc->m_pSeries->GetDensity();
+	if (pVol == NULL)
+		return;
+
+	const VolumeReal::SizeType size = pVol->GetBufferedRegion().GetSize();
+	const int nx = (int)size[0], ny = (int)size[1], nz = (int)size[2];
+	if (nx <= 0 || ny <= 0 || nz <= 0)
+		return;
+
+	if (m_planarSliceK < 0 || m_planarSliceK >= nz)
+		m_planarSliceK = nz / 2;			// default to the middle slice
+
+	const VolumeReal::SpacingType spacing = pVol->GetSpacing();
+	const size_t nPix = (size_t)nx * ny;
+	const VOXEL_REAL *pBuf = pVol->GetBufferPointer() + (size_t)m_planarSliceK * nPix;
+
+	// itk buffer is x-fastest then y then z, so slice k is already contiguous
+	const CStringA b64 =
+		Base64Encode((const unsigned char*)pBuf, nPix * sizeof(VOXEL_REAL));
+
+	// The GDI view maps [level - window, level + window] onto black..white
+	//	(pix = 128/window * (v - level) + 128), whereas vtk's colorWindow spans
+	//	[level - window/2, level + window/2], so pass twice the GDI window to get
+	//	the same contrast. OnPlanarMessage("wl") halves it again on the way back.
+	const double win = 2.0 * m_wndPlanarView.m_window[0];
+	const double lev = m_wndPlanarView.m_level[0];
+	const double worldZ = pVol->GetOrigin()[2] + (double)m_planarSliceK * spacing[2];
+
+	// build the setSliceF32(...) call; the base64 goes in as a wide string
+	CString js;
+	js.Format(_T("setSliceF32(%d,%d,%.4g,%.4g,%.4g,%.4g,\""),
+		nx, ny, spacing[0], spacing[1], win, lev);
+	js += CString(b64);		// ASCII base64 -> wide
+	CString tail;
+	tail.Format(_T("\",%.6g)"), worldZ);
+	js += tail;
+	m_webPlanar.ExecScript(js);
+#endif
+}
+
+void CBrimstoneView::SendDoseSliceToPlanar()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries || !pDoc->m_pPlan)
+		return;
+	VolumeReal *pCt = pDoc->m_pSeries->GetDensity();
+	VolumeReal *pDose = pDoc->m_pPlan->GetDoseMatrix();
+	if (pCt == NULL || pDose == NULL)
+		return;
+
+	const VolumeReal::SizeType dsz = pDose->GetBufferedRegion().GetSize();
+	const int nx = (int)dsz[0], ny = (int)dsz[1], nz = (int)dsz[2];
+	if (nx <= 0 || ny <= 0 || nz <= 0)
+		return;
+
+	const VolumeReal::PointType ctOrg = pCt->GetOrigin();
+	const VolumeReal::SpacingType ctSp = pCt->GetSpacing();
+	const VolumeReal::PointType dOrg = pDose->GetOrigin();
+	const VolumeReal::SpacingType dSp = pDose->GetSpacing();
+
+	// the dose slice that shares the world-z of the currently displayed CT slice
+	const double worldZ = ctOrg[2] + (double)m_planarSliceK * ctSp[2];
+	int kd = (int)floor((worldZ - dOrg[2]) / dSp[2] + 0.5);
+	if (kd < 0) kd = 0;
+	if (kd >= nz) kd = nz - 1;
+
+	const size_t nPix = (size_t)nx * ny;
+	const VOXEL_REAL *pBuf = pDose->GetBufferPointer() + (size_t)kd * nPix;
+	const CStringA b64 =
+		Base64Encode((const unsigned char*)pBuf, nPix * sizeof(VOXEL_REAL));
+
+	// the page draws the CT with its origin dropped to (0,0), so the dose grid is
+	//	placed relative to the CT origin to keep the two in the same page frame
+	const double offx = dOrg[0] - ctOrg[0];
+	const double offy = dOrg[1] - ctOrg[1];
+
+	// isodose levels 0.30..0.95 step 0.05, matching the legacy GDI CPlanarView
+	CString levels;
+	for (double c = 0.30; c < 1.0; c += 0.05)
+	{
+		CString t;
+		t.Format(_T("%s%.2f"), levels.IsEmpty() ? _T("") : _T(","), c);
+		levels += t;
+	}
+
+	CString js;
+	js.Format(_T("setDose(%d,%d,%.4g,%.4g,%.4g,%.4g,\"%s\",\""),
+		nx, ny, dSp[0], dSp[1], offx, offy, (LPCTSTR)levels);
+	js += CString(b64);		// ASCII base64 -> wide
+	js += _T("\")");
+	m_webPlanar.ExecScript(js);
+#endif
+}
+
+void CBrimstoneView::SetPlanarSliceToIsocenter()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries || !pDoc->m_pPlan)
+		return;
+	if (pDoc->m_pPlan->GetBeamCount() <= 0)
+		return;
+	VolumeReal *pCt = pDoc->m_pSeries->GetDensity();
+	if (pCt == NULL)
+		return;
+
+	const Vector<REAL> vIso = pDoc->m_pPlan->GetBeamAt(0)->GetIsocenter();
+	const VolumeReal::PointType ctOrg = pCt->GetOrigin();
+	const VolumeReal::SpacingType ctSp = pCt->GetSpacing();
+	const int nz = (int)pCt->GetBufferedRegion().GetSize()[2];
+	if (nz <= 0 || ctSp[2] == 0.0)
+		return;
+
+	int k = (int)floor((vIso[2] - ctOrg[2]) / ctSp[2] + 0.5);
+	if (k < 0) k = 0;
+	if (k >= nz) k = nz - 1;
+	m_planarSliceK = k;
+#endif
+}
+
+void CBrimstoneView::SendContoursToPlanar()
+{
+#ifdef USE_RTOPT
+	CBrimstoneDoc *pDoc = GetDocument();
+	if (pDoc == NULL || !pDoc->m_pSeries)
+		return;
+	VolumeReal *pCt = pDoc->m_pSeries->GetDensity();
+	if (pCt == NULL)
+		return;
+	const VolumeReal::PointType ctOrg = pCt->GetOrigin();
+	const VolumeReal::SpacingType ctSp = pCt->GetSpacing();
+	const int nz = (int)pCt->GetBufferedRegion().GetSize()[2];
+	if (nz <= 0)
+		return;
+	if (m_planarSliceK < 0 || m_planarSliceK >= nz)
+		m_planarSliceK = nz / 2;
+	const double worldZ = ctOrg[2] + (double)m_planarSliceK * ctSp[2];
+
+	// JSON array of {"c":"#rrggbb","p":[[x0,y0,x1,y1,...],...]} -- one entry per
+	//	visible structure with contours on this slice, vertices in the page frame
+	//	(CT origin dropped to 0,0) so they line up with setSliceF32 / setDose
+	CString json = _T("[");
+	bool bFirstStruct = true;
+	for (int nAt = 0; nAt < pDoc->m_pSeries->GetStructureCount(); nAt++)
+	{
+		dH::Structure *pStruct = pDoc->m_pSeries->GetStructureAt(nAt);
+		if (pStruct == NULL || !pStruct->GetVisible())
+			continue;
+
+		CString polys;
+		bool bFirstPoly = true;
+		for (int nC = 0; nC < pStruct->GetContourCount(); nC++)
+		{
+			// same slice test as CPlanarView::DrawContours
+			if (!IsApproxEqual(pStruct->GetContourRefDist(nC), (REAL)worldZ, (REAL)ctSp[2]))
+				continue;
+			dH::Structure::PolygonType *pPoly = pStruct->GetContour(nC);
+			const int nPts = (int)pPoly->GetNumberOfPoints();
+			if (nPts < 2)
+				continue;
+
+			CString pts;
+			for (int nV = 0; nV < nPts; nV++)
+			{
+				const auto pos = pPoly->GetPoint(nV)->GetPositionInObjectSpace();
+				CString t;
+				t.Format(_T("%s%.3f,%.3f"), nV ? _T(",") : _T(""),
+					(double)(pos[0] - ctOrg[0]), (double)(pos[1] - ctOrg[1]));
+				pts += t;
+			}
+			polys += bFirstPoly ? _T("[") : _T(",[");
+			polys += pts;
+			polys += _T("]");
+			bFirstPoly = false;
+		}
+		if (bFirstPoly)
+			continue;		// nothing on this slice
+
+		const COLORREF col = pStruct->GetColor();
+		CString item;
+		item.Format(_T("%s{\"c\":\"#%02x%02x%02x\",\"p\":[%s]}"),
+			bFirstStruct ? _T("") : _T(","),
+			(unsigned)GetRValue(col), (unsigned)GetGValue(col), (unsigned)GetBValue(col),
+			(LPCTSTR)polys);
+		json += item;
+		bFirstStruct = false;
+	}
+	json += _T("]");
+
+	m_webPlanar.ExecScript(_T("setContours(") + json + _T(")"));
+#endif
+}
+
+void CBrimstoneView::OnPlanarMessage(const std::wstring & msg)
+{
+#ifdef USE_RTOPT
+	CString s(msg.c_str());
+	CStringArray tok;
+	int pos = 0;
+	for (CString t = s.Tokenize(_T("|"), pos); !t.IsEmpty(); t = s.Tokenize(_T("|"), pos))
+		tok.Add(t);
+	if (tok.GetSize() < 1)
+		return;
+
+	if (tok[0] == _T("slice") && tok.GetSize() >= 2)
+	{
+		m_planarSliceK += _wtoi(tok[1]);	// clamped inside SendCtSliceToPlanar
+		SendCtSliceToPlanar();
+		SendDoseSliceToPlanar();			// keep isodose curves on the new slice
+		SendContoursToPlanar();				// ...and the structure contours
+	}
+	else if (tok[0] == _T("wl") && tok.GetSize() >= 3)
+	{
+		// vtk colorWindow -> GDI window (see SendCtSliceToPlanar)
+		m_wndPlanarView.m_window[0] = (REAL)(_wtof(tok[1]) / 2.0);
+		m_wndPlanarView.m_level[0] = (REAL)_wtof(tok[2]);
+	}
 #endif
 }
 
@@ -408,8 +667,37 @@ int
 
 	m_wndPlanarView.SetWindowLevel((REAL) 1.0 / 0.8, 0.4, 1);
 
+	// WebView2 + vtk.js replacement for the GDI planar view. The vtk.js bundle is
+	//	too large to inline, so it is served from a webassets folder deployed next
+	//	to the exe and exposed to the page through a virtual host mapping. The GDI
+	//	m_wndPlanarView stays alive (it still receives Series/dose pointers) but is
+	//	hidden beneath the web view; slice pixels are pushed to the page instead.
+	//	Set BRIMSTONE_LEGACY_PLANAR=1 to skip the web view and keep the GDI view
+	//	visible (side-by-side verification of the vtk.js rendering).
+	wchar_t legacyPlanar[8] = { 0 };
+	const bool bLegacyPlanar =
+		GetEnvironmentVariableW(L"BRIMSTONE_LEGACY_PLANAR", legacyPlanar, 8) > 0
+		&& legacyPlanar[0] != L'0';
+	if (!bLegacyPlanar)
+	{
+		wchar_t exePath[MAX_PATH] = { 0 };
+		GetModuleFileNameW(NULL, exePath, MAX_PATH);
+		std::wstring dir(exePath);
+		const size_t slash = dir.find_last_of(L"\\/");
+		if (slash != std::wstring::npos)
+			dir.resize(slash);
+		const std::wstring assets = dir + L"\\webassets\\planar";
+
+		m_webPlanar.Create(NULL, NULL, WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+			CRect(0, 0, 200, 200), this, /* nID */ 117);
+		m_webPlanar.SetMessageHandler([this](const std::wstring& m) { OnPlanarMessage(m); });
+		m_webPlanar.SetVirtualHostMapping(L"planar.assets", assets.c_str());
+		m_webPlanar.Navigate(L"https://planar.assets/index.html");
+		m_wndPlanarView.ShowWindow(SW_HIDE);
+	}
+
 	// create the graph window
-	m_graphDVH.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS, 
+	m_graphDVH.Create(NULL, NULL, WS_BORDER | WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
 		CRect(0, 200, 200, 400), this, /* nID */ 113);
 
 	m_graphDVH.SetLegendLUT(m_arrColormap,
@@ -489,6 +777,13 @@ void
 	}
 	m_wndPlanarView.Invalidate(TRUE);
 
+	// open the vtk.js planar view on the isocenter's axial plane (not just the
+	//	middle slice), then push that CT slice and any current dose isocurves
+	SetPlanarSliceToIsocenter();
+	SendCtSliceToPlanar();
+	SendDoseSliceToPlanar();
+	SendContoursToPlanar();
+
 	// set the initial view center
 	m_wndPlanarView.InitZoomCenter();
 	if (GetDocument()->m_pPlan
@@ -526,6 +821,10 @@ void
 	CView::OnSize(nType, cx, cy);
 
 	m_wndPlanarView.MoveWindow(0, 0, 5 * cx / 8, cy);
+
+	// vtk.js planar view occupies the same left region, over the GDI planar view
+	if (m_webPlanar.GetSafeHwnd() != NULL)
+		m_webPlanar.MoveWindow(0, 0, 5 * cx / 8, cy);
 
 	// reposition the graph window
 	m_graphDVH.MoveWindow(5 * cx / 8, 0, 3 * cx / 8, cy / 2);
@@ -636,6 +935,7 @@ LRESULT
 	{
 		GetDocument()->m_pOptimizer->SetStateVectorToPlan(pOID->m_vParam);
 		SendDvhCurvesToDvh();
+		SendDoseSliceToPlanar();		// refresh isodose curves with the final dose
 		RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 

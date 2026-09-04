@@ -1,0 +1,2 @@
+# Vendored third-party bundle: keep byte-for-byte, no EOL normalization or diff
+Brimstone/webassets/planar/vtk.js -text -diff
