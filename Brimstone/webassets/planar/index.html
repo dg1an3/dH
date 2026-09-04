@@ -15,9 +15,11 @@
   in one true world frame, so the display flip keeps them aligned.
 
   host -> page:
-    setSliceF32(w, h, sx, sy, window, level, base64)   axial CT scalars (float32 LE)
+    setSliceF32(w, h, sx, sy, window, level, base64, z)   axial CT scalars (float32 LE)
+      window is vtk's colorWindow (full black..white span), i.e. 2x the GDI window
     setDose(w, h, sx, sy, offx, offy, levelsCsv, base64)   dose slice -> isodose lines
-    setContours(...) (TODO) structure contours
+    setContours([{c:"#rrggbb", p:[[x0,y0,x1,y1,...], ...]}, ...])
+      visible structures' closed contours on this slice, page-frame mm
   page -> host (window.chrome.webview.postMessage):
     "slice|<+1|-1>"    wheel-scrolled one source slice up/down
     "wl|<window>|<level>"  window/level changed by drag
@@ -74,7 +76,9 @@
   //	image row 0 at the top (radiologic / GDI orientation) with x still to the
   //	right (no left/right mirror). Re-applied every setSliceF32.
   function frameCamera(){
-    renderer.resetCamera();
+    // frame the CT slice itself, not the union of every prop (a contour or
+    //	isodose vertex outside the image must not zoom the view out)
+    renderer.resetCamera(imageData.getBounds());
     var cam=renderer.getActiveCamera();
     var f=cam.getFocalPoint(), d=cam.getDistance();
     cam.setViewUp(0,-1,0);
@@ -89,9 +93,11 @@
     return new Float32Array(buf);
   }
 
-  window.setSliceF32=function(w,h,sx,sy,window_,level_,b64){
+  var sliceZ=null;
+  window.setSliceF32=function(w,h,sx,sy,window_,level_,b64,z){
     try{
       win=window_; lev=level_;
+      sliceZ=(z===undefined)?null:z;
       var vals=b64ToFloat32(b64);
       var scalars=V.Common.Core.vtkDataArray.newInstance(
         {name:'ct', numberOfComponents:1, values:vals});
@@ -104,9 +110,55 @@
       if(!haveActor){ renderer.addActor(actor); haveActor=true; }
       frameCamera();
       renderWindow.render();
-      hud.textContent='CT '+w+'x'+h;
+      ctInfo='CT '+w+'x'+h+(sliceZ===null?'':'   Z = '+sliceZ);
+      updateHud();
       showErr('');
     }catch(e){ showErr('setSlice: '+e.message); }
+  };
+  var ctInfo='', contourInfo='';
+  function updateHud(){ hud.textContent=ctInfo+(contourInfo?'\n'+contourInfo:''); }
+
+  // --- structure contours ------------------------------------------------------
+  // one actor per structure holding all its closed polylines on this slice, drawn
+  //	just in front of the isodose lines (camera looks along -z from below)
+  var contourActors=[];
+  window.setContours=function(list){
+    try{
+      contourActors.forEach(function(a){ renderer.removeActor(a); });
+      contourActors=[];
+      var nPoly=0, bx0=Infinity, by0=Infinity, bx1=-Infinity, by1=-Infinity;
+      (list||[]).forEach(function(s){
+        var pts=[], lines=[], np=0;
+        (s.p||[]).forEach(function(poly){
+          var n=poly.length>>1; if(n<2) return;
+          nPoly++;
+          var start=np;
+          for(var k=0;k<n;k++){
+            var x=poly[2*k], y=poly[2*k+1];
+            if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y;
+            pts.push(x,y,-0.02); np++;
+          }
+          lines.push(n+1);
+          for(var k=0;k<n;k++) lines.push(start+k);
+          lines.push(start);          // close the loop
+        });
+        if(np===0) return;
+        var pd=V.Common.DataModel.vtkPolyData.newInstance();
+        pd.getPoints().setData(Float32Array.from(pts),3);
+        pd.getLines().setData(Uint32Array.from(lines));
+        var m=V.Rendering.Core.vtkMapper.newInstance(); m.setInputData(pd);
+        var a=V.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
+        var c=parseInt((s.c||'#ffffff').slice(1),16);
+        var pr=a.getProperty();
+        pr.setColor(((c>>16)&255)/255, ((c>>8)&255)/255, (c&255)/255);
+        pr.setLineWidth(2);
+        renderer.addActor(a); contourActors.push(a);
+      });
+      contourInfo = nPoly ? (nPoly+' contour'+(nPoly>1?'s':'')) : 'no contours on slice';
+      updateHud();
+      renderWindow.render();
+      showErr('');
+    }catch(e){ showErr('setContours: '+e.message); }
   };
 
   // --- isodose curves ---------------------------------------------------------

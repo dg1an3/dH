@@ -82,6 +82,10 @@ public:
 	// set m_planarSliceK to the CT slice containing the beam isocenter's z-plane
 	void SetPlanarSliceToIsocenter();
 	void OnPlanarMessage(const std::wstring & msg);
+	// push the visible structures' contours on the current slice so the page
+	//	can draw them over the CT (also called by the prescription toolbar when
+	//	a structure's visibility is toggled)
+	void SendContoursToPlanar();
 
 // Operations
 public:
