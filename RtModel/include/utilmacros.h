@@ -9,6 +9,33 @@
 #define UTILMACROS_H
 
 //////////////////////////////////////////////////////////////////////
+// Debug macros
+//
+// MFC-free replacements for ASSERT / TRACE.  Call sites use assert()
+// directly; RTM_TRACE mirrors the old TRACE -- printf-style, and
+// compiled out entirely in release builds.
+//////////////////////////////////////////////////////////////////////
+
+#include <cassert>
+#include <cstdio>
+
+#ifndef _DEBUG
+#define RTM_TRACE(...) ((void) 0)
+#elif defined(_WIN32)
+// routed to the debugger output window, as TRACE was
+#define RTM_TRACE(...)									\
+{														\
+	char _rtmTraceBuf[1024];							\
+	_snprintf_s(_rtmTraceBuf, sizeof(_rtmTraceBuf),		\
+		_TRUNCATE, __VA_ARGS__);						\
+	::OutputDebugStringA(_rtmTraceBuf);					\
+}
+#else
+#define RTM_TRACE(...) \
+	std::fprintf(stderr, __VA_ARGS__)
+#endif
+
+//////////////////////////////////////////////////////////////////////
 // Macros for attributes
 //////////////////////////////////////////////////////////////////////
 
@@ -116,37 +143,6 @@ public:										\
 
 #define EndNamespace(NAME) }
 
-//////////////////////////////////////////////////////////////////////
-// Macros for serialization
-//////////////////////////////////////////////////////////////////////
-
-#define SERIALIZE_VALUE(ar, value) \
-	if (ar.IsLoading())				\
-	{								\
-		ar >> value;				\
-	}								\
-	else							\
-	{								\
-		ar << value;				\
-	}
-
-#define SerializeValue(ar, value) \
-	if (ar.IsLoading())				\
-	{								\
-		ar >> value;				\
-	}								\
-	else							\
-	{								\
-		ar << value;				\
-	}
-
-#define SERIALIZE_ARRAY(ar, array) \
-	if (ar.IsLoading())				\
-	{								\
-		array.RemoveAll();			\
-	}								\
-	array.Serialize(ar);
-
 
 
 #define CHECK_HRESULT(call) \
@@ -164,7 +160,7 @@ public:										\
 	HRESULT hr = (Cmd); \
 	if (FAILED(hr))		\
 	{					\
-		TRACE("COM Command Failed -- Error %x\n", hr); \
+		RTM_TRACE("COM Command Failed -- Error %x\n", hr); \
 		return hr;		\
 	}					\
 }
@@ -176,25 +172,6 @@ if (!(expr))				\
 }
 
 
-//////////////////////////////////////////////////////////////////////
-// Macros for trace dumps
-//////////////////////////////////////////////////////////////////////
-
-#define CREATE_TAB(LENGTH) \
-	CString TAB; \
-	while (TAB.GetLength() < LENGTH * 2) \
-		TAB += "\t\t"
-
-#define DC_TAB(DUMP_CONTEXT) \
-	DUMP_CONTEXT << TAB
-
-#define PUSH_DUMP_DEPTH(DUMP_CONTEXT) \
-	int OLD_DUMP_DEPTH = DUMP_CONTEXT.GetDepth(); \
-	DUMP_CONTEXT.SetDepth(OLD_DUMP_DEPTH + 1)
-
-#define POP_DUMP_DEPTH(DUMP_CONTEXT) \
-	DUMP_CONTEXT.SetDepth(OLD_DUMP_DEPTH)
-
 // prevent re-definition of these
 #ifndef LOG_MACROS_DEFINED
 #define LOG_MACROS_DEFINED
@@ -204,34 +181,19 @@ if (!(expr))				\
 #define LOG_HRESULT(call) \
 {							\
 	HRESULT hr = call;		\
-	ATLASSERT(SUCCEEDED(hr));	\
+	assert(SUCCEEDED(hr));	\
 }
 
 // log file utilities
 #define BeginLogSection(section_name) { \
-	LPCTSTR __section_name = section_name; \
-	CString __formatMessage; \
-	__formatMessage.Format(_T("<log_section name=\"%s\">"), __section_name); \
-	OutputDebugString(__formatMessage.GetBuffer());
+	RTM_TRACE("<log_section name=\"%s\">", section_name);
 
 #define EndLogSection() \
-	OutputDebugString(_T("</log_section>\n")); }
+	RTM_TRACE("</log_section>\n"); }
 
-#define Log OutputDebugString
+#define Log(message) RTM_TRACE("%s", message)
 
 #endif
-
-// profile flag to control behavior
-#define PROFILE_FLAG(Section, Key) \
-	static BOOL bInit = FALSE;		\
-	static BOOL bShow = FALSE;		\
-	if (!bInit)						\
-	{								\
-		bShow =						\
-			(BOOL) ::AfxGetApp()->GetProfileInt(Section, Key, 0);	\
-		bInit = TRUE;				\
-	}								\
-	if (bShow)				
 
 
 #endif
