@@ -19,3 +19,5 @@ python/*.log
 # Amortized course-prior prototype: regenerable sample corpora.
 # Built by python/examples/generate_amortized_data.py.
 data/amortized_samples/
+# CMake build trees (CMakePresets.json binaryDir)
+build/
