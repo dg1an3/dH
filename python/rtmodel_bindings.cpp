@@ -24,6 +24,18 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
+// --- the rest of what RtModel/stdafx.h provides to every RtModel TU ----------
+// The public headers use DeclareMember / DECLARE_ATTRIBUTE_PTR* (UtilMacros.h),
+// CMatrixNxM (MatrixNxM.h) and the VolumeReal typedefs (ItkUtils.h) without
+// including them, exactly as they rely on the MFC headers above. These come
+// AFTER pybind11: the utility headers define short, unprefixed macros that
+// break pybind11's own templates if they are visible first.
+#include <math.h>
+#include <UtilMacros.h>
+#include <MatrixNxM.h>
+#include <itkVector.h>
+#include <ItkUtils.h>
+
 // RtModel includes
 #include "Prescription.h"
 #include "Plan.h"

@@ -89,6 +89,9 @@ if(DH_USE_IPP)
 endif()
 
 # --- targets -----------------------------------------------------------------
+# enable_testing() must be at the top level for ctest to see subdirectory tests
+enable_testing()
+
 add_subdirectory(RtModel)
 add_subdirectory(Graph)
 
