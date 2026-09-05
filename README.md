@@ -98,8 +98,7 @@ dH/
 ├── PenBeam_indens/     # Pencil beam in-density
 ├── PenBeamEdit/        # Pencil beam editor
 ├── OptimizeN/          # N-dimensional optimizer
-├── CLAUDE.md           # Detailed development guidance
-└── CYTHON_WRAPPER_DESIGN.md  # Python wrapper design
+└── CLAUDE.md           # Detailed development guidance
 ```
 
 ## Getting Started
@@ -140,7 +139,7 @@ Build using `Brimstone_src.sln` in Visual Studio.
 
 - **[CLAUDE.md](CLAUDE.md)** - Development guidance and architecture
 - **[python/README.md](python/README.md)** - Python wrapper documentation and examples
-- **[CYTHON_WRAPPER_DESIGN.md](CYTHON_WRAPPER_DESIGN.md)** - Python binding architecture
+- **[docs/CYTHON_WRAPPER_DESIGN.md](docs/CYTHON_WRAPPER_DESIGN.md)** - Python binding architecture
 - **[docs/](docs/)** - Additional technical documents and research notes
 
 ## Algorithm Details
