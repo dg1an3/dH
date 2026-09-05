@@ -1,0 +1,66 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2022-x64",
+      "displayName": "VS 2022 x64 (vcpkg installed tree)",
+      "description": "Uses the classic C:/vcpkg installed tree (x64-windows) that Brimstone_src.sln already relies on. Override with -DCMAKE_TOOLCHAIN_FILE=<other vcpkg>/scripts/buildsystems/vcpkg.cmake if vcpkg lives elsewhere.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "VCPKG_MANIFEST_MODE": "OFF",
+        "DH_USE_IPP": "ON"
+      }
+    },
+    {
+      "name": "vs2022-x64-manifest",
+      "displayName": "VS 2022 x64 (vcpkg manifest)",
+      "description": "Builds ITK/VXL/DCMTK/WebView2 from vcpkg.json into build/. Slow first configure (ITK from source); for clean machines and CI.",
+      "inherits": "vs2022-x64",
+      "cacheVariables": {
+        "VCPKG_MANIFEST_MODE": "ON"
+      }
+    },
+    {
+      "name": "vs2022-x64-noipp",
+      "displayName": "VS 2022 x64 without Intel IPP",
+      "inherits": "vs2022-x64",
+      "cacheVariables": {
+        "DH_USE_IPP": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "vs2022-x64-release",
+      "configurePreset": "vs2022-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "vs2022-x64-debug",
+      "configurePreset": "vs2022-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vs2022-x64-manifest-release",
+      "configurePreset": "vs2022-x64-manifest",
+      "configuration": "Release"
+    },
+    {
+      "name": "vs2022-x64-noipp-release",
+      "configurePreset": "vs2022-x64-noipp",
+      "configuration": "Release"
+    }
+  ]
+}
