@@ -19,3 +19,12 @@ python/*.log
 # Amortized course-prior prototype: regenerable sample corpora.
 # Built by python/examples/generate_amortized_data.py.
 data/amortized_samples/
+
+# UMAP inventory-embedding artifacts: regenerable from the pipeline scripts
+# in python/umap/ (see python/umap/README.md). Not checked in — build locally.
+python/class_embeddings.json
+python/component_embeddings.json
+python/umap/inventory_embeddings.npy
+python/umap/inventory_meta.json
+python/umap/umap_sweep.json
+python/umap/umap_viewer/data.json
