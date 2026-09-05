@@ -35,7 +35,7 @@ void
 	// Calculates pencil beams given the density matrix
 {
 	// TODO: check that dose matrix is initialized
-	ASSERT(m_pBeam->m_dose->GetBufferedRegion().GetSize()[0] > 0);
+	assert(m_pBeam->m_dose->GetBufferedRegion().GetSize()[0] > 0);
 
 	m_densityRep = VolumeReal::New();
 	ConformTo<VOXEL_REAL,3>(m_pBeam->m_dose, m_densityRep);
@@ -117,10 +117,7 @@ void CBeamDoseCalc::CalcBeamlet(int nBeamlet)
 
 	// convolve terma with energy deposition kernel to form dose
 	int nSlice = Round<int>(m_vIsocenter_vxl[2]);
-	CString strSlice;
-	strSlice.Format(_T("Calc dose for slice %i\n"), nSlice);
-	TRACE(strSlice);
-	// ::AfxMessageBox(strSlice);
+	RTM_TRACE("Calc dose for slice %i\n", nSlice);
 	m_pEnergy = m_pKernel->CalcSphereConvolve(m_densityRep, m_pTerma, Round<int>(m_vIsocenter_vxl[2]));
 
 #ifdef USE_2D

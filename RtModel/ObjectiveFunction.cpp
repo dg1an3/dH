@@ -64,7 +64,7 @@ void
 void DynamicCovarianceCostFunction::Transform(CVectorN<> *pvInOut) const
 {
 	// default is identity transform
-	ASSERT(false);
+	assert(false);
 
 }	// CObjectiveFunction::Transform
 
@@ -88,7 +88,7 @@ void DynamicCovarianceCostFunction::dTransform(CVectorN<> *pvInOut) const
 void DynamicCovarianceCostFunction::InvTransform(CVectorN<> *pvInOut) const
 {
 	// default is identity transform
-	ASSERT(false);
+	assert(false);
 
 }	// CObjectiveFunction::InvTransform
 

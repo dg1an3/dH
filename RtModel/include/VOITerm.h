@@ -1,5 +1,7 @@
 // Copyright (C) 2nd Messenger Systems - U. S. Patent 7,369,645
 // $Id: VOITerm.h 640 2009-06-13 05:06:50Z dglane001 $
+#include <vector>
+
 #include <HistogramGradient.h>
 
 #pragma once
@@ -33,8 +35,7 @@ public:
 	DECLARE_ATTRIBUTE(Weight, REAL);
 
 	// over-ride for real terms
-	/// TODO: change CArray to std::vector
-	virtual REAL Eval(CVectorN<> *pvGrad, const CArray<BOOL, BOOL>& arrInclude) = 0;
+	virtual REAL Eval(CVectorN<> *pvGrad, const std::vector<BOOL>& arrInclude) = 0;
 
 	// helper to create pyramid - constructs a copy, except with nScale + 1
 	virtual VOITerm *Clone() = 0;
