@@ -10,6 +10,8 @@ data requirements), `docs/amortized_optimization_and_sigma_estimation.md`
 `notes/entropy_weight_sweep.md` (the current free-energy objective).
 
 ```
+0. Build consolidation: one CMake tree, retire the legacy solutions
+      |
 1. 2D fluence maps (true 3D planning)
    1b. Beamlet generation with the original Fortran convolution (containerized)
       |
@@ -19,10 +21,132 @@ data requirements), `docs/amortized_optimization_and_sigma_estimation.md`
 3. Free energy -> active inference (adaptive replanning)
 ```
 
-Step 2 needs step 1 because plans optimized under the current coplanar beam
-model are not reusable as priors or initializations for the 3D model. Step 3
-needs step 2 because active inference is only meaningful with an observation
-loop, and multi-phase per-patient data is what supplies it.
+Step 0 is not algorithmic but it gates the rest: the plan library needs a
+headless, scriptable build of the optimizer, and every later step adds
+sources to a tree that currently has three ways to build the same code. Step
+2 needs step 1 because plans optimized under the current coplanar beam model
+are not reusable as priors or initializations for the 3D model. Step 3 needs
+step 2 because active inference is only meaningful with an observation loop,
+and multi-phase per-patient data is what supplies it.
+
+## 0. Build consolidation and repo cleanup
+
+### What exists
+
+Three overlapping build systems for the same sources, plus a large legacy
+tail:
+
+- **The live build** is `Brimstone_src.sln` with three v143 `.vcxproj`
+  files (`RtModel` static lib, `Graph` static lib, `Brimstone` MFC exe),
+  C++17, Unicode, dynamic MFC. External dependencies are wired by absolute
+  paths in the project files: ITK 5.4 and VXL/VNL from
+  `C:\vcpkg\installed\x64-windows`, Intel oneAPI IPP from
+  `C:\Program Files (x86)\Intel\oneAPI\ipp\latest`, and WebView2 through
+  vcpkg's user-wide MSBuild integration plus a `#pragma comment(lib)` in
+  `WebView2Host.cpp`. Post-build steps copy the kernel `.dat` files, the IPP
+  DLLs, and `webassets/` next to the exe. The Debug configuration still
+  lists ITK 4.3 and DCMTK library names, so Debug and Release do not agree
+  on dependencies.
+- **`python/CMakeLists.txt`** builds a pybind11 module by globbing
+  `RtModel/*.cpp` a second time, with `find_package(ITK)` and
+  `find_package(VXL)`. It is the only place RtModel is described in CMake.
+  `python/setup.py` is a third description of the same link line, reading
+  paths from environment variables. `BUILD_NATIVE.md` documents the
+  two-step "msbuild RtModel, then pip install" dance this causes.
+- **`WarpTps/`** has its own modern CMake tree (C++17, vcpkg manifest,
+  MFC option, output-dir layout). It is the pattern to copy.
+- **Legacy**: ten `.sln` files, about 70 `.vcproj` / `.dsp` / `.dsw` files
+  across `RT_MODEL`, `OPTIMIZER_BASE`, `VecMat`, `MTL`, `FTL`, `GEOM_*`,
+  `VSIM_*`, `XMLLogging`, `FieldCOM`, `DivFluence`, `PenBeamEdit`, and the
+  `*_original` copies. None of them build with a current toolset and none
+  are referenced by the live solution. `docs/REORGANIZATION_PLAN.md`
+  already proposes moving them under `foundation/` and `tools/`; it has not
+  been executed.
+- No CI. Nothing checks that the tree builds.
+
+### Target
+
+One CMake project at the repo root that generates the Visual Studio
+solution and drives every build:
+
+```
+CMakeLists.txt                 project(dH), options, vcpkg toolchain, presets
+vcpkg.json                     itk, vxl, dcmtk, webview2, pybind11, (gtest)
+cmake/                         FindIPP.cmake, MFC helpers, deploy helpers
+RtModel/CMakeLists.txt         add_library(RtModel STATIC ...) + usage reqs
+Graph/CMakeLists.txt           add_library(Graph STATIC ...)
+Brimstone/CMakeLists.txt       add_executable(Brimstone WIN32 ...), MFC,
+                               resources, post-build deploy of kernels,
+                               webassets, IPP/WebView2 DLLs
+python/CMakeLists.txt          pybind11_add_module linking the RtModel target
+                               (no second glob, no setup.py link line)
+tools/PenBeam_indens/          unchanged (Fortran, container)
+WarpTps/                       add_subdirectory, its CMake already exists
+tests/                         RtModelSmokeTest and future unit tests as
+                               CTest targets
+```
+
+`Brimstone_src.sln` becomes a generated artifact under `build/` and is
+deleted from the tree together with the three `.vcxproj` files once the
+CMake build produces an identical exe.
+
+### Design decisions
+
+- **vcpkg manifest mode** (`vcpkg.json` + `CMakePresets.json` pointing at
+  the vcpkg toolchain) replaces the absolute `C:\vcpkg\installed` paths.
+  The ITK/VXL/WebView2 versions get pinned in one place and a fresh clone
+  builds without hand-edited project files.
+- **IPP stays an optional dependency** behind `option(DH_USE_IPP)`. It is
+  the one dependency with no vcpkg port; `FindIPP.cmake` locates the oneAPI
+  install and the code already guards on `USE_IPP`. Building without it is
+  the path to a Linux/container build of `RtModel` for the headless plan
+  library, which is what step 2 needs.
+- **MFC via CMake**: `set(CMAKE_MFC_FLAG 2)` on the `Brimstone` target and
+  the `MultiThreaded$<$<CONFIG:Debug>:Debug>DLL` runtime, as `WarpTps`
+  already does. `RtModel` and `Graph` should lose their MFC dependency
+  (`CString`, `CArray` uses) over time so the core builds without it; that
+  is a separate cleanup, not a blocker for step 0.
+- **Compile definitions** move to `target_compile_definitions` with the
+  current set (`USE_RTOPT`, `USE_IPP`, `NOMINMAX`, `SBYTE_DEFINED`,
+  `_CRT_SECURE_NO_WARNINGS`) so Debug and Release cannot drift apart again.
+- **Deploy step** as a CMake `add_custom_command(POST_BUILD)` for the
+  kernel `.dat` files and `webassets/`, and `$<TARGET_RUNTIME_DLLS>` or
+  vcpkg's applocal deploy for WebView2 and IPP DLLs.
+- **Repo layout** follows `docs/REORGANIZATION_PLAN.md` for the legacy
+  tail: `foundation/` and `tools/`, `*_original` copies deleted (they are
+  in git history), and a `legacy/README.md` explaining that the `.dsp`/
+  `.vcproj` files are kept for reference and do not build. Do the moves in
+  the same PR series as the CMake work so the new tree never references
+  the old locations.
+
+### Execution order
+
+1. Add root `CMakeLists.txt`, `vcpkg.json`, `CMakePresets.json`, and the
+   three target files; keep `Brimstone_src.sln` until parity is shown.
+2. Parity check: build both, run `run_brimstone_knee_7beam.bat` against
+   the CMake-built exe, and confirm the converged objective matches. Run
+   `RtModelSmokeTest` as a CTest target.
+3. Point `python/` at the `RtModel` target; delete the RtModel glob and
+   the link logic in `setup.py`; update `BUILD_NATIVE.md` to a single
+   `cmake --preset` command.
+4. Move the legacy directories per the reorganization plan; delete
+   `*_original`; delete the old `.sln`/`.vcxproj` files for the live
+   targets.
+5. Add a GitHub Actions workflow: windows-latest, vcpkg cache, configure +
+   build Release x64, run the smoke test. Without IPP at first.
+6. Update `CLAUDE.md` and `README.md` build sections.
+
+### Open questions
+
+- Whether to keep the `Brimstone_original` / `Graph_original` /
+  `VecMat_original` copies anywhere. Recommendation: delete; git history
+  has them and `DEVELOPMENT_TIMELINE.md` records their role.
+- IPP replacement. The IPP calls are a small surface (`SphereConvolve`,
+  resampling); an ITK or plain-loop fallback would remove the last
+  non-vcpkg dependency and unlock a Linux `RtModel` for containers.
+- WebView2 SDK versioning: the vcpkg `webview2` port versus the NuGet
+  package. Pin whichever the CMake build uses and record it in
+  `vcpkg.json`.
 
 ## 1. Extend planning to 3D
 
@@ -202,9 +326,9 @@ on synthetic cases are training data, not evidence about patients.
   likely integration is the reverse: a Morphome script that exports cases
   for dH. If that changes, add it as a submodule then.
 
-Prerequisite either way: push `morphome-hn-vae` to GitHub. It currently has
-no remote, so it is one disk failure from gone, and a submodule reference
-needs a URL.
+Either way the repo needs a hosted remote. Done 2026-09-04: pushed to
+https://github.com/dg1an3/morphome-hn-vae (private), so a submodule
+reference is possible later if the coupling changes.
 
 **Integration work (in dH, `python/morphome_bridge/`).**
 
@@ -320,7 +444,9 @@ a posterior. Both are addressed by steps 1 and 2 above.
 
 ## Immediate next steps
 
-1. Push `morphome-hn-vae` to GitHub (it has no remote).
+1. Root CMake tree with vcpkg manifest for `RtModel`, `Graph`, `Brimstone`;
+   parity-check the exe against `Brimstone_src.sln` with the knee
+   automation (section 0, steps 1 and 2).
 2. Build the PenBeam container and time one run; decide whether the
    aperture-loop change to the Fortran main program is needed (section 1b).
 3. Decide the 2D fluence representation and beamlet storage strategy
@@ -328,3 +454,6 @@ a posterior. Both are addressed by steps 1 and 2 above.
 4. Export one `lung1_3.0mm` case from the Morphome cache as DICOM CT +
    RTSTRUCT and run it through the current coplanar model as a baseline
    for timing and memory, using the existing automation.
+
+Done: `morphome-hn-vae` pushed to https://github.com/dg1an3/morphome-hn-vae
+(private) on 2026-09-04.
