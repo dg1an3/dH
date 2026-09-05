@@ -11,8 +11,10 @@ data requirements), `docs/amortized_optimization_and_sigma_estimation.md`
 
 ```
 1. 2D fluence maps (true 3D planning)
+   1b. Beamlet generation with the original Fortran convolution (containerized)
       |
 2. Morphome thorax plan library
+   2a. Morphome data + repo integration
       |
 3. Free energy -> active inference (adaptive replanning)
 ```
@@ -82,6 +84,70 @@ loop, and multi-phase per-patient data is what supplies it.
   for side-by-side checks. The view needs a sagittal/coronal option once
   fluence is 2D.
 
+## 1b. Beamlet generation with the original Fortran convolution
+
+### What exists
+
+- `PenBeam_indens/code/*.for` is the 1988 Wisconsin (Rock Mackie) pencil
+  beam code: `ray_trace_set_up`, `mydiv_fluence_calc` (TERMA),
+  `mynew_sphere_convolve` (spherical superposition/convolution),
+  `energy_lookup` / `interp_energy` (kernel), `myformat_write` (output).
+  `DEVELOPMENT_TIMELINE.md` records that `DivFluence/OrigDivFluence.cpp`,
+  `BeamDoseCalc`, and `SphereConvolve` are translations of it, so it is the
+  reference implementation for the C++ dose path.
+- A container build already exists: `PenBeam_indens/Dockerfile` (gcc:11 +
+  gfortran builder, debian-slim runtime), `PenBeam_indens/Makefile`, and the
+  `penbeam` / `penbeam-dev` services in the root `docker-compose.yml`.
+  Docker 29 is installed on the dev machine but the image has not been built.
+- I/O is file based: `code/penbeam_input.txt` (energy, phantom dims and
+  voxel size, SSD, field boundaries in both axes, region of interest),
+  kernel data in `code/coni/` (`6mv_example.dat`, `lang48rad48.dat`),
+  results in `code/cono/format_dose.dat` and `format_fluence.dat`.
+
+### Why use it for beamlets
+
+- The field boundaries in the input file are specified on both axes, so
+  the Fortran computes a true 3D pencil beamlet for an arbitrary
+  rectangular aperture. That is exactly the primitive the 2D fluence map in
+  section 1 needs, and it sidesteps extending the C++ beamlet generator
+  (which shifts a single in-plane pencil) until the 2D design is settled.
+- It is an independent oracle for the C++ `BeamDoseCalc` + `SphereConvolve`
+  beamlets, which have never been validated against their source.
+
+### Plan
+
+1. Build the image (`docker compose build penbeam`) and run the shipped
+   example input end to end; record wall time per run.
+2. Write a Python driver (`python/penbeam/`) that: renders a density grid
+   from a `Series` (or a Morphome cache case) into the phantom format the
+   Fortran reads; writes one `penbeam_input.txt` per beamlet with the
+   aperture set to that beamlet's cell; runs the container in batch (one
+   container, many inputs, mounted `coni`/`cono`); parses
+   `format_dose.dat` into a NumPy volume.
+3. Assemble per-beam beamlet stacks and hand them to the planner. Two
+   routes, pick after step 1's timing: (a) import as `CBeam` beamlets via
+   the Cython wrapper so the existing optimizer runs unchanged; (b) keep the
+   beamlet dose matrices on the Python side and use the
+   `pybrimstone` objective terms directly.
+4. Validate: compare a Fortran beamlet against the C++ beamlet for the same
+   geometry (same kernel, same density) before trusting either for the
+   library.
+
+### Open questions
+
+- Throughput. 7 beams x ~1.5k beamlets per plan means thousands of Fortran
+  runs per case; the density phantom read and kernel setup are repeated per
+  run unless the main program is modified to loop over apertures. A small
+  Fortran change (read a list of apertures, write one dose file each) is
+  likely worth it and keeps the physics untouched.
+- Divergent geometry and gantry rotation: the Fortran works in beam
+  coordinates. Density must be resampled into the beam frame per gantry
+  angle (the C++ side does this with `m_pBeamDoseRot`), and beamlet dose
+  rotated back.
+- Kernel consistency: `Brimstone/6MV_kernel.dat` versus
+  `coni/6mv_example.dat`. Confirm they derive from the same EGSnrc run
+  (`EGSnrc/` container) or regenerate both.
+
 ## 2. Morphome thorax plan library
 
 ### Purpose
@@ -99,15 +165,71 @@ Thorax first because respiratory motion supplies real intra-course
 variability, which `DATASETS.md` identifies as the hard constraint for the
 course prior, and which step 3 needs as its latent dynamics.
 
+### 2a. Morphome data and repo integration
+
+**Where things are (as of 2026-09-04).**
+
+| What | Location |
+|---|---|
+| Morphome code | `C:\dev_morphome\morphome-hn-vae` (local-only git repo, no remote, 8 commits, 69 MB `.git`; `runs/` holds 4.3 GB of gitignored checkpoints) |
+| Real HN source | `E:\datasets\medical\miccai_hn_sharpe` (PDDCA 1.4.1, 48 cases, 9 OARs) |
+| Real thorax source | `E:\datasets\medical\nsclc-radiomics` + `E:\datasets\medical\lung1_nrrd` (NSCLC-Radiomics / LUNG1, 422 cases) |
+| Real caches | `E:\datasets\medical\morphome_cache\hn_128_1.6mm`, `hn_dose_2.5mm`, `lung1_3.0mm` |
+| Synthetic corpora | `E:\datasets\medical\morphome_cache\hn_synth_v1`, `hn_synth_v3`, `lung1_synth_v1` (plus `*_viewer` bundles) |
+
+Nothing Morphome-related lives on `D:`. The synthetic corpora are not under
+the repo; `generate_dataset.py` writes them to the E: cache by default and the
+repo's `.gitignore` excludes `*.npz` / `*.nrrd`.
+
+**What Morphome provides that the library needs.** Each cache case is a CT
+plus consistent organ masks on a fixed isotropic grid: HN at 1.6 mm (and a
+2.5 mm "dose-capable" frame), thorax at 3.0 mm on a 224 x 160 x 96 grid sized
+so the body is never clipped (`morphome/profiles.py`). The synthetic corpora
+give hundreds of anatomically plausible cases with paired masks, which is
+what an optimization library needs and what real cohorts rarely have. The
+`generate_dataset.py` docstring is explicit that diversity saturates at the
+48 (HN) or LUNG1 real cases and that fine texture is invented; library plans
+on synthetic cases are training data, not evidence about patients.
+
+**Repo relationship: keep it separate, do not merge.** Reasons:
+
+- Morphome is a PyTorch generative-model project with its own venv, GPU
+  training runs, and data on E:. dH does not import any of it; the coupling
+  is a data contract (cache case format + grid profile), not code.
+- Merging 69 MB of history and a training stack into a C++/MFC repo would
+  make every dH clone carry it, and the two evolve on different cadences.
+- A submodule is only worth it if dH code will call Morphome modules. The
+  likely integration is the reverse: a Morphome script that exports cases
+  for dH. If that changes, add it as a submodule then.
+
+Prerequisite either way: push `morphome-hn-vae` to GitHub. It currently has
+no remote, so it is one disk failure from gone, and a submodule reference
+needs a URL.
+
+**Integration work (in dH, `python/morphome_bridge/`).**
+
+1. Cache reader: load a Morphome case (CT HU volume + mask channels +
+   `meta.json` grid) into the geometry dH expects.
+2. Mask to contour: the importer (`SeriesDicomImporter`) wants CT slices
+   plus an RTSTRUCT, and `Structure` stores per-slice polygons. Convert
+   each mask to per-slice contours (marching squares, simplify) and write a
+   DICOM CT series + RTSTRUCT with TG-263 names (`python/TG263_README.md`),
+   or add a direct NRRD/label-map path in the Cython wrapper and skip DICOM.
+   The DICOM route reuses the existing GUI/automation unchanged; the
+   direct route is faster for headless batch runs. Start with DICOM for the
+   first thorax case, switch once the batch driver exists.
+3. Targets: Morphome masks are OARs (plus body). The library needs a PTV
+   per case. For thorax, derive it from the LUNG1 GTV where present and
+   synthesize a GTV-in-lung for synthetic cases from the latent (Morphome
+   side), or use a fixed geometric target per case as a first pass.
+
 ### Data requirements
 
-- The importer (`SeriesDicomImporter`) needs CT slices plus an RTSTRUCT in
-  one folder. Open question: whether Morphome ships structure sets for the
-  thorax cases or contours are needed. The DVH page's structure editor and
-  the prescription toolbar assume named ROIs; TG-263 naming
-  (`python/TG263_README.md`) should be applied at import.
 - Multiple phases per patient (4D phases or repeat imaging) are needed for
-  steps 2b and 3. Single-phase cases still serve the amortization library.
+  steps 2b and 3. Single-phase cases, including all synthetic cases, still
+  serve the amortization library. Morphome's latent gives a second route to
+  variability: perturb a case's latent to produce anatomically plausible
+  "phases" of the same patient.
 
 ### Deliverables
 
@@ -198,9 +320,11 @@ a posterior. Both are addressed by steps 1 and 2 above.
 
 ## Immediate next steps
 
-1. Decide the 2D fluence representation and beamlet storage strategy
+1. Push `morphome-hn-vae` to GitHub (it has no remote).
+2. Build the PenBeam container and time one run; decide whether the
+   aperture-loop change to the Fortran main program is needed (section 1b).
+3. Decide the 2D fluence representation and beamlet storage strategy
    (section 1, scale consequences) before generating any library plans.
-2. Confirm Morphome thorax data contents: structure sets, phases per
-   patient, slice spacing.
-3. Run one full-series thorax case through the current coplanar model as a
-   baseline for timing and memory, using the existing automation.
+4. Export one `lung1_3.0mm` case from the Morphome cache as DICOM CT +
+   RTSTRUCT and run it through the current coplanar model as a baseline
+   for timing and memory, using the existing automation.
