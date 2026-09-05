@@ -74,7 +74,7 @@ void PlanOptimizer_Example_SetupPrescription_WithAdaptiveSigma(
 		pPresc->SetGBinVar(varMin, varMax);
 
 		// Log the estimated sigma
-		TRACE("Level %d: Adaptive Sigma = %.3f (was %.3f)\n",
+		RTM_TRACE("Level %d: Adaptive Sigma = %.3f (was %.3f)\n",
 			nLevel,
 			sigma,
 			DEFAULT_LEVELSIGMA[nLevel]);
@@ -91,11 +91,9 @@ void Example_PerStructureSigmaEstimation(CPlan* pPlan, Prescription* pPresc)
 	VolumeReal* pDose = pPlan->GetDoseMatrix();
 
 	// Iterate through all VOI terms
-	POSITION pos = pPresc->m_mapVOITs.GetStartPosition();
-	while (pos != NULL) {
-		Structure* pStruct = NULL;
-		VOITerm* pVOIT = NULL;
-		pPresc->m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+	for (auto& entry : pPresc->m_mapVOITs) {
+		Structure* pStruct = entry.first;
+		VOITerm* pVOIT = entry.second;
 
 		if (pStruct && pVOIT) {
 			// Estimate optimal sigma for this specific structure
@@ -105,7 +103,7 @@ void Example_PerStructureSigmaEstimation(CPlan* pPlan, Prescription* pPresc)
 				pVOIT);
 
 			// Log structure-specific recommendations
-			TRACE("Structure: %s, Recommended base sigma: %.3f\n",
+			RTM_TRACE("Structure: %s, Recommended base sigma: %.3f\n",
 				pStruct->GetName().c_str(),
 				structSigma);
 
@@ -152,7 +150,7 @@ public:
 		// If sigma changed significantly, update prescription
 		if (fabs(adaptedSigma - currentSigma) > 0.01) {
 			UpdatePrescriptionSigma(adaptedSigma);
-			TRACE("Level %d, Iter %d: Adapted sigma %.3f -> %.3f\n",
+			RTM_TRACE("Level %d, Iter %d: Adapted sigma %.3f -> %.3f\n",
 				m_level, m_iteration, currentSigma, adaptedSigma);
 		}
 
@@ -202,22 +200,22 @@ void Example_CompareDefaultVsAdaptive(CPlan* pPlan, Prescription* pPresc)
 		PlanPyramid::MAX_SCALES);
 
 	// Print comparison
-	TRACE("\n===== Sigma Comparison =====\n");
-	TRACE("Level | Default | Adaptive | Difference\n");
-	TRACE("------|---------|----------|------------\n");
+	RTM_TRACE("\n===== Sigma Comparison =====\n");
+	RTM_TRACE("Level | Default | Adaptive | Difference\n");
+	RTM_TRACE("------|---------|----------|------------\n");
 
 	for (int i = 0; i < PlanPyramid::MAX_SCALES; i++) {
 		REAL diff = adaptiveSigmas[i] - DEFAULT_LEVELSIGMA[i];
 		REAL pctDiff = 100.0 * diff / DEFAULT_LEVELSIGMA[i];
 
-		TRACE("  %d   |  %.3f  |  %.3f   | %+.3f (%+.1f%%)\n",
+		RTM_TRACE("  %d   |  %.3f  |  %.3f   | %+.3f (%+.1f%%)\n",
 			i,
 			DEFAULT_LEVELSIGMA[i],
 			adaptiveSigmas[i],
 			diff,
 			pctDiff);
 	}
-	TRACE("============================\n\n");
+	RTM_TRACE("============================\n\n");
 
 	// Could run optimization twice and compare results:
 	// 1. With DEFAULT_LEVELSIGMA
@@ -232,7 +230,7 @@ void Example_CompareDefaultVsAdaptive(CPlan* pPlan, Prescription* pPresc)
 void Example_RegistryControlledAdaptiveSigma(CPlan* pPlan, Prescription* pPresc)
 {
 	// Check registry key to enable/disable adaptive sigma
-	const CString ADAPTIVE_SIGMA_KEY = _T("UseAdaptiveSigma");
+	const std::string ADAPTIVE_SIGMA_KEY = "UseAdaptiveSigma";
 	BOOL bUseAdaptive = FALSE;
 
 	// Read from registry (would use GetProfileInt or similar)
@@ -248,14 +246,14 @@ void Example_RegistryControlledAdaptiveSigma(CPlan* pPlan, Prescription* pPresc)
 			pPresc,
 			PlanPyramid::MAX_SCALES);
 
-		TRACE("Using adaptive sigma estimation\n");
+		RTM_TRACE("Using adaptive sigma estimation\n");
 	} else {
 		// Use default hard-coded values
 		const REAL DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25};
 		sigmas.assign(DEFAULT_LEVELSIGMA,
 		              DEFAULT_LEVELSIGMA + PlanPyramid::MAX_SCALES);
 
-		TRACE("Using default sigma values\n");
+		RTM_TRACE("Using default sigma values\n");
 	}
 
 	// Continue with prescription setup using chosen sigmas...
@@ -270,49 +268,47 @@ void Example_DetailedSigmaAnalysis(CPlan* pPlan, Prescription* pPresc)
 	SigmaEstimator sigmaEst;
 	VolumeReal* pDose = pPlan->GetDoseMatrix();
 
-	TRACE("\n===== Structure-Based Sigma Analysis =====\n");
+	RTM_TRACE("\n===== Structure-Based Sigma Analysis =====\n");
 
 	// Analyze each structure
-	POSITION pos = pPresc->m_mapVOITs.GetStartPosition();
-	while (pos != NULL) {
-		Structure* pStruct = NULL;
-		VOITerm* pVOIT = NULL;
-		pPresc->m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+	for (auto& entry : pPresc->m_mapVOITs) {
+		Structure* pStruct = entry.first;
+		VOITerm* pVOIT = entry.second;
 
 		if (pStruct) {
-			TRACE("\nStructure: %s\n", pStruct->GetName().c_str());
+			RTM_TRACE("\nStructure: %s\n", pStruct->GetName().c_str());
 
 			// Individual estimates
 			REAL geomSigma = sigmaEst.EstimateFromGeometry(pStruct);
-			TRACE("  Geometry-based sigma: %.3f\n", geomSigma);
+			RTM_TRACE("  Geometry-based sigma: %.3f\n", geomSigma);
 
 			if (pDose) {
 				REAL gradSigma = sigmaEst.EstimateFromDoseGradient(pStruct, pDose);
-				TRACE("  Dose gradient sigma: %.3f\n", gradSigma);
+				RTM_TRACE("  Dose gradient sigma: %.3f\n", gradSigma);
 			}
 
 			if (pVOIT) {
 				REAL prescSigma = sigmaEst.EstimateFromPrescriptionRange(pVOIT);
-				TRACE("  Prescription sigma: %.3f\n", prescSigma);
+				RTM_TRACE("  Prescription sigma: %.3f\n", prescSigma);
 			}
 
 			REAL volSigma = sigmaEst.EstimateFromVolume(pStruct);
-			TRACE("  Volume-based sigma: %.3f\n", volSigma);
+			RTM_TRACE("  Volume-based sigma: %.3f\n", volSigma);
 
 			// Combined estimate
 			REAL combinedSigma = sigmaEst.EstimateStructureSigma(
 				pStruct, pDose, pVOIT);
-			TRACE("  Combined estimate: %.3f\n", combinedSigma);
+			RTM_TRACE("  Combined estimate: %.3f\n", combinedSigma);
 
 			// Additional metrics
 			REAL sphericity = sigmaEst.CalculateSphericity(pStruct);
 			REAL volume = sigmaEst.ApproximateVolume(pStruct);
-			TRACE("  Sphericity: %.3f, Volume: %.1f cc\n",
+			RTM_TRACE("  Sphericity: %.3f, Volume: %.1f cc\n",
 				sphericity, volume);
 		}
 	}
 
-	TRACE("\n==========================================\n");
+	RTM_TRACE("\n==========================================\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,7 +338,7 @@ void Example_HybridSigmaStrategy(CPlan* pPlan, Prescription* pPresc)
 			hybridSigmas[i] = DEFAULT_LEVELSIGMA[i];
 		}
 
-		TRACE("Level %d: Hybrid sigma = %.3f\n", i, hybridSigmas[i]);
+		RTM_TRACE("Level %d: Hybrid sigma = %.3f\n", i, hybridSigmas[i]);
 	}
 
 	// Use hybridSigmas in prescription setup...

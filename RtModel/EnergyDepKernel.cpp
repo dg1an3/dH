@@ -222,15 +222,14 @@ void
 //////////////////////////////////////////////////////////////////////
 void CEnergyDepKernel::LoadKernel()
 {
-	CString strFilename;
-
 	// form current path
-	HMODULE hCurrModule = ::GetModuleHandle(NULL);
-	::GetModuleFileName(hCurrModule, strFilename.GetBuffer(255), 255);
-	strFilename.ReleaseBuffer();
+	char szModulePath[MAX_PATH] = "";
+	::GetModuleFileNameA(::GetModuleHandle(NULL), szModulePath, MAX_PATH);
 
-	int nLastSlash = strFilename.ReverseFind('\\');
-	strFilename = strFilename.Left(nLastSlash);
+	std::string strFilename(szModulePath);
+	std::string::size_type nLastSlash = strFilename.find_last_of('\\');
+	if (nLastSlash != std::string::npos)
+		strFilename = strFilename.substr(0, nLastSlash);
 
 	if (IsApproxEqual(m_energy, 15.0))
 	{
@@ -250,15 +249,16 @@ void CEnergyDepKernel::LoadKernel()
 	}
 	else
 	{
-		ASSERT(FALSE);
+		assert(false);
 	}
 
 	// The dose spread arrays produced by SUM_ELEMENT.FOR are read.
 	FILE *pFile = NULL;
-	_tfopen_s(&pFile, strFilename, _T("rt"));
+	fopen_s(&pFile, strFilename.c_str(), "rt");
 	if (pFile == NULL)
 	{
-		::AfxMessageBox(_T("Problem reading kernel..."));
+		// NOTE: was ::AfxMessageBox -- a library must not raise UI
+		RTM_TRACE("Problem reading kernel: %s\n", strFilename.c_str());
 		return;
 	}
 

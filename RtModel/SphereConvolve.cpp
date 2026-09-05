@@ -124,7 +124,7 @@ void
 				// integer distances between the interaction and the dose depostion voxels
 				VolumeReal::IndexType indexKernel = index;
 				indexKernel -= m_pOffsetLUT->GetPixel(indexTrace);
-				ASSERT(GetTerma()->GetRequestedRegion().IsInside(indexKernel));
+				assert(GetTerma()->GetRequestedRegion().IsInside(indexKernel));
 
 				// compute physical path length increment (in cm)
 				REAL deltaPhysDist = m_pDistanceLUT->GetPixel(indexTrace);

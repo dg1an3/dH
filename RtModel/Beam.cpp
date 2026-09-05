@@ -147,7 +147,7 @@ void
 	Beam::OnIntensityMapChanged() 
 {
 	// must be odd-sized
-	ASSERT(m_vBeamletWeights->GetBufferedRegion().GetSize()[0] % 2 == 1);
+	assert(m_vBeamletWeights->GetBufferedRegion().GetSize()[0] % 2 == 1);
 
 	// set up the number of beamelts
 	if (m_vBeamletWeights->GetBufferedRegion().GetSize()[0] != m_arrBeamlets.size())

@@ -11,32 +11,31 @@ namespace dH
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// constants for access to the registry
-const CString REG_KEY			= _T("Prescription");
+// section name for settings access
+const char * const REG_KEY		= "Prescription";
 
 ///////////////////////////////////////////////////////////////////////////////
 /// TODO: move this to utils
-REAL 
-	GetProfileRealAt(const CString& strKey, int nAt, REAL defaultValue)
+REAL
+	GetProfileRealAt(const char *pszKey, int nAt, REAL defaultValue)
 {
-	USES_CONVERSION;
-	CString strKeyAt;
-	strKeyAt.Format(strKey, nAt);
-	return GetProfileReal(W2A(REG_KEY), W2A(strKeyAt), defaultValue);
+	char szKeyAt[128];
+	snprintf(szKeyAt, sizeof(szKeyAt), pszKey, nAt);
+	return GetProfileReal(REG_KEY, szKeyAt, defaultValue);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 // other constants + registry keys
 
-const CString GBINSIGMA_KEY		= _T("GBinSigma");
+const char * const GBINSIGMA_KEY	= "GBinSigma";
 const REAL DEFAULT_GBINSIGMA	= 0.2;
 
-const CString LEVELSIGMA_KEY	= _T("LevelSigma%i");
+const char * const LEVELSIGMA_KEY	= "LevelSigma%i";
 const REAL DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25}; // { 8.0, 4.0, 2.0, 1.0, 0.5 };
 
-const CString CGTOL_KEY			= _T("CGTolerance%i");
-const CString LINETOL_KEY		= _T("Tolerance%i");
+const char * const CGTOL_KEY		= "CGTolerance%i";
+const char * const LINETOL_KEY		= "Tolerance%i";
 
 // Per-level convergence tolerances, indexed by nLevel. IMPORTANT: level 0 is
 //	the FINEST resolution (0.5mm) and level MAX_SCALES-1 is the COARSEST (8mm)
@@ -226,11 +225,9 @@ bool
 			CVectorN<> dtDiag = vInit;
 			pPresc->dTransform(&dtDiag);
 			const REAL doseMax = GetMax<VOXEL_REAL>(pPresc->m_sumVolume);
-			CString __d;
-			__d.Format(_T("LEVELDIAG dim=%d F=%.6g KL=%.6g |gradF|=%.6g |dTransform|=%.6g doseMax=%.6g\n"),
+			RTM_TRACE("LEVELDIAG dim=%d F=%.6g KL=%.6g |gradF|=%.6g |dTransform|=%.6g doseMax=%.6g\n",
 				vInit.GetDim(), (double) fDiag, (double) pPresc->GetLastKL(),
 				(double) gDiag.GetLength(), (double) dtDiag.GetLength(), (double) doseMax);
-			OutputDebugString(__d);
 		}
 
 		// NOTE: this needs to be in the form of an initializer,
@@ -284,7 +281,7 @@ void
 		else
 		{
 			vInit[nAt] = R(0.001) / R(GetPlan()->GetBeamCount());
-			TRACE("Excluded element %n\n", nAt);
+			RTM_TRACE("Excluded element %d\n", nAt);
 		}
 	}
 
@@ -332,7 +329,7 @@ void
 	PlanOptimizer::InvFilterStateVector(int nScale, const CVectorN<>& vIn, CVectorN<>& vOut)
 	// transfers beamlet weights from level n-1 to level n
 {
-	ASSERT(&vIn != &vOut);
+	assert(&vIn != &vOut);
 	// TODO: make a member so don't have to re-initialize
 	//CMatrixNxM<> mBeamletWeights;
 	//StateVectorToBeamletWeights(nScale, vIn, mBeamletWeights);
@@ -380,13 +377,12 @@ void
 	PlanOptimizer::SetupPrescription()
 	// returns the given level of the pyramid
 {
-	USES_CONVERSION;
 
 	// create the pyramid
 	SetPyramid(new dH::PlanPyramid(GetPlan()));
 
 	// get main sigma parameter from registry
-	const REAL GBinSigma = GetProfileReal(W2A(REG_KEY), W2A(GBINSIGMA_KEY), DEFAULT_GBINSIGMA);
+	const REAL GBinSigma = GetProfileReal(REG_KEY, GBINSIGMA_KEY, DEFAULT_GBINSIGMA);
 
 	// form vector with levels of the presc object
 	m_arrPrescriptions.clear();
@@ -464,7 +460,7 @@ void
 	int nBeamletOffset = nBeamletCount / 2;
 	ConformTo<VOXEL_REAL>(pPlan->GetBeamAt(nBeam)->GetIntensityMap(), 
 		pIntensityMap);		// TODO: make this an ASSERT, as caller should be responsible for this
-	ASSERT(nBeamletCount == pIntensityMap->GetBufferedRegion().GetSize()[0]);
+	assert(nBeamletCount == pIntensityMap->GetBufferedRegion().GetSize()[0]);
 
 	for (int nAtElem = 0; nAtElem < vState.GetDim(); nAtElem++)
 	{
