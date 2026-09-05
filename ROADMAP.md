@@ -295,7 +295,7 @@ course prior, and which step 3 needs as its latent dynamics.
 
 | What | Location |
 |---|---|
-| Morphome code | `C:\dev_morphome\morphome-hn-vae` (local-only git repo, no remote, 8 commits, 69 MB `.git`; `runs/` holds 4.3 GB of gitignored checkpoints) |
+| Morphome code | `C:\dev_morphome\morphome-hn-vae`, pushed to https://github.com/dg1an3/morphome-hn-vae (private); `runs/` holds 4.3 GB of gitignored checkpoints |
 | Real HN source | `E:\datasets\medical\miccai_hn_sharpe` (PDDCA 1.4.1, 48 cases, 9 OARs) |
 | Real thorax source | `E:\datasets\medical\nsclc-radiomics` + `E:\datasets\medical\lung1_nrrd` (NSCLC-Radiomics / LUNG1, 422 cases) |
 | Real caches | `E:\datasets\medical\morphome_cache\hn_128_1.6mm`, `hn_dose_2.5mm`, `lung1_3.0mm` |
