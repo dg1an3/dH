@@ -267,15 +267,24 @@ A consolidated [File Formats](#file-formats-used) section follows the inventory.
   tables (`6mv_example.dat`, `lang48rad48.dat`); writes dose to `cono/` (`.dat`/binary).
 - **Depended on by:** Serves as the mathematical spec for DivFluence
 
-### python/ — ITK CT-density processing scripts
-- **Type:** Python scripts
-- **Purpose:** CT preprocessing — HU→mass-density conversion, beam-angle density rotation,
-  and a TERMA ray-tracing framework (`read_process_series.py`:
-  `ct_to_md_values`, `rotate_density_for_beam`, `terma_from_density`).
-- **Dependencies:** ITK Python bindings, NumPy.
+### python/ — ITK scripts, native bindings, and the `pybrimstone` package
+- **Type:** Python scripts + package
+- **Purpose:** Three distinct things. (1) CT preprocessing — HU→mass-density conversion,
+  beam-angle density rotation, and a TERMA ray-tracing framework (`read_process_series.py`:
+  `ct_to_md_values`, `rotate_density_for_beam`, `terma_from_density`). (2) `pybrimstone`,
+  a Python reimplementation and extension of the algorithm core: `numerics/` mirrors the
+  C++ (Polak-Ribière CG with adaptive variance, Gaussian-convolved DVHs, KL divergence,
+  sigmoid parameter transform), on top of which sit hierarchical-Bayes course priors,
+  amortized prior networks, DVH uncertainty bands, variational free-energy diagnostics,
+  and a TG-263 structure-name translator. (3) Tooling — pybind11/Cython bindings to
+  native RtModel, a pywinauto UI automation harness, and the UMAP inventory-embedding
+  pipeline in `umap/`.
+- **Dependencies:** ITK Python bindings, NumPy, PyTorch, pybind11, pywinauto, umap-learn,
+  scikit-learn.
 - **Data I/O:** Reads CT volumes via `itk.imread()` (e.g. `.nrrd`); produces density-
-  converted/rotated ITK images and accumulated TERMA volumes.
-- **Depended on by:** Nothing (preprocessing/prototype pipeline)
+  converted/rotated ITK images and accumulated TERMA volumes; reads/writes embedding
+  JSON and UMAP layout artifacts.
+- **Depended on by:** Nothing (preprocessing / prototype / research pipeline)
 
 ### notebook_zoo/ — Research notebooks
 - **Type:** Jupyter notebooks + helper `.py` (`entropy_max.sln`)
@@ -286,6 +295,37 @@ A consolidated [File Formats](#file-formats-used) section follows the inventory.
 - **Dependencies:** NumPy, TensorFlow 2, Matplotlib (typical); MNIST dataset.
 - **Data I/O:** In-memory NumPy arrays, MNIST imports; outputs plots and model snapshots.
 - **Depended on by:** Nothing (sandbox)
+
+### WarpTps — Thin-plate-spline warping / deformable registration
+- **Type:** Executable (MFC SDI) + static library `WarpTpsLib`
+- **Purpose:** Places landmark correspondences on two bitmaps and interpolates a thin-plate-spline
+  deformation field between them, sweeping a morph slider to blend source→target.
+  `CTPSTransform` is the algorithmic core.
+- **Dependencies:** MFC only. `WarpTpsLib` carries its *own* copies of `CVectorBase`/`CVectorD`/
+  `CModelObject`, so it has no dependency on the shared foundation libraries.
+- **Data I/O:** Reads/writes bitmap images and landmark sets.
+- **Depended on by:** Nothing (standalone app). Cross-compiles for ARM64 on GitHub Actions.
+
+### EGSnrc — Monte Carlo energy-deposition kernel generation
+- **Type:** Docker environment + shell scripts
+- **Purpose:** Generates the energy-deposition kernels the pencil-beam convolution consumes.
+  EGSnrc simulates ionizing-radiation transport through matter (dose calculation, dosimetry,
+  detector response). Scripts build `dosxyznrc` and `egs_kerma`, set up PEGS4 cross-section
+  data, run the simulation from an `.egsinp` template, and convert output to `kernel.dat`.
+- **Dependencies:** Docker; EGSnrc toolkit (built in-container).
+- **Data I/O:** Reads `6MV_kernel_template.egsinp`; writes the `*_kernel.dat` cumulative-energy
+  LUTs that `CEnergyDepKernel` loads.
+- **Depended on by:** RtModel dose calculation (via the generated `.dat` kernels)
+
+### RtModelSmokeTest — Standalone convolution smoke test
+- **Type:** Single-TU console test (`cl /EHsc smoke_test.cpp`)
+- **Purpose:** Verifies the hand-rolled 1-D linear convolution that replaced Intel IPP's
+  `ippsConv_64f` in `Histogram::ConvGauss` and `HistogramGradient::Conv_dGauss`. The loop body
+  is a verbatim copy from those files; the test asserts output dimension, sum preservation,
+  delta-input kernel recovery, symmetry, and boundary taps.
+- **Dependencies:** None (standard library only).
+- **Data I/O:** None; returns 0 on success.
+- **Depended on by:** Nothing (guards the IPP-removal change)
 
 ---
 
@@ -345,9 +385,15 @@ A consolidated [File Formats](#file-formats-used) section follows the inventory.
 
 ## Key Classes & Algorithms
 
-Class/algorithm-level inventory of the most important types in each library. RtModel
-entries cite `file:line` for the core method. Embeddings for every entry below are in
-`python/class_embeddings.json` (see [Embeddings](#embeddings)).
+Class/algorithm-level inventory of the most important types in each library, profiled in
+prose. RtModel entries cite `file:line` for the core method.
+
+> **The exhaustive list lives in `python/embed_classes.py`.** That module's `CLASSES` table is
+> the machine-readable inventory the embeddings are built from — currently 267 class/algorithm
+> entries across all 29 components, against the ~60 profiled below. When the two disagree,
+> `embed_classes.py` is authoritative; this section is the curated subset worth reading as
+> prose. Embeddings for every entry in that table are in `python/class_embeddings.json`
+> (see [Embeddings](#embeddings)).
 
 ### RtModel — Optimization
 - **DynamicCovarianceOptimizer** (`ConjGradOptimizer.cpp:55`, `minimize()` at :70) — Conjugate
@@ -477,9 +523,22 @@ Two Ollama (`nomic-embed-text`, 768-dim) embedding sets accompany this inventory
 
 | File | Granularity | Generator |
 |------|-------------|-----------|
-| `python/component_embeddings.json` | one vector per component (26) | `python/embed_components.py` |
-| `python/class_embeddings.json` | one vector per key class/algorithm | `python/embed_classes.py` |
+| `python/component_embeddings.json` | one vector per component (29) | `python/embed_components.py` |
+| `python/class_embeddings.json` | one vector per class/algorithm (267) | `python/embed_classes.py` |
 
-Each class entry carries `library`, `name`, `kind` (class / algorithm / function), the source
-`text`, and the `embedding`. Regenerate with a running Ollama daemon:
-`python python/embed_classes.py`.
+296 nodes in total. Each class entry carries `library`, `name`, `kind`
+(class / algorithm / function), the source `text`, and the `embedding`. A class's `library` **must**
+match a component `name` — `build_inventory_embeddings.py` resolves each class's tier through it,
+and an unrecognized library silently falls back to the `component` tier.
+
+Regenerate with a running Ollama daemon:
+
+```bash
+python python/embed_components.py     # -> component_embeddings.json
+python python/embed_classes.py        # -> class_embeddings.json
+```
+
+Both files are `.gitignore`d. The UMAP viewer built on top of them (`python/umap/`) consumes them
+through `build_inventory_embeddings.py`; see `python/umap/README.md` for the full pipeline. Adding
+entries here requires re-running all four pipeline steps — new nodes need vectors from the *same*
+`nomic-embed-text` model, so they cannot be appended from a different embedder.

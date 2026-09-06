@@ -14,7 +14,12 @@ Modeled on the `semantic_notes` `umap_3d_viewer` pattern.
 ## Pipeline
 
 ```bash
-# 1. combine the two Ollama embedding files -> matrix + metadata (87 nodes x 768d)
+# 0. generate the 768d source embeddings (needs a running Ollama daemon with
+#    nomic-embed-text pulled) -- only when the source lists have changed
+python ../embed_components.py            # -> ../component_embeddings.json  (29 components)
+python ../embed_classes.py               # -> ../class_embeddings.json      (267 classes)
+
+# 1. combine the two Ollama embedding files -> matrix + metadata (296 nodes x 768d)
 python build_inventory_embeddings.py     # -> inventory_embeddings.npy, inventory_meta.json
 
 # 2. faithfulness sweep: scores every 768->mid and 768->mid->final cell vs the
@@ -42,8 +47,14 @@ Re-run steps 1–3 whenever the upstream embeddings change (e.g. after
   selector (`v768` raw, or any mid-D projection); hover for name + description.
 - legend swatches toggle categories; the search box filters labels.
 
-## Sweep findings (n = 87)
+## Sweep findings (measured at n = 87)
 
 Faithfulness rises with `n_neighbors` and `min_dist`; intermediate dim matters
 little above 8D. Best mid-D fidelity ≈ `trust 0.95` at `nn=50, md=0.5, mid=11`.
 The full grid is in `umap_sweep.json` (`mid`, `cascade`, `baseline_direct`).
+
+> These numbers were measured on the original 87-node inventory. The source lists have since
+> grown to **296 nodes** (29 components + 267 classes), so the sweep needs re-running — the
+> optimal `n_neighbors` in particular is sensitive to n, and the old grid should not be trusted
+> at the new size. Re-run steps 0–3 and re-read `umap_sweep.json` before quoting fidelity
+> figures.

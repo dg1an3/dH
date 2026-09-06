@@ -125,15 +125,41 @@ COMPONENTS = [
      "geometry penbeam_input.txt, energy tables; writes dose to cono directory dat files. "
      "Mathematical spec for DivFluence."),
     ("python", "utility",
-     "Python ITK CT-density preprocessing scripts. read_process_series.py HU to mass density "
-     "conversion ct_to_md_values, beam-angle density rotation rotate_density_for_beam, TERMA "
-     "ray-tracing terma_from_density. Depends on ITK Python bindings, NumPy. Reads CT volumes "
-     "via itk.imread nrrd; produces density and TERMA volumes."),
+     "Python side of the project: ITK CT-density preprocessing scripts plus the pybrimstone "
+     "package. read_process_series.py HU to mass density conversion ct_to_md_values, beam-angle "
+     "density rotation rotate_density_for_beam, TERMA ray-tracing terma_from_density. pybrimstone "
+     "reimplements the algorithm core in Python -- numerics conjugate gradient, Gaussian-convolved "
+     "histograms, KL divergence, sigmoid parameter transform -- and extends it with hierarchical "
+     "Bayes course priors, amortized prior networks, DVH uncertainty bands, variational free energy "
+     "diagnostics and a TG-263 structure name translator. Also holds pybind11 and Cython bindings "
+     "to the native RtModel library, a pywinauto UI automation harness, and the UMAP inventory "
+     "embedding pipeline. Depends on ITK Python bindings, NumPy, PyTorch, pybind11, pywinauto, "
+     "umap-learn, scikit-learn."),
     ("notebook_zoo", "utility",
      "Research Jupyter notebooks on entropy maximization and ML autoencoders VAEs. "
      "entropy_calc, entropy_max, entropy_max_histo, mnist_autoencoder variants, mnist_vae_shift, "
      "pinwheel_shifter. Depends on NumPy, TensorFlow 2, Matplotlib, MNIST. In-memory arrays, "
      "outputs plots and model snapshots."),
+    ("WarpTps", "utility",
+     "Standalone thin-plate spline image warping and deformable registration tool. WarpTpsLib "
+     "holds a self-contained CTPSTransform plus its own vector, matrix and model-object copies, "
+     "so the library carries no dependency on the shared foundation libraries; the MFC front end "
+     "places landmark correspondences on two bitmaps and sweeps a morph slider to interpolate "
+     "between them. Depends on MFC only. Reads and writes bitmap images and landmark sets. Cross-"
+     "compiles for ARM64 on GitHub Actions."),
+    ("EGSnrc", "utility",
+     "Docker-based EGSnrc Monte Carlo environment for generating energy deposition kernels. "
+     "EGSnrc simulates ionizing radiation transport through matter for dose calculation, radiation "
+     "dosimetry and detector response modeling. Shell scripts build dosxyznrc and egs_kerma, set "
+     "up the PEGS4 cross-section data, run the simulation from an egsinp template, and convert "
+     "the output into the kernel.dat cumulative-energy lookup tables that CEnergyDepKernel loads. "
+     "Produces the 6 MV, 15 MV and 2 MV kernels used by the pencil beam convolution."),
+    ("RtModelSmokeTest", "utility",
+     "Standalone single-translation-unit smoke test for the hand-rolled one-dimensional linear "
+     "convolution that replaced the Intel IPP ippsConv_64f call in RtModel Histogram ConvGauss and "
+     "HistogramGradient Conv_dGauss. The loop body is a verbatim copy from those files; the test "
+     "verifies output dimension, sum preservation, delta-input kernel recovery, symmetry and "
+     "boundary taps. Builds with cl /EHsc, no dependencies, returns 0 on success."),
 ]
 
 
