@@ -160,6 +160,35 @@ COMPONENTS = [
      "HistogramGradient Conv_dGauss. The loop body is a verbatim copy from those files; the test "
      "verifies output dimension, sum preservation, delta-input kernel recovery, symmetry and "
      "boundary taps. Builds with cl /EHsc, no dependencies, returns 0 on success."),
+    # ---- added 2026-09-06: CMake tree, native module, docs, external Morphome ----
+    ("cmake_build", "utility",
+     "Root CMake build tree replacing Brimstone_src.sln: targets RtModel static library, "
+     "Graph static library, Brimstone MFC executable, optional rtmodel_core Python module; "
+     "CMakePresets for VS 2022 x64 with the vcpkg toolchain, vcpkg.json manifest for ITK "
+     "VXL DCMTK WebView2, FindIPP module for Intel oneAPI, post-build deploy of kernel "
+     "files, IPP DLLs and web assets, CTest import test. Salvaged from PR 46 and parity "
+     "checked against the vcxproj build with the knee automation."),
+    ("rtmodel_core", "production",
+     "pybind11 native extension exposing the C++ RtModel optimizer to Python: VectorN, "
+     "Prescription, PrescriptionWrapper evaluate value and gradient for SciPy, "
+     "ConjGradOptimizer minimize with adaptive variance and explicit free energy. Built by "
+     "the root CMake project against the RtModel target; needs MFC, ITK, VNL and Intel IPP "
+     "runtime DLLs next to the .pyd, loaded via pybrimstone.native.import_rtmodel_core."),
+    ("docs", "utility",
+     "Design documents and experiment notes. ROADMAP for build consolidation, 2D fluence "
+     "maps, Fortran beamlet generation, Morphome thorax plan library and active inference; "
+     "HIERARCHICAL_BAYES_DESIGN course prior; DATASETS multi-phase data requirements; "
+     "amortized optimization and sigma estimation; CYTHON_WRAPPER_DESIGN; entropy weight "
+     "sweep note; WebView2 merge crash note; development timeline from 1988 Fortran to "
+     "Brimstone; repository reorganization plan."),
+    ("morphome", "external",
+     "External repo morphome-hn-vae: generative 3D convolutional VAE over CT plus organ "
+     "masks for head-and-neck PDDCA and thorax NSCLC-Radiomics LUNG1 corpora, diffusion "
+     "refiner for CT texture, PCA-Gaussian latent prior, synthetic corpus generator writing "
+     "cache cases on a fixed isotropic grid, dose-capable frame profiles, and a browser "
+     "explorer with co-embedded UMAP latent map, vtk.js ortho viewer, marching-cubes "
+     "structure surfaces and thumbnail sprites. Depends on PyTorch, SimpleITK, UMAP. "
+     "Source of the planned thorax plan library for dH."),
 ]
 
 

@@ -909,6 +909,77 @@ CLASSES = [
     ("notebook_zoo", "entropy maximization", "algorithm",
      "Gradient-descent entropy maximization over image and histogram distributions, with MNIST "
      "autoencoder and variational autoencoder experiments."),
+
+    # ================================================================
+    # added 2026-09-06: entropy regularizer, vtk.js planar page, native
+    # module, CMake build, docs, external Morphome
+    # ================================================================
+    ("RtModel", "EntropyRegularizer", "algorithm",
+     "Free-energy objective F = KL minus w times H in Prescription::operator(): softmax entropy "
+     "over all beamlet weights (globally coupled, dense Hessian) or separable per-beamlet "
+     "binary entropy of the sigmoid outputs (diagonal Hessian). Selected by "
+     "BRIMSTONE_ENTROPY_SEPARABLE, weight from BRIMSTONE_ENTROPY_WEIGHT; separable W=2e-4 "
+     "chosen by the entropy weight sweep."),
+    ("Brimstone", "PlanarViewPage", "class",
+     "vtk.js planar view page served from webassets/planar through a WebView2 virtual host: "
+     "axial CT slice as vtkImageSlice with window/level drag, camera flipped so DICOM row 0 "
+     "is at top, marching-squares isodose lines at 0.30 to 0.95, structure contours as closed "
+     "polylines, slice Z HUD, mouse wheel slice stepping; C++ pushes float32 slices base64 "
+     "encoded and contour JSON. GDI CPlanarView kept behind BRIMSTONE_LEGACY_PLANAR."),
+    ("Brimstone", "optimizer thread messaging", "algorithm",
+     "COptThread worker sends WM_OPTIMIZER_UPDATE and WM_OPTIMIZER_DONE with SendMessage so "
+     "the worker parks while the UI thread applies SetStateVectorToPlan; fixes the heap "
+     "corruption from concurrent Plan dose and histogram reallocation."),
+    ("rtmodel_core", "PrescriptionWrapper", "class",
+     "Wraps a C++ Prescription for SciPy: evaluate(x) returns value and NumPy gradient, "
+     "evaluate_value, get_dimension; used with L-BFGS-B in optimize_with_lbfgs.py."),
+    ("rtmodel_core", "ConjGradOptimizer binding", "class",
+     "pybind11 binding of DynamicCovarianceOptimizer: minimize from a NumPy start vector, "
+     "set_adaptive_variance, set_compute_free_energy, get_entropy, get_free_energy, "
+     "get_adaptive_variance."),
+    ("python", "pybrimstone.native", "function",
+     "import_rtmodel_core loads the rtmodel_core .pyd from a CMake build directory: registers "
+     "the directory with os.add_dll_directory and pre-loads ippcore.dll and ipps.dll because "
+     "Python 3.8+ restricted extension DLL search cannot resolve IPP dependencies otherwise."),
+    ("cmake_build", "FindIPP", "function",
+     "CMake find module for Intel oneAPI IPP: locates ipp.h and the ipps ippcore import "
+     "libraries, exports IPP_BIN_DIR for runtime DLL deployment and an IPP::IPP target."),
+    ("cmake_build", "CMakePresets", "function",
+     "Configure and build presets: vs2022-x64 using the classic vcpkg installed tree, "
+     "vs2022-x64-manifest building dependencies from vcpkg.json, vs2022-x64-noipp."),
+    ("docs", "ROADMAP", "class",
+     "Plan in dependency order: build consolidation into one CMake tree, 2D fluence maps for "
+     "true 3D planning, beamlet generation with the containerized Fortran convolution, "
+     "Morphome thorax plan library with data-contract bridge, and extending free energy "
+     "toward active inference for adaptive replanning."),
+    ("docs", "HIERARCHICAL_BAYES_DESIGN", "class",
+     "Hierarchical Bayes lift over the single-phase optimizer: Course-level latent pooled "
+     "across phases, CoursePriorTerm as an objective term, sigma calibration experiment "
+     "showing adaptive variance is an optimizer trace, Hutchinson Fisher diagonal recommended."),
+    ("docs", "amortized optimization and sigma estimation", "class",
+     "Learned initialization network, learned step direction, convergence predictor, and "
+     "ML sigma estimation for patient-specific histogram sigma and pyramid schedules."),
+    ("docs", "entropy weight sweep", "class",
+     "Sweep of BRIMSTONE_ENTROPY_WEIGHT over the softmax and separable entropy forms with 5 "
+     "and 7 beams, recording converged free energy KL and entropy per run; established "
+     "separable W=2e-4 as the working regularizer."),
+    ("morphome", "HN joint CT+OAR VAE", "algorithm",
+     "Global-latent 3D convolutional VAE over CT plus nine organ masks on a 128 cubed "
+     "1.6 mm frame with presence masking for missing contours, 32-d latent, KL annealing."),
+    ("morphome", "diffusion refiner", "algorithm",
+     "Diffusion model adding sharp CT texture over the frozen VAE decode, DDIM sampling, "
+     "weighted patch pools and a parenchyma sharpness metric."),
+    ("morphome", "generate_dataset", "function",
+     "Synthetic corpus generator: latent draw from a PCA-Gaussian prior fitted to real "
+     "posterior means, decode anatomy, refine CT, write cache cases with pinned RNG streams."),
+    ("morphome", "build_viewer", "function",
+     "Browser explorer builder: cascaded UMAP co-embedding synthetic latents with real "
+     "posterior means, per-case uint8 volumes and label maps, per-structure bit-packed masks "
+     "for marching-cubes surfaces, thumbnail atlas for sprite billboards, vtk.js ortho viewer."),
+    ("morphome", "corpus profiles", "class",
+     "Per-corpus facts: PDDCA head-and-neck frame and NSCLC-Radiomics thorax 3.0 mm "
+     "224x160x96 dose-capable frame sized so the body is never clipped, anchor structures, "
+     "HU normalization."),
 ]
 
 
