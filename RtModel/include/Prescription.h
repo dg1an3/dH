@@ -2,6 +2,9 @@
 // $Id: Prescription.h 640 2009-06-13 05:06:50Z dglane001 $
 // #include <ModelObject.h>
 
+#include <map>
+#include <vector>
+
 #include <ObjectiveFunction.h>
 // #include <Optimizer.h>
 
@@ -62,7 +65,7 @@ public:
 	// initial step in objective function -- forming sum and histogram
 	void CalcSumSigmoid(CHistogramWithGradient *pHisto, const CVectorN<>& vInput,
 		const CVectorN<>& vInputTrans,
-		const CArray<BOOL, BOOL>& arrInclude) const;
+		const std::vector<BOOL>& arrInclude) const;
 
 	// transform function from linear to other parameter space
 	virtual void Transform(CVectorN<> *pvInOut) const;
@@ -117,15 +120,14 @@ public:
 	mutable CVectorN<> m_ActualAV;
 
 	// stores the VOITs
-	/// TODO: change this to std::map
-	CTypedPtrMap<CMapPtrToPtr, Structure*, VOITerm*> m_mapVOITs;
+	typedef std::map<Structure *, VOITerm *> VOITMapType;
+	VOITMapType m_mapVOITs;
 
 	// helpers for Eval_TotalEntropy
 	mutable CVectorN<> m_vPartGrad;
 
 	// array of flags for element inclusion
-	/// TODO: change this to std::vector
-	CArray<BOOL, BOOL> m_arrIncludeElement;
+	std::vector<BOOL> m_arrIncludeElement;
 
 	// last-evaluated split of the objective F = KL - w*entropy (for reporting)
 	mutable REAL m_dLastKL;
