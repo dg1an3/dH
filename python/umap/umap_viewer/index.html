@@ -55,6 +55,7 @@
   <div class="row"><label>color by</label><div class="seg" id="segColor">
     <button data-v="tier" class="on">tier</button><button data-v="category">library</button>
     <button data-v="kind">kind</button></div></div>
+  <div class="row"><label>labels</label><div class="seg" id="segLabels"></div></div>
   <div class="row"><label>proximity space (on click)</label>
     <select id="selProx"></select></div>
   <div class="row"><input id="search" placeholder="filter labels…" autocomplete="off"></div>
@@ -102,9 +103,13 @@ function colorOf(d) { return new THREE.Color(schemeMap()[keyOf(d)] || '#888888')
 
 // ---- scene ----
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x0a0c12, 0.0016);
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 6000);
-camera.position.set(150, 110, 210);
+// The layout is normalized to a +/-100 half-extent regardless of node count
+// (umap_layout.SCALE). At 300+ nodes the median neighbor gap is ~2 units, so
+// positions are spread by SPREAD here and the camera/fog scaled to match.
+const SPREAD = 2.4;
+scene.fog = new THREE.FogExp2(0x0a0c12, 0.0016 / SPREAD);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 6000 * SPREAD);
+camera.position.set(150 * SPREAD, 110 * SPREAD, 210 * SPREAD);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
@@ -121,7 +126,13 @@ const group = new THREE.Group(); scene.add(group);
 
 const CURVE = 10;    // outward bow of elliptangle sides (canvas px)
 const MAX_W = 180;   // wrap width in canvas px
-const FONT = 26, LINE_H = 32, LABEL_SCALE = 0.13;  // world units per canvas px
+const FONT = 26, LINE_H = 32, LABEL_SCALE = 0.075;  // world units per canvas px
+// sphere radius and label size grow with salience (components largest)
+const nodeRadius = d => 0.9 + 2.0 * d.salience;
+const labelMul = d => 0.55 + 0.5 * d.salience;
+// which labels are drawn by default: 'components' | 'all' | 'none'
+// (hover, selection neighbors and search matches always show)
+let labelMode = 'components';
 
 function shade(hex, amt) {
   const n = parseInt(hex.slice(1), 16);
@@ -193,11 +204,12 @@ NODES.forEach((d, i) => {
   baseColor[i] = col.clone();
   const m = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial({
     color: col, roughness: 0.45, metalness: 0.0, transparent: true, opacity: 0.92 }));
-  m.scale.setScalar(1.6 + 3.2 * d.salience);
+  m.scale.setScalar(nodeRadius(d));
   m.userData.idx = i;
   group.add(m); meshes.push(m);
   const hex = KIND_COLORS[d.kind] || '#888888';
   const lab = makeLabel(d.name, hex, true);
+  lab.scale.multiplyScalar(labelMul(d));
   lab.userData.idx = i; group.add(lab); labels.push(lab);
   targetPos[i] = new THREE.Vector3();
 });
@@ -208,7 +220,7 @@ function applyLayout(animate = true) {
   const arr = cell[mode];
   NODES.forEach((d, i) => {
     const p = arr[i];
-    targetPos[i].set(p[0], p[1], mode === '3d' ? p[2] : 0);
+    targetPos[i].set(p[0] * SPREAD, p[1] * SPREAD, mode === '3d' ? p[2] * SPREAD : 0);
     if (!animate) meshes[i].position.copy(targetPos[i]);
   });
   const mk = cell[`metrics_${mode}`];
@@ -247,10 +259,15 @@ function applyProximity() {
     if (dim) c.multiplyScalar(0.18);
     meshes[i].material.color.copy(c);
     meshes[i].material.opacity = dim ? 0.18 : 0.95;
-    const base = 1.6 + 3.2 * d.salience;
+    const base = nodeRadius(d);
     meshes[i].scale.setScalar(i === selected ? base * 1.7 : base);
-    labels[i].material.opacity = dim ? 0.05 : (hot || d.kind === 'component' || filt ? 1 : 0.5);
-    labels[i].visible = labels[i].material.opacity > 0.06;
+    const hovered = i === hoverIdx;
+    const byMode = labelMode === 'all' || (labelMode === 'components' && d.kind === 'component');
+    let op = 0;
+    if (!dim) op = (hot || hovered || filt) ? 1 : (byMode ? (d.kind === 'component' ? 1 : 0.6) : 0);
+    else if (hovered) op = 1;
+    labels[i].material.opacity = op;
+    labels[i].visible = op > 0.05;
   });
 }
 
@@ -283,6 +300,7 @@ function seg(id, values, init, onPick, label = v => v) {
 }
 seg('segMid', META.mid_dims, midDim, v => { midDim = +v; applyLayout(); }, v => v + 'd');
 seg('segNN', META.n_neighbors, nneigh, v => { nneigh = +v; applyLayout(); });
+seg('segLabels', ['components', 'all', 'none'], labelMode, v => { labelMode = v; applyProximity(); });
 document.querySelectorAll('#segMode button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#segMode button').forEach(c => c.classList.remove('on'));
   b.classList.add('on'); mode = b.dataset.v; applyLayout(); });
@@ -306,9 +324,12 @@ function pick(ev) {
   ray.setFromCamera(mouse, camera);
   return ray.intersectObjects(meshes, false)[0];
 }
+let hoverIdx = -1;
 renderer.domElement.addEventListener('pointermove', ev => {
   const hit = pick(ev);
-  if (hit) { const d = NODES[hit.object.userData.idx];
+  const idx = hit ? hit.object.userData.idx : -1;
+  if (idx !== hoverIdx) { hoverIdx = idx; applyProximity(); }
+  if (hit) { const d = NODES[idx];
     tip.style.display = 'block'; tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 14) + 'px';
     tip.innerHTML = `<b>${d.name}</b> <span class="cat">[${d.category} · ${d.tier} · ${d.kind}]</span>` +
@@ -330,7 +351,7 @@ function tick() {
   requestAnimationFrame(tick);
   for (let i = 0; i < meshes.length; i++) {
     meshes[i].position.lerp(targetPos[i], 0.16);
-    labels[i].position.copy(meshes[i].position).y += (1.6 + 3.2 * NODES[i].salience) + 3;
+    labels[i].position.copy(meshes[i].position).y += nodeRadius(NODES[i]) + 1.2;
   }
   controls.update();
   renderer.render(scene, camera);
