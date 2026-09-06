@@ -130,9 +130,12 @@ const FONT = 26, LINE_H = 32, LABEL_SCALE = 0.075;  // world units per canvas px
 // sphere radius and label size grow with salience (components largest)
 const nodeRadius = d => 0.9 + 2.0 * d.salience;
 const labelMul = d => 0.55 + 0.5 * d.salience;
-// which labels are drawn by default: 'components' | 'all' | 'none'
-// (hover, selection neighbors and search matches always show)
-let labelMode = 'components';
+// Nodes are drawn as their elliptangle labels only (no spheres). labelMode
+// 'all' shows every node; 'components' fades non-component nodes so only the
+// component labels read at full strength. Hover, the selection with its
+// neighbors, and search matches always show at full opacity.
+let labelMode = 'all';
+const DIM_OPACITY = 0.12;   // faded nodes stay faintly visible for context
 
 function shade(hex, amt) {
   const n = parseInt(hex.slice(1), 16);
@@ -206,11 +209,13 @@ NODES.forEach((d, i) => {
     color: col, roughness: 0.45, metalness: 0.0, transparent: true, opacity: 0.92 }));
   m.scale.setScalar(nodeRadius(d));
   m.userData.idx = i;
-  group.add(m); meshes.push(m);
-  const hex = KIND_COLORS[d.kind] || '#888888';
+  meshes.push(m);   // position anchor only; not added to the scene
+  // label frame takes the active color scheme (tier by default); see recolor()
+  const hex = schemeMap()[keyOf(d)] || '#888888';
   const lab = makeLabel(d.name, hex, true);
   lab.scale.multiplyScalar(labelMul(d));
-  lab.userData.idx = i; group.add(lab); labels.push(lab);
+  lab.userData.idx = i; lab.userData.base = lab.scale.clone();
+  group.add(lab); labels.push(lab);
   targetPos[i] = new THREE.Vector3();
 });
 
@@ -232,7 +237,15 @@ function applyLayout(animate = true) {
 }
 
 function recolor() {
-  NODES.forEach((d, i) => { baseColor[i] = colorOf(d); });
+  NODES.forEach((d, i) => {
+    baseColor[i] = colorOf(d);
+    // re-bake the label frame in the new scheme's color (text and size unchanged)
+    const hex = schemeMap()[keyOf(d)] || '#888888';
+    const fresh = makeLabel(d.name, hex, true);
+    labels[i].material.map.dispose();
+    labels[i].material.map = fresh.material.map;
+    labels[i].material.needsUpdate = true;
+  });
   buildLegend();
   applyProximity();  // re-applies dim/highlight on top of fresh base colors
 }
@@ -259,15 +272,17 @@ function applyProximity() {
     if (dim) c.multiplyScalar(0.18);
     meshes[i].material.color.copy(c);
     meshes[i].material.opacity = dim ? 0.18 : 0.95;
-    const base = nodeRadius(d);
-    meshes[i].scale.setScalar(i === selected ? base * 1.7 : base);
     const hovered = i === hoverIdx;
-    const byMode = labelMode === 'all' || (labelMode === 'components' && d.kind === 'component');
-    let op = 0;
-    if (!dim) op = (hot || hovered || filt) ? 1 : (byMode ? (d.kind === 'component' ? 1 : 0.6) : 0);
-    else if (hovered) op = 1;
+    const byMode = labelMode === 'all' || d.kind === 'component';
+    let op;
+    if (hovered || (!dim && (hot || filt))) op = 1;
+    else if (dim) op = DIM_OPACITY;
+    else op = byMode ? (d.kind === 'component' ? 1 : 0.85) : DIM_OPACITY;
     labels[i].material.opacity = op;
-    labels[i].visible = op > 0.05;
+    labels[i].visible = true;
+    labels[i].scale.copy(labels[i].userData.base)
+      .multiplyScalar(i === selected ? 1.35 : hovered ? 1.15 : 1);
+    labels[i].renderOrder = op >= 1 ? 2 : op > DIM_OPACITY ? 1 : 0;
   });
 }
 
@@ -300,7 +315,7 @@ function seg(id, values, init, onPick, label = v => v) {
 }
 seg('segMid', META.mid_dims, midDim, v => { midDim = +v; applyLayout(); }, v => v + 'd');
 seg('segNN', META.n_neighbors, nneigh, v => { nneigh = +v; applyLayout(); });
-seg('segLabels', ['components', 'all', 'none'], labelMode, v => { labelMode = v; applyProximity(); });
+seg('segLabels', ['all', 'components'], labelMode, v => { labelMode = v; applyProximity(); });
 document.querySelectorAll('#segMode button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#segMode button').forEach(c => c.classList.remove('on'));
   b.classList.add('on'); mode = b.dataset.v; applyLayout(); });
@@ -322,7 +337,10 @@ const tip = document.getElementById('tip');
 function pick(ev) {
   mouse.x = (ev.clientX / innerWidth) * 2 - 1; mouse.y = -(ev.clientY / innerHeight) * 2 + 1;
   ray.setFromCamera(mouse, camera);
-  return ray.intersectObjects(meshes, false)[0];
+  // pick the label sprites; prefer the one drawn on top (highest renderOrder), then nearest
+  const hits = ray.intersectObjects(labels, false);
+  hits.sort((a, b) => (b.object.renderOrder - a.object.renderOrder) || (a.distance - b.distance));
+  return hits[0];
 }
 let hoverIdx = -1;
 renderer.domElement.addEventListener('pointermove', ev => {
@@ -351,7 +369,7 @@ function tick() {
   requestAnimationFrame(tick);
   for (let i = 0; i < meshes.length; i++) {
     meshes[i].position.lerp(targetPos[i], 0.16);
-    labels[i].position.copy(meshes[i].position).y += nodeRadius(NODES[i]) + 1.2;
+    labels[i].position.copy(meshes[i].position);
   }
   controls.update();
   renderer.render(scene, camera);
