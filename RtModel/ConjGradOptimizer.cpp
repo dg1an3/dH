@@ -101,10 +101,18 @@ static int
 DynamicCovarianceOptimizer::DynamicCovarianceOptimizer(DynamicCovarianceCostFunction *pFunc)
 	: // COptimizer(pFunc)
 	m_pCostFunction(pFunc)
+	, m_LineOptimizerTolerance(1e-4)
 	, m_bCalcVar(false)
 	, m_bComputeFreeEnergy(false)
+	, m_varMin(0.0)
+	, m_varMax(0.0)
 	, m_Entropy(0.0)
 	, m_FreeEnergy(0.0)
+	// no callback until SetCallback: minimize() tests this pointer every
+	//	iteration, and Brimstone always sets one, which hid the fact that it was
+	//	never initialized (the Python bindings crashed on the garbage pointer)
+	, m_pCallbackFunc(NULL)
+	, m_pCallbackParam(NULL)
 {
 }	// CConjGradOptimizer::CConjGradOptimizer
 
@@ -387,6 +395,16 @@ void
 	DynamicCovarianceOptimizer::UpdateDynamicCovariance()
 {
 	if (!m_bCalcVar)
+		return;
+
+	// The searched-direction and orthogonal-basis matrices are nDim x nDim and
+	//	indexed by iteration, so once the optimizer has taken nDim steps there is
+	//	no column left to record: keep the adaptive variance from the last full
+	//	update instead of writing past the matrix (vnl_matrix::set_column does
+	//	not bounds-check in release, and the overrun corrupted the heap on
+	//	problems that iterate more times than they have dimensions). The Python
+	//	port (pybrimstone.numerics.conjugate_gradient) caps the update the same way.
+	if (num_iterations_ >= m_mOrthoBasis.columns())
 		return;
 
 	// add direction to orthogonal basis

@@ -416,6 +416,67 @@ and bootstrap recovers most of its shape stability.
   treats whatever shape signal bootstrap *can* extract as the
   pooled quantity, regardless of magnitude scale.
 
+### Re-run on the C++ optimizer (2026-09-07)
+
+The caveat above -- every sweep ran on the Python port -- is now closed.
+`python/experiments/sigma_calibration_cpp.py` hands the same Python
+`Prescription` objects to the unmodified C++ `DynamicCovarianceOptimizer`
+through a new `rtmodel_core.PyCostFunction` (a `DynamicCovarianceCostFunction`
+whose evaluation is a Python callable), so the vnl Brent line search, the
+Polak-Ribiere update and `UpdateDynamicCovariance` are the code paths
+Brimstone runs. Same problems, same 20 seeds, same statistics.
+`m_vAdaptVariance` is read back with `get_adaptive_variance()` after
+`minimize()`.
+
+| Variant                              | C++ shape | C++ mag CV | Py shape | Py mag CV | C++ iters (mean/max) |
+|--------------------------------------|----------:|-----------:|---------:|----------:|---------------------:|
+| Gaussian-bump 5-beamlet              |     0.41  |      0.31  |    0.18  |     2.74  |  4.8 / 5             |
+| Gaussian-bump 5-beamlet, tol 1e-6    |     0.62  |      0.06  |      --  |       --  |  7.5 / 30            |
+| Gaussian-bump 20-beamlet             |     0.47  |      0.11  |    0.07  |     0.33  |  3.5 / 6             |
+| Gaussian-bump 20-beamlet, tol 1e-6   |     0.18  |      0.46  |      --  |       --  |  9.7 / 21            |
+| 10-D quadratic control (tol 1e-6)    |     0.68  |      0.09  |    0.84  |     0.07  | 10.9 / 11            |
+| TERMA + kernel 5-beamlet             |  (0.83)   |   (0.03)   |    0.18  |     1.10  |  2.0 / 2             |
+
+**Verdict unchanged: ROW 3 on every realistic problem.** The C++ optimizer's
+adaptive variance is somewhat more shape-stable than the port's (0.41-0.62
+vs 0.18 on the 5-beamlet problem) because its convergence test stops it
+after ~5 iterations from all seeds, so the variance is closer to the
+`InitializeDynamicCovariance` starting value; it is still far below the
+0.9 threshold, and tightening the tolerance to let it iterate longer moves
+the 20-beamlet shape correlation down to 0.18. The control behaves the same
+way on both sides. So the conclusion transfers: pool an external variance
+estimate, not `m_vAdaptVariance`.
+
+**The TERMA row is an artifact, not a ROW 1/2 result.** Every seed stops
+after 2 iterations at the identical cost 16.9671 with optimizer-space
+parameters of norm ~1,400: the unbounded Brent line search steps straight
+onto the sigmoid saturation plateau (the cost decreases monotonically along
+the initial gradient out to |x| ~ 100 and beyond), so all seeds land on the
+same saturated point and the "stable" variance is the initialization plus
+two identical directions. This is the line-search runaway diagnosed above,
+reproduced on the real vnl line search; the Python port only avoids it
+because of the `max_step_norm=20` fix, which the C++ optimizer does not have.
+10 of the 100 variance entries are also `inf` (1/0 for unsearched
+directions -- the C++ update has no guard; the script excludes them from
+the statistics).
+
+**Two C++ bugs found and fixed while doing this** (`RtModel/ConjGradOptimizer.cpp`):
+
+1. The constructor never initialized `m_pCallbackFunc`; `minimize()` tests it
+   every iteration. Brimstone always calls `SetCallback`, which hid it; from
+   Python the garbage pointer was called and crashed.
+2. `UpdateDynamicCovariance` writes column `num_iterations_` of the nDim x nDim
+   direction and basis matrices with no bounds check, so any run that
+   iterates more times than it has dimensions writes past the end
+   (`vnl_matrix::set_column` does not check in release). The 10-D control
+   runs 11 iterations and the 5-beamlet problem exactly 5, which corrupted
+   the heap on the tight-tolerance sweep. It now keeps the last full update
+   once `num_iterations_ >= nDim`, matching the Python port's cap.
+
+Not changed: the C++ optimizer still has no bounded step. Adding the
+`max_step_norm` clip to the C++ line search is the natural next fix and would
+let the TERMA row be measured properly.
+
 ## Pyramid Level Strategy
 
 The 4-level pyramid (8.0 → 0.5 mm active voxels) raises a where-to-apply
@@ -589,8 +650,10 @@ in `RtModel/PlanOptimizer.cpp:36`, not in PlanPyramid. Trivial fix.
    on realistic brimstone problems. Use an external variance estimator
    for the hierarchical pool (Hutchinson Fisher diagonal recommended as
    the first cut). The pool formulas themselves are unchanged; only the
-   source of `var_p` changes. Re-verify against the C++ optimizer once
-   the wrapper compile-verifies before treating as final.
+   source of `var_p` changes. *Re-verified against the C++ optimizer on
+   2026-09-07* (`python/experiments/sigma_calibration_cpp.py`, see "Re-run
+   on the C++ optimizer"): ROW 3 on every realistic problem there too, so
+   the verdict is final.
 2. **Pooling level** — for multi-fraction adaptive replanning we may want a
    three-level hierarchy: Population → Patient → Phase, with the Population
    prior learned across patients. Out of scope for the prototype; flagged

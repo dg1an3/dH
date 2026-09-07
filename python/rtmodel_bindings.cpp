@@ -141,6 +141,55 @@ CVectorN<> numpy_to_vector(py::array_t<double> arr) {
     return result;
 }
 
+// A DynamicCovarianceCostFunction whose evaluation is a Python callable, so
+// the unmodified C++ DynamicCovarianceOptimizer (Brent line search, PR
+// direction update, adaptive-variance bookkeeping) can be run on objectives
+// defined in Python -- e.g. the pybrimstone Prescription used by
+// python/experiments/sigma_calibration.py, which lets that experiment be
+// repeated against the C++ optimizer instead of the Python port.
+//
+// The callable receives (x: np.ndarray, need_grad: bool) and returns
+// (value, grad_or_None). The optimizer calls it with need_grad=True at the
+// start of minimize and after each line search, and with need_grad=False
+// from inside the Brent line minimizer.
+class PyCostFunction : public DynamicCovarianceCostFunction {
+public:
+    PyCostFunction(int n, py::function fn) : m_fn(std::move(fn)) {
+        set_number_of_unknowns(n);
+    }
+
+    REAL operator()(const CVectorN<>& vInput, CVectorN<>* pGrad = NULL) const override {
+        py::gil_scoped_acquire gil;
+        py::object res = m_fn(vector_to_numpy(vInput), pGrad != NULL);
+        py::tuple t = res.cast<py::tuple>();
+        const double f = t[0].cast<double>();
+        if (pGrad != NULL) {
+            py::array_t<double, py::array::c_style | py::array::forcecast> g =
+                t[1].cast<py::array_t<double, py::array::c_style | py::array::forcecast>>();
+            py::buffer_info b = g.request();
+            if (b.ndim != 1 || b.shape[0] != vInput.GetDim())
+                throw std::runtime_error("PyCostFunction: gradient must be 1-D with len(x) entries");
+            const double* p = static_cast<const double*>(b.ptr);
+            if (pGrad->GetDim() != vInput.GetDim())
+                pGrad->SetDim(vInput.GetDim());
+            for (int i = 0; i < vInput.GetDim(); i++)
+                (*pGrad)[i] = p[i];
+        }
+        return (REAL) f;
+    }
+
+    // the adaptive-variance vector the optimizer hands the cost function
+    // (SetAdaptiveVariance), or None before minimize() has initialized it
+    py::object adaptive_variance() const {
+        if (m_pAV == NULL || m_pAV->GetDim() == 0)
+            return py::none();
+        return vector_to_numpy(*m_pAV);
+    }
+
+private:
+    py::function m_fn;
+};
+
 PYBIND11_MODULE(rtmodel_core, m) {
     m.doc() = "RtModel Python bindings for variational Bayes optimization";
 
@@ -187,10 +236,26 @@ PYBIND11_MODULE(rtmodel_core, m) {
         .def("get_prescription", &PrescriptionWrapper::get_prescription,
              py::return_value_policy::reference);
 
+    // Python-defined objective driven by the C++ optimizer
+    py::class_<PyCostFunction, DynamicCovarianceCostFunction>(m, "PyCostFunction")
+        .def(py::init<int, py::function>(), py::arg("n"), py::arg("fn"),
+             "fn(x: ndarray, need_grad: bool) -> (value, grad or None)")
+        .def("adaptive_variance", &PyCostFunction::adaptive_variance,
+             "Adaptive-variance vector the optimizer shares with this cost function");
+
     // Expose DynamicCovarianceOptimizer for comparison
     py::class_<DynamicCovarianceOptimizer>(m, "ConjGradOptimizer")
-        .def(py::init<DynamicCovarianceCostFunction*>())
-        .def("set_adaptive_variance", &DynamicCovarianceOptimizer::SetAdaptiveVariance)
+        .def(py::init<DynamicCovarianceCostFunction*>(), py::keep_alive<1, 2>())
+        .def("set_adaptive_variance", &DynamicCovarianceOptimizer::SetAdaptiveVariance,
+             py::arg("calc_var"), py::arg("var_min"), py::arg("var_max"))
+        .def("set_x_tolerance", &DynamicCovarianceOptimizer::set_x_tolerance,
+             "Relative-change convergence tolerance: 2|dF| <= xtol (|F_old| + |F_new| + ZEPS)")
+        .def("set_line_optimizer_tolerance", &DynamicCovarianceOptimizer::SetLineOptimizerTolerance,
+             "x-tolerance handed to the Brent line minimizer (not defaulted by the C++ ctor)")
+        .def("get_num_iterations", &DynamicCovarianceOptimizer::get_num_iterations)
+        .def("get_final_parameter", [](const DynamicCovarianceOptimizer& opt) {
+            return vector_to_numpy(opt.GetFinalParameter());
+        })
         .def("set_compute_free_energy", &DynamicCovarianceOptimizer::SetComputeFreeEnergy,
              "Enable explicit free energy calculation")
         .def("minimize", [](DynamicCovarianceOptimizer& opt, py::array_t<double> x0) {
