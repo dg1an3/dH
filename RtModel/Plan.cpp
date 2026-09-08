@@ -12,6 +12,7 @@ namespace dH
 ///////////////////////////////////////////////////////////////////////////////
 Plan::Plan()
 	: m_pSeries(NULL)
+	, m_DoseOriginOffset(0.0)
 	, m_DoseResolution(4.0) // 
 		// 2.0)
 {
@@ -185,15 +186,33 @@ void
 	int nWidth = 
 		Round<int>(pVolume->GetBufferedRegion().GetSize()[0] 
 			* vVolSpacing[0] / m_DoseResolution);
-	int nDepth = 
-		Round<int>(pVolume->GetBufferedRegion().GetSize()[2] 
+	int nDepth =
+		Round<int>(pVolume->GetBufferedRegion().GetSize()[2]
 			* vVolSpacing[2] / m_DoseResolution);
+
+	// never let a non-empty dimension round to zero: a volume thinner than
+	//	half a dose voxel (e.g. the 5-slice x 3 mm micro series at the coarsest
+	//	pyramid level's 32 mm resolution) otherwise gets an empty dose matrix,
+	//	so that level has no dose, KL = 0, and its optimization is a no-op. One
+	//	voxel spanning the whole extent still lets the level contribute a
+	//	coarse solution to the next finer level. An empty density volume (no
+	//	series loaded yet) must stay empty: the views test the dose size to
+	//	decide whether there is anything to draw.
+	const VolumeReal::SizeType volSize = pVolume->GetBufferedRegion().GetSize();
+	if (volSize[0] > 0) nWidth = __max(nWidth, 1);
+	if (volSize[1] > 0) nHeight = __max(nHeight, 1);
+	if (volSize[2] > 0) nDepth = __max(nDepth, 1);
 
 	// set dimensions
 	m_pDose->SetRegions(MakeSize(nWidth, nHeight, nDepth));
 	m_pDose->Allocate();
 
-	m_pDose->SetOrigin(pVolume->GetOrigin());
+	// see SetDoseOriginOffset: coarse pyramid levels shift the grid to match
+	//	the half-spacing origin shift of their pyramid-filtered beamlets
+	VolumeReal::PointType doseOrigin = pVolume->GetOrigin();
+	for (int nD = 0; nD < 3; nD++)
+		doseOrigin[nD] += m_DoseOriginOffset;
+	m_pDose->SetOrigin(doseOrigin);
 	m_pDose->SetDirection(pVolume->GetDirection());
 	m_pDose->SetSpacing(
 		MakeVector<3>(m_DoseResolution, m_DoseResolution, m_DoseResolution));

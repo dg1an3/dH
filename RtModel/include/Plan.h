@@ -71,6 +71,16 @@ public:
 	/** sets shape for dose matrix */
 	DECLARE_ATTRIBUTE_GI(DoseResolution, REAL);
 
+	// per-axis offset (mm) added to the density volume's origin when the dose
+	//	grid is sized. Coarser pyramid levels use (R_level - R_0) / 2: ITK's
+	//	pyramid filter shifts each downsampled beamlet's origin by half the
+	//	spacing increase, so the level's dose grid must shift the same way or
+	//	the beamlets land a fraction of a voxel off it (and, for a volume only
+	//	one coarse voxel thick, entirely outside it). 0 for the finest level.
+	void SetDoseOriginOffset(REAL offset) { m_DoseOriginOffset = offset; }
+	REAL GetDoseOriginOffset() const { return m_DoseOriginOffset; }
+	REAL m_DoseOriginOffset;
+
 	/** stores the energy dep kernel */
 	CEnergyDepKernel * m_pKernel;
 
