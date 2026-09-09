@@ -31,14 +31,9 @@ Plan::Plan()
 Plan::~Plan()
 {
 	// delete the histograms
-	POSITION pos = m_mapHistograms.GetStartPosition();
-	while (NULL != pos)
+	for (auto& entry : m_mapHistograms)
 	{
-		CString strName;
-		CHistogram *pHistogram = NULL;
-		m_mapHistograms.GetNextAssoc(pos, strName, pHistogram); 
-
-		delete pHistogram;
+		delete entry.second;
 	}
 
 	// delete the kernel
@@ -156,13 +151,9 @@ void
 	GetDoseMatrix();
 
 	// now iterate over histo's
-	POSITION pos = m_mapHistograms.GetStartPosition();
-	CString strName;
-	CHistogram *pHisto;
-	while (pos != NULL)
+	for (auto& entry : m_mapHistograms)
 	{
-		m_mapHistograms.GetNextAssoc(pos, strName, pHisto);
-		pHisto->OnVolumeChange(); // NULL, NULL);
+		entry.second->OnVolumeChange(); // NULL, NULL);
 	}
 #endif
 }
@@ -226,7 +217,12 @@ CHistogram *
 {
 	CHistogram *pHisto = NULL;
 #ifdef USE_RTOPT
-	if (!m_mapHistograms.Lookup(CString(pStructure->GetName().c_str()), pHisto))
+	auto iterFound = m_mapHistograms.find(pStructure->GetName());
+	if (iterFound != m_mapHistograms.end())
+	{
+		pHisto = iterFound->second;
+	}
+	else
 	{
 		if (bCreate)
 		{
@@ -245,7 +241,7 @@ CHistogram *
 			pHisto->SetSlice(nSlice);
 
 			// add to map
-			m_mapHistograms[CString(pStructure->GetName().c_str())] = pHisto;
+			m_mapHistograms[pStructure->GetName()] = pHisto;
 		}
 	}
 
@@ -266,11 +262,11 @@ void
 	Plan::RemoveHistogram(dH::Structure *pStructure)
 {
 #ifdef USE_RTOPT
-	CHistogram *pHisto = NULL;
-	if (m_mapHistograms.Lookup(CString(pStructure->GetName().c_str()), pHisto))
+	auto iterFound = m_mapHistograms.find(pStructure->GetName());
+	if (iterFound != m_mapHistograms.end())
 	{
-		m_mapHistograms.RemoveKey(CString(pStructure->GetName().c_str()));
-		delete pHisto;
+		delete iterFound->second;
+		m_mapHistograms.erase(iterFound);
 	}
 #endif
 }

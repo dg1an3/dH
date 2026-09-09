@@ -137,7 +137,7 @@ vnl_nonlinear_minimizer::ReturnCodes
 	// if we are too short,
 	if (m_vGrad.magnitude() < 1e-8)
 	{
-		Log(_T("Gradient too small -- adding length"));
+		Log("Gradient too small -- adding length");
 		// NOTE: must be a step large enough for the line minimizer's initial
 		//	bracket to produce a distinguishable function value -- get_x_tolerance()
 		//	is a convergence tolerance, not a usable step scale, and using it here
@@ -234,10 +234,8 @@ vnl_nonlinear_minimizer::ReturnCodes
 
 		const REAL gradNorm = m_vGrad.magnitude();		// |grad F| at the new point
 		{
-			CString __logMsg;
-			__logMsg.Format(_T("iter %d: F=%.6g |gradF|=%.6g"),
+			RTM_TRACE("iter %d: F=%.6g |gradF|=%.6g",
 				num_iterations_, (double) m_FinalValue, (double) gradNorm);
-			Log(__logMsg);
 		}
 
 		// choose the convergence criterion: gradient-norm if BRIMSTONE_GRAD_TOL
@@ -461,10 +459,9 @@ void
 		m_FreeEnergy = m_FinalValue - m_Entropy;
 
 		{
-			CString __logMsg;
-			__logMsg.Format(_T("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f"),
-				num_iterations_, m_FinalValue, m_Entropy, m_FreeEnergy);
-			Log(__logMsg);
+			RTM_TRACE("Iteration %d: KL=%.6f, Entropy=%.6f, FreeEnergy=%.6f",
+				(int) num_iterations_, (double) m_FinalValue,
+				(double) m_Entropy, (double) m_FreeEnergy);
 		}
 	}
 
