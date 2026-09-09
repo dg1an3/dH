@@ -5,6 +5,7 @@
 #include <itkImageRegionConstIterator.h>
 #include <itkImageRegionIterator.h>
 #include <itkResampleImageFilter.h>
+#include <itkNearestNeighborExtrapolateImageFunction.h>
 
 #include <Structure.h>
 #include <Series.h>
@@ -167,6 +168,14 @@ VolumeReal *
 	typedef itk::LinearInterpolateImageFunction<VolumeReal, REAL> InterpolatorType;
 	InterpolatorType::Pointer interpolator = InterpolatorType::New();
 	resampler->SetInterpolator( interpolator );
+
+	// The region is point-sampled at the target grid's voxel centres. A coarse
+	//	pyramid level whose grid is one voxel thick has its centre shifted by
+	//	half the spacing increase (Plan::SetDoseOriginOffset) and can sit just
+	//	outside the region volume, where the interpolator returns 0. Extrapolate
+	//	with the nearest voxel instead; interior samples are unchanged.
+	resampler->SetExtrapolator(
+		itk::NearestNeighborExtrapolateImageFunction<VolumeReal, REAL>::New());
 
 	VolumeReal::Pointer pPointToVolume = static_cast<VolumeReal*>(pVolume);
 	resampler->SetOutputParametersFromImage(pPointToVolume);

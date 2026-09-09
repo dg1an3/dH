@@ -227,9 +227,44 @@ bool
 			pPresc->dTransform(&dtDiag);
 			const REAL doseMax = GetMax<VOXEL_REAL>(pPresc->m_sumVolume);
 			CString __d;
-			__d.Format(_T("LEVELDIAG dim=%d F=%.6g KL=%.6g |gradF|=%.6g |dTransform|=%.6g doseMax=%.6g\n"),
+			// geometry of this level's dose grid and first beamlet (z origin, z size,
+			//	spacing, beamlet max): shows whether the pyramid-filtered beamlets
+			//	actually overlap the grid they are accumulated into
+			const VolumeReal *pDoseGrid = GetPyramid()->GetPlan(nLevel)->GetDoseMatrix();
+			const VolumeReal *pBeamlet0 = (GetPyramid()->GetPlan(nLevel)->GetBeamCount() > 0)
+				? GetPyramid()->GetPlan(nLevel)->GetBeamAt(0)->GetBeamlet(0) : NULL;
+			CString __g;
+			__g.Format(_T(" dose[z0=%.2f nz=%d res=%.1f]"),
+				(double) pDoseGrid->GetOrigin()[2], (int) pDoseGrid->GetBufferedRegion().GetSize()[2],
+				(double) pDoseGrid->GetSpacing()[2]);
+			if (pBeamlet0 != NULL)
+			{
+				CString __b;
+				__b.Format(_T(" beamlet0[z0=%.2f nz=%d res=%.1f max=%.4g]"),
+					(double) pBeamlet0->GetOrigin()[2], (int) pBeamlet0->GetBufferedRegion().GetSize()[2],
+					(double) pBeamlet0->GetSpacing()[2], (double) GetMax<VOXEL_REAL>(const_cast<VolumeReal*>(pBeamlet0)));
+				__g += __b;
+			}
+			// per-structure region mass on this level's grid: a level whose regions
+			//	all sum to zero has nothing for its KL terms to fit
+			dH::Series *pDiagSeries = GetPyramid()->GetPlan(nLevel)->GetSeries();
+			for (int nS = 0; pDiagSeries != NULL && nS < pDiagSeries->GetStructureCount(); nS++)
+			{
+				dH::Structure *pS = pDiagSeries->GetStructureAt(nS);
+				if (pPresc->GetStructureTerm(pS) == NULL)
+					continue;
+				const VolumeReal *pR = pS->GetConformRegion(pPresc->m_sumVolume);
+				double regionSum = 0.0;
+				ConstVolumeRealIterator itR(pR, pR->GetBufferedRegion());
+				for (itR.GoToBegin(); !itR.IsAtEnd(); ++itR)
+					regionSum += itR.Get();
+				CString __r;
+				__r.Format(_T(" %s=%.3g"), CString(pS->GetName().c_str()), regionSum);
+				__g += __r;
+			}
+			__d.Format(_T("LEVELDIAG dim=%d F=%.6g KL=%.6g |gradF|=%.6g |dTransform|=%.6g doseMax=%.6g%s\n"),
 				vInit.GetDim(), (double) fDiag, (double) pPresc->GetLastKL(),
-				(double) gDiag.GetLength(), (double) dtDiag.GetLength(), (double) doseMax);
+				(double) gDiag.GetLength(), (double) dtDiag.GetLength(), (double) doseMax, (LPCTSTR) __g);
 			OutputDebugString(__d);
 		}
 
