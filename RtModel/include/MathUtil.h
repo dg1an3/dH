@@ -4,8 +4,13 @@
 #define MATHUTIL_H
 
 // standard math libraries
+#include <cassert>
+#include <cctype>
+#include <cstdlib>
 #include <math.h>
 #include <float.h>
+
+#include <string>
 
 #include <complex>
 using namespace std;
@@ -44,7 +49,7 @@ const REAL DEFAULT_EPSILON = (REAL) 1e-5;
 //////////////////////////////////////////////////////////////////////
 #ifdef USE_IPP
 #ifdef _DEBUG
-#define CK_IPP(x) { IppStatus stat = (x); ASSERT(stat == ippStsOk); }
+#define CK_IPP(x) { IppStatus stat = (x); assert(stat == ippStsOk); }
 #else
 #define CK_IPP(x) (x);
 #endif
@@ -165,8 +170,8 @@ inline REAL AngleFromSinCos(REAL sin_angle, REAL cos_angle)
 
 	// now check
 #ifdef _DEBUG_ACCURACY
-	ASSERT(fabs(sin(angle) - sin_angle) < 1e-6);
-	ASSERT(fabs(cos(angle) - cos_angle) < 1e-6);
+	assert(fabs(sin(angle) - sin_angle) < 1e-6);
+	assert(fabs(cos(angle) - cos_angle) < 1e-6);
 #endif
 
 	return angle;
@@ -237,10 +242,10 @@ inline TYPE InvSigmoid(TYPE y, TYPE scale /* = 1.0 */)
 	// compute value
 	TYPE value = (TYPE) (-log(1.0 / y - 1.0) 
 		/ scale);
-	ASSERT(_finite(value));
+	assert(_finite(value));
 
 	// test result
-	ASSERT(IsApproxEqual(Sigmoid(value, scale), y));
+	assert(IsApproxEqual(Sigmoid(value, scale), y));
 
 	// return
 	return value;
@@ -258,33 +263,45 @@ inline TYPE InvSigmoid(TYPE y, TYPE scale /* = 1.0 */)
 
 
 // only use if we have included necessary AFX calls
-#ifdef __AFXWIN_H__
 //////////////////////////////////////////////////////////////////////
-// GetProfileReal
+// settings lookup
 //
-// function for real-valued registry values
+// A section + name pair maps to the environment variable
+// BRIMSTONE_<SECTION>_<NAME>, upper-cased -- so ("Prescription",
+// "LevelSigma0") is read from BRIMSTONE_PRESCRIPTION_LEVELSIGMA0.
+// If the variable is unset, the caller's default stands.  This
+// replaces the former AfxGetApp()->GetProfileString registry lookup,
+// and matches the BRIMSTONE_* convention already used elsewhere.
+//////////////////////////////////////////////////////////////////////
+inline std::string MakeSettingKey(const char *pszSection, const char *pszName)
+{
+	std::string strKey("BRIMSTONE_");
+	strKey += pszSection;
+	strKey += "_";
+	strKey += pszName;
+
+	for (size_t nAt = 0; nAt < strKey.size(); nAt++)
+		strKey[nAt] = (char) toupper((unsigned char) strKey[nAt]);
+
+	return strKey;
+
+}	// MakeSettingKey
+
 //////////////////////////////////////////////////////////////////////
 inline REAL GetProfileReal(const char *pszSection, const char *pszName, double default_value)
 {
-	USES_CONVERSION;
-
-	CString strValue;
-	strValue.Format(_T("%lf"), default_value);
-	
-	// get profile string, or default value
-	strValue = ::AfxGetApp()->GetProfileString(A2T(pszSection), A2T(pszName), strValue);
-
-	// turn to REAL
-	REAL value;
-	_stscanf_s(strValue.GetBuffer(), _T(REAL_FMT), &value);
-
-	// make sure parameter is written, so it can be modified through RegEdit
-	::AfxGetApp()->WriteProfileString(A2T(pszSection), A2T(pszName), strValue);
-
-	return value;
+	const char *pEnv = getenv(MakeSettingKey(pszSection, pszName).c_str());
+	return (pEnv != NULL) ? (REAL) atof(pEnv) : (REAL) default_value;
 
 }	// GetProfileReal
-#endif
+
+//////////////////////////////////////////////////////////////////////
+inline int GetProfileInt(const char *pszSection, const char *pszName, int default_value)
+{
+	const char *pEnv = getenv(MakeSettingKey(pszSection, pszName).c_str());
+	return (pEnv != NULL) ? atoi(pEnv) : default_value;
+
+}	// GetProfileInt
 
 //////////////////////////////////////////////////////////////////////
 // functions for complex values
@@ -310,6 +327,6 @@ inline REAL conjg(const REAL& c)
 }
 
 
-#define CK_BOOL(x) if (!(x)) TRACE("CK_BOOL failed\n");
+#define CK_BOOL(x) if (!(x)) RTM_TRACE("CK_BOOL failed\n");
 
 #endif // !defined(MATHUTIL_H)

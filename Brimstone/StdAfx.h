@@ -43,9 +43,11 @@ USES_FMT;
 // math include
 #include <math.h>
 
-// IPP includes
+// IPP includes (Intel-only; ARM64 builds leave USE_IPP undefined)
+#ifdef USE_IPP
 #include <ipps.h>
 #include <ippcv.h>
+#endif
 
 // utility macros
 #include <UtilMacros.h>
