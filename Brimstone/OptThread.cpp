@@ -41,6 +41,8 @@ int COptThread::ExitInstance()
 COptThread::COptIterData::COptIterData(void)
 	: m_nLevel(0)
 	, m_nIteration(0)
+	, m_ofvalue(0.0)
+	, m_kl(0.0)
 {
 }
 
@@ -74,6 +76,11 @@ BOOL
 			pOID->m_nLevel = nLevel;
 			pOID->m_nIteration = pOpt->get_num_iterations/*GetIterations*/();
 			pOID->m_ofvalue = pOpt->GetFinalValue();
+			// raw KL at the prescription's most recent evaluation -- the line
+			//	search's final probe, i.e. the accepted point to within the line
+			//	tolerance. The convergence chart plots this (always > 0) rather
+			//	than F, which goes negative once the entropy term dominates.
+			pOID->m_kl = pPlanOpt->GetPrescription(nLevel)->GetLastKL();
 			pOID->m_vParam.SetDim(pOpt->GetFinalParameter().size/*GetDim*/());
 			pOID->m_vParam = pOpt->GetFinalParameter();
 
@@ -98,9 +105,24 @@ BOOL
 	// get current thread state
 	_AFX_THREAD_STATE* pState = AfxGetThreadState();
 
+	// Normally the optimizer yields (and stops) whenever any message is pending
+	//	on this worker thread, which keeps the UI responsive but makes the number
+	//	of iterations -- and hence the final objective -- depend on message
+	//	timing. For a reproducible isocenter sweep that must be comparable
+	//	point-to-point, BRIMSTONE_DETERMINISTIC forces the optimizer to run purely
+	//	to its own CG convergence tolerance instead. Cached on first use. Inert
+	//	for normal interactive runs where the env var is unset.
+	static int s_deterministic = -1;
+	if (s_deterministic < 0)
+	{
+		char szDet[8] = {0};
+		s_deterministic = (GetEnvironmentVariableA("BRIMSTONE_DETERMINISTIC", szDet, sizeof(szDet)) > 0) ? 1 : 0;
+	}
+
 	// and determine whether any messages are pending, if so...
-	bool bContinueOptimizer = 
-		!PeekMessage(&(pState->m_msgCur), NULL, NULL, NULL, PM_NOREMOVE);
+	bool bContinueOptimizer = s_deterministic
+		? true
+		: !PeekMessage(&(pState->m_msgCur), NULL, NULL, NULL, PM_NOREMOVE);
 	if (bContinueOptimizer)
 	{
 		// sleep for 50 msec to allow the UI to update

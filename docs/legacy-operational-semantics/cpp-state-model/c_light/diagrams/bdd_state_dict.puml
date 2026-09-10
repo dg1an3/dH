@@ -1,0 +1,32 @@
+@startuml bdd_state_dict
+title <<bdd>> CLight state{} dict schema
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>> #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>> #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : LightMode
+    type : D3DLIGHTTYPE
+    direction : CVectorD<3>
+    diffuse : RGB_float
+}
+class LightMode <<enumeration>> {
+    pre_construct
+    active
+    destroyed
+}
+state "1" -- "1" LightMode : win
+note bottom of state
+    Multi-inheritance from D3DLIGHT8.
+    State fields are aliases for
+    D3DLIGHT8::Type/Direction/Diffuse.
+end note
+@enduml

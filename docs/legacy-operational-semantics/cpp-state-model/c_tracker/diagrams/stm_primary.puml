@@ -1,0 +1,28 @@
+@startuml stm_primary
+title <<stm>> CTracker (base) Primary State Machine
+
+skinparam state {
+    BackgroundColor<<browse>>   #e3f2fd
+    BorderColor<<browse>>       #1565c0
+    FontColor<<browse>>         #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>>     #2e7d32
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_construct" as Pre <<browse>>
+state "active" as Active <<browse>>
+state "destroyed" as Dead <<terminal>>
+
+Pre -down-> Active : construct(View)
+Active --> Active : is_inside(_) [returns TRUE]\non_button_down(_, _) [empty]\non_button_up(_, _) [empty]\non_mouse_move(_, _) [empty]\non_mouse_drag(_, _) [empty]
+Active -down-> Dead : destruct
+
+note right of Active
+    All 5 mouse handlers have
+    EMPTY bodies in the base.
+    Subclasses (CRotateTracker,
+    CZoomTracker) override.
+end note
+@enduml

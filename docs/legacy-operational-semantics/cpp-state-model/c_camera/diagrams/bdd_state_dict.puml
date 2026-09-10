@@ -1,0 +1,40 @@
+@startuml bdd_state_dict
+title <<bdd>> CCamera state{} dict schema
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>> #e65100
+    BackgroundColor<<observable>> #f3e5f5
+    BorderColor<<observable>> #7b1fa2
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>> #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : CameraMode
+    target : CVectorD<3>
+    direction : CVectorD<3>
+    distance : double
+    up_direction : CVectorD<3>
+    viewing_angle : double
+    aspect_ratio : double
+    near_plane : double
+    far_plane : double
+    xform : CMatrixD<4> (mutable cache)
+    projection : CMatrixD<4> (mutable cache)
+}
+class CameraMode <<enumeration>> {
+    pre_construct
+    active
+    destroyed
+}
+class change_event <<observable>> {
+    fired by 7 setters + SetFieldOfView (TWICE)
+}
+state "1" -- "1" CameraMode : win
+state --> change_event : GetChangeEvent()
+@enduml

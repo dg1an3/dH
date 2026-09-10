@@ -198,11 +198,29 @@ void CBrimstoneDoc::OnGenbeamlets()
 		pVR->GetBufferedRegion().GetSize()[0],
 		pVR->GetBufferedRegion().GetSize());
 
-	CVectorN<> vWeights;
-	vWeights.SetDim(1); // 39);
-	vWeights[0 /*19*/] = 0.99; // 70.0;
+	// the intensity map has to be sized to the beam's level 0 beamlet count.
+	//	CBeam::SetIntensityMap sizes the map buffer, but leaves m_arrBeamlets
+	//	(and so GetBeamletCount) alone; the two are then read independently
+	//	downstream -- PlanOptimizer::InvFilterStateVector ConformTo's its
+	//	output buffer to the map, while PlanPyramid::InvFiltIntensityMap
+	//	drives its write extent from GetBeamletCount. Sizing the map to a
+	//	fixed 1 left them disagreeing 1-vs-39, overrunning that buffer by 38
+	//	elements on every CG iteration, and made CBeam::GetDoseMatrix's
+	//	size == m_arrBeamlets.size() guard silently skip the dose calc.
 	for (int nAtBeam = 0; nAtBeam < m_pPlan->GetBeamCount(); nAtBeam++)
-		m_pPlan->GetBeamAt(nAtBeam)->SetIntensityMap(vWeights);
+	{
+		CBeam *pBeam = m_pPlan->GetBeamAt(nAtBeam);
+		const int nBeamletCount = pBeam->GetBeamletCount();
+		if (nBeamletCount == 0)
+			continue;
+
+		// NOTE: SetDim zeroes the newly-added elements, so only the center
+		//		beamlet needs to be set
+		CVectorN<> vWeights;
+		vWeights.SetDim(nBeamletCount);
+		vWeights[nBeamletCount / 2] = 0.99; // 70.0;
+		pBeam->SetIntensityMap(vWeights);
+	}
 	m_pPlan->GetDoseMatrix();
 
 	// this is used to prime CBrimstoneView's optimizer thread
@@ -257,9 +275,12 @@ void CBrimstoneDoc::OnFileImportDcm()
 		}
 #endif
 
-		dH::Structure *pStruct = this->m_pSeries->GetStructureAt(0);
-		CString strName(pStruct->GetName().c_str());
-		//pStruct->CalcRegion();
+		if (this->m_pSeries->GetStructureCount() > 0)
+		{
+			dH::Structure *pStruct = this->m_pSeries->GetStructureAt(0);
+			CString strName(pStruct->GetName().c_str());
+			//pStruct->CalcRegion();
+		}
 
 		// TODO: update the viewer with the correct plane isocenter position
 

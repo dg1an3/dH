@@ -1,0 +1,28 @@
+@startuml bdd_state_dict
+title <<bdd>> CZoomTracker state{} dict schema
+skinparam class {
+    BackgroundColor<<root>> #ffe0b2
+    BorderColor<<root>> #e65100
+    BackgroundColor<<enumeration>> #fff9c4
+    BorderColor<<enumeration>> #f9a825
+}
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+left to right direction
+
+class state <<root>> {
+    win : TrackerMode
+    pview : CSceneView* | none
+    init_zoom : double
+    init_y : double
+}
+class TrackerMode <<enumeration>> {
+    pre_construct
+    ready
+    dragging
+    destroyed
+}
+state "1" -- "1" TrackerMode : win
+@enduml

@@ -7,11 +7,16 @@
 
 #include <ConjGradOptimizer.h>
 #include <HistogramGradient.h>
+#include <SigmoidParams.h>
 
 namespace dH
 {
 
-const REAL SIGMOID_SCALE = 0.2; // 0.1; // 0.3; // 0.1; // 1.0;
+// was a bare literal 0.2, duplicated in HistogramGradient.cpp. Now sourced from
+//	the shared getter so the transform and its variance correction cannot drift
+//	apart, and so a sweep can set it via BRIMSTONE_SIGMOID_SCALE. See
+//	SigmoidParams.h.
+const REAL SIGMOID_SCALE = GetSigmoidScale();
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -21,7 +26,11 @@ const REAL SIGMOID_SCALE = 0.2; // 0.1; // 0.3; // 0.1; // 1.0;
 Prescription::Prescription(CPlan *pPlan/*, int nLevel*/)
 	: /*CObjectiveFunction(FALSE)
 		, */m_pPlan(pPlan)
-		, m_inputScale(GetProfileReal("Prescription", "InputScale", 0.5))
+		// BRIMSTONE_INPUT_SCALE overrides the registry value, so a sweep can set
+		//	the steepness without touching HKCU -- and, unlike the registry path,
+		//	the override also reaches HistogramGradient's variance correction.
+		//	See SigmoidParams.h.
+		, m_inputScale(GetInputScale(GetProfileReal("Prescription", "InputScale", 0.5)))
 		, m_Slice(0)
 		, m_TransformSlopeVariance(true)
 {
@@ -38,18 +47,55 @@ Prescription::Prescription(CPlan *pPlan/*, int nLevel*/)
 
 	m_volTemp = VolumeReal::New();
 
+	m_dLastKL = 0.0;
+	m_dLastEntropy = 0.0;
+
 }	// Prescription::Prescription
+
+///////////////////////////////////////////////////////////////////////////////
+REAL
+	Prescription::GetEntropyWeight() const
+	// weight w of the softmax-entropy regularizer in F = KL - w*entropy.
+	//	Read once from BRIMSTONE_ENTROPY_WEIGHT (0 => plain KL objective, the
+	//	default). Process-global; each sweep point is a fresh process, so the
+	//	driver can vary w per run via the environment without a rebuild.
+{
+	static bool s_init = false;
+	static REAL s_w = 0.0;
+	if (!s_init)
+	{
+		s_init = true;
+		const char *pEnv = getenv("BRIMSTONE_ENTROPY_WEIGHT");
+		if (pEnv != NULL)
+			s_w = (REAL) atof(pEnv);
+	}
+	return s_w;
+}	// Prescription::GetEntropyWeight
+
+///////////////////////////////////////////////////////////////////////////////
+bool
+	Prescription::GetEntropySeparable() const
+	// selects the separable per-beamlet binary entropy (BRIMSTONE_ENTROPY_SEPARABLE
+	//	!= 0) over the default global softmax entropy. Read once, cached.
+{
+	static bool s_init = false;
+	static bool s_separable = false;
+	if (!s_init)
+	{
+		s_init = true;
+		const char *pEnv = getenv("BRIMSTONE_ENTROPY_SEPARABLE");
+		if (pEnv != NULL)
+			s_separable = (atoi(pEnv) != 0);
+	}
+	return s_separable;
+}	// Prescription::GetEntropySeparable
 
 ///////////////////////////////////////////////////////////////////////////////
 Prescription::~Prescription()
 {
-	dH::Structure *pStruct = NULL;
-	VOITerm *pVOIT = NULL;
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : m_mapVOITs)
 	{
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-		delete pVOIT;
+		delete entry.second;
 	}
 
 }	// Prescription::~Prescription
@@ -58,10 +104,9 @@ Prescription::~Prescription()
 VOITerm *
 	Prescription::GetStructureTerm(Structure *pStruct)
 {
-	VOITerm *pVOIT = NULL;
-	m_mapVOITs.Lookup(pStruct, pVOIT);
+	auto iter = m_mapVOITs.find(pStruct);
 
-	return pVOIT;
+	return (iter != m_mapVOITs.end()) ? iter->second : NULL;
 
 }	// Prescription::GetStructureTerm
 
@@ -130,7 +175,7 @@ void
 			nOtherSlice++)
 		{
 			sliceMax = GetSliceMax(pResampRegion, nOtherSlice);
-			TRACE("sliceMax on slice %i = %lf\n", nOtherSlice, sliceMax);
+			RTM_TRACE("sliceMax on slice %i = %lf\n", nOtherSlice, sliceMax);
 		}
 	}
 
@@ -162,11 +207,11 @@ void
 void 
 	Prescription::RemoveStructureTerm(Structure *pStruct)
 {
-	VOITerm *pVOIT = NULL;
-	if (m_mapVOITs.Lookup(pStruct, pVOIT))
+	auto iter = m_mapVOITs.find(pStruct);
+	if (iter != m_mapVOITs.end())
 	{
-		m_mapVOITs.RemoveKey(pStruct);
-		delete pVOIT;
+		delete iter->second;
+		m_mapVOITs.erase(iter);
 	}
 
 }	// Prescription::RemoveStructureTerm
@@ -177,19 +222,13 @@ void
 	// updates terms from another prescription object
 {
 	// now for the terms
-	POSITION pos = pPresc->m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : pPresc->m_mapVOITs)
 	{
-		Structure * pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		pPresc->m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-
-		VOITerm *pMyVOIT = NULL;
-		BOOL bFound = m_mapVOITs.Lookup(pStruct, pMyVOIT);
-		ASSERT(bFound);
+		auto iterMine = m_mapVOITs.find(entry.first);
+		assert(iterMine != m_mapVOITs.end());
 
 		// assignment operator -- copies all relevent fields
-		pMyVOIT->UpdateFrom(pVOIT);
+		iterMine->second->UpdateFrom(entry.second);
 	}
 
 }	// Prescription::UpdateTerms
@@ -204,7 +243,7 @@ void
 
 	// varMax *= 1.5; // 2.0;
 	// if (!IsApproxEqual(m_varMax, varMax))
-	//	::AfxMessageBox(_T("Problem!!!"));
+	//	::AfxMessageBox("Problem!!!");
 	m_varMax = varMax;
 	if (GetTransformSlopeVariance())
 	{
@@ -220,14 +259,9 @@ void
 	}
 
 	// now set up the histogram variances
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
-
-		pVOIT->GetHistogram()->SetGBinVar(&m_ActualAV/*m_pAV*/, m_varMin, m_varMax);
+		entry.second->GetHistogram()->SetGBinVar(&m_ActualAV/*m_pAV*/, m_varMin, m_varMax);
 	}
 
 }	// Prescription::SetGBinVar
@@ -237,19 +271,18 @@ REAL
 	Prescription::operator()(const CVectorN<>& vInput, CVectorN<> *pGrad ) const
 	// objective function evaluator
 {
-	USES_CONVERSION;
 
 	// initialize total sum of objective function
 	REAL totalSum = 0.0;
 
-	BeginLogSection(_T("Prescription::operator()"));
+	BeginLogSection("Prescription::operator()");
 
-	TraceVector(_T("vInput"), vInput);
+	TraceVector("vInput", vInput);
 
 	// transform input for calc purposes
 	CVectorN<> vInputTrans = vInput;
 	Transform(&vInputTrans);
-	TraceVector(_T("vInputTrans"), vInputTrans);
+	TraceVector("vInputTrans", vInputTrans);
 
 	// dTransform of the input -- flag is used to only calculate it if needed (if there is a gradient)
 	CVectorN<> v_dInputTrans;
@@ -265,19 +298,16 @@ REAL
 		v_dInputTrans.SetDim(vInput.GetDim());
 		v_dInputTrans = vInput;
 		dTransform(&v_dInputTrans);
-		TraceVector(_T("v_dInputTrans"), v_dInputTrans);
+		TraceVector("v_dInputTrans", v_dInputTrans);
 	}
 
 	// flag to indicate need to call CalcSumSigmoid
 	bool bCalcSum = true;
 
 	// iterate over the VOITerms
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (const auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		VOITerm *pVOIT = entry.second;
 
 		// calculate the summed volume, if this is the first VOIT
 		if (bCalcSum)
@@ -288,10 +318,8 @@ REAL
 
 		if (pVOIT->GetWeight() >= DEFAULT_EPSILON)
 		{
-			CString strMessage;
-			strMessage.Format(_T("VOI = %s\n"), 
-				A2W(pVOIT->GetVOI()->GetName().c_str()));
-			OutputDebugString(strMessage);
+			RTM_TRACE("VOI = %s\n",
+				pVOIT->GetVOI()->GetName().c_str());
 
 			// set fractions to histo
 			pVOIT->GetHistogram()->SetVarFracVolumes(m_volMainMinVar, m_volMainMaxVar);
@@ -318,7 +346,7 @@ REAL
 					m_vPartGrad[nAt] *= v_dInputTrans[nAt]; 
 				}
 
-				TraceVector(_T("m_vPartGrad"), m_vPartGrad);
+				TraceVector("m_vPartGrad", m_vPartGrad);
 
 				// add the partial gradient to the total
 				(*pGrad) += m_vPartGrad;
@@ -331,10 +359,99 @@ REAL
 	}
 
 	// good to catch an NANs
-	ASSERT(_finite(totalSum));
+	assert(_finite(totalSum));
 
-	// DGL: adding 0.1 to hold it up off 0.0 
-	totalSum += 0.1;
+	// NOTE: previously added a fixed +0.1 offset here ("to hold it up off 0.0"),
+	//	but that constant leaked into the CG optimizer's relative convergence test
+	//	(ConjGradOptimizer.cpp, comparing fabs(m_FinalValue)+fabs(new_fv)) and into
+	//	the free-energy display, both of which should reflect the true KL divergence
+	//	sum. totalSum is already a sum of non-negative KL divergence terms, so it
+	//	doesn't need padding away from 0.0.
+
+	// record the raw KL sum before the entropy regularizer is applied
+	m_dLastKL = totalSum;
+	m_dLastEntropy = 0.0;
+
+	// -------------------------------------------------------------------------
+	// Entropy regularizer:  F = KL - w * H. H is a true function of the
+	// optimizer parameters, so -w*grad(H) genuinely steers the CG search. Two
+	// forms (BRIMSTONE_ENTROPY_SEPARABLE selects), w=0 recovers plain KL:
+	//
+	//  softmax (default):  p = softmax(vInput),  H = -sum_i p_i log p_i,
+	//		dH/dx_k = -p_k (log p_k + H).  GLOBAL coupling (all beamlets compete
+	//		in one simplex) -> dense, ill-conditioned Hessian; CG stalls at w=0.01.
+	//
+	//  separable:  q_i = Sigmoid(x_i) in [0,1] (the beamlet's fraction of max
+	//		weight),  H = sum_i [ -q_i ln q_i - (1-q_i) ln(1-q_i) ] (per-beamlet
+	//		binary entropy),  dH/dx_i = ln((1-q_i)/q_i) * dSigmoid(x_i).  DIAGONAL
+	//		Hessian -> well-conditioned; no artificial cross-beamlet coupling.
+	//		Pushes each beamlet toward q=0.5 (half of max). Both gradients are
+	//		finite-difference validated (scratchpad/test_entropy_grad.py + the
+	//		in-app BRIMSTONE_GRADCHECK path).
+	// -------------------------------------------------------------------------
+	const REAL w = GetEntropyWeight();
+	if (w != 0.0)
+	{
+		const int nDim = vInput.GetDim();
+		REAL entropy = 0.0;
+
+		if (GetEntropySeparable())
+		{
+			for (int i = 0; i < nDim; i++)
+			{
+				const REAL q = Sigmoid(vInput[i], m_inputScale);
+				const REAL qc = (REAL) 1.0 - q;
+				if (q > 1e-12 && qc > 1e-12)
+					entropy -= q * (REAL) log(q) + qc * (REAL) log(qc);
+
+				if (pGrad)
+				{
+					const REAL ql = __max(q, (REAL) 1e-12);
+					const REAL qcl = __max(qc, (REAL) 1e-12);
+					const REAL dH = (REAL) log(qcl / ql) * dSigmoid(vInput[i], m_inputScale);
+					(*pGrad)[i] -= w * dH;
+				}
+			}
+		}
+		else
+		{
+			// softmax with max-subtraction for numerical stability
+			REAL vMax = vInput[0];
+			for (int i = 1; i < nDim; i++)
+				vMax = __max(vMax, vInput[i]);
+
+			CVectorN<> p;
+			p.SetDim(nDim);
+			REAL Z = 0.0;
+			for (int i = 0; i < nDim; i++)
+			{
+				p[i] = (REAL) exp(vInput[i] - vMax);
+				Z += p[i];
+			}
+			for (int i = 0; i < nDim; i++)
+			{
+				p[i] /= Z;
+				if (p[i] > 1e-300)
+					entropy -= p[i] * (REAL) log(p[i]);
+			}
+
+			if (pGrad)
+			{
+				for (int k = 0; k < nDim; k++)
+				{
+					const REAL logpk = (REAL) log(__max(p[k], (REAL) 1e-300));
+					const REAL dH = -p[k] * (logpk + entropy);
+					(*pGrad)[k] -= w * dH;
+				}
+			}
+		}
+
+		// F = KL - w*H
+		totalSum -= w * entropy;
+		m_dLastEntropy = entropy;
+
+		assert(_finite(totalSum));
+	}
 
 	EndLogSection();
 
@@ -348,10 +465,10 @@ void
 	Prescription::CalcSumSigmoid(CHistogramWithGradient *pHisto, 
 								   const CVectorN<>& vInput,
 								   const CVectorN<>& vInputTrans, 
-								   const CArray<BOOL, BOOL>& arrInclude) const
+								   const std::vector<BOOL>& arrInclude) const
 	// computes the sum of weights from an input vector
 {
-	BeginLogSection(_T("Prescription::CalcSumSigmoid"));
+	BeginLogSection("Prescription::CalcSumSigmoid");
 
 	// get the main volume
 	VolumeReal *pVolume = pHisto->GetVolume();
@@ -364,7 +481,7 @@ void
 	m_volMainMaxVar->FillBuffer(0.0);
 
 	// iterate over the component volumes, accumulating the weighted volumes
-	ASSERT(vInputTrans.GetDim() == pHisto->Get_dVolumeCount());
+	assert(vInputTrans.GetDim() == pHisto->Get_dVolumeCount());
 
 	int nMaxGroup = pHisto->GetGroupCount();
 	for (int nAtGroup = 0; nAtGroup < nMaxGroup; nAtGroup++)
@@ -401,9 +518,8 @@ void
 					}
 
 					// check adaptive variance value
-					// TODO why is this not true?
-					ASSERT((*m_pAV)[nAt_dVolume] <= (m_varMax + 1e-6));
-					ASSERT((*m_pAV)[nAt_dVolume] >= (m_varMin - 1e-6));
+					assert((*m_pAV)[nAt_dVolume] <= (m_varMax + 1e-6));
+					assert((*m_pAV)[nAt_dVolume] >= (m_varMin - 1e-6));
 
 					// determine variance using dSigmoid
 					REAL varSlope = 1.0;
@@ -424,10 +540,10 @@ void
 						// normalize so that beamlet weight at scale / 2 is 1.0
 						varWeight /= SIGMOID_SCALE / 2.0;
 					}
-					REAL actVar = m_ActualAV[nAt_dVolume] = 
-						(*m_pAV)[nAt_dVolume] * varSlope * varSlope * varWeight * varWeight;
+					REAL actVar = (*m_pAV)[nAt_dVolume] * varSlope * varSlope * varWeight * varWeight;
 					actVar = __max(actVar, m_varMin);
 					actVar = __min(actVar, m_varMax);
+					m_ActualAV[nAt_dVolume] = actVar;
 
 					// calculate fractional parts
 					const REAL fracMax = // ((*m_pAV)[nAt_dVolume] - m_varMin) / (m_varMax - m_varMin);
@@ -592,11 +708,9 @@ void
 	// helper to update the histogram regions
 {
 	// set up the histogram regions
-	for (POSITION pos = m_mapVOITs.GetStartPosition(); pos != NULL;)
+	for (auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		VOITerm *pVOIT = entry.second;
 
 		// now reset the conform regions for the VOIT
 		VolumeReal *pResampRegion = pVOIT->GetVOI()->GetConformRegion(m_sumVolume);
@@ -617,20 +731,17 @@ void
 	// determines array of flags of beamlets (elements) to include in optimization
 {
 	// iterate over terms to find target term
-	POSITION pos = m_mapVOITs.GetStartPosition();
-	while (pos != NULL)
+	for (auto& entry : m_mapVOITs)
 	{
-		Structure *pStruct = NULL;
-		VOITerm *pVOIT = NULL;
-		m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+		VOITerm *pVOIT = entry.second;
 
 		CHistogramWithGradient *pHisto = pVOIT->GetHistogram();
 
-		if (m_arrIncludeElement.GetSize() < pHisto->Get_dVolumeCount())
+		if ((int) m_arrIncludeElement.size() < pHisto->Get_dVolumeCount())
 		{
-			m_arrIncludeElement.SetSize(pHisto->Get_dVolumeCount());
+			m_arrIncludeElement.resize(pHisto->Get_dVolumeCount());
 
-			for (int nAt = 0; nAt < m_arrIncludeElement.GetSize(); nAt++)
+			for (int nAt = 0; nAt < (int) m_arrIncludeElement.size(); nAt++)
 			{
 				m_arrIncludeElement[nAt] = true;
 			}

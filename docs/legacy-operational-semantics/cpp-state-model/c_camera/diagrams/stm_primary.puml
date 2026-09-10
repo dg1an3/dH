@@ -1,0 +1,30 @@
+@startuml stm_primary
+title <<stm>> CCamera Primary State Machine
+skinparam state {
+    BackgroundColor<<browse>> #e3f2fd
+    BorderColor<<browse>> #1565c0
+    FontColor<<browse>> #0d47a1
+    BackgroundColor<<terminal>> #e8f5e9
+    BorderColor<<terminal>> #2e7d32
+}
+skinparam shadowing false
+top to bottom direction
+
+state "pre_construct" as Pre <<browse>>
+state "active" as Active <<browse>>
+state "destroyed" as Dead <<terminal>>
+
+Pre -down-> Active : construct
+Active --> Active : set_target/direction/distance/up_direction\nset_viewing_angle/aspect_ratio/clipping_planes\n(each fires GetChangeEvent)
+Active --> Active : set_field_of_view(MaxSize)\n[fires change TWICE indirectly]
+Active --> Active : recalc_xform / recalc_projection\n(mutable cache update; no fire)
+Active -down-> Dead : destruct
+
+note right of Active
+    OBSERVABLE: 8 setters fire
+    m_eventChange. SetFieldOfView
+    is a convenience that calls
+    SetClippingPlanes + SetDistance
+    -- fires TWICE.
+end note
+@enduml

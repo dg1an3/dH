@@ -194,7 +194,8 @@ void CPlanarView::DrawImages(CDC *pDC)
 	VOXEL_REAL *pVoxels0 = NULL;
 	if (m_pVolume[0] && m_pVolume[0]->GetBufferedRegion().GetSize()[0] != 0)
 	{
-		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width())
+		if (m_volumeResamp[0]->GetBufferedRegion().GetSize()[0] != rect.Width()
+			|| m_volumeResamp[0]->GetBufferedRegion().GetSize()[1] != rect.Height())
 		{
 			m_volumeResamp[0]->SetRegions(MakeSize(rect.Width(), rect.Height(), 1));
 			m_volumeResamp[0]->Allocate();
@@ -723,6 +724,18 @@ void
 		+ m_pVolume[0]->GetSpacing()[1] * 0.5 * (REAL) m_pVolume[0]->GetBufferedRegion().GetSize()[1];
 	m_vCenter[2] = m_pVolume[0]->GetOrigin()[2];
 
+	// automation hook: BRIMSTONE_ZOOM overrides the default 1.0 zoom so the
+	//	sweep's screenshots magnify the anatomy in the planar view. Inert for
+	//	normal interactive runs where the env var is unset (right-drag still
+	//	zooms as before).
+	char szZoom[64] = {0};
+	if (GetEnvironmentVariableA("BRIMSTONE_ZOOM", szZoom, sizeof(szZoom)) > 0)
+	{
+		const double z = atof(szZoom);
+		if (z > 0.0)
+			m_zoom = (REAL) z;
+	}
+
 	// set the zoom (to set the basis)
 	SetZoom(m_zoom);
 }
@@ -765,6 +778,7 @@ BEGIN_MESSAGE_MAP(CPlanarView, CWnd)
 	ON_WM_MBUTTONDOWN()
 	ON_WM_MBUTTONUP()
 	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSEWHEEL()
 	ON_WM_SIZE()
 	ON_WM_CREATE()
 	//}}AFX_MSG_MAP
@@ -970,7 +984,35 @@ void
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-void 
+BOOL CPlanarView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	if (m_pVolume[0] == NULL || m_pVolume[0]->GetBufferedRegion().GetSize()[2] == 0)
+		return FALSE;
+
+	const Point<REAL>&  origin  = m_pVolume[0]->GetOrigin();
+	const Vector<REAL>& spacing = m_pVolume[0]->GetSpacing();
+	const int nSliceCount = (int)m_pVolume[0]->GetBufferedRegion().GetSize()[2];
+
+	// one wheel notch moves one slice
+	int nDelta = -(zDelta / WHEEL_DELTA);
+
+	Vector<REAL> vNewCenter = m_vCenter;
+	vNewCenter[2] += nDelta * spacing[2];
+
+	// clamp to volume z bounds
+	const REAL zMin = origin[2];
+	const REAL zMax = origin[2] + (nSliceCount - 1) * spacing[2];
+	vNewCenter[2] = __max(vNewCenter[2], zMin);
+	vNewCenter[2] = __min(vNewCenter[2], zMax);
+
+	SetCenter(vNewCenter);
+	RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+
+	return TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+void
 	CPlanarView::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	// form panning region

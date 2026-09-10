@@ -11,33 +11,43 @@ namespace dH
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// constants for access to the registry
-const CString REG_KEY			= _T("Prescription");
+// section name for settings access
+const char * const REG_KEY		= "Prescription";
 
 ///////////////////////////////////////////////////////////////////////////////
 /// TODO: move this to utils
-REAL 
-	GetProfileRealAt(const CString& strKey, int nAt, REAL defaultValue)
+REAL
+	GetProfileRealAt(const char *pszKey, int nAt, REAL defaultValue)
 {
-	USES_CONVERSION;
-	CString strKeyAt;
-	strKeyAt.Format(strKey, nAt);
-	return GetProfileReal(W2A(REG_KEY), W2A(strKeyAt), defaultValue);
+	char szKeyAt[128];
+	snprintf(szKeyAt, sizeof(szKeyAt), pszKey, nAt);
+	return GetProfileReal(REG_KEY, szKeyAt, defaultValue);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 // other constants + registry keys
 
-const CString GBINSIGMA_KEY		= _T("GBinSigma");
+const char * const GBINSIGMA_KEY	= "GBinSigma";
 const REAL DEFAULT_GBINSIGMA	= 0.2;
 
-const CString LEVELSIGMA_KEY	= _T("LevelSigma%i");
+const char * const LEVELSIGMA_KEY	= "LevelSigma%i";
 const REAL DEFAULT_LEVELSIGMA[] = {8.0, 3.2, 1.3, 0.5, 0.25}; // { 8.0, 4.0, 2.0, 1.0, 0.5 };
 
-const CString CGTOL_KEY			= _T("CGTolerance%i");
-const CString LINETOL_KEY		= _T("Tolerance%i");
-const REAL DEFAULT_TOLERANCE	= 1e-3;
+const char * const CGTOL_KEY		= "CGTolerance%i";
+const char * const LINETOL_KEY		= "Tolerance%i";
+
+// Per-level convergence tolerances, indexed by nLevel. IMPORTANT: level 0 is
+//	the FINEST resolution (0.5mm) and level MAX_SCALES-1 is the COARSEST (8mm)
+//	-- see PlanPyramid, where m_arrPlans[0] is the base plan and each higher
+//	index doubles the dose resolution. So index 0 must hold the tightest
+//	tolerance: the finest level is optimized last and determines final plan
+//	quality, so it must be the most thoroughly converged, while the coarse
+//	levels only warm-start and can stop early. (A previous version had these
+//	reversed -- {1e-3,...,1e-6} -- which gave the finest level the LOOSEST
+//	tolerance and made it converge prematurely, the opposite of the intent.)
+const REAL DEFAULT_CG_TOLERANCE[]	= {1e-6, 1e-5, 1e-4, 1e-3, 1e-3};
+const REAL DEFAULT_LINE_TOLERANCE[] = {1e-6, 1e-5, 1e-4, 1e-3, 1e-3};
 
 
 
@@ -96,7 +106,73 @@ void
 }	// PlanOptimizer::AddStructureTerm
 
 ///////////////////////////////////////////////////////////////////////////////
-bool 
+static void
+	RunGradCheck(dH::Prescription *pPresc, const CVectorN<>& x0)
+	// finite-difference gradient check of the objective F = KL - w*entropy at
+	//	x0. Gated by BRIMSTONE_GRADCHECK (= output file path); writes the
+	//	norm-wise relative error between the analytic gradient returned by
+	//	operator() and a central-difference numerical gradient. Validates both
+	//	the pre-existing KL gradient (run with entropy weight w=0) and the added
+	//	softmax-entropy gradient (w>0). Inert unless the env var is set.
+{
+	const char *pFile = getenv("BRIMSTONE_GRADCHECK");
+	if (pFile == NULL)
+		return;
+
+	const int n = x0.GetDim();
+
+	// x0 is the real (inv-filtered) operating point for this level, so it has an
+	//	active dose distribution: KL and its gradient are non-zero, and the
+	//	optimized weights are non-uniform so the softmax-entropy gradient is
+	//	non-zero too (dH/dx is exactly 0 only at a perfectly uniform x). Gradient
+	//	correctness is point-independent, so this fully exercises the analytic
+	//	gradient of both terms.
+	CVectorN<> x0v = x0;
+
+	// analytic gradient at the test point (also captures the KL/entropy split)
+	CVectorN<> gAna;
+	const REAL f0 = (*pPresc)(x0v, &gAna);
+	const REAL kl0 = pPresc->GetLastKL();
+	const REAL H0 = pPresc->GetLastEntropy();
+
+	// central-difference numerical gradient. xp/xm are copy-constructed from x0
+	//	so they carry x0's dimension and values; perturb one component, evaluate,
+	//	then restore it (a fresh CVectorN + operator= would NOT resize, leaving a
+	//	dim-0 vector and an out-of-bounds write).
+	const REAL eps = (REAL) 1e-5;
+	double diff2 = 0.0, ana2 = 0.0, num2 = 0.0, maxabs = 0.0;
+	CVectorN<> xp(x0v), xm(x0v);
+	for (int i = 0; i < n; i++)
+	{
+		xp[i] = x0v[i] + eps;
+		xm[i] = x0v[i] - eps;
+		const REAL fp = (*pPresc)(xp, NULL);
+		const REAL fm = (*pPresc)(xm, NULL);
+		xp[i] = x0v[i];		// restore for the next iteration
+		xm[i] = x0v[i];
+		const REAL gi = (fp - fm) / (2 * eps);
+		const double d = (double) gAna[i] - (double) gi;
+		diff2 += d * d;
+		ana2 += (double) gAna[i] * (double) gAna[i];
+		num2 += (double) gi * (double) gi;
+		if (fabs(d) > maxabs) maxabs = fabs(d);
+	}
+	const double normwise = sqrt(diff2) / (sqrt(ana2) + sqrt(num2) + 1e-30);
+
+	FILE *fpOut = NULL;
+	if (fopen_s(&fpOut, pFile, "w") == 0 && fpOut != NULL)
+	{
+		fprintf(fpOut, "n=%d w=%.6g f0=%.10g KL=%.10g H=%.10g "
+			"normwise_rel_err=%.6e max_abs_err=%.6e ana_norm=%.6g num_norm=%.6g\n",
+			n, (double) pPresc->GetEntropyWeight(), (double) f0,
+			(double) kl0, (double) H0,
+			normwise, maxabs, sqrt(ana2), sqrt(num2));
+		fclose(fpOut);
+	}
+}	// RunGradCheck
+
+///////////////////////////////////////////////////////////////////////////////
+bool
 	PlanOptimizer::Optimize(CVectorN<>& vInit, OptimizerCallback *pFunc, void *pParam)
 	// performs multi-level optimization
 {
@@ -124,7 +200,72 @@ bool
 		// inverse transform the initial vector to form initial optimizer parameter
 		pPresc->InvTransform(&vInit);
 
-		// NOTE: this needs to be in the form of an initializer, 
+		// optional finite-difference gradient check. Inert unless
+		//	BRIMSTONE_GRADCHECK is set. Done at the finest level (0), whose
+		//	initial vector is the inv-filtered result from the coarser levels --
+		//	a real operating point with an active dose distribution, so the
+		//	objective and its gradient are non-degenerate (the coarsest level's
+		//	standalone evaluation returns 0 here). Initialize the adaptive
+		//	variance first so operator() has a valid AV vector.
+		if (nLevel == 0)
+		{
+			pOpt->PrepareAdaptiveVariance(vInit.GetDim());
+			RunGradCheck(pPresc, vInit);
+		}
+
+		// optional per-level diagnostic: at each level's starting point log the
+		//	objective, gradient norm, sigmoid-derivative (chain-rule) norm and the
+		//	dose max, to see why the coarse levels are stationary. Inert unless
+		//	BRIMSTONE_LEVEL_DIAG is set.
+		if (getenv("BRIMSTONE_LEVEL_DIAG") != NULL)
+		{
+			pOpt->PrepareAdaptiveVariance(vInit.GetDim());
+			CVectorN<> gDiag;
+			const REAL fDiag = (*pPresc)(vInit, &gDiag);
+			CVectorN<> dtDiag = vInit;
+			pPresc->dTransform(&dtDiag);
+			const REAL doseMax = GetMax<VOXEL_REAL>(pPresc->m_sumVolume);
+			// geometry of this level's dose grid and first beamlet (z origin, z size,
+			//	spacing, beamlet max): shows whether the pyramid-filtered beamlets
+			//	actually overlap the grid they are accumulated into
+			const VolumeReal *pDoseGrid = GetPyramid()->GetPlan(nLevel)->GetDoseMatrix();
+			const VolumeReal *pBeamlet0 = (GetPyramid()->GetPlan(nLevel)->GetBeamCount() > 0)
+				? GetPyramid()->GetPlan(nLevel)->GetBeamAt(0)->GetBeamlet(0) : NULL;
+			char __buf[256];
+			std::string __g;
+			snprintf(__buf, sizeof(__buf), " dose[z0=%.2f nz=%d res=%.1f]",
+				(double) pDoseGrid->GetOrigin()[2], (int) pDoseGrid->GetBufferedRegion().GetSize()[2],
+				(double) pDoseGrid->GetSpacing()[2]);
+			__g += __buf;
+			if (pBeamlet0 != NULL)
+			{
+				snprintf(__buf, sizeof(__buf), " beamlet0[z0=%.2f nz=%d res=%.1f max=%.4g]",
+					(double) pBeamlet0->GetOrigin()[2], (int) pBeamlet0->GetBufferedRegion().GetSize()[2],
+					(double) pBeamlet0->GetSpacing()[2], (double) GetMax<VOXEL_REAL>(const_cast<VolumeReal*>(pBeamlet0)));
+				__g += __buf;
+			}
+			// per-structure region mass on this level's grid: a level whose regions
+			//	all sum to zero has nothing for its KL terms to fit
+			dH::Series *pDiagSeries = GetPyramid()->GetPlan(nLevel)->GetSeries();
+			for (int nS = 0; pDiagSeries != NULL && nS < pDiagSeries->GetStructureCount(); nS++)
+			{
+				dH::Structure *pS = pDiagSeries->GetStructureAt(nS);
+				if (pPresc->GetStructureTerm(pS) == NULL)
+					continue;
+				const VolumeReal *pR = pS->GetConformRegion(pPresc->m_sumVolume);
+				double regionSum = 0.0;
+				ConstVolumeRealIterator itR(pR, pR->GetBufferedRegion());
+				for (itR.GoToBegin(); !itR.IsAtEnd(); ++itR)
+					regionSum += itR.Get();
+				snprintf(__buf, sizeof(__buf), " %s=%.3g", pS->GetName().c_str(), regionSum);
+				__g += __buf;
+			}
+			RTM_TRACE("LEVELDIAG dim=%d F=%.6g KL=%.6g |gradF|=%.6g |dTransform|=%.6g doseMax=%.6g%s\n",
+				vInit.GetDim(), (double) fDiag, (double) pPresc->GetLastKL(),
+				(double) gDiag.GetLength(), (double) dtDiag.GetLength(), (double) doseMax, __g.c_str());
+		}
+
+		// NOTE: this needs to be in the form of an initializer,
 		//	or else SetDim needs to be called for vRes before the call
 		// CVectorN<> vRes = pOpt->Optimize(vInit);
 		pOpt->minimize(vInit.GetVnlVector());
@@ -175,7 +316,7 @@ void
 		else
 		{
 			vInit[nAt] = R(0.001) / R(GetPlan()->GetBeamCount());
-			TRACE("Excluded element %n\n", nAt);
+			RTM_TRACE("Excluded element %d\n", nAt);
 		}
 	}
 
@@ -223,7 +364,7 @@ void
 	PlanOptimizer::InvFilterStateVector(int nScale, const CVectorN<>& vIn, CVectorN<>& vOut)
 	// transfers beamlet weights from level n-1 to level n
 {
-	ASSERT(&vIn != &vOut);
+	assert(&vIn != &vOut);
 	// TODO: make a member so don't have to re-initialize
 	//CMatrixNxM<> mBeamletWeights;
 	//StateVectorToBeamletWeights(nScale, vIn, mBeamletWeights);
@@ -271,13 +412,12 @@ void
 	PlanOptimizer::SetupPrescription()
 	// returns the given level of the pyramid
 {
-	USES_CONVERSION;
 
 	// create the pyramid
 	SetPyramid(new dH::PlanPyramid(GetPlan()));
 
 	// get main sigma parameter from registry
-	const REAL GBinSigma = GetProfileReal(W2A(REG_KEY), W2A(GBINSIGMA_KEY), DEFAULT_GBINSIGMA);
+	const REAL GBinSigma = GetProfileReal(REG_KEY, GBINSIGMA_KEY, DEFAULT_GBINSIGMA);
 
 	// form vector with levels of the presc object
 	m_arrPrescriptions.clear();
@@ -294,7 +434,10 @@ void
 		const REAL sigma = GetProfileRealAt(LEVELSIGMA_KEY, nLevel, DEFAULT_LEVELSIGMA[nLevel]);
 		const REAL binVar = pow(GBinSigma / sigma, 2);
 		const REAL varMin = binVar * 0.25;
-		const REAL varMax = binVar;
+		// widened to cover the true peak of varSlope^2*varWeight^2 (~1.405x at S=2/3,
+		//	see Prescription::CalcSumSigmoid), so the actVar clamp isn't discarding
+		//	routine excursions above binVar
+		const REAL varMax = binVar * 1.5;
 
 		// set the variance range in the objective function
 		// NOTE: this has to be done after the Optimizer->SetAdaptiveVariance, because
@@ -307,15 +450,22 @@ void
 		// set the variance range for the optimizer
 		pOptimizer->SetAdaptiveVariance(true, varMin, varMax);
 
+		// NOTE: the search-direction-covariance "free energy" diagnostic
+		//	(SetComputeFreeEnergy) is intentionally left OFF here. The objective
+		//	F = KL - w*softmax-entropy is now formed inside Prescription::operator()
+		//	with a true per-parameter entropy gradient, so it actually steers the
+		//	optimization; the covariance-entropy diagnostic is a different quantity
+		//	and would only waste an eigendecomposition per iteration.
+
 		// set the tolerances
 		//pOptimizer->SetLineToleranceEqual(false);
 
 		// set the line tolerance
-		const REAL cgTolerance = GetProfileRealAt(CGTOL_KEY, nLevel, DEFAULT_TOLERANCE);
-		pOptimizer->set_x_tolerance/*SetTolerance*/(cgTolerance); 
+		const REAL cgTolerance = GetProfileRealAt(CGTOL_KEY, nLevel, DEFAULT_CG_TOLERANCE[nLevel]);
+		pOptimizer->set_x_tolerance/*SetTolerance*/(cgTolerance);
 
 		// set the CG tolerance
-		const REAL lineTolerance = GetProfileRealAt(LINETOL_KEY, nLevel, DEFAULT_TOLERANCE);
+		const REAL lineTolerance = GetProfileRealAt(LINETOL_KEY, nLevel, DEFAULT_LINE_TOLERANCE[nLevel]);
 		// pOptimizer->GetBrentOptimizer().set_x_tolerance(lineTolerance);
 		pOptimizer->SetLineOptimizerTolerance(lineTolerance);
 
@@ -345,7 +495,7 @@ void
 	int nBeamletOffset = nBeamletCount / 2;
 	ConformTo<VOXEL_REAL>(pPlan->GetBeamAt(nBeam)->GetIntensityMap(), 
 		pIntensityMap);		// TODO: make this an ASSERT, as caller should be responsible for this
-	ASSERT(nBeamletCount == pIntensityMap->GetBufferedRegion().GetSize()[0]);
+	assert(nBeamletCount == pIntensityMap->GetBufferedRegion().GetSize()[0]);
 
 	for (int nAtElem = 0; nAtElem < vState.GetDim(); nAtElem++)
 	{

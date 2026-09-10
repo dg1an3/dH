@@ -12,7 +12,7 @@ namespace dH
 ///////////////////////////////////////////////////////////////////////////////
 Series::Series()
 {
-	BeginLogSection(_T("Series::Series"));
+	BeginLogSection("Series::Series");
 
 	SetDensity(VolumeReal::New());
 
@@ -67,15 +67,12 @@ Structure *
 void 
 	Series::AddStructure(Structure *pStruct)
 {
-	USES_CONVERSION;
-
-	BeginLogSection(_T("Series::AddStructure"));
+	BeginLogSection("Series::AddStructure");
 
 	// output the structure name
-	__formatMessage.Format(_T("<structure name=\"%s\" contours=\"%s\" />"), 
-		A2W(pStruct->GetName().c_str()),
+	RTM_TRACE("<structure name=\"%s\" contours=\"%d\" />",
+		pStruct->GetName().c_str(),
 		pStruct->GetContourCount());
-	Log(__formatMessage.GetBuffer());
 
 	pStruct->SetSeries(this);
 	m_arrStructures.push_back(pStruct);

@@ -6,6 +6,10 @@ Cython declarations for Brimstone C++ classes
 
 This file declares the C++ classes and methods that will be wrapped
 for Python access.
+
+SUPERSEDED -- the native binding path is now pybind11 (../rtmodel_bindings.cpp).
+This file is no longer built and some declarations here diverge from the actual
+RtModel headers. Kept for reference only; see ../BUILD_NATIVE.md.
 """
 
 from libcpp cimport bool
