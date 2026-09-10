@@ -76,6 +76,16 @@ from .dvh_uncertainty import (  # noqa: E402
     plot_dvh_bands,
     sample_phase_posterior,
 )
+from .datasets import (  # noqa: E402
+    PlanningCase,
+    influence_from_coo,
+    load_cort_case,
+    load_trots_case,
+    make_phase_optimizers,
+    mask_from_voxel_list,
+    planning_case_from_submatrices,
+    synthesize_course,
+)
 
 __all__.extend([
     "BeamletObjectiveTerm",
@@ -100,4 +110,12 @@ __all__.extend([
     "dvh_uncertainty_bands",
     "plot_dvh_bands",
     "sample_phase_posterior",
+    "PlanningCase",
+    "influence_from_coo",
+    "load_cort_case",
+    "load_trots_case",
+    "make_phase_optimizers",
+    "mask_from_voxel_list",
+    "planning_case_from_submatrices",
+    "synthesize_course",
 ])
