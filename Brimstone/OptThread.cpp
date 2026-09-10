@@ -41,6 +41,8 @@ int COptThread::ExitInstance()
 COptThread::COptIterData::COptIterData(void)
 	: m_nLevel(0)
 	, m_nIteration(0)
+	, m_ofvalue(0.0)
+	, m_kl(0.0)
 {
 }
 
@@ -74,6 +76,11 @@ BOOL
 			pOID->m_nLevel = nLevel;
 			pOID->m_nIteration = pOpt->get_num_iterations/*GetIterations*/();
 			pOID->m_ofvalue = pOpt->GetFinalValue();
+			// raw KL at the prescription's most recent evaluation -- the line
+			//	search's final probe, i.e. the accepted point to within the line
+			//	tolerance. The convergence chart plots this (always > 0) rather
+			//	than F, which goes negative once the entropy term dominates.
+			pOID->m_kl = pPlanOpt->GetPrescription(nLevel)->GetLastKL();
 			pOID->m_vParam.SetDim(pOpt->GetFinalParameter().size/*GetDim*/());
 			pOID->m_vParam = pOpt->GetFinalParameter();
 

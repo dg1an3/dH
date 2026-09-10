@@ -899,14 +899,20 @@ LRESULT
 		COptThread::COptIterData *pOID = (COptThread::COptIterData *) lParam;
 		ASSERT(pOID != NULL);
 
-		if (pOID->m_ofvalue > 0.0)
+		// Plot the KL data-fit term, not F: with the entropy regularizer
+		//	F = KL - w*H goes negative once KL is small (all of level 0 in the
+		//	knee runs), and a -log10(F) chart silently dropped those iterations,
+		//	making the finer levels look as if they never ran. KL is >= 0 by
+		//	construction; F is sent alongside for the chart's readout.
+		if (pOID->m_kl > 0.0)
 		{
-			const double yVal = -log10(pOID->m_ofvalue);
+			const double yVal = log10(pOID->m_kl);
 			m_pIterDS[pOID->m_nLevel]->AddDataPoint(MakeVector<2>(m_nTotalIter, yVal));
 
 			// feed the same point to the WebView2 convergence chart
 			CString strJs;
-			strJs.Format(_T("addPoint(%d,%d,%.6g)"), pOID->m_nLevel, m_nTotalIter, yVal);
+			strJs.Format(_T("addPoint(%d,%d,%.6g,%.6g,%.6g)"), pOID->m_nLevel, m_nTotalIter,
+				yVal, (double) pOID->m_ofvalue, (double) pOID->m_kl);
 			m_webChart.ExecScript(strJs);
 		}
 

@@ -52,7 +52,8 @@ public:
 
 		int m_nLevel;
 		int m_nIteration;
-		REAL m_ofvalue;
+		REAL m_ofvalue;		// F = KL - w*H at this iteration (may be negative)
+		REAL m_kl;			// raw KL divergence sum at this iteration (>= 0)
 		CVectorN<> m_vParam;
 		CVectorN<> m_vGrad;
 	};
