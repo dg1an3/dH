@@ -7,10 +7,17 @@
 #include <ipp.h>
 #endif
 
+#include <cstdio>
+#include <string>
+
 #include <vnl/vnl_vector_ref.h>
 #include <MathUtil.h>
 
 #include <VectorOps.h>
+
+// RTM_TRACE (used by Trace() below) lives here; include so this header is
+// self-contained regardless of the including project's include order.
+#include <utilmacros.h>
 
 //////////////////////////////////////////////////////////////////////
 // class CVectorN<TYPE>
@@ -105,9 +112,6 @@ public:
 	int CopyElements(const CVectorN<TYPE>& v, int nStart, int nLength, 
 		int nDest = 0);
 
-	// create a printable string representation
-	CString ToString();
-
 };	// class CVectorN<TYPE>
 
 
@@ -185,7 +189,7 @@ CVectorN<TYPE>&
 	// assignment operator
 {
 	// check the dimensionality of the vector
-	ASSERT(GetDim() == vFrom.GetDim());
+	assert(GetDim() == vFrom.GetDim());
 
 	if (GetDim() > 0)
 	{
@@ -212,7 +216,7 @@ TYPE&
 	// returns a reference to the specified element.
 {
 	// check dimensions
-	ASSERT(nAtRow >= 0 && nAtRow < GetDim());
+	assert(nAtRow >= 0 && nAtRow < GetDim());
 
 	return m_pElements[nAtRow];
 
@@ -226,7 +230,7 @@ const TYPE&
 	// returns a const reference to the specified element.
 {
 	// check dimensions
-	ASSERT(nAtRow >= 0 && nAtRow < GetDim());
+	assert(nAtRow >= 0 && nAtRow < GetDim());
 
 	return m_pElements[nAtRow];
 
@@ -588,109 +592,55 @@ void
 }	// CalcBinomialCoeff
 
 
-inline void Trace(LPTSTR label, double value)
+inline void Trace(const char *label, double value)
 {
-	CString str;
-	str.Format(_T("%s =\t% .4lf\n"), label, value);
-	OutputDebugString(str.GetBuffer());
-}	
+	RTM_TRACE("%s =\t% .4lf\n", label, value);
+}
 
 //////////////////////////////////////////////////////////////////////
 template<class TYPE>
-void 
-	TraceVector(LPTSTR label, const CVectorN<TYPE>& vTrace)
+void
+	TraceVector(const char *label, const CVectorN<TYPE>& vTrace)
 	// helper function to output a vector for debugging
 {
-	CString str;
-	str.Format(_T("%s[%d] =\t<"), label, vTrace.GetDim());
+	char szChunk[64];
+	snprintf(szChunk, sizeof(szChunk), "%s[%d] =\t<", label, vTrace.GetDim());
+
+	std::string str(szChunk);
 #ifdef TRACE_VECTOR_NUMERIC
 	for (int nAt = 0; nAt < vTrace.GetDim(); nAt++)
 	{
-		str.AppendFormat(_T("% .4lf|"), vTrace[nAt]);
+		snprintf(szChunk, sizeof(szChunk), "% .4lf|", (double) vTrace[nAt]);
+		str += szChunk;
 	}
 #else
 	double maxElement = -1e-20;
 	for (int nAt = 0; nAt < vTrace.GetDim(); nAt++)
 		maxElement = __max(maxElement, vTrace[nAt]);
 
-	str.AppendFormat(_T("% .4lf"), maxElement);
+	snprintf(szChunk, sizeof(szChunk), "% .4lf", maxElement);
+	str += szChunk;
 
 	for (int nAt = 0; nAt < vTrace.GetDim(); nAt++)
 	{
 		if (vTrace[nAt] < maxElement * 0.1)
-			str.AppendFormat(_T(" "));
+			str += " ";
 		else if (vTrace[nAt] < maxElement * 0.25)
-			str.AppendFormat(_T("."));
+			str += ".";
 		else if (vTrace[nAt] < maxElement * 0.85)
-			str.AppendFormat(_T(":"));
+			str += ":";
 		else
-			str.AppendFormat(_T("|"));
+			str += "|";
 	}
 #endif
-	str.AppendFormat(_T(">\n"));
-	OutputDebugString(str.GetBuffer());
+	str += ">\n";
+	RTM_TRACE("%s", str.c_str());
 
 }	// TraceVector
 
 
-//////////////////////////////////////////////////////////////////////
-// TRACE_VECTOR
-//
-// macro to trace matrix -- only compiles in debug version
-//////////////////////////////////////////////////////////////////////
-#ifdef _DEBUG
-#define TRACE_VECTOR(strMessage, v) \
-	TRACE(strMessage);				\
-	TraceVector(v);					\
-	TRACE("\n");
-#else
-#define TRACE_VECTOR(strMessage, v)
-#endif
 
 
 
-#ifdef __AFX_H__
-
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-CArchive& 
-	operator<<(CArchive &ar, CVectorN<TYPE> v)
-	// CArchive serialization of a vector
-{
-	// store the dimension first
-	ar << v.GetDim();
-
-	// store the elements
-	for (int nAt = 0; nAt < v.GetDim(); nAt++)
-	{
-		ar << v[nAt];
-	}
-
-	return ar;
-
-}	// operator<<(CArchive &ar, CVectorN<TYPE> v)
-
-//////////////////////////////////////////////////////////////////////
-template<class TYPE>
-CArchive& 
-	operator>>(CArchive &ar, CVectorN<TYPE>& v)
-	// CArchive de-serialization of a vector
-{
-	// retrieve the dimension first
-	int nDim;
-	ar >> nDim;
-	v.SetDim(nDim);
-
-	// retrieve the elements
-	for (int nAt = 0; nAt < v.GetDim(); nAt++)
-	{
-		ar >> v[nAt];
-	}
-
-	return ar;
-
-}	// operator>>(CArchive &ar, CVectorN<TYPE>& v)
-
-#endif	// __AFX_H__
 
 #endif	// !defined(VECTORN_H)

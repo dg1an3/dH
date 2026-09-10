@@ -62,7 +62,7 @@ protected:
 
 	// array of partial derivative volumes
 	std::vector< VolumeReal::Pointer > m_arr_dVolumes;
-	CArray<int, int> m_arrVolumeGroups;
+	std::vector< int > m_arrVolumeGroups;
 
 	// array of partial derivative X region
 	std::vector< VolumeReal::Pointer > m_arr_dVolumes_x_Region;
@@ -71,10 +71,10 @@ protected:
 	//mutable CArray<bool, bool> m_arr_bRecompute_dVolumes_x_Region;
 
 	// partial derivative histogram bins
-	mutable CArray<CVectorN<>, CVectorN<>&> m_arr_dBins;
+	mutable std::vector< CVectorN<> > m_arr_dBins;
 
 	// partial derivative histogram bins
-	mutable CArray<CVectorN<>, CVectorN<>&> m_arr_dGBins;
+	mutable std::vector< CVectorN<> > m_arr_dGBins;
 
 	//// flags for recalc
 	//mutable CArray<bool, bool> m_arr_bRecompute_dBins;
