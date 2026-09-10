@@ -472,6 +472,7 @@ copy C:\vcpkg\installed\arm64-windows\bin\*.dll $(OutDir)</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="PrescriptionToolbar.cpp" />
+    <ClCompile Include="RenderControlDlg.cpp" />
     <ClCompile Include="SeriesDicomImporter.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -497,6 +498,7 @@ copy C:\vcpkg\installed\arm64-windows\bin\*.dll $(OutDir)</Command>
       <FileType>CppControl</FileType>
     </ClInclude>
     <ClInclude Include="PrescriptionToolbar.h" />
+    <ClInclude Include="RenderControlDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SeriesDicomImporter.h" />
     <ClInclude Include="stdafx.h" />

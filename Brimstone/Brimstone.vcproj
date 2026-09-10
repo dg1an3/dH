@@ -406,6 +406,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\RenderControlDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\SeriesDicomImporter.cpp"
 				>
 			</File>
@@ -481,6 +485,10 @@
 			</File>
 			<File
 				RelativePath=".\PrescriptionToolbar.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RenderControlDlg.h"
 				>
 			</File>
 			<File
