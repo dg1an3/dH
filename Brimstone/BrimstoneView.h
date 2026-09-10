@@ -51,6 +51,12 @@ public:
 	// WebView2-hosted DVH view: DVH chart + the Target/OAR/None structure editor
 	CWebView2Host m_webDVH;
 
+	// WebView2 + vtk.js replacement for the GDI planar (CT/dose/contour) view
+	CWebView2Host m_webPlanar;
+
+	// current axial slice index fed to the vtk.js planar view
+	int m_planarSliceK;
+
 	// stores data series for iteration graph
 	CDataSeries::Pointer m_pIterDS[dH::Structure::MAX_SCALES];
 
@@ -66,6 +72,20 @@ public:
 	void SendStructuresToDvh();
 	void SendDvhCurvesToDvh();
 	void OnDvhMessage(const std::wstring & msg);
+
+	// WebView2 + vtk.js planar view: push the current axial CT slice to the page
+	//	and handle interaction (slice scroll / window-level) posted back from it
+	void SendCtSliceToPlanar();
+	// push the dose slice (at the same world-z as the CT slice) so the page can
+	//	draw isodose curves over the CT
+	void SendDoseSliceToPlanar();
+	// set m_planarSliceK to the CT slice containing the beam isocenter's z-plane
+	void SetPlanarSliceToIsocenter();
+	void OnPlanarMessage(const std::wstring & msg);
+	// push the visible structures' contours on the current slice so the page
+	//	can draw them over the CT (also called by the prescription toolbar when
+	//	a structure's visibility is toggled)
+	void SendContoursToPlanar();
 
 // Operations
 public:

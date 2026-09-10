@@ -122,9 +122,40 @@ void CWebView2Host::OnControllerReady(ICoreWebView2Controller* controller)
 			&m_webMessageToken);
 	}
 
+	// apply any virtual-host -> folder mapping before navigating so the first
+	//	page load can already resolve https://<host>/... to local files.
+	if (m_webview && !m_vhHost.empty() && !m_vhFolder.empty())
+	{
+		ComPtr<ICoreWebView2_3> webview3;
+		if (SUCCEEDED(m_webview.As(&webview3)) && webview3)
+		{
+			webview3->SetVirtualHostNameToFolderMapping(
+				m_vhHost.c_str(), m_vhFolder.c_str(),
+				COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW);
+		}
+	}
+
 	m_ready = true;
 	ResizeToClient();
 	FlushNavigate();
+}
+
+void CWebView2Host::SetVirtualHostMapping(LPCWSTR host, LPCWSTR folder)
+{
+	m_vhHost = host ? host : L"";
+	m_vhFolder = folder ? folder : L"";
+
+	// if the controller is already up, apply immediately
+	if (m_ready && m_webview && !m_vhHost.empty() && !m_vhFolder.empty())
+	{
+		ComPtr<ICoreWebView2_3> webview3;
+		if (SUCCEEDED(m_webview.As(&webview3)) && webview3)
+		{
+			webview3->SetVirtualHostNameToFolderMapping(
+				m_vhHost.c_str(), m_vhFolder.c_str(),
+				COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW);
+		}
+	}
 }
 
 void CWebView2Host::ResizeToClient()

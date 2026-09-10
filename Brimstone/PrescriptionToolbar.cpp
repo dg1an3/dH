@@ -206,7 +206,8 @@ void
 		// set visibility flag
 		pStruct->SetVisible(m_btnVisible.GetCheck() == 1);
 
-		// update views
+		// update views (GDI planar view repaints; the vtk.js page needs a push)
+		GetView()->SendContoursToPlanar();
 		GetView()->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 

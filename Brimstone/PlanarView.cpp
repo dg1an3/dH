@@ -986,6 +986,15 @@ void
 ////////////////////////////////////////////////////////////////////////////////////////////
 BOOL CPlanarView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
+	// On the WebView2 planar branch this GDI view is hidden beneath m_webPlanar,
+	//	which does its own wheel-driven slice scrolling. WM_MOUSEWHEEL is routed to
+	//	the focus window (not the hovered one), so if this hidden view ever holds
+	//	focus it would silently consume the wheel and scroll the invisible view.
+	//	Ignore the wheel unless we are actually visible so the event is free to
+	//	reach the web view instead.
+	if (!IsWindowVisible())
+		return FALSE;
+
 	if (m_pVolume[0] == NULL || m_pVolume[0]->GetBufferedRegion().GetSize()[2] == 0)
 		return FALSE;
 
