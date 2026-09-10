@@ -13,6 +13,8 @@
 #endif
 
 
+#include <cassert>
+
 #include <itkImageRegionIterator.h>
 #include <itkImageRegionIteratorWithIndex.h>
 
@@ -169,8 +171,12 @@ itk::Vector<REAL,DIM>
 }
 
 //////////////////////////////////////////////////////////////////////
-template<int DIM> inline 
-itk::Vector<REAL, DIM> 
+// only available to translation units that have already pulled in MFC
+//	(i.e. Brimstone, which passes CPoint from its mouse handlers) --
+//	RtModel itself must not require MFC to compile this header.
+#ifdef __AFXWIN_H__
+template<int DIM> inline
+itk::Vector<REAL, DIM>
 	MakeVector(const CPoint& pt)
 {
 	itk::Vector<REAL, DIM> v;
@@ -179,6 +185,7 @@ itk::Vector<REAL, DIM>
 	for (int nC = 2; nC < DIM; nC++) v[nC] = 0.0;
 	return v;
 }
+#endif	// __AFXWIN_H__
 
 //////////////////////////////////////////////////////////////////////
 template<int DIM> inline 
@@ -256,159 +263,6 @@ void
 		for (int nC = 0; nC < DIM; nC++)
 			mBasis(nR, nC) = mDir(nR, nC) * vSpacing[nC];
 }
-
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE> inline
-CArchive& 
-	operator<<(CArchive &ar, const itk::Point<TYPE, DIM>& v)
-	// vector serialization
-{
-	// serialize the individual row vectors
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		ar << v[nC];
-	}
-
-	// return the archive object
-	return ar;
-
-}	// operator<<
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE> inline
-CArchive& 
-	operator>>(CArchive &ar, itk::Point<TYPE, DIM>& v)
-	// vector serialization
-{
-	// serialize the individual row vectors
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		ar >> v[nC];
-	}
-
-	// return the archive object
-	return ar;
-
-}	// operator>>
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE> inline
-CArchive& 
-	operator<<(CArchive &ar, const itk::Vector<TYPE, DIM>& v)
-	// vector serialization
-{
-	// serialize the individual row vectors
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		ar << v[nC];
-	}
-
-	// return the archive object
-	return ar;
-
-}	// operator<<
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE> inline
-CArchive& 
-	operator>>(CArchive &ar, itk::Vector<TYPE, DIM>& v)
-	// vector serialization
-{
-	// serialize the individual row vectors
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		ar >> v[nC];
-	}
-
-	// return the archive object
-	return ar;
-
-}	// operator>>
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE> inline
-CArchive& 
-	operator<<(CArchive &ar, const itk::Matrix<TYPE, DIM, DIM>& m)
-	// matrix serialization
-{
-	// serialize the individual row vectors
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		for (int nR = 0; nR < DIM; nR++)
-		{
-			ar << m(nR, nC);
-		}
-	}
-
-	// return the archive object
-	return ar;
-
-}	// operator<<
-
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM, class TYPE> inline
-CArchive& 
-	operator>>(CArchive &ar, itk::Matrix<TYPE, DIM, DIM>& m)
-	// matrix serialization
-{
-	// serialize the individual row vectors
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		for (int nR = 0; nR < DIM; nR++)
-		{
-			ar >> m(nR, nC);
-		}
-	}
-
-	// return the archive object
-	return ar;
-
-}	// operator>>
-
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM> inline
-CArchive& 
-	operator<<(CArchive &ar, const itk::ImageRegion<DIM>& region)
-	// region serialization
-{
-	// serialize the individual elements
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		ar << region.GetIndex()[nC];
-		ar << region.GetSize()[nC];
-	}
-	
-	// return the archive object
-	return ar;
-
-}	// operator<<
-
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM> inline
-CArchive& 
-	operator>>(CArchive &ar, itk::ImageRegion<DIM>& region)
-	// region serialization
-{
-	itk::ImageRegion<DIM>::IndexType index;
-	itk::ImageRegion<DIM>::SizeType size;
-	// serialize the individual elements
-	for (int nC = 0; nC < DIM; nC++)
-	{
-		ar >> index[nC];
-		ar >> size[nC];
-	}
-
-	region.SetIndex(index);
-	region.SetSize(size);
-
-	// return the archive object
-	return ar;
-
-}	// operator>>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -782,7 +636,7 @@ int
 //				int nSlice = 0)
 //	// accumulates voxel values -- other volume must be conformant
 //{
-//	ASSERT(pSrcDst->GetBufferedRegion().GetSize() == pVolume->GetBufferedRegion().GetSize());
+//	assert(pSrcDst->GetBufferedRegion().GetSize() == pVolume->GetBufferedRegion().GetSize());
 //
 //	int nStrideZ = pSrcDst->GetBufferedRegion().GetSize()[0]
 //		* pSrcDst->GetBufferedRegion().GetSize()[1];
@@ -819,7 +673,7 @@ void Accumulate3D(const VolumeReal *pVolume,
 				VolumeReal *pAccum)
 	// accumulates voxel values -- other volume must be conformant
 {
-	ASSERT(pSrcDst->GetBufferedRegion().GetSize() == pVolume->GetBufferedRegion().GetSize());
+	assert(pSrcDst->GetBufferedRegion().GetSize() == pVolume->GetBufferedRegion().GetSize());
 
 	typedef itk::ImageRegionConstIterator< VolumeReal > ConstIteratorType;
 	typedef itk::ImageRegionIterator< VolumeReal > IteratorType;
@@ -1041,153 +895,3 @@ inline void Decimate(const itk::Image<VOXEL_TYPE,3> *pVol,
 }	// Decimate
 #endif
 
-//////////////////////////////////////////////////////////////////////
-template<class VOXEL_TYPE> INLINE
-void SerializeImage(CArchive& ar, itk::Image<VOXEL_TYPE,2> *pImage)
-{
-	if (ar.IsStoring())
-	{
-		// serialize geometry
-		ar << pImage->GetOrigin();
-		ar << pImage->GetSpacing();
-		ar << pImage->GetDirection();
-
-		// serialize region
-		ar << pImage->GetBufferedRegion();
-
-		// serialize buffer
-		UINT nBytes = pImage->GetPixelContainer()->Size() * sizeof(VOXEL_TYPE);
-		ar.Write(pImage->GetBufferPointer(), nBytes);
-	}
-	else
-	{
-		typedef itk::Image<VOXEL_TYPE,2> ImageType;
-
-		// serialize geometry
-
-		ImageType::PointType origin;
-		ar >> origin;
-		pImage->SetOrigin(origin);
-
-		ImageType::SpacingType spacing;
-		ar >> spacing;
-		pImage->SetSpacing(spacing);
-
-		ImageType::DirectionType direction;
-		ar >> direction;
-		pImage->SetDirection(direction);
-
-		// serialize region
-
-		ImageType::RegionType region;
-		ar >> region;
-		pImage->SetRegions(region);
-		pImage->Allocate();
-
-		// serialize buffer
-
-		UINT nBytes = pImage->GetPixelContainer()->Size() * sizeof(VOXEL_TYPE);
-		UINT nActBytes = ar.Read(pImage->GetBufferPointer(), nBytes);
-		ASSERT(nActBytes == nBytes);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////
-template<class VOXEL_TYPE> INLINE
-void SerializeVolume(CArchive& ar, itk::Image<VOXEL_TYPE,3> *pVolume)
-{
-	if (ar.IsStoring())
-	{
-		itk::Matrix<REAL, 4, 4> mBasis;
-		CalcBasis<3>(pVolume, mBasis);
-		ar << mBasis;
-
-		itk::Size<3> sz = pVolume->GetBufferedRegion().GetSize();
-		ar << (int) sz[0]; 
-		ar << (int) sz[1]; 
-		ar << (int) sz[2]; 
-
-		UINT nBytes = sz[2] * sz[1] * sz[0] * sizeof(VOXEL_TYPE);
-		ar.Write(pVolume->GetBufferPointer(), nBytes);
-	}
-	else
-	{
-		itk::Matrix<REAL, 4, 4> mBasis;
-		ar >> mBasis;
-
-		itk::Image<VOXEL_TYPE,3>::PointType origin;
-		origin[0] = mBasis(0, 3);
-		origin[1] = mBasis(1, 3);
-		origin[2] = mBasis(2, 3);
-		pVolume->SetOrigin(origin);
-
-		// VolumeType::DirectionType 
-		itk::Matrix<double, 3, 3> mDir;
-		itk::Image<VOXEL_TYPE,3>::SpacingType spacing;
-		for (int nCol = 0; nCol < 3; nCol++)
-		{
-			itk::Vector<REAL> vDir;
-			vDir[0] = mBasis(0,nCol);
-			vDir[1] = mBasis(1,nCol);
-			vDir[2] = mBasis(2,nCol);
-			spacing[nCol] = vDir.GetNorm();
-
-			vDir.Normalize();
-			mDir(0,nCol) = vDir[0];
-			mDir(1,nCol) = vDir[1];
-			mDir(2,nCol) = vDir[2];
-		}
-		pVolume->SetSpacing(spacing);
-		pVolume->SetDirection(mDir);
-
-		// get size as 3 ints
-		itk::Vector<int, 3> m_vSize;
-		ar >> m_vSize[0];
-		ar >> m_vSize[1];
-		ar >> m_vSize[2];
-
-		// set size as an ItkSize
-		pVolume->SetRegions( MakeSize(m_vSize[0], m_vSize[1], m_vSize[2]) );
-		pVolume->Allocate();
-
-		UINT nBytes = m_vSize[2] * m_vSize[1] * m_vSize[0] * sizeof(VOXEL_TYPE);
-		UINT nActBytes = ar.Read(pVolume->GetBufferPointer(), nBytes);
-		ASSERT(nActBytes == nBytes);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////
-template<int DIM> INLINE
-void SerializePolyLine(CArchive& ar,
-					   itk::PolyLineParametricPath<DIM> *pPoly)
-{
-	typedef itk::PolyLineParametricPath<DIM>::VertexType VertexType;
-
-	CMatrixNxM<VertexType::CoordRepType> m_mVertex;
-
-	if (ar.IsStoring())
-	{
-		const itk::PolyLineParametricPath<DIM>::VertexListType *pVertList = pPoly->GetVertexList();
-		m_mVertex.Reshape(pVertList->size(), DIM, FALSE);
-		for (int nVert = 0; nVert < pVertList->size(); nVert++)
-		{
-			for (int nCoord = 0; nCoord < DIM; nCoord++)
-				m_mVertex[nVert][nCoord] = pVertList->at(nVert)[nCoord];
-		}
-	}
-
-	SerializeValue(ar, m_mVertex);
-
-	if (ar.IsLoading())
-	{
-		// clears any existing vertices
-		pPoly->Initialize();
-		for (int nVert = 0; nVert < m_mVertex.GetCols(); nVert++)
-		{
-			VertexType vertex;
-			for (int nCoord = 0; nCoord < DIM; nCoord++)
-				vertex[nCoord] = m_mVertex[nVert][nCoord];
-			pPoly->AddVertex(vertex);
-		}
-	}
-}

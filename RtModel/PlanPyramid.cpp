@@ -7,6 +7,8 @@
 #include "itkResampleImageFilter.h"
 #include "itkAffineTransform.h"
 #include "itkLinearInterpolateImageFunction.h"
+#include "itkDiscreteGaussianImageFilter.h"
+#include "itkNearestNeighborExtrapolateImageFunction.h"
 
 
 namespace dH
@@ -61,6 +63,11 @@ void
 		}
 
 		pNextPlan->SetSeries(m_pPlan->GetSeries());
+		// coarse beamlets come from ITK's pyramid filter, whose output origin is
+		//	inputOrigin + (outputSpacing - inputSpacing) / 2 per level; cumulatively
+		//	(R_level - R_0) / 2 from the finest grid. Shift this level's dose grid
+		//	by the same amount so beamlets and grid coincide (Plan::SetDoseOriginOffset).
+		pNextPlan->SetDoseOriginOffset((doseResolution - pPlan->GetDoseResolution()) / 2.0);
 		pNextPlan->SetDoseResolution(doseResolution);
 		for (int nAt = 0; nAt < GetPlan()->GetBeamCount(); nAt++)
 		{
@@ -81,7 +88,7 @@ void
 			pNextBeam->SetIsocenter(pPrevBeam->GetIsocenter());
 
 		}
-		ASSERT(pPrevPlan->GetBeamCount() == pNextPlan->GetBeamCount());
+		assert(pPrevPlan->GetBeamCount() == pNextPlan->GetBeamCount());
 
 		pPrevPlan = pNextPlan;
 	}
@@ -148,17 +155,60 @@ void
 			// this will allocate the necessary beamlets
 			pBeamSub->OnIntensityMapChanged();
 
-			typedef itk::MultiResolutionPyramidImageFilter<VolumeReal, VolumeReal> PyramidType;
-			PyramidType::Pointer pPyramid = PyramidType::New();
-			pPyramid->SetNumberOfLevels(2);
+			// Coarse beamlets: Gaussian-smooth the accumulated finer beamlet, then
+			//	resample it onto a grid with twice the spacing. These are the two
+			//	steps itk::MultiResolutionPyramidImageFilter performs for a 2-level
+			//	pyramid (variance (factor/2)^2 in pixel units, linear interpolation,
+			//	output origin shifted by half the spacing increase), done here
+			//	explicitly so the resampler can be given an extrapolator: on an axis
+			//	where the finer beamlet is a single voxel, the coarse sample point
+			//	lands exactly on the interpolator's half-voxel boundary, which ITK
+			//	excludes, and the pyramid filter returned an all-zero beamlet (the
+			//	5-slice x 3 mm series at the 32 mm level). Nearest-neighbour
+			//	extrapolation returns the edge value there; interior samples are
+			//	unchanged.
+			typedef itk::DiscreteGaussianImageFilter<VolumeReal, VolumeReal> SmootherType;
+			SmootherType::Pointer pSmoother = SmootherType::New();
+			pSmoother->SetUseImageSpacing(false);
+			pSmoother->SetVariance(1.0);			// (0.5 * shrink factor 2)^2
+			pSmoother->SetMaximumError(0.1);		// pyramid filter default
 
-			VolumeReal::Pointer beamlet = // const_cast<VolumeReal*>(pPyramid->GetInput()); // 
-				VolumeReal::New();
-			pPyramid->SetInput(beamlet);
+			typedef itk::ResampleImageFilter<VolumeReal, VolumeReal> ShrinkerType;
+			ShrinkerType::Pointer pShrinker = ShrinkerType::New();
+			pShrinker->SetInput(pSmoother->GetOutput());
+			pShrinker->SetInterpolator(
+				itk::LinearInterpolateImageFunction<VolumeReal, double>::New());
+			pShrinker->SetExtrapolator(
+				itk::NearestNeighborExtrapolateImageFunction<VolumeReal, double>::New());
+
+			VolumeReal::Pointer beamlet = VolumeReal::New();
+			pSmoother->SetInput(beamlet);
 			VolumeReal::Pointer beamletAccum = VolumeReal::New();
 
 			ConformTo<VOXEL_REAL,3>(pBeamSubPrev->GetBeamlet(0), beamlet);
 			ConformTo<VOXEL_REAL,3>(pBeamSubPrev->GetBeamlet(0), beamletAccum);
+
+			// the coarse grid, as the pyramid filter computes it: half the size
+			//	(at least one voxel), twice the spacing, origin shifted by half the
+			//	spacing increase along the image direction
+			{
+				const VolumeReal::SizeType inSize = beamlet->GetBufferedRegion().GetSize();
+				const VolumeReal::SpacingType inSpacing = beamlet->GetSpacing();
+				VolumeReal::SizeType outSize;
+				VolumeReal::SpacingType outSpacing;
+				itk::Vector<REAL, 3> vOffset;
+				for (int nD = 0; nD < 3; nD++)
+				{
+					outSize[nD] = __max((int) (inSize[nD] / 2), 1);
+					outSpacing[nD] = inSpacing[nD] * 2.0;
+					vOffset[nD] = (outSpacing[nD] - inSpacing[nD]) * 0.5;
+				}
+				VolumeReal::PointType outOrigin = beamlet->GetOrigin() + beamlet->GetDirection() * vOffset;
+				pShrinker->SetSize(outSize);
+				pShrinker->SetOutputSpacing(outSpacing);
+				pShrinker->SetOutputOrigin(outOrigin);
+				pShrinker->SetOutputDirection(beamlet->GetDirection());
+			}
 
 			// generate beamlets for base scale
 			for (int nAtShift = -nBeamletCount; nAtShift <= nBeamletCount; nAtShift++)
@@ -195,16 +245,16 @@ void
 						: 2.0 * m_vWeightFilter[2] /*/ 0.75*/,
 						beamlet, beamletAccum);
 				}
-				// pPyramid->ResetPipeline();
-				pPyramid->SetNumberOfLevels(2); // ->Update();
-				pPyramid->Modified();
-				pPyramid->GetOutput(0)->Update();
+				// the accumulation wrote the input buffer in place: flag it so the
+				//	smooth + resample pipeline re-executes
+				beamlet->Modified();
+				pShrinker->UpdateLargestPossibleRegion();
 				// TODO: investigate whether resulting filtered beamlet is scaled properly
 
-				CopyImage<VOXEL_REAL,3>(pPyramid->GetOutput(0), pBeamSub->GetBeamlet(nAtShift));
+				CopyImage<VOXEL_REAL,3>(pShrinker->GetOutput(), pBeamSub->GetBeamlet(nAtShift));
 
 				// check that resolution is correct
-				ASSERT(pBeamSub->GetBeamlet(nAtShift)->GetSpacing()[0] == pBeamSub->GetPlan()->GetDoseResolution());
+				assert(pBeamSub->GetBeamlet(nAtShift)->GetSpacing()[0] == pBeamSub->GetPlan()->GetDoseResolution());
 			}
 		}
 
@@ -225,8 +275,8 @@ PlanPyramid::InvFiltIntensityMap(int nLevel, const CBeam::IntensityMap * vWeight
 	const int nWeightsSize = (int) vWeights->GetBufferedRegion().GetSize()[0];
 	const int nFiltWeightsSize = (int) vFiltWeights->GetBufferedRegion().GetSize()[0];
 
-	ASSERT(nWeightsSize == GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount());
-	ASSERT(nFiltWeightsSize == GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount());
+	assert(nWeightsSize == GetPlan(nLevel)->GetBeamAt(0)->GetBeamletCount());
+	assert(nFiltWeightsSize == GetPlan(nLevel-1)->GetBeamAt(0)->GetBeamletCount());
 
 	// the ASSERTs above are compiled out in release, where a size mismatch
 	//	silently overruns the buffers indexed below (the write extent comes
