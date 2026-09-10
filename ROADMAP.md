@@ -63,6 +63,52 @@ tail:
   already proposes moving them under `foundation/` and `tools/`; it has not
   been executed.
 - No CI. Nothing checks that the tree builds.
+- **A CMake tree already exists on a branch.** `copilot/add-cmake-support-to-projects`
+  (open PR #46, started 2025-11, last touched 2026-07-23) carries a root
+  `CMakeLists.txt` with `BUILD_*` options, `RtModel/`, `Graph/` and
+  `Brimstone/` target files with explicit source lists, `cmake/FindIPP.cmake`
+  (NuGet then oneAPI lookup), `cmake/FindITKManual.cmake` (ITK from a
+  `C:/kits` source+build tree), `cmake/vnl_fix.h`, `validate_cmake.sh`,
+  `build_windows.bat`, and `CMAKE_MIGRATION.md` / `CMAKE_SUMMARY.md`. Its
+  own status is "implementation complete, awaiting validation": IPP is
+  disabled in the root file pending an include-order problem, ITK is
+  located by hard-coded `C:/kits` paths rather than vcpkg, there is no
+  `vcpkg.json` or presets, DCMTK is optional, `PrescriptionBar.cpp` is
+  excluded as C++/CLI, and it predates WebView2 so the two web hosts and
+  the `webassets` deploy are absent. The branch is 241 commits ahead and
+  20 behind main, and a trial merge conflicts in 12 files (both
+  `vcxproj`s, `PlanarView.cpp`, `PrescriptionToolbar.cpp`,
+  `ConjGradOptimizer.cpp`, `Histogram.cpp`, `HistogramGradient.cpp`,
+  `VectorOps.h`, `.gitignore`, and it deletes `Brimstone/StdAfx.h` which
+  main has since modified). It also bundles unrelated work: C++17 header
+  modernization that main has meanwhile done its own way, and a UMAP
+  component-embedding viewer with an 88k-line `data.json`.
+  `wip/cmake-docs` is the same branch plus one 451-file "preserved during
+  repo reconciliation" snapshot; treat it as an archive, not a base.
+
+### Starting point: salvage PR #46, do not merge it
+
+The CMake files on that branch are the right shape and worth keeping; the
+branch around them is not mergeable. Plan:
+
+1. New branch off main. Cherry-pick or copy only the build files:
+   root `CMakeLists.txt`, the three target files, `cmake/FindIPP.cmake`,
+   `cmake/vnl_fix.h`, `CMAKE_MIGRATION.md` (as the checklist),
+   `validate_cmake.sh`. Leave the source edits, the `vcxproj` edits, the
+   UMAP pipeline, and `FindITKManual.cmake` behind.
+2. Replace the ITK/VXL discovery with vcpkg manifest mode
+   (`vcpkg.json` + `CMakePresets.json`), matching the paths the live
+   `vcxproj` already uses, so `FindITKManual.cmake` is unnecessary.
+3. Add what the branch predates: `WebView2Host.cpp`, `DvhViewHtml` /
+   `OptGraphHtml`, the `webview2` vcpkg port, and the `webassets` deploy
+   step. Re-check the source lists against the current tree
+   (`RtModelSmokeTest`, new RtModel files since 2026-06).
+4. Re-enable IPP through `FindIPP.cmake` behind `option(DH_USE_IPP)`; the
+   include-order problem it hit is a `stdafx.h` ordering issue, not a
+   CMake one, and can be fixed by putting the IPP include dirs on the
+   `RtModel` target's PUBLIC includes.
+5. Close PR #46 with a note pointing at the new branch once the parity
+   check passes. Keep `wip/cmake-docs` untouched.
 
 ### Target
 
@@ -121,8 +167,9 @@ CMake build produces an identical exe.
 
 ### Execution order
 
-1. Add root `CMakeLists.txt`, `vcpkg.json`, `CMakePresets.json`, and the
-   three target files; keep `Brimstone_src.sln` until parity is shown.
+1. Salvage the build files from PR #46 onto a new branch (see "Starting
+   point" above), add `vcpkg.json` and `CMakePresets.json`; keep
+   `Brimstone_src.sln` until parity is shown.
 2. Parity check: build both, run `run_brimstone_knee_7beam.bat` against
    the CMake-built exe, and confirm the converged objective matches. Run
    `RtModelSmokeTest` as a CTest target.
@@ -444,9 +491,9 @@ a posterior. Both are addressed by steps 1 and 2 above.
 
 ## Immediate next steps
 
-1. Root CMake tree with vcpkg manifest for `RtModel`, `Graph`, `Brimstone`;
-   parity-check the exe against `Brimstone_src.sln` with the knee
-   automation (section 0, steps 1 and 2).
+1. Salvage the CMake files from PR #46 onto a fresh branch, add the vcpkg
+   manifest and presets and the WebView2 pieces, and parity-check the exe
+   against `Brimstone_src.sln` with the knee automation (section 0).
 2. Build the PenBeam container and time one run; decide whether the
    aperture-loop change to the Fortran main program is needed (section 1b).
 3. Decide the 2D fluence representation and beamlet storage strategy
