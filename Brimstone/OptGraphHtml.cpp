@@ -6,9 +6,11 @@
 
 // A dependency-free canvas convergence chart: one colored line per pyramid
 // level (matching the legacy graph -- L0/finest=red, L1=green, L2=blue,
-// L3/coarsest=magenta), plotting -log10(F) against the global iteration index,
-// with auto-scaled axes, grid, title and legend. addPoint()/resetChart() are
-// installed on window for the host to call.
+// L3/coarsest=magenta), plotting log10(KL) against the global iteration index,
+// with auto-scaled axes, grid, title, legend, and a readout of the hovered (or
+// latest) point's KL and F. KL rather than F because F = KL - w*H goes negative
+// under the entropy regularizer and cannot sit on a log axis.
+// addPoint()/resetChart() are installed on window for the host to call.
 const wchar_t* g_optGraphHtml = LR"HTML(<!doctype html>
 <html><head><meta charset="utf-8"><style>
   html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden;
@@ -77,18 +79,42 @@ const wchar_t* g_optGraphHtml = LR"HTML(<!doctype html>
       ctx.fillStyle=COLORS[i]; ctx.beginPath(); ctx.arc(X,Y,2.5,0,6.2832); ctx.fill();
     }
     ctx.fillStyle='#dddddd'; ctx.textAlign='left'; ctx.textBaseline='top';
-    ctx.fillText('Convergence:  -log10(F)  vs  iteration',PAD.l,5);
+    ctx.fillText('Convergence:  log10(KL)  vs  iteration',PAD.l,5);
     ctx.textAlign='right';
     for(i=0;i<4;i++){ if(series[i].length<1)continue;
       ctx.fillStyle=COLORS[i]; ctx.fillText(NAMES[i],W-PAD.r,5+i*14);
     }
+    // readout: the hovered point, else the most recent one. F (= KL - w*H)
+    //	is shown here because it is not plottable on a log axis once negative.
+    var r=hover||last;
+    if(r){
+      ctx.fillStyle=COLORS[r.level]; ctx.textAlign='left'; ctx.textBaseline='bottom';
+      ctx.fillText((hover?'iter ':'last: iter ')+r.x+'  '+NAMES[r.level].split(' ')[0]+
+        '   KL='+fmt(r.kl)+'   F='+fmt(r.f), PAD.l, H-2);
+      if(hover){ X=px(r.x); Y=py(r.y); ctx.strokeStyle=COLORS[r.level]; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.arc(X,Y,4,0,6.2832); ctx.stroke(); }
+    }
   }
+  function fmt(v){ return (v===undefined||!isFinite(v))?'-':(Math.abs(v)<1e-3||Math.abs(v)>=1e4?v.toExponential(3):v.toPrecision(4)); }
   function loop(){ if(dirty)draw(); window.requestAnimationFrame(loop); }
 
-  window.addPoint=function(level,x,y){
-    if(level>=0&&level<4&&isFinite(y)){ series[level].push({x:x,y:y}); dirty=true; }
+  var last=null, hover=null;
+  // hover: nearest point by iteration index across all levels
+  cv.addEventListener('mousemove',function(e){
+    var b=bounds(), pw=W-PAD.l-PAD.r, xv=b.x0+(e.clientX-PAD.l)/pw*(b.x1-b.x0);
+    var best=null, bd=Infinity, i, j, s, d;
+    for(i=0;i<4;i++){s=series[i]; for(j=0;j<s.length;j++){ d=Math.abs(s[j].x-xv); if(d<bd){bd=d;best=s[j];} }}
+    if(best!==hover){ hover=best; dirty=true; }
+  });
+  cv.addEventListener('mouseleave',function(){ if(hover){hover=null; dirty=true;} });
+
+  // addPoint(level, iteration, log10(KL), F, KL): y is what is plotted; F and
+  //	KL are kept for the readout.
+  window.addPoint=function(level,x,y,f,kl){
+    if(level>=0&&level<4&&isFinite(y)){
+      var p={x:x,y:y,f:f,kl:kl,level:level}; series[level].push(p); last=p; dirty=true; }
   };
-  window.resetChart=function(){ for(var i=0;i<4;i++)series[i].length=0; dirty=true; };
+  window.resetChart=function(){ for(var i=0;i<4;i++)series[i].length=0; last=null; hover=null; dirty=true; };
 
   resize(); loop();
 })();

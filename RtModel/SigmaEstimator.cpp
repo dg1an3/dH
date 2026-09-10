@@ -94,11 +94,9 @@ std::vector<REAL> SigmaEstimator::EstimatePyramidSigmas(
 	VolumeReal* pDose = pPlan->GetDoseMatrix();
 
 	// Iterate through all VOI terms
-	POSITION pos = pPresc->m_mapVOITs.GetStartPosition();
-	while (pos != NULL) {
-		Structure* pStruct = NULL;
-		VOITerm* pVOIT = NULL;
-		pPresc->m_mapVOITs.GetNextAssoc(pos, pStruct, pVOIT);
+	for (auto& entry : pPresc->m_mapVOITs) {
+		Structure* pStruct = entry.first;
+		VOITerm* pVOIT = entry.second;
 
 		if (pStruct && pVOIT) {
 			// Estimate sigma for this structure
